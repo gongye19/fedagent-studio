@@ -96,12 +96,10 @@ const LOCATIONS: Record<ExecutionPattern, Omit<ExecutionLocations, "controlPlane
 /** 已经能推导出的部分，供右侧面板在选择过程中实时展示。 */
 export type PlanPreview = {
   scenario?: string;
-  adoption?: Adoption;
   pattern?: string;
   exchanged?: string;
   computeKind?: string;
   runner?: string;
-  references?: string[];
   mechanisms?: string[];
 };
 
@@ -110,16 +108,13 @@ export function planPreview(selection: Selection): PlanPreview {
   if (!scenario) return {};
   const preview: PlanPreview = {
     scenario: scenario.label,
-    adoption: scenario.adoption,
     pattern: PATTERN_LABEL[scenario.pattern(selection)],
   };
   const strategy = strategyOf(selection.strategy);
   if (strategy) {
-    preview.adoption = combinedAdoption(scenario.adoption, strategy.adoption);
     preview.exchanged = strategy.exchanged;
     preview.computeKind = COMPUTE_KIND_LABEL[strategy.computeKind];
     preview.runner = strategy.runner;
-    preview.references = [...strategy.references];
   }
   const protection = protectionOf(selection.protection);
   if (protection) {
@@ -151,7 +146,6 @@ export function buildRunPlan(selection: Selection): FrontendRunPlan | null {
     if (option?.warning) warnings.push(option.warning);
   }
   const adoption = combinedAdoption(scenario.adoption, strategy.adoption);
-  if (adoption === "frontier") warnings.push("包含大模型 / Agent 前沿方法，工具链和最佳实践仍在快速变化");
 
   return {
     schemaVersion: "frontend.run-plan/v1",

@@ -91,3 +91,16 @@
   3. 测试：删去已移除方法的用例，新增"只有大模型 / Agent 相关标前沿"和"纵向不收录神经网络"的检查，共 50 个。
   4. 文档：重写 DIMENSIONS（新增收录原则和"未收录"清单），更新 README、GOAL（C9 退役，新增 C13）、ARCHITECTURE、PROGRESS、DECISIONS（D13）、DEVELOPMENT。
   5. 验证：`npm run check` 通过；浏览器检查模板标签和 PEFT 完整运行。
+
+## T18：去掉"前沿"标注和"参考实现"小字
+
+- 类型：Delivery（正式交付，界面调整）
+- 时间：2026-09-24
+- 状态：完成
+- 相关：C13（退役）→ C14；影响 L1
+- 用户要求：不用标注"前沿"；"参考实现"那行小字全部去掉。
+- 步骤：
+  1. 界面：删除 `AdoptionBadge`（选项卡片、模板、已匹配场景、平台推导面板）；删除选项卡片的"参考实现"行、平台推导面板的"参考实现"行、沙箱阶段 Runner 后的参考说明；模板提示文字去掉"前沿"说明；准入不再输出"前沿方法"提示。
+  2. 注册表保留 `adoption` 和 `references` 作为内部数据，FrontendRunPlan 仍记录。
+  3. 测试：50 个通过。
+  4. 文档：DIMENSIONS、GOAL（C13 退役，新增 C14）、README、PROGRESS、ARCHITECTURE，更新截图。

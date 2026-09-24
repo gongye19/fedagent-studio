@@ -306,7 +306,7 @@ button:active:not(:disabled) { transform: translateY(1px); }
 .option-tile:hover:not(:disabled) { background: var(--surface); border-color: #a1a1aa; }
 .option-tile--selected { border-color: var(--foreground); box-shadow: inset 0 0 0 1px var(--foreground); }
 .option-tile:disabled { cursor: not-allowed; background: var(--surface); border-style: dashed; }
-.option-tile:disabled .option-top strong, .option-tile:disabled .option-hint, .option-tile:disabled .option-meta { color: var(--faint); }
+.option-tile:disabled .option-top strong, .option-tile:disabled .option-hint { color: var(--faint); }
 .option-tile:disabled .badge { opacity: .55; }
 .option-tile--selected:disabled { cursor: default; background: var(--background); border-style: solid; }
 .option-tile--selected:disabled .option-top strong { color: var(--foreground); }
@@ -315,7 +315,6 @@ button:active:not(:disabled) { transform: translateY(1px); }
 .option-top { display: flex; gap: 8px; justify-content: space-between; align-items: center; }
 .option-top strong { font-size: 12px; font-weight: 570; }
 .option-hint { color: var(--secondary); font-size: 11px; line-height: 1.45; }
-.option-meta { color: var(--muted); font-family: var(--mono); font-size: 9px; }
 .option-reason { color: var(--danger); font-size: 10px; line-height: 1.45; }
 .option-warning { color: #a15c07; font-size: 10px; line-height: 1.45; }
 .option-warning::before, .option-reason::before { margin-right: 4px; font-weight: 700; }
@@ -323,7 +322,6 @@ button:active:not(:disabled) { transform: translateY(1px); }
 .option-reason::before { content: "×"; }
 
 .badge { flex: none; padding: 1px 6px; color: var(--secondary); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; font-family: var(--mono); font-size: 9px; font-weight: 500; line-height: 1.6; white-space: nowrap; }
-.badge--frontier { color: #6d28d9; background: #f5f3ff; border-color: #ddd6fe; }
 .badge--auto { color: var(--muted); border-style: dashed; }
 
 .scenario-match { padding: 12px 14px; display: grid; gap: 4px; background: #fafaf9; border: 1px solid var(--border); border-left: 3px solid var(--foreground); border-radius: var(--radius); }

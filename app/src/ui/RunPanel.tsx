@@ -2,7 +2,6 @@ import { planPreview } from "../domain/plan";
 import { isComplete } from "../domain/selection";
 import { stageOf, type StageStatus } from "../domain/run";
 import type { State } from "../state/store";
-import { AdoptionBadge } from "./common";
 import { FLOW_STEPS, isRunStage, type FlowStepId } from "./flow";
 
 type Props = {
@@ -43,7 +42,6 @@ export default function RunPanel({ state, minParticipants, activeStep, onSelectS
     ["联邦对象", preview.exchanged],
     ["计算类型", preview.computeKind],
     ["Runner", preview.runner],
-    ["参考实现", preview.references?.join(" / ")],
     ["保护机制", preview.mechanisms?.join(" · ")],
   ];
 
@@ -75,7 +73,6 @@ export default function RunPanel({ state, minParticipants, activeStep, onSelectS
       <section className="derived" aria-labelledby="derived-title">
         <header className="derived-head">
           <h3 id="derived-title">平台推导</h3>
-          <AdoptionBadge adoption={preview.adoption} />
         </header>
         <p className="derived-scenario">{preview.scenario ?? "完成维度 1–5 后匹配场景"}</p>
         <dl>

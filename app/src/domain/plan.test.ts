@@ -55,14 +55,12 @@ describe("frontend run plan", () => {
     expect(plan?.strategy.id).toBe("fa-psi-stats");
   });
 
-  it("marks the plan as frontier when the scenario or strategy is a large-model / agent method", () => {
+  it("records internally whether the plan uses a large-model / agent method", () => {
     const rag = buildRunPlan(completed("fedrag"));
     expect(rag?.adoption).toBe("frontier");
-    expect(rag?.warnings.some((warning) => warning.includes("前沿"))).toBe(true);
 
     const training = buildRunPlan(completed("model-training"));
     expect(training?.adoption).toBe("mainstream");
-    expect(training?.warnings.some((warning) => warning.includes("前沿"))).toBe(false);
   });
 
   it("previews derived values while the user is still choosing", () => {

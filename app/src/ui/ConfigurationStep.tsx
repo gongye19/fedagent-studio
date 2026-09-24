@@ -17,11 +17,9 @@ import {
   SCENARIOS,
   SCENARIO_GROUP_LABEL,
   protectionOf,
-  strategyOf,
   type ScenarioGroup,
 } from "../domain/taxonomy";
 import type { Action } from "../state/store";
-import { AdoptionBadge } from "./common";
 
 type Props = {
   selection: Selection;
@@ -111,7 +109,7 @@ function TemplateBar({
       <header className="template-head">
         <div>
           <h3 id="template-title">从场景模板开始</h3>
-          <p>一键填好维度 1–5，策略和保护仍由你选择。只收录主流方法；标"前沿"的是大模型 / Agent 相关、仍在快速演进的方法。</p>
+          <p>一键填好维度 1–5，策略和保护仍由你选择。也可以直接从下方逐层选择。</p>
         </div>
         {onClear && !locked ? <button type="button" className="text-button" onClick={onClear}>清空</button> : null}
       </header>
@@ -131,7 +129,6 @@ function TemplateBar({
                   onClick={() => onApply(scenario.id)}
                 >
                   <span>{scenario.label}</span>
-                  <AdoptionBadge adoption={scenario.adoption} />
                 </button>
               ))}
             </div>
@@ -203,7 +200,6 @@ function OptionTile({
   locked: boolean;
   onChoose: (value: string) => void;
 }) {
-  const strategy = strategyOf(option.choice.id);
   return (
     <button
       type="button"
@@ -215,10 +211,8 @@ function OptionTile({
     >
       <span className="option-top">
         <strong>{option.choice.label}</strong>
-        <AdoptionBadge adoption={option.choice.adoption} />
       </span>
       <span className="option-hint">{option.choice.hint}</span>
-      {strategy ? <span className="option-meta">参考实现 · {strategy.references.join(" / ")}</span> : null}
       {option.warning ? <span className="option-warning">{option.warning}</span> : null}
     </button>
   );
@@ -232,7 +226,6 @@ function ScenarioMatch({ selection }: { selection: Selection }) {
       <span className="scenario-match-label">已匹配场景</span>
       <div className="scenario-match-main">
         <strong>{scenario.label}</strong>
-        <AdoptionBadge adoption={scenario.adoption} />
         <span className="badge">{PATTERN_LABEL[scenario.pattern(selection)]}</span>
       </div>
       <p>{scenario.summary}</p>

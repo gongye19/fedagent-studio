@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { ADOPTION_LABEL, type Adoption } from "../domain/taxonomy";
 
 export type Tone = "complete" | "running" | "failed" | "ready";
 
@@ -49,12 +48,6 @@ export function StageMessage({ text, running = false, tone }: { text: string; ru
       <p>{text}</p>
     </div>
   );
-}
-
-/** 主流方法不打标签；只标出大模型 / Agent 相关的前沿方法。 */
-export function AdoptionBadge({ adoption }: { adoption?: Adoption }) {
-  if (adoption !== "frontier") return null;
-  return <span className="badge badge--frontier">{ADOPTION_LABEL.frontier}</span>;
 }
 
 export function Facts({ items }: { items: readonly (readonly [string, ReactNode])[] }) {

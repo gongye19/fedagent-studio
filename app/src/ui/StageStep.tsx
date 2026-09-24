@@ -72,7 +72,7 @@ function body(stageId: RunStage, run: Run): ReactNode {
       return (
         <Facts
           items={[
-            ["Runner", `${plan.runner}（参考 ${plan.references.join(" / ")}）`],
+            ["Runner", plan.runner],
             ["协调方", plan.locations.coordinator],
             ["参与方侧", plan.locations.participantWorker],
             ["网络", "默认拒绝"],
