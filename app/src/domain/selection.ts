@@ -5,8 +5,9 @@
  * 1. 只有前面的维度约束后面的维度。
  * 2. 不适用的维度没有可选项；上游没答完时，下游也没有可选项（界面上置灰）。
  * 3. 上游改选后，下游失效的选择被清空；只剩一个可选项时自动选中。
- * 4. 场景（维度 1）一旦确定（直接选场景，或子项 1.1–1.6 选到能确定场景），子项只能在该场景内调整：
- *    会让路径离开该场景的选项不可选，且子项不能取消。换场景要重新选场景，或再点一次当前场景取消。
+ * 4. 场景（维度 1）一旦确定，子项只能在该场景内调整：会让路径离开该场景的选项不可选，且子项不能取消。
+ * 5. 界面交互（displayOptions / toggle）要求先选场景，未选场景时子项不可选；
+ *    choose 保留逐项选择的底层规则，用于枚举场景路径和测试依赖关系。
  */
 import {
   ARTIFACT_KINDS,
@@ -298,7 +299,8 @@ function candidatesOf(id: LayerId, selection: Selection): { choice: Choice; grou
  * 其余置灰。维度不适用于当前路径时整组置灰。
  */
 export function displayOptions(id: LayerId, selection: Selection): DisplayOption[] {
-  const states = layerOptions(id, selection);
+  // 先选场景：未选场景时，场景子项全部不可选。
+  const states = SCENARIO_LAYERS.includes(id) && !selection.scenario ? [] : layerOptions(id, selection);
   return candidatesOf(id, selection).map(({ choice, group }) => {
     const state = states.find((option) => option.choice.id === choice.id);
     return { choice, group, available: Boolean(state?.available), warning: state?.available ? state.warning : undefined };
@@ -358,6 +360,7 @@ export function canDeselect(selection: Selection, layer: LayerId): boolean {
 
 /** 点一个选项：未选则选中；已选则取消（场景确定后的子项除外）。 */
 export function toggle(selection: Selection, layer: LayerId, value: string): Selection {
+  if (SCENARIO_LAYERS.includes(layer) && !selection.scenario) return selection;
   if (selection[layer] !== value) return choose(selection, layer, value);
   if (!canDeselect(selection, layer)) return selection;
   return normalize({ ...selection, [layer]: null });

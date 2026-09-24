@@ -10,13 +10,11 @@ import {
   isAutoSelected,
   layerApplies,
   paramsFor,
-  scenarioFor,
   type DisplayOption,
   type LayerDefinition,
   type Selection,
 } from "../domain/selection";
 import {
-  PATTERN_LABEL,
   SCENARIOS,
   SCENARIO_GROUP_LABEL,
   protectionOf,
@@ -33,13 +31,12 @@ type Props = {
 const GROUPS: ScenarioGroup[] = ["training", "analysis", "knowledge"];
 
 /**
- * 维度 1 是场景，子项 1.1–1.6 用来定位场景：可以直接选场景，也可以逐个子项选；
- * 场景确定后，子项中会离开该场景的选项置灰，且子项不能取消。维度 2–4 在场景之后。
- * 所有候选项始终展开；已选选项再点一次即取消。
+ * 先选场景（维度 1），子项 1.1–1.6 自动填好，之后只能在场景内调整且不能取消。
+ * 维度 2–4 在场景之后。所有候选项始终展开；已选选项再点一次即取消。
  */
 export default function ConfigurationStep({ selection, locked, dispatch }: Props) {
-  const current = currentLayer(selection);
-  const scenario = scenarioFor(selection);
+  // 未选场景时，当前该回答的是场景本身。
+  const current = selection.scenario ? currentLayer(selection) : null;
   const params = paramsFor(selection);
 
   function renderLayer(layer: LayerDefinition) {
@@ -50,7 +47,7 @@ export default function ConfigurationStep({ selection, locked, dispatch }: Props
         options={displayOptions(layer.id, selection)}
         value={selection[layer.id]}
         current={layer.id === current}
-        inactive={!layerApplies(layer.id, selection)}
+        inactive={!layerApplies(layer.id, selection) || (SCENARIO_LAYERS.includes(layer.id) && !selection.scenario)}
         // 场景确定后，子项的自动选中原因很明显，不再逐个标注。
         auto={Boolean(selection[layer.id]) && !(SCENARIO_LAYERS.includes(layer.id) && selection.scenario) && isAutoSelected(layer.id, selection)}
         fixed={!canDeselect(selection, layer.id)}
@@ -69,20 +66,19 @@ export default function ConfigurationStep({ selection, locked, dispatch }: Props
         aria-labelledby="scenario-card-title"
       >
         <header className="layer-head">
-          <span className="layer-step" aria-hidden="true">{selection.scenario ? "✓" : SCENARIO_STEP.code}</span>
+          <span className="layer-step" aria-hidden="true">{SCENARIO_STEP.code}</span>
           <div className="layer-heading">
-            <h3 id="scenario-card-title"><span className="layer-number">维度 {SCENARIO_STEP.code}</span>{SCENARIO_STEP.title}</h3>
-            <p>直接选一个场景，下面的子项会自动填好；也可以逐个子项往下选。场景确定后子项只能在场景内调整，再点一次当前场景即可取消。</p>
+            <h3 id="scenario-card-title">{SCENARIO_STEP.title}</h3>
+            <p>{SCENARIO_STEP.question}</p>
           </div>
         </header>
-        <ScenarioPicker
-          activeId={selection.scenario ?? undefined}
+        <ScenarioOptions
+          activeId={selection.scenario}
           locked={locked}
           onApply={(id) => dispatch({ type: "applyTemplate", scenario: id })}
           onClear={() => dispatch({ type: "clearScenario" })}
         />
-        {scenario ? <ScenarioMatch selection={selection} /> : null}
-        <ol className="scenario-dimensions" aria-label="场景子项 1.1–1.6">
+        <ol className="scenario-dimensions" aria-label="场景子项">
           {LAYERS.filter((layer) => SCENARIO_LAYERS.includes(layer.id)).map((layer) => (
             <li key={layer.id}>{renderLayer(layer)}</li>
           ))}
@@ -99,7 +95,7 @@ export default function ConfigurationStep({ selection, locked, dispatch }: Props
             <header className="layer-head">
               <span className="layer-step" aria-hidden="true">{PARAMS_STEP.code}</span>
               <div className="layer-heading">
-                <h3 id="layer-params"><span className="layer-number">维度 {PARAMS_STEP.code}</span>{PARAMS_STEP.title}</h3>
+                <h3 id="layer-params">{PARAMS_STEP.title}</h3>
                 <p>{params.length ? PARAMS_STEP.question : "确定场景后显示该场景的可调参数"}</p>
               </div>
             </header>
@@ -126,38 +122,41 @@ export default function ConfigurationStep({ selection, locked, dispatch }: Props
   );
 }
 
-function ScenarioPicker({
+function ScenarioOptions({
   activeId, locked, onApply, onClear,
 }: {
-  activeId?: string;
+  activeId: string | null;
   locked: boolean;
   onApply: (id: (typeof SCENARIOS)[number]["id"]) => void;
   onClear: () => void;
 }) {
   return (
-    <div className="scenario-picker" role="radiogroup" aria-label="场景">
+    <>
       {GROUPS.map((group) => (
-        <div className="template-group" key={group}>
-          <span className="template-group-label">{SCENARIO_GROUP_LABEL[group]}</span>
-          <div className="template-chips">
-            {SCENARIOS.filter((scenario) => scenario.group === group).map((scenario) => (
-              <button
-                type="button"
-                role="radio"
-                className={`template-chip${activeId === scenario.id ? " template-chip--active" : ""}`}
-                key={scenario.id}
-                aria-checked={activeId === scenario.id}
-                title={scenario.summary}
-                disabled={locked}
-                onClick={() => (activeId === scenario.id ? onClear() : onApply(scenario.id))}
-              >
-                {scenario.label}
-              </button>
-            ))}
+        <div className="option-group" key={group}>
+          <span className="option-group-label">{SCENARIO_GROUP_LABEL[group]}</span>
+          <div className="option-grid" role="radiogroup" aria-label={SCENARIO_GROUP_LABEL[group]}>
+            {SCENARIOS.filter((scenario) => scenario.group === group).map((scenario) => {
+              const selected = activeId === scenario.id;
+              return (
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  className={`option-tile${selected ? " option-tile--selected" : ""}`}
+                  key={scenario.id}
+                  disabled={locked}
+                  onClick={() => (selected ? onClear() : onApply(scenario.id))}
+                >
+                  <span className="option-top"><strong>{scenario.label}</strong></span>
+                  <span className="option-hint">{scenario.summary}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       ))}
-    </div>
+    </>
   );
 }
 
@@ -183,10 +182,9 @@ function LayerCard({
   return (
     <section className={`layer-card layer-card--${state}`} aria-labelledby={headingId}>
       <header className="layer-head">
-        <span className="layer-step" aria-hidden="true">{value ? "✓" : layer.code}</span>
+        <span className="layer-step" aria-hidden="true">{layer.code}</span>
         <div className="layer-heading">
           <h3 id={headingId}>
-            <span className="layer-number">{layer.code.includes(".") ? layer.code : `维度 ${layer.code}`}</span>
             {title}
             {auto ? <span className="badge badge--auto">自动选中</span> : null}
           </h3>
@@ -243,21 +241,6 @@ function OptionTile({
       <span className="option-hint">{option.choice.hint}</span>
       {option.warning ? <span className="option-warning">{option.warning}</span> : null}
     </button>
-  );
-}
-
-function ScenarioMatch({ selection }: { selection: Selection }) {
-  const scenario = scenarioFor(selection);
-  if (!scenario) return null;
-  return (
-    <div className="scenario-match" role="status">
-      <span className="scenario-match-label">当前场景</span>
-      <div className="scenario-match-main">
-        <strong>{scenario.label}</strong>
-        <span className="badge">{PATTERN_LABEL[scenario.pattern(selection)]}</span>
-      </div>
-      <p>{scenario.summary}</p>
-    </div>
   );
 }
 

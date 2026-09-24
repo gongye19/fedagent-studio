@@ -154,15 +154,21 @@ describe("layered selection", () => {
     expect(empty.map((option) => option.choice.id)).toEqual(["cross-silo", "cross-device"]);
     expect(empty.every((option) => !option.available)).toBe(true);
 
-    const train = choose(EMPTY_SELECTION, "goal", "train");
-    const contributions = displayOptions("contribution", train);
+    const merge = applyTemplate("model-merge");
+    const contributions = displayOptions("contribution", merge);
     expect(contributions).toHaveLength(6);
-    expect(contributions.filter((option) => option.available).map((option) => option.choice.id)).toEqual(["local-data", "trained-artifact"]);
+    expect(contributions.filter((option) => option.available).map((option) => option.choice.id)).toEqual(["trained-artifact"]);
 
-    const vertical = pick(train, [["contribution", "local-data"], ["partition", "vertical"]]);
-    const topology = displayOptions("topology", vertical);
+    const topology = displayOptions("topology", applyTemplate("vertical-modeling"));
     expect(topology.filter((option) => option.available).map((option) => option.choice.id)).toEqual(["cross-silo"]);
     expect(topology.every((option) => !("reason" in option))).toBe(true);
+  });
+
+  it("requires a scenario before any scenario sub-item can be chosen", () => {
+    expect(displayOptions("goal", EMPTY_SELECTION).every((option) => !option.available)).toBe(true);
+    expect(toggle(EMPTY_SELECTION, "goal", "train")).toBe(EMPTY_SELECTION);
+    const peft = applyTemplate("peft-finetune");
+    expect(displayOptions("goal", peft).find((option) => option.choice.id === "train")?.available).toBe(true);
   });
 
   it("lists every strategy grouped by scenario and enables only the matched scenario's", () => {
@@ -226,14 +232,14 @@ describe("layered selection", () => {
   });
 
   it("deselects an option when it is clicked again and clears what depended on it", () => {
-    const partial = pick(EMPTY_SELECTION, [["goal", "train"], ["contribution", "local-data"], ["partition", "horizontal"]]);
-    const undone = toggle(partial, "partition", "horizontal");
-    expect(undone.partition).toBeNull();
-    expect(undone.contribution).toBe("local-data");
+    const merge = choose(choose(applyTemplate("model-merge"), "strategy", "merge-ties"), "protection", "standard");
+    const noProtection = toggle(merge, "protection", "standard");
+    expect(noProtection.protection).toBeNull();
+    expect(noProtection.strategy).toBe("merge-ties");
 
-    const empty = toggle(partial, "goal", "train");
-    expect(empty.goal).toBeNull();
-    expect(empty.contribution).toBeNull();
+    const noStrategy = toggle(merge, "strategy", "merge-ties");
+    expect(noStrategy.strategy).toBeNull();
+    expect(noStrategy.protection).toBeNull();
   });
 
   it("does not let scenario sub-items be deselected once the scenario is set", () => {
