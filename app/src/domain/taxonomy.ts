@@ -1,0 +1,588 @@
+/**
+ * 联邦协作的分层维度与候选项注册表。
+ *
+ * 维度按"用户最先能回答的问题"排序：协作目标 → 各方投入 → 数据关系 → 参与方形态 →
+ * 模型形态 → 协作策略 → 安全与信任 → 场景参数。只有前面的维度约束后面的维度。
+ * 场景模板不是入口下拉框，而是维度 1–5 组合的落点。完整设计见 docs/DIMENSIONS.md。
+ */
+
+export type Maturity = "mature" | "pilot" | "research";
+
+export const MATURITY_LABEL: Record<Maturity, string> = {
+  mature: "成熟",
+  pilot: "试点",
+  research: "研究",
+};
+
+const MATURITY_RANK: Record<Maturity, number> = { mature: 2, pilot: 1, research: 0 };
+
+export function weakestMaturity(...levels: Maturity[]): Maturity {
+  return levels.reduce((weakest, level) => (MATURITY_RANK[level] < MATURITY_RANK[weakest] ? level : weakest));
+}
+
+/** 协作策略在数学上做的是哪类计算。保护机制能不能配它，由这个字段推出。 */
+export type ComputeKind = "additive" | "compare" | "compose" | "protocol" | "content";
+
+export const COMPUTE_KIND_LABEL: Record<ComputeKind, string> = {
+  additive: "可加（求和 / 加权平均）",
+  compare: "需比较大小（排序、投票、裁剪）",
+  compose: "拼接组合（需要明文结构）",
+  protocol: "纵向协议（加密交换内置）",
+  content: "需理解内容（语义合并）",
+};
+
+export type ExecutionPattern =
+  | "iterative"
+  | "single-round"
+  | "vertical-protocol"
+  | "artifact-processing"
+  | "query-time"
+  | "evaluation-only";
+
+export const PATTERN_LABEL: Record<ExecutionPattern, string> = {
+  iterative: "多轮联邦",
+  "single-round": "单轮聚合",
+  "vertical-protocol": "纵向协议",
+  "artifact-processing": "产物处理",
+  "query-time": "查询时联邦",
+  "evaluation-only": "纯评测",
+};
+
+export type Choice = {
+  id: string;
+  label: string;
+  hint: string;
+  maturity?: Maturity;
+};
+
+export type GoalId = "train" | "evaluate" | "analytics" | "retrieval" | "agent";
+
+/* 维度 1：协作目标 */
+export const GOALS: readonly (Choice & { id: GoalId })[] = [
+  { id: "train", label: "训练模型", hint: "共同得到一个或多个模型" },
+  { id: "evaluate", label: "评估模型", hint: "在多方数据或基准上验证已有模型" },
+  { id: "analytics", label: "统计分析", hint: "联合计算统计量，不训练模型" },
+  { id: "retrieval", label: "检索增强问答", hint: "跨多方知识库检索并回答" },
+  { id: "agent", label: "Agent 与技能协作", hint: "共享轨迹、技能或 Agent 策略" },
+];
+
+/* 维度 2：各方投入。回答"每个参与方拿出来的是什么"，决定输入接入方式和执行模式。 */
+export const CONTRIBUTIONS: readonly (Choice & { goals: readonly GoalId[] })[] = [
+  { id: "local-data", label: "本地数据（不出域）", hint: "数据留在各方环境，只交换计算结果", goals: ["train", "analytics"] },
+  { id: "trained-artifact", label: "已训练的模型或 Adapter", hint: "各方已有训练好的产物，交给平台聚合", goals: ["train", "agent"] },
+  { id: "local-test-data", label: "本地测试数据", hint: "待评模型下发到各方，在本地数据上评测", goals: ["evaluate"] },
+  { id: "model-endpoint", label: "模型服务 Endpoint", hint: "各方提供模型接口，在统一基准上评测", goals: ["evaluate"] },
+  { id: "documents-index", label: "文档与索引", hint: "各方保留自己的知识库和向量索引", goals: ["retrieval"] },
+  { id: "traces-skills", label: "轨迹与 Skill", hint: "各方提供 Agent 执行轨迹、经验卡或 Skill 包", goals: ["agent"] },
+];
+
+/* 维度 3：数据关系。仅在各方投入为"本地数据"时出现。 */
+export const PARTITIONS: readonly (Choice & { open: boolean })[] = [
+  { id: "horizontal", label: "横向", hint: "字段相同，样本不同", maturity: "mature", open: true },
+  { id: "vertical", label: "纵向", hint: "样本重叠，字段不同，需要样本对齐", maturity: "mature", open: true },
+  { id: "transfer", label: "混合 / 联邦迁移", hint: "样本和字段都只有少量重叠", maturity: "research", open: false },
+];
+
+/* 维度 4：参与方形态 */
+export const TOPOLOGIES: readonly Choice[] = [
+  { id: "cross-silo", label: "跨机构 Cross-silo", hint: "2 到几十个稳定在线的机构节点" },
+  { id: "cross-device", label: "端侧设备 Cross-device", hint: "大量设备，随时可能离线" },
+  { id: "hybrid-nodes", label: "混合节点", hint: "机构节点与边缘节点混合" },
+];
+
+/* 维度 5：模型形态，分"模型类别"和"共享方式"两个问题。仅在训练模型时出现。 */
+export const MODEL_CLASSES: readonly Choice[] = [
+  { id: "neural", label: "神经网络", hint: "CNN、Transformer、大模型等" },
+  { id: "tree", label: "树模型", hint: "GBDT、XGBoost 等" },
+  { id: "linear", label: "线性模型", hint: "逻辑回归、线性回归" },
+];
+
+export const SHARING_MODES: readonly Choice[] = [
+  { id: "full", label: "全量共享一个模型", hint: "所有参与方共同训练同一个模型" },
+  { id: "peft", label: "参数高效 LoRA / Adapter", hint: "冻结预训练基座，只训练和交换小参数" },
+  { id: "personalized", label: "个性化", hint: "共享一部分，每方保留自己的一部分" },
+  { id: "heterogeneous", label: "异构结构", hint: "各方模型结构不同，交换知识而不是参数" },
+];
+
+/** 各方投入为"已训练产物"时，共享方式这一问改为产物类型。 */
+export const ARTIFACT_KINDS: readonly Choice[] = [
+  { id: "full-weights", label: "全量模型权重", hint: "同一基座上微调得到的完整模型" },
+  { id: "adapter", label: "LoRA / Adapter", hint: "同一基座上训练得到的适配器" },
+];
+
+export type ScenarioGroup = "training" | "analysis" | "knowledge";
+
+export const SCENARIO_GROUP_LABEL: Record<ScenarioGroup, string> = {
+  training: "模型训练",
+  analysis: "分析与评估",
+  knowledge: "知识协作",
+};
+
+export type ScenarioId =
+  | "model-training"
+  | "peft-finetune"
+  | "model-merge"
+  | "vertical-modeling"
+  | "personalized"
+  | "heterogeneous"
+  | "federated-evaluation"
+  | "federated-analytics"
+  | "fedrag"
+  | "agent-skill";
+
+export type InputKind = "nodes" | "files" | "endpoints";
+
+export type ParamDefinition = {
+  id: string;
+  label: string;
+  options: readonly { id: string; label: string }[];
+  defaultValue: string;
+  /** 只在这些策略下出现；缺省表示整个场景都适用。 */
+  strategies?: readonly string[];
+};
+
+/** 场景判定只依赖维度 1–5，这里只列出需要的字段，避免与选择状态模块循环依赖。 */
+export type ScenarioPath = {
+  goal: string | null;
+  contribution: string | null;
+  partition: string | null;
+  modelClass: string | null;
+  sharing: string | null;
+};
+
+export type Scenario = {
+  id: ScenarioId;
+  label: string;
+  group: ScenarioGroup;
+  summary: string;
+  maturity: Maturity;
+  /** 维度 1–5 的组合是否落到这个场景。 */
+  matches: (path: ScenarioPath) => boolean;
+  /** "从模板开始"一键填好的维度 1–5。 */
+  shortcut: Partial<ScenarioPath> & { topology: string };
+  pattern: (path: ScenarioPath) => ExecutionPattern;
+  input: { kind: InputKind; label: string; accept?: string };
+  evaluation: string;
+  output: string;
+  minParticipants: number;
+  params: readonly ParamDefinition[];
+};
+
+const opts = (...pairs: [string, string][]) => pairs.map(([id, label]) => ({ id, label }));
+
+const ROUNDS: ParamDefinition = {
+  id: "rounds",
+  label: "联邦轮次",
+  options: opts(["10", "10 轮"], ["20", "20 轮"], ["50", "50 轮"]),
+  defaultValue: "20",
+};
+
+const LOCAL_EPOCHS: ParamDefinition = {
+  id: "local-epochs",
+  label: "每轮本地训练",
+  options: opts(["1", "1 epoch"], ["2", "2 epochs"], ["5", "5 epochs"]),
+  defaultValue: "1",
+};
+
+const BASE_MODELS = opts(
+  ["qwen-2.5-1.5b", "Qwen 2.5 1.5B Instruct"],
+  ["llama-3.2-3b", "Llama 3.2 3B Instruct"],
+  ["gemma-3-4b", "Gemma 3 4B IT"],
+);
+
+const localTraining = (path: ScenarioPath, partition: string, sharing?: string) => (
+  path.goal === "train"
+  && path.contribution === "local-data"
+  && path.partition === partition
+  && (sharing === undefined || path.sharing === sharing)
+);
+
+export const SCENARIOS: readonly Scenario[] = [
+  {
+    id: "model-training",
+    label: "模型联合训练",
+    group: "training",
+    summary: "横向数据上共同训练一个全局模型。",
+    maturity: "mature",
+    matches: (path) => localTraining(path, "horizontal", "full"),
+    shortcut: { goal: "train", contribution: "local-data", partition: "horizontal", topology: "cross-silo", modelClass: "neural", sharing: "full" },
+    pattern: () => "iterative",
+    input: { kind: "nodes", label: "连接参与节点并提交数据契约" },
+    evaluation: "跨站点验证 + 全局验证集",
+    output: "全局模型",
+    minParticipants: 2,
+    params: [
+      { id: "task", label: "训练任务", options: opts(["classification", "分类"], ["regression", "回归"]), defaultValue: "classification" },
+      ROUNDS,
+      LOCAL_EPOCHS,
+    ],
+  },
+  {
+    id: "peft-finetune",
+    label: "LoRA / Adapter 联邦微调",
+    group: "training",
+    summary: "同一预训练基座上，各方本地训练 LoRA，多轮聚合适配器。",
+    maturity: "pilot",
+    matches: (path) => localTraining(path, "horizontal", "peft"),
+    shortcut: { goal: "train", contribution: "local-data", partition: "horizontal", topology: "cross-silo", modelClass: "neural", sharing: "peft" },
+    pattern: () => "iterative",
+    input: { kind: "nodes", label: "连接参与节点并提交指令数据契约" },
+    evaluation: "各方本地评估 + 公共测试集回归检查",
+    output: "全局 LoRA Adapter",
+    minParticipants: 2,
+    params: [
+      { id: "base-model", label: "基础模型", options: BASE_MODELS, defaultValue: "qwen-2.5-1.5b" },
+      { id: "adapter", label: "适配器", options: opts(["lora", "LoRA"], ["qlora", "QLoRA（4-bit 基座）"]), defaultValue: "lora" },
+      { id: "rank", label: "LoRA Rank", options: opts(["8", "8"], ["16", "16"], ["32", "32"]), defaultValue: "16" },
+      { id: "target-modules", label: "Target modules", options: opts(["qv", "q_proj, v_proj"], ["all-linear", "全部线性层"]), defaultValue: "qv" },
+      { ...ROUNDS, defaultValue: "10" },
+      LOCAL_EPOCHS,
+    ],
+  },
+  {
+    id: "model-merge",
+    label: "模型与 Adapter 聚合",
+    group: "training",
+    summary: "各方上传同一基座上已训练好的模型或 Adapter，平台一次性合并。",
+    maturity: "pilot",
+    matches: (path) => path.goal === "train" && path.contribution === "trained-artifact",
+    shortcut: { goal: "train", contribution: "trained-artifact", topology: "cross-silo", sharing: "adapter" },
+    pattern: () => "artifact-processing",
+    input: { kind: "files", label: "上传产物文件到隔离 staging", accept: ".safetensors,.bin,.zip,.json" },
+    evaluation: "各领域测试集 + 基线回归检查",
+    output: "合并后的模型或 Adapter",
+    minParticipants: 2,
+    params: [
+      { id: "base-model", label: "统一基座", options: BASE_MODELS, defaultValue: "llama-3.2-3b" },
+      { id: "weighting", label: "权重来源", options: opts(["samples", "按样本数"], ["uniform", "均等"], ["validation", "按验证分"]), defaultValue: "samples" },
+      {
+        id: "density",
+        label: "保留比例",
+        options: opts(["0.2", "20%"], ["0.5", "50%"], ["0.8", "80%"]),
+        defaultValue: "0.5",
+        strategies: ["merge-ties", "merge-dare"],
+      },
+    ],
+  },
+  {
+    id: "vertical-modeling",
+    label: "纵向联合建模",
+    group: "training",
+    summary: "同一批样本、不同字段，先做样本对齐，再在加密协议下联合建模。",
+    maturity: "mature",
+    matches: (path) => localTraining(path, "vertical"),
+    shortcut: { goal: "train", contribution: "local-data", partition: "vertical", topology: "cross-silo", modelClass: "tree" },
+    pattern: () => "vertical-protocol",
+    input: { kind: "nodes", label: "连接 Guest / Host 节点并提交数据契约与 PSI key manifest" },
+    evaluation: "联邦验证集（由标签方计算）",
+    output: "按参与方分片保存的联合模型",
+    minParticipants: 2,
+    params: [
+      { id: "entity-key", label: "实体对齐键", options: opts(["hashed-id", "哈希用户 ID"], ["phone-hash", "手机号哈希"], ["custom-key", "自定义主键"]), defaultValue: "hashed-id" },
+      { id: "psi", label: "样本对齐 PSI", options: opts(["ecdh-psi", "ECDH PSI"], ["rsa-psi", "RSA PSI"], ["oprf-psi", "OPRF PSI"]), defaultValue: "ecdh-psi" },
+      { id: "iterations", label: "迭代次数 / 树数量", options: opts(["20", "20"], ["50", "50"], ["100", "100"]), defaultValue: "50" },
+    ],
+  },
+  {
+    id: "personalized",
+    label: "个性化联邦",
+    group: "training",
+    summary: "共享一部分参数，每方保留本地部分，同时得到全局和个性化模型。",
+    maturity: "research",
+    matches: (path) => localTraining(path, "horizontal", "personalized"),
+    shortcut: { goal: "train", contribution: "local-data", partition: "horizontal", topology: "cross-silo", modelClass: "neural", sharing: "personalized" },
+    pattern: () => "iterative",
+    input: { kind: "nodes", label: "连接参与节点并提交本地模型包与数据契约" },
+    evaluation: "全局泛化 + 本地个性化指标",
+    output: "共享模型 + 各方本地模型",
+    minParticipants: 2,
+    params: [
+      ROUNDS,
+      LOCAL_EPOCHS,
+      { id: "evaluation-target", label: "评估目标", options: opts(["personal", "本地个性化"], ["global", "全局泛化"], ["both", "两者同时"]), defaultValue: "both" },
+    ],
+  },
+  {
+    id: "heterogeneous",
+    label: "异构模型协作",
+    group: "training",
+    summary: "各方模型结构不同，通过 logits、原型或表征交换知识。",
+    maturity: "research",
+    matches: (path) => localTraining(path, "horizontal", "heterogeneous"),
+    shortcut: { goal: "train", contribution: "local-data", partition: "horizontal", topology: "cross-silo", modelClass: "neural", sharing: "heterogeneous" },
+    pattern: () => "iterative",
+    input: { kind: "nodes", label: "连接参与节点并提交模型契约（输出维度、类别表）" },
+    evaluation: "各站点模型指标 + 最差站点指标",
+    output: "各方各自的增强模型",
+    minParticipants: 2,
+    params: [
+      { id: "calibration", label: "校准数据", options: opts(["public", "公共校准集"], ["synthetic", "合成数据"], ["data-free", "Data-free"]), defaultValue: "public" },
+      { id: "model-policy", label: "模型结构约束", options: opts(["free", "各方自由选择"], ["family", "限定模型家族"], ["output", "只约束输出维度"]), defaultValue: "output" },
+      ROUNDS,
+    ],
+  },
+  {
+    id: "federated-evaluation",
+    label: "联邦评估",
+    group: "analysis",
+    summary: "不训练，只在多方数据或统一基准上验证模型。",
+    maturity: "mature",
+    matches: (path) => path.goal === "evaluate" && path.contribution !== null,
+    shortcut: { goal: "evaluate", contribution: "local-test-data", topology: "cross-silo" },
+    pattern: () => "evaluation-only",
+    input: { kind: "nodes", label: "连接评测节点或注册模型 Endpoint" },
+    evaluation: "评测本身即产出，发布前检查报告完整性",
+    output: "评估报告",
+    minParticipants: 2,
+    params: [
+      { id: "suite", label: "评测套件", options: opts(["task", "任务指标"], ["safety", "安全与合规"], ["custom", "自定义套件"]), defaultValue: "task" },
+      { id: "report", label: "报告粒度", options: opts(["aggregate", "只报告聚合指标"], ["per-site", "按站点报告"]), defaultValue: "aggregate" },
+    ],
+  },
+  {
+    id: "federated-analytics",
+    label: "联邦统计分析",
+    group: "analysis",
+    summary: "各方本地计算统计量，只汇总聚合结果。",
+    maturity: "mature",
+    matches: (path) => path.goal === "analytics" && path.contribution === "local-data" && (path.partition === "horizontal" || path.partition === "vertical"),
+    shortcut: { goal: "analytics", contribution: "local-data", partition: "horizontal", topology: "cross-silo" },
+    pattern: (path) => (path.partition === "vertical" ? "vertical-protocol" : "single-round"),
+    input: { kind: "nodes", label: "连接参与节点并提交分析 schema" },
+    evaluation: "一致性检查 + 最小分组检查",
+    output: "聚合统计报告",
+    minParticipants: 2,
+    params: [
+      { id: "clipping", label: "数值裁剪", options: opts(["auto", "自动估计范围"], ["bounded", "固定范围"], ["none", "不裁剪"]), defaultValue: "auto" },
+      { id: "min-group", label: "最小分组大小", options: opts(["5", "5"], ["10", "10"], ["20", "20"]), defaultValue: "10" },
+    ],
+  },
+  {
+    id: "fedrag",
+    label: "联邦检索 FedRAG",
+    group: "knowledge",
+    summary: "查询下发到各方，本地检索后在平台融合结果并生成回答。",
+    maturity: "research",
+    matches: (path) => path.goal === "retrieval" && path.contribution === "documents-index",
+    shortcut: { goal: "retrieval", contribution: "documents-index", topology: "cross-silo" },
+    pattern: () => "query-time",
+    input: { kind: "endpoints", label: "注册各方检索 Endpoint 与索引声明" },
+    evaluation: "检索召回 + 答案质量",
+    output: "联邦问答服务",
+    minParticipants: 2,
+    params: [
+      { id: "embedding", label: "Embedding 模型", options: opts(["bge-m3", "BGE-M3"], ["e5-large", "E5 Large"], ["site-owned", "各站自有模型"]), defaultValue: "bge-m3" },
+      { id: "index", label: "本地索引", options: opts(["faiss", "FAISS"], ["qdrant", "Qdrant"], ["milvus", "Milvus"]), defaultValue: "faiss" },
+      { id: "top-k", label: "每站返回", options: opts(["4", "Top 4"], ["8", "Top 8"], ["16", "Top 16"]), defaultValue: "8" },
+      { id: "return-content", label: "返回内容", options: opts(["snippets", "脱敏文本片段"], ["scores", "仅分数与引用"]), defaultValue: "snippets" },
+    ],
+  },
+  {
+    id: "agent-skill",
+    label: "Agent / Skill 协作",
+    group: "knowledge",
+    summary: "合并各方的经验、技能或 Agent 适配器，并在沙箱里回放验证。",
+    maturity: "research",
+    matches: (path) => path.goal === "agent" && path.contribution !== null,
+    shortcut: { goal: "agent", contribution: "traces-skills", topology: "cross-silo" },
+    pattern: () => "artifact-processing",
+    input: { kind: "files", label: "上传 Skill 包、经验卡或 Agent Adapter", accept: ".zip,.json,.jsonl,.md,.yaml,.yml,.safetensors" },
+    evaluation: "沙箱回放 + 有害条目检查",
+    output: "版本化 Skill 包",
+    minParticipants: 2,
+    params: [
+      {
+        id: "conflict",
+        label: "冲突处理",
+        options: opts(["agent-review", "Agent 审阅"], ["vote", "参与方投票"], ["benchmark", "按回放分数"]),
+        defaultValue: "agent-review",
+        strategies: ["skill-dedup", "skill-arbitration"],
+      },
+      { id: "validation", label: "效果验证", options: opts(["replay", "沙箱回放"], ["judge", "LLM Judge"], ["human", "人工审核"]), defaultValue: "replay" },
+    ],
+  },
+];
+
+export function scenarioOf(id: string): Scenario | undefined {
+  return SCENARIOS.find((scenario) => scenario.id === id);
+}
+
+export function matchScenario(path: ScenarioPath): Scenario | undefined {
+  return SCENARIOS.find((scenario) => scenario.matches(path));
+}
+
+/* 维度 6：协作策略。每条带成熟度、计算类型、联邦对象和参考开源实现。 */
+export type Strategy = Choice & {
+  scenario: ScenarioId;
+  maturity: Maturity;
+  computeKind: ComputeKind;
+  /** 节点之间实际交换的对象（联邦对象，由平台推导展示）。 */
+  exchanged: string;
+  runner: string;
+  references: readonly string[];
+  /** 只对某种各方投入有意义；不符合时直接不列出。 */
+  contributions?: readonly string[];
+  /** 需要的模型类别或共享方式；不符合时置灰并给出 blockedReason。 */
+  modelClasses?: readonly string[];
+  sharing?: readonly string[];
+  blockedReason?: string;
+  /** 需要的数据关系；不符合时置灰。 */
+  partitions?: readonly string[];
+  /** 在某些参与方形态下可用但需要提醒。 */
+  topologyWarnings?: Readonly<Record<string, string>>;
+};
+
+const NN_OR_LINEAR = ["neural", "linear"];
+const NO_TREE = "树模型没有可以平均的连续参数，请选择直方图聚合或树 Bagging";
+
+export const STRATEGIES: readonly Strategy[] = [
+  { id: "train-fedavg", label: "FedAvg", hint: "按样本量加权平均模型参数，最常用的基线", scenario: "model-training", maturity: "mature", computeKind: "additive", exchanged: "模型参数增量", runner: "Flower", references: ["Flower", "NVFlare"], modelClasses: NN_OR_LINEAR, blockedReason: NO_TREE },
+  { id: "train-fedprox", label: "FedProx", hint: "本地目标加近端项，适合非 IID 和算力不均", scenario: "model-training", maturity: "mature", computeKind: "additive", exchanged: "模型参数增量", runner: "Flower", references: ["Flower", "NVFlare"], modelClasses: NN_OR_LINEAR, blockedReason: NO_TREE },
+  { id: "train-fedopt", label: "FedAdam / FedYogi", hint: "服务器端使用自适应优化器更新全局模型", scenario: "model-training", maturity: "mature", computeKind: "additive", exchanged: "模型参数增量", runner: "Flower", references: ["Flower", "NVFlare"], modelClasses: NN_OR_LINEAR, blockedReason: NO_TREE },
+  {
+    id: "train-scaffold", label: "SCAFFOLD", hint: "用控制变量修正客户端漂移", scenario: "model-training", maturity: "pilot", computeKind: "additive", exchanged: "模型参数增量 + 控制变量", runner: "NVFlare", references: ["NVFlare", "Flower"], modelClasses: NN_OR_LINEAR, blockedReason: NO_TREE,
+    topologyWarnings: { "cross-device": "SCAFFOLD 需要客户端保存控制变量，端侧设备频繁离线时效果会下降" },
+  },
+  { id: "train-xgb-histogram", label: "直方图聚合 XGBoost", hint: "各方上传梯度直方图，协调方统一分裂", scenario: "model-training", maturity: "mature", computeKind: "additive", exchanged: "梯度直方图", runner: "NVFlare", references: ["NVFlare", "Flower"], modelClasses: ["tree"], blockedReason: "只适用于树模型" },
+  { id: "train-tree-bagging", label: "树 Bagging / Cyclic", hint: "各方本地建树，协调方组合成集成模型", scenario: "model-training", maturity: "pilot", computeKind: "compose", exchanged: "本地决策树", runner: "Flower", references: ["Flower", "NVFlare"], modelClasses: ["tree"], blockedReason: "只适用于树模型" },
+
+  { id: "peft-fedavg", label: "FedAvg", hint: "按样本量加权平均各方 LoRA 增量", scenario: "peft-finetune", maturity: "pilot", computeKind: "additive", exchanged: "LoRA 增量", runner: "Flower", references: ["Flower FlowerTune", "FATE-LLM"] },
+  { id: "peft-fedprox", label: "FedProx", hint: "限制本地 LoRA 偏离全局，适合数据差异大", scenario: "peft-finetune", maturity: "pilot", computeKind: "additive", exchanged: "LoRA 增量", runner: "Flower", references: ["Flower FlowerTune"] },
+  { id: "peft-fedadam", label: "FedAdam", hint: "服务器端自适应优化 LoRA 参数", scenario: "peft-finetune", maturity: "pilot", computeKind: "additive", exchanged: "LoRA 增量", runner: "Flower", references: ["Flower FlowerTune"] },
+
+  { id: "merge-weighted", label: "加权平均", hint: "按权重对各方参数求加权和，最稳妥的基线", scenario: "model-merge", maturity: "pilot", computeKind: "additive", exchanged: "已训练权重 / Adapter", runner: "mergekit", references: ["mergekit"] },
+  { id: "merge-task-arithmetic", label: "Task Arithmetic", hint: "把增量当作任务向量相加，可调各领域权重", scenario: "model-merge", maturity: "research", computeKind: "additive", exchanged: "已训练权重 / Adapter", runner: "mergekit", references: ["mergekit"] },
+  { id: "merge-ties", label: "TIES-Merging", hint: "裁掉小改动，按符号投票后合并", scenario: "model-merge", maturity: "research", computeKind: "compare", exchanged: "已训练权重 / Adapter", runner: "mergekit", references: ["mergekit"] },
+  { id: "merge-dare", label: "DARE", hint: "随机丢弃增量再按比例放大，丢弃与取值无关", scenario: "model-merge", maturity: "research", computeKind: "additive", exchanged: "已训练权重 / Adapter", runner: "mergekit", references: ["mergekit"] },
+  { id: "merge-lora-concat", label: "LoRA 拼接", hint: "把各方低秩矩阵按列拼接，秩相加", scenario: "model-merge", maturity: "research", computeKind: "compose", exchanged: "LoRA 矩阵", runner: "mergekit", references: ["PEFT"], sharing: ["adapter"], blockedReason: "只适用于 LoRA / Adapter 产物" },
+
+  { id: "vfl-hetero-lr", label: "Hetero LR", hint: "纵向逻辑回归，加密交换梯度", scenario: "vertical-modeling", maturity: "mature", computeKind: "protocol", exchanged: "加密梯度与中间结果", runner: "FATE", references: ["FATE"], modelClasses: ["linear"], blockedReason: "只适用于线性模型" },
+  { id: "vfl-secureboost", label: "SecureBoost", hint: "纵向梯度提升树，加密梯度求分裂增益", scenario: "vertical-modeling", maturity: "mature", computeKind: "protocol", exchanged: "加密梯度与分裂统计", runner: "FATE", references: ["FATE"], modelClasses: ["tree"], blockedReason: "只适用于树模型" },
+  { id: "vfl-split-nn", label: "Split NN / Hetero NN", hint: "各方持有底层网络，交换中间激活", scenario: "vertical-modeling", maturity: "pilot", computeKind: "protocol", exchanged: "中间激活与梯度", runner: "FATE", references: ["FATE"], modelClasses: ["neural"], blockedReason: "只适用于神经网络" },
+
+  { id: "pfl-fedbn", label: "FedBN", hint: "BatchNorm 层留在本地，其余参数聚合", scenario: "personalized", maturity: "research", computeKind: "additive", exchanged: "除 BN 外的模型参数", runner: "Flower", references: ["PFLlib", "Flower"] },
+  { id: "pfl-ditto", label: "Ditto", hint: "全局模型 + 带正则的本地个性化模型", scenario: "personalized", maturity: "research", computeKind: "additive", exchanged: "全局模型参数", runner: "NVFlare", references: ["PFLlib", "NVFlare"] },
+  { id: "pfl-fedrep", label: "FedRep", hint: "共享表征层，预测头留在本地", scenario: "personalized", maturity: "research", computeKind: "additive", exchanged: "表征层参数", runner: "Flower", references: ["PFLlib"] },
+  { id: "pfl-clustered", label: "Clustered FL", hint: "按更新相似度分簇，每簇一个模型", scenario: "personalized", maturity: "research", computeKind: "compare", exchanged: "模型参数增量", runner: "Flower", references: ["PFLlib"] },
+
+  { id: "hfl-distillation", label: "知识蒸馏 FedMD", hint: "在公共校准集上交换 logits 做蒸馏", scenario: "heterogeneous", maturity: "research", computeKind: "additive", exchanged: "校准集 logits", runner: "Flower", references: ["HtFLlib"] },
+  { id: "hfl-fedproto", label: "FedProto", hint: "交换每类的特征原型", scenario: "heterogeneous", maturity: "research", computeKind: "additive", exchanged: "类别原型", runner: "Flower", references: ["HtFLlib"] },
+  { id: "hfl-repr-align", label: "表征对齐", hint: "对齐各方模型在公共数据上的表征", scenario: "heterogeneous", maturity: "research", computeKind: "additive", exchanged: "公共数据表征", runner: "Flower", references: ["HtFLlib"] },
+
+  { id: "eval-local-aggregate", label: "本地评估 + 指标聚合", hint: "模型下发到各站，本地评测后汇总指标", scenario: "federated-evaluation", maturity: "mature", computeKind: "additive", exchanged: "评测指标", runner: "Flower", references: ["Flower", "NVFlare"], contributions: ["local-test-data"] },
+  { id: "eval-cross-site", label: "跨站点交叉验证", hint: "每个站点的模型在其他站点数据上评测", scenario: "federated-evaluation", maturity: "mature", computeKind: "additive", exchanged: "评测指标矩阵", runner: "NVFlare", references: ["NVFlare"], contributions: ["local-test-data"] },
+  { id: "eval-benchmark", label: "统一基准评测", hint: "平台用统一基准调用各方 Endpoint", scenario: "federated-evaluation", maturity: "mature", computeKind: "compose", exchanged: "基准题目与模型输出", runner: "自定义评测 runner", references: ["lm-evaluation-harness"], contributions: ["model-endpoint"] },
+
+  { id: "fa-secure-sum", label: "计数 / 求和 / 均值方差", hint: "各方本地计算，只汇总可加统计量", scenario: "federated-analytics", maturity: "mature", computeKind: "additive", exchanged: "局部统计量", runner: "NVFlare", references: ["NVFlare", "Flower"], partitions: ["horizontal"] },
+  { id: "fa-histogram", label: "直方图 / 分位数", hint: "统一分箱后汇总计数", scenario: "federated-analytics", maturity: "mature", computeKind: "additive", exchanged: "分箱计数", runner: "NVFlare", references: ["NVFlare"], partitions: ["horizontal"] },
+  { id: "fa-psi-stats", label: "PSI 交集统计", hint: "对齐共同样本后，跨字段计算联合统计", scenario: "federated-analytics", maturity: "mature", computeKind: "protocol", exchanged: "加密交集与统计量", runner: "FATE", references: ["FATE"], partitions: ["vertical"] },
+
+  { id: "rag-score-merge", label: "分数融合", hint: "按归一化相似度合并各站结果", scenario: "fedrag", maturity: "research", computeKind: "compare", exchanged: "检索片段与分数", runner: "Flower + RAG worker", references: ["Flower FedRAG 示例"] },
+  { id: "rag-rrf", label: "Reciprocal Rank Fusion", hint: "只用排名融合，不依赖分数尺度", scenario: "fedrag", maturity: "research", computeKind: "compare", exchanged: "检索片段与排名", runner: "Flower + RAG worker", references: ["Flower FedRAG 示例"] },
+  { id: "rag-central-rerank", label: "集中重排", hint: "平台用重排模型对各站候选统一排序", scenario: "fedrag", maturity: "research", computeKind: "content", exchanged: "候选片段全文", runner: "Flower + RAG worker", references: ["Flower FedRAG 示例"] },
+
+  { id: "skill-dedup", label: "去重合并", hint: "按签名去重、按语义分组、按效果过滤后合并", scenario: "agent-skill", maturity: "research", computeKind: "content", exchanged: "经验卡 / Skill 条目", runner: "自定义沙箱 runner", references: ["自定义"], contributions: ["traces-skills"] },
+  { id: "skill-arbitration", label: "冲突仲裁合并", hint: "冲突条目交由 Agent 审阅或投票决定", scenario: "agent-skill", maturity: "research", computeKind: "content", exchanged: "经验卡 / Skill 条目", runner: "自定义沙箱 runner", references: ["自定义"], contributions: ["traces-skills"] },
+  { id: "skill-trace-distill", label: "轨迹蒸馏", hint: "把各方成功轨迹蒸馏为公共 Skill", scenario: "agent-skill", maturity: "research", computeKind: "content", exchanged: "脱敏执行轨迹", runner: "自定义沙箱 runner", references: ["自定义"], contributions: ["traces-skills"] },
+  { id: "skill-adapter-merge", label: "Agent Adapter 聚合", hint: "对各方 Agent 的 Adapter 加权平均", scenario: "agent-skill", maturity: "research", computeKind: "additive", exchanged: "Agent Adapter", runner: "mergekit", references: ["mergekit"], contributions: ["trained-artifact"] },
+];
+
+export function strategyOf(id: string | null): Strategy | undefined {
+  return id ? STRATEGIES.find((strategy) => strategy.id === id) : undefined;
+}
+
+/* 维度 7：安全与信任。机密性选一档预设，完整性（抗恶意参与方）可以叠加。 */
+export type ProtectionContext = {
+  scenario: Scenario;
+  strategy: Strategy;
+  pattern: ExecutionPattern;
+  topology: string;
+};
+
+export type Availability = { available: boolean; reason?: string; warning?: string };
+
+export type Protection = Choice & {
+  mechanisms: readonly string[];
+  check: (context: ProtectionContext) => Availability;
+};
+
+const CANNOT_SUM = (strategy: Strategy) => `${strategy.label} 的计算类型是"${COMPUTE_KIND_LABEL[strategy.computeKind]}"，拿不到明文就无法计算`;
+
+export const PROTECTIONS: readonly Protection[] = [
+  {
+    id: "standard",
+    label: "基础保护",
+    hint: "传输加密、隔离沙箱与审计，平台可见聚合输入",
+    mechanisms: ["mTLS", "隔离沙箱", "审计日志"],
+    check: ({ pattern }) => (pattern === "vertical-protocol"
+      ? { available: false, reason: "纵向协议依赖加密交换中间结果，至少需要加密计算" }
+      : { available: true }),
+  },
+  {
+    id: "hide-updates",
+    label: "隐藏单方更新",
+    hint: "协调方只能看到聚合结果，看不到单个参与方（至少 3 方）",
+    mechanisms: ["mTLS", "SecAgg+", "更新裁剪"],
+    check: ({ strategy, pattern }) => {
+      if (pattern === "vertical-protocol") return { available: false, reason: "纵向协议已内置加密交换，不使用 SecAgg 这一层" };
+      if (strategy.computeKind !== "additive") return { available: false, reason: CANNOT_SUM(strategy) };
+      return { available: true };
+    },
+  },
+  {
+    id: "sample-dp",
+    label: "样本级隐私",
+    hint: "限制任一样本对结果的影响，并记录隐私预算",
+    mechanisms: ["差分隐私", "SecAgg+", "隐私预算记账"],
+    check: ({ strategy, pattern, topology }) => {
+      if (strategy.computeKind !== "additive") return { available: false, reason: CANNOT_SUM(strategy) };
+      if (pattern === "artifact-processing") return { available: false, reason: "产物已在各方训练完成，样本级 DP 需要在训练过程中加入" };
+      if (pattern === "vertical-protocol") return { available: false, reason: "当前纵向 runner（FATE）不提供样本级 DP" };
+      return topology === "cross-silo"
+        ? { available: true, warning: "跨机构参与方较少，DP 噪声对精度的影响会比较明显" }
+        : { available: true };
+    },
+  },
+  {
+    id: "encrypted",
+    label: "加密计算",
+    hint: "在密文上完成聚合或协议计算",
+    mechanisms: ["同态加密", "MPC / 秘密分享", "密钥服务"],
+    check: ({ strategy }) => {
+      if (strategy.computeKind === "protocol") return { available: true };
+      if (strategy.computeKind !== "additive") return { available: false, reason: CANNOT_SUM(strategy) };
+      return { available: true, warning: "同态加密会显著增加计算和通信耗时" };
+    },
+  },
+  {
+    id: "tee",
+    label: "可信执行",
+    hint: "协调方计算放进 TEE，并提供远程证明",
+    mechanisms: ["TEE", "远程证明", "密封密钥"],
+    check: ({ pattern, strategy }) => {
+      if (pattern === "vertical-protocol") return { available: false, reason: `当前纵向 runner（${strategy.runner}）不提供 TEE 执行` };
+      return { available: true, warning: "需要协调方节点具备 TEE 硬件，并在接入时完成远程证明" };
+    },
+  },
+];
+
+export function protectionOf(id: string | null): Protection | undefined {
+  return id ? PROTECTIONS.find((protection) => protection.id === id) : undefined;
+}
+
+export const ROBUST_AGGREGATION = {
+  label: "抗恶意参与方",
+  hint: "鲁棒聚合过滤异常更新",
+  mechanisms: ["Krum", "Median", "Trimmed Mean"],
+} as const;
+
+/** 完整性叠加：鲁棒聚合要逐个检查更新，所以和隐藏单方更新的机制冲突。 */
+export function robustAvailability(context: ProtectionContext, protectionId: string | null): Availability {
+  if (context.pattern !== "iterative" || context.strategy.computeKind !== "additive") {
+    return { available: false, reason: "只适用于多轮联邦中交换模型参数或更新的策略" };
+  }
+  if (protectionId && protectionId !== "standard" && protectionId !== "tee") {
+    return { available: false, reason: "鲁棒聚合需要逐个检查单方更新，与 SecAgg / 同态加密冲突" };
+  }
+  return { available: true };
+}

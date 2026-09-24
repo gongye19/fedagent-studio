@@ -1,273 +1,148 @@
-// 页面使用通用工作负载配置驱动向导；下方的旧字段继续支撑 LoRA mock 执行链路。
-// 真实后端接入后，两者应统一为版本化 RunSpec，避免前端状态成为服务端契约。
+// 页面状态：维度选择、参与方接入、执行预设和当前 Run。
+// Run 开始后冻结计划和参与方；此后配置类动作一律忽略，修改配置必须新建 Run。
 
-import { narrowArtifacts, narrowEvaluations, narrowPrivacies } from "../domain/compatibility";
+import { defaultParticipants, participantPool, type Participant } from "../domain/demo";
+import { buildRunPlan } from "../domain/plan";
 import {
-  INITIAL_CONFIGURATION,
-  configurationFor,
-  isConfigurationReady,
-  type FederationConfiguration,
-} from "../domain/configuration";
-import { EVALUATIONS, methodOf } from "../domain/registry";
-import { SEED_ARTIFACTS, artifactOf } from "../domain/repository";
-import { LORA_FEDERATION_SCENARIO } from "../domain/scenario";
+  EMPTY_SELECTION,
+  applyTemplate,
+  choose,
+  scenarioFor,
+  setParam,
+  setRobust,
+  type LayerId,
+  type Selection,
+} from "../domain/selection";
+import { artifactFor } from "../domain/simulator";
 import {
-  attachResult, failRun, finishStage, startStage,
-  type Run, type RunResult, type StageId,
+  createRun,
+  failStage,
+  finishStage,
+  publishRun,
+  startStage,
+  type ExecutionPreset,
+  type Run,
+  type StageId,
+  type StageResult,
+  type Visibility,
 } from "../domain/run";
-import type { Artifact, Recipe } from "../domain/types";
+import type { ScenarioId } from "../domain/taxonomy";
 
 export type State = {
-  artifacts: Artifact[];
-  configuration: FederationConfiguration;
-  federationMethodId: string | null;
-  dataTypeId: string | null;
-  baseModelId: string | null;
-  rankId: string | null;
-  methodId: string | null;
-  artifactIds: string[];
-  privacyId: string | null;
+  selection: Selection;
+  participants: Participant[];
+  preset: ExecutionPreset;
   run: Run | null;
 };
 
-function matchingSampleIds(
-  artifacts: Artifact[],
-  dataTypeId: string | null,
-  baseModelId: string | null,
-  rankId: string | null,
-): string[] {
-  const model = LORA_FEDERATION_SCENARIO.baseModelOptions.find((item) => item.id === baseModelId);
-  const rank = LORA_FEDERATION_SCENARIO.rankOptions.find((item) => item.id === rankId);
-  if (!dataTypeId || !model || !rank) return [];
-
-  return LORA_FEDERATION_SCENARIO.sampleArtifactIds.filter((id) => {
-    const artifact = artifactOf(artifacts, id);
-    return Boolean(
-      artifact
-      && artifact.objectType === dataTypeId
-      && artifact.architecture === model.architecture
-      && artifact.baseCheckpoint === model.checkpoint
-      && artifact.rank === rank.value,
-    );
-  });
-}
-
 export const initialState: State = {
-  artifacts: SEED_ARTIFACTS,
-  configuration: INITIAL_CONFIGURATION,
-  federationMethodId: LORA_FEDERATION_SCENARIO.federationMethodId,
-  dataTypeId: LORA_FEDERATION_SCENARIO.dataTypeId,
-  baseModelId: LORA_FEDERATION_SCENARIO.baseModelId,
-  rankId: LORA_FEDERATION_SCENARIO.rankId,
-  methodId: LORA_FEDERATION_SCENARIO.methodId,
-  artifactIds: matchingSampleIds(
-    SEED_ARTIFACTS,
-    LORA_FEDERATION_SCENARIO.dataTypeId,
-    LORA_FEDERATION_SCENARIO.baseModelId,
-    LORA_FEDERATION_SCENARIO.rankId,
-  ),
-  privacyId: LORA_FEDERATION_SCENARIO.privacyId,
+  selection: EMPTY_SELECTION,
+  participants: [],
+  preset: "quick",
   run: null,
 };
 
 export type Action =
-  | { type: "setWorkload"; id: string }
-  | { type: "setPartition"; id: string }
-  | { type: "setTopology"; id: string }
-  | { type: "setStrategy"; id: string }
-  | { type: "setProtection"; id: string }
-  | { type: "setWorkloadSetting"; key: string; value: string }
-  | { type: "setFederationMethod"; id: string }
-  | { type: "setDataType"; id: string }
-  | { type: "setBaseModel"; id: string }
-  | { type: "setRank"; id: string }
-  | { type: "setMethod"; id: string }
-  | { type: "toggleArtifact"; id: string }
-  | { type: "stageArtifact"; artifact: Artifact }
-  | { type: "setPrivacy"; id: string }
-  | { type: "reset" }
-  | { type: "startRun"; run: Run }
+  | { type: "choose"; layer: LayerId; value: string }
+  | { type: "applyTemplate"; scenario: ScenarioId }
+  | { type: "setParam"; id: string; value: string }
+  | { type: "setRobust"; value: boolean }
+  | { type: "addParticipant" }
+  | { type: "removeParticipant"; id: string }
+  | { type: "uploadFiles"; files: { name: string; size: number; lastModified: number }[] }
+  | { type: "setPreset"; preset: ExecutionPreset }
+  | { type: "startRun"; id: string; createdAt: string }
   | { type: "stageStart"; stage: StageId }
-  | { type: "stageFinish"; stage: StageId; detail: string }
+  | { type: "stageFinish"; stage: StageId; result: StageResult }
   | { type: "stageFail"; stage: StageId; error: string }
-  | { type: "runResult"; result: RunResult; artifact: Artifact };
+  | { type: "publish"; visibility: Visibility }
+  | { type: "reset" };
 
-export function selectedArtifacts(state: State): Artifact[] {
-  return state.artifactIds
-    .map((id) => artifactOf(state.artifacts, id))
-    .filter((item): item is Artifact => Boolean(item));
-}
-
-/** 评测方案按对象类型自动定，不占一个选择步骤。 */
-export function evaluationFor(selected: Artifact[]) {
-  const allowed = narrowEvaluations(selected).allowed;
-  return allowed[0] ?? EVALUATIONS[0];
-}
-
-export function recipeOf(state: State): Recipe | null {
-  const selected = selectedArtifacts(state);
-  const model = LORA_FEDERATION_SCENARIO.baseModelOptions.find((item) => item.id === state.baseModelId);
-  const rank = LORA_FEDERATION_SCENARIO.rankOptions.find((item) => item.id === state.rankId);
-  if (
-    !isConfigurationReady(state.configuration)
-    ||
-    !state.federationMethodId
-    || !state.dataTypeId
-    || !model
-    || !rank
-    || !state.methodId
-    || !state.privacyId
-    || selected.length < LORA_FEDERATION_SCENARIO.inputContract.minParticipants
-    || selected.some((item) => (
-      item.objectType !== state.dataTypeId
-      || item.architecture !== model.architecture
-      || item.baseCheckpoint !== model.checkpoint
-      || item.rank !== rank.value
-    ))
-  ) return null;
+/** 场景或各方投入变化时，参与方换成新场景的示例；否则保留用户的调整。 */
+function withSelection(state: State, selection: Selection): State {
+  const before = scenarioFor(state.selection);
+  const after = scenarioFor(selection);
+  const sameInputs = before?.id === after?.id && state.selection.contribution === selection.contribution;
   return {
-    artifactIds: state.artifactIds,
-    methodId: state.methodId,
-    privacyId: state.privacyId,
-    datasetId: LORA_FEDERATION_SCENARIO.datasetId,
-    evaluationId: LORA_FEDERATION_SCENARIO.evaluationId,
+    ...state,
+    selection,
+    participants: sameInputs ? state.participants : defaultParticipants(after?.id, selection.contribution),
   };
 }
 
+function formatSize(bytes: number): string {
+  if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
 export function reducer(state: State, action: Action): State {
+  const locked = Boolean(state.run);
+
   switch (action.type) {
-    case "setWorkload":
-      return { ...state, configuration: configurationFor(action.id) };
+    case "choose":
+      return locked ? state : withSelection(state, choose(state.selection, action.layer, action.value));
 
-    case "setPartition":
-      return {
-        ...state,
-        configuration: { ...state.configuration, partitionId: action.id },
-      };
+    case "applyTemplate":
+      return locked ? state : withSelection(state, applyTemplate(action.scenario));
 
-    case "setTopology":
-      return {
-        ...state,
-        configuration: { ...state.configuration, topologyId: action.id },
-      };
+    case "setParam":
+      return locked ? state : { ...state, selection: setParam(state.selection, action.id, action.value) };
 
-    case "setStrategy":
-      return {
-        ...state,
-        configuration: { ...state.configuration, strategyId: action.id },
-      };
+    case "setRobust":
+      return locked ? state : { ...state, selection: setRobust(state.selection, action.value) };
 
-    case "setProtection":
-      return {
-        ...state,
-        configuration: { ...state.configuration, protectionId: action.id },
-      };
-
-    case "setWorkloadSetting":
-      return {
-        ...state,
-        configuration: {
-          ...state.configuration,
-          settings: { ...state.configuration.settings, [action.key]: action.value },
-        },
-      };
-
-    case "setFederationMethod":
-      return {
-        ...state,
-        federationMethodId: action.id,
-        artifactIds: action.id === LORA_FEDERATION_SCENARIO.federationMethodId
-          ? matchingSampleIds(state.artifacts, state.dataTypeId, state.baseModelId, state.rankId)
-          : [],
-      };
-
-    case "setDataType":
-      return {
-        ...state,
-        dataTypeId: action.id,
-        artifactIds: matchingSampleIds(state.artifacts, action.id, state.baseModelId, state.rankId),
-      };
-
-    case "setBaseModel":
-      return {
-        ...state,
-        baseModelId: action.id,
-        artifactIds: matchingSampleIds(state.artifacts, state.dataTypeId, action.id, state.rankId),
-      };
-
-    case "setRank":
-      return {
-        ...state,
-        rankId: action.id,
-        artifactIds: matchingSampleIds(state.artifacts, state.dataTypeId, state.baseModelId, action.id),
-      };
-
-    case "setMethod": {
-      const method = methodOf(action.id);
-      // 换方法可能让已选的数据或加密方式失效。不替用户改选，只把失效的清掉。
-      const stillOk = narrowArtifacts(state.artifacts, state.artifactIds, method).allowed;
-      const artifactIds = state.artifactIds.filter((id) => stillOk.some((item) => item.id === id));
-      const privacyOk = narrowPrivacies(method).allowed.some((item) => item.id === state.privacyId);
-      return {
-        ...state,
-        methodId: action.id,
-        artifactIds,
-        privacyId: privacyOk ? state.privacyId : null,
-      };
+    case "addParticipant": {
+      if (locked) return state;
+      const scenario = scenarioFor(state.selection);
+      const next = participantPool(scenario?.id, state.selection.contribution)
+        .find((candidate) => !state.participants.some((participant) => participant.id === candidate.id));
+      return next ? { ...state, participants: [...state.participants, next] } : state;
     }
 
-    case "toggleArtifact": {
-      const has = state.artifactIds.includes(action.id);
-      return {
-        ...state,
-        artifactIds: has
-          ? state.artifactIds.filter((id) => id !== action.id)
-          : [...state.artifactIds, action.id],
-      };
+    case "removeParticipant":
+      return locked ? state : { ...state, participants: state.participants.filter((participant) => participant.id !== action.id) };
+
+    case "uploadFiles": {
+      if (locked) return state;
+      const uploaded: Participant[] = action.files.map((file) => ({
+        id: `upload-${file.name}-${file.lastModified}`,
+        name: file.name,
+        role: "上传产物",
+        provides: "待解析 manifest",
+        detail: `${formatSize(file.size)} · 进入隔离 staging（前端模拟，不保存文件内容）`,
+        source: "upload",
+      }));
+      const fresh = uploaded.filter((file) => !state.participants.some((participant) => participant.id === file.id));
+      return { ...state, participants: [...state.participants, ...fresh] };
     }
 
-    case "stageArtifact": {
-      const exists = state.artifacts.some((item) => item.id === action.artifact.id);
-      return {
-        ...state,
-        artifacts: exists
-          ? state.artifacts.map((item) => item.id === action.artifact.id ? action.artifact : item)
-          : [action.artifact, ...state.artifacts],
-        artifactIds: state.artifactIds.includes(action.artifact.id)
-          ? state.artifactIds
-          : [...state.artifactIds, action.artifact.id],
-      };
+    case "setPreset":
+      return locked ? state : { ...state, preset: action.preset };
+
+    case "startRun": {
+      if (locked) return state;
+      const plan = buildRunPlan(state.selection);
+      if (!plan || state.participants.length < plan.minParticipants) return state;
+      return { ...state, run: createRun(action.id, plan, state.participants, state.preset, action.createdAt) };
     }
-
-    case "setPrivacy":
-      return { ...state, privacyId: action.id };
-
-    case "reset":
-      return { ...initialState, artifacts: state.artifacts };
-
-    case "startRun":
-      return { ...state, run: action.run };
 
     case "stageStart":
       return state.run ? { ...state, run: startStage(state.run, action.stage) } : state;
 
     case "stageFinish":
-      return state.run
-        ? { ...state, run: finishStage(state.run, action.stage, action.detail) }
-        : state;
+      return state.run ? { ...state, run: finishStage(state.run, action.stage, action.result) } : state;
 
     case "stageFail":
-      return state.run ? { ...state, run: failRun(state.run, action.stage, action.error) } : state;
+      return state.run ? { ...state, run: failStage(state.run, action.stage, action.error) } : state;
 
-    case "runResult":
-      return state.run
-        ? {
-            ...state,
-            run: attachResult(state.run, action.result),
-            // 产出的版本进仓库，可以作为下一次联邦的输入。
-            artifacts: [action.artifact, ...state.artifacts],
-          }
-        : state;
+    case "publish": {
+      if (!state.run) return state;
+      const artifact = artifactFor(state.run.plan, state.run.participants, state.run.id, action.visibility);
+      return { ...state, run: publishRun(state.run, artifact) };
+    }
+
+    case "reset":
+      return initialState;
 
     default:
       return state;

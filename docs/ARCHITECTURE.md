@@ -1,83 +1,88 @@
 # 系统架构
 
+最后复核：2026-09-24（T15）
+
 ## 架构原则
 
-Federation Studio 采用“统一控制面 + 可替换执行后端”。平台不把所有联邦方法抽象成同一种算法，而是统一它们共同拥有的生命周期：配置、准入、运行、评测和发布。
+Federation Studio 采用"统一控制面 + 可替换执行后端"。平台不把所有联邦方法抽象成同一种算法，而是统一它们共同拥有的生命周期：配置、输入接入、准入、运行、评测和发布。场景之间的差别落在执行模式和 runner adapter 上。
 
 ```text
 User
-  │
+  │ 逐层选择 8 个维度
   ▼
-Configuration UI ──► Workload Registry ──► Compatibility Resolver
-  │                                              │
-  └──────────────────► RunSpec ◄────────────────┘
-                           │
-                           ▼
-                Orchestrator / State Machine
-                    │          │          │
-                    ▼          ▼          ▼
-               Agent Gate   Sandbox    Evaluation
-                    │          │          │
-                    └──── Runner Adapter ┘
-                               │
-                               ▼
-                     Artifact & Audit Store
+L1 展示层 ──► L2 维度注册表 ──► L3 选择与兼容引擎
+                                      │
+                                      ▼
+                              FrontendRunPlan（后端为 RunSpec）
+                                      │
+                                      ▼
+                        L4 Run 编排 / 状态机 + 按执行模式模拟
+                         │           │            │
+                         ▼           ▼            ▼
+                    Agent 准入     沙箱        独立评测
+                         └──── L5 Runner adapter ────┘
+                                      │
+                                      ▼
+                         L6 产物、谱系与审计存储
 ```
 
-## 分层职责
+## 分层
 
-### 1. 展示与交互层
+### L1 展示与交互层
 
-位置：`app/src/ui/`、`app/src/styles.css`
+位置：`app/src/App.tsx`、`app/src/ui/`、`app/src/styles.css`
 
-- 左侧显示当前步骤，右侧显示可点击时间轴。
-- 配置维度以独立模块展示，不把所有字段放进一个大表单。
-- 只渲染领域层给出的选项和解析结果，不在组件内复制兼容规则。
+- 左侧显示当前步骤，右侧显示可点击时间轴和"平台推导"面板。
+- 配置步骤按维度逐层展开：当前维度展开为选项卡片，已答维度折叠为一行，可以"更改"或"查看原因"。
+- 不可用选项置灰并显示原因；只剩一个选项时显示"唯一可选"。
+- 组件只渲染领域层给出的选项、原因和推导结果，不复制兼容规则。
 
 状态：已实现前端原型。
 
-### 2. 工作负载注册表
+### L2 维度注册表
 
-位置：`app/src/domain/configuration.ts`
+位置：`app/src/domain/taxonomy.ts`
 
-- 声明 9 类工作负载。
-- 为每类工作负载声明允许的数据关系、参与拓扑、策略和方法专属参数。
-- 解析运行时、评测、输出、输入标签和文件类型。
+- 声明 8 个维度的候选项：协作目标、各方投入、数据关系、参与方形态、模型类别、共享方式 / 产物类型、协作策略、安全与信任。
+- 声明 10 个场景模板：匹配规则、快捷入口、执行模式、输入接入方式、评测、输出、最少参与方、场景参数。
+- 每条策略声明成熟度、计算类型、联邦对象、runner、参考开源实现和适用条件。
+- 每档保护预设声明机制和基于能力的可用性检查。
 
 状态：已实现静态注册表。后续应从版本化服务端 schema 加载。
 
-### 3. 兼容性与准入层
+### L3 选择与兼容引擎
 
-位置：`app/src/domain/compatibility.ts`、未来的 policy service
+位置：`app/src/domain/selection.ts`、`app/src/domain/plan.ts`
 
-- 校验配置之间的兼容性。
-- 提取上传内容的 manifest，执行格式、架构、基座、数据 schema 和隐私要求等硬规则。
-- 生成结构化 `PreflightReport`。
-- Agent 只能解释规则结果、补充风险和提出修复建议，不能覆盖硬规则。
+- 判断维度是否适用、是否可见、有哪些可选项及不可用原因。
+- 改选后从上到下重新校验：清空失效选择、自动选中唯一可选项、补齐场景参数默认值。
+- 维度全部答完后生成不可变的 `FrontendRunPlan`：场景、路径、策略、执行模式、联邦对象、计算类型、保护机制、runner、输入接入、执行位置、评测、输出、成熟度、提示。
+- 后端阶段由 policy service 重新校验，前端结果只是请求，不是能力证明。
 
-状态：旧 LoRA mock 规则已存在；通用准入服务未实现。
+状态：前端已实现；服务端 policy service 未实现。
 
-### 4. Run 编排层
+### L4 Run 编排层
 
-位置：`app/src/domain/run.ts`、`app/src/state/store.ts`
+位置：`app/src/domain/run.ts`、`app/src/domain/simulator.ts`、`app/src/state/`
 
-- 管理 `configuration → upload → preflight → provision → execute → evaluate → publish` 状态迁移。
-- 根据已验证配置生成不可变 RunSpec。
-- 把阶段任务交给 runner adapter，并记录日志、指标和谱系。
+- 状态机：`preflight → provision → execute → evaluate` 自动推进，`publish` 需要用户确认发布范围。
+- 准入不通过不能创建沙箱；评测未通过不能发布；Run 开始后冻结计划和参与方。
+- 模拟器按执行模式（多轮联邦、单轮聚合、纵向协议、产物处理、查询时联邦、纯评测）生成每个阶段的内容，并给出真实耗时预估。
+- `useRunSimulation` 只负责计时和派发，编排规则都在领域层。
 
-状态：前端状态机和模拟运行已实现；服务端编排未实现。
+状态：前端状态机和按执行模式模拟已实现；服务端编排未实现。
 
-### 5. Runner adapter 层
+### L5 Runner adapter 层
 
 目标实现：`runners/` 独立服务或 worker 包。
 
 - 将 RunSpec 翻译为镜像、命令、资源、挂载、网络策略和超时。
-- 对接 Flower、NVFlare、FATE、自定义 LoRA 聚合器或 FedRAG worker。
+- 对接 Flower、NVFlare、FATE、mergekit 或自定义 runner。
 - runner 使用短期凭据，只读挂载输入，只写指定输出位置。
 
-状态：只有 `app/src/domain/backends.ts` 中的 mock adapter；真实 runner 未实现。
+状态：未实现。前端只展示策略声明的 runner 和参考实现。
 
-### 6. 基础设施与持久化层
+### L6 基础设施与持久化层
 
 目标组件：API、关系数据库、对象存储、任务队列、容器调度、日志和密钥服务。
 
@@ -87,28 +92,34 @@ Configuration UI ──► Workload Registry ──► Compatibility Resolver
 
 状态：未实现。
 
-## 两套领域模型的现状
+## 执行位置
 
-代码中目前同时存在两套模型，这是有意保留的过渡结构：
+执行位置由执行模式推导，分四个位置描述，而不是笼统地说"沙箱在哪里"：
 
-| 模型 | 文件 | 用途 |
+| 执行模式 | 协调方 | 参与方侧 |
 |---|---|---|
-| 产品配置模型 | `configuration.ts` | 驱动当前 9 类工作负载 UI，代表平台未来方向 |
-| LoRA 演示执行模型 | `scenario.ts`、`registry.ts`、`compatibility.ts`、`repository.ts`、`backends.ts` | 支撑旧的 PEFT mock 流程和测试，作为首个真实 runner 的迁移起点 |
+| 多轮联邦 | 平台沙箱中的聚合器 | 各参与方本地训练节点 |
+| 单轮聚合 | 平台沙箱中的聚合服务 | 各参与方本地计算节点 |
+| 纵向协议 | 平台沙箱中的协议协调方 | Guest / Host 本地节点 |
+| 产物处理 | 平台沙箱中的合并器 | 不需要常驻节点，产物进入隔离 staging |
+| 查询时联邦 | 平台沙箱中的查询路由与融合 | 各方本地检索服务 |
+| 纯评测 | 平台沙箱中的评测调度 | 各方本地评测节点或 Endpoint |
 
-后端建设时应让 LoRA 场景也使用版本化 RunSpec 和通用工作负载 schema，再删除这层兼容结构。当前不要误把 mock backend 当作生产实现。
+控制面始终是 Federation Studio 本身；评测在独立评测沙箱中完成。
 
 ## 核心数据契约
+
+前端 `FrontendRunPlan`（`schemaVersion: frontend.run-plan/v1`）是后端 RunSpec 的前身。后端 RunSpec 在此基础上补充输入摘要和资源：
 
 ```ts
 type RunSpec = {
   schemaVersion: string;
-  workload: string;
-  partition: string;
-  topology: string;
+  scenario: string;
+  selection: Record<string, string>; // 8 个维度的取值
   strategy: string;
-  protectionProfile: string;
-  settings: Record<string, unknown>;
+  pattern: string;                    // 执行模式
+  protection: { preset: string; robust: boolean };
+  params: Record<string, string>;
   inputs: Array<{ uri: string; digest: string; manifest: unknown }>;
   runner: { adapter: string; version: string; resources: unknown };
   evaluation: { suite: string; gates: unknown[] };
@@ -120,8 +131,13 @@ RunSpec 必须版本化、不可变、可重放。密钥、原始数据和长期
 ## 安全边界
 
 - 上传内容先进入隔离 staging，解析器不能获得调度权限。
-- 硬规则先于 Agent；Agent 不直接执行上传内容。
+- 硬规则先于 Agent；Agent 不能覆盖拒绝结果，不直接执行上传内容。
 - runner 使用短期、最小权限凭据，默认无外网。
 - 日志过滤密钥、原始样本、完整模型参数和敏感提示词。
 - 沙箱结束后销毁计算环境，只持久化配置、摘要、日志索引、报告和允许发布的产物。
 
+## 已退役
+
+| 编号 | 原含义 | 退役日期 | 说明 |
+|---|---|---|---|
+| — | "两套领域模型并存"（产品配置模型 + 旧 LoRA mock 执行模型） | 2026-09-24 | T15 删除旧 LoRA mock，统一为 L2/L3/L4 一套模型 |

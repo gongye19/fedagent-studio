@@ -1,6 +1,6 @@
 # 项目演进
 
-本文只保留设计演进摘要。当前状态以 [PROGRESS.md](./PROGRESS.md) 为准。
+本文是按时间顺序的任务记录（`T<n>`）。当前状态以 [PROGRESS.md](./PROGRESS.md) 为准。
 
 ## T1：建立项目契约
 
@@ -34,3 +34,30 @@
 
 统一项目介绍、目标、架构、流程、开发和决策文档；补充根目录忽略规则、版本与完整检查命令；准备首个 Git 基线提交。
 
+
+## T14：配置维度模型复审
+
+- 类型：Goal review（目标复审）
+- 时间：2026-09-24
+- 状态：已批准
+- 相关：C1、C2（退役），C9、C10、C11（新增）；影响 L2、L3、S1、S2
+- 证据：旧的"工作负载 + 5 个维度"中，工作负载混合了目标与技术形态；"本地模拟""无训练数据"不属于所在维度；模型框架作为普通参数导致"XGBoost + SCAFFOLD"等非法组合；保护目标没有按计算类型收窄；非 PEFT 场景借用 LoRA mock 执行。
+- 决定：采用 8 个维度逐层选择（见 DIMENSIONS.md、D8–D12），场景模板作为维度 1–5 的落点。用户在对话中确认"OK 开始修改吧，包括文档"。
+- 性质：范围不缩小；验收标准更具体（stronger）。另把 GOAL 中误用的 `G1–G8` 按原编号更正为 `C1–C8`。
+
+## T15：实现分层维度前端与文档
+
+- 类型：Delivery（正式交付）
+- 时间：2026-09-24
+- 状态：完成
+- 相关：C3、C7、C9、C10、C11；影响 L1–L4、S1–S7
+- 步骤：
+  1. 领域模型：`taxonomy.ts`（维度与候选）、`selection.ts`（依赖规则）、`plan.ts`（FrontendRunPlan）、`demo.ts`（演示数据）、`simulator.ts`（按执行模式模拟）、`run.ts`（状态机）。
+  2. 状态与模拟驱动：`store.ts` 重写，新增 `useRunSimulation.ts`，编排逻辑移出 `App.tsx`。
+  3. 前端：逐层配置、模板快捷入口、平台推导面板、输入与参与方接入、各阶段视图、手动发布。
+  4. 测试：重写为 48 个，覆盖维度依赖、计划推导、状态机、模拟器、reducer 和导航。
+  5. 文档：新增 DIMENSIONS.md，更新 README、GOAL、ARCHITECTURE、FLOW、PROGRESS、DECISIONS、DEVELOPMENT、MVP_SCENARIO。
+  6. 清理：删除旧 LoRA mock（`backends`、`compatibility`、`registry`、`repository`、`scenario`、`types`、`configuration` 及其测试）和旧 UI（`RunBuilder`、`RunStepContent`、`RunOverview`），删除失效 CSS。
+  7. 验证：`npm run check` 通过；浏览器验证桌面与移动端、逐层选择与约束提示、模板入口、纵向场景完整七步运行、缺少 Guest 时准入拒绝。
+- 过程中发现并修复：联邦统计的策略未按数据关系收窄；换场景后场景参数沿用了上一场景的值。
+- 复杂度：未新增依赖或服务；新增的模块都替换了被删除的旧模块。

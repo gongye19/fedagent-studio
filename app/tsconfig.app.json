@@ -4,7 +4,7 @@
     "target": "es2023",
     "lib": ["ES2023", "DOM"],
     "module": "esnext",
-    /* node 类型是给 run.test.ts 用的：它读 run.ts 源码断言里面没有按产物类型的分支（C3）。 */
+    /* node 类型是给 run.test.ts 用的：它读 run.ts 源码断言状态机里没有按场景的分支（C7）。 */
     "types": ["vite/client", "node"],
     "allowArbitraryExtensions": true,
     "skipLibCheck": true,

@@ -1,34 +1,41 @@
-import { useEffect, useReducer, useRef, useState } from "react";
-import { backendFor, type Context } from "./domain/backends";
-import { evaluationOf, methodOf, privacyOf } from "./domain/registry";
-import { METRIC_KEYS } from "./domain/repository";
-import { buildComparison, createRun, nextStage } from "./domain/run";
-import { workloadOf } from "./domain/configuration";
-import type { Artifact } from "./domain/types";
-import {
-  initialState, recipeOf, reducer, selectedArtifacts,
-} from "./state/store";
-import RunOverview from "./ui/RunOverview";
-import RunStepContent from "./ui/RunStepContent";
-import { isRunStage, nextFlowStep, previousFlowStep, type FlowStepId } from "./ui/flow";
+import { useReducer, useState } from "react";
+import { buildRunPlan } from "./domain/plan";
+import { isComplete, scenarioFor, visibleLayers } from "./domain/selection";
+import { stageOf } from "./domain/run";
+import { initialState, reducer } from "./state/store";
+import { useRunSimulation } from "./state/useRunSimulation";
+import { StepActions, StepFrame, type Tone } from "./ui/common";
+import ConfigurationStep from "./ui/ConfigurationStep";
+import { FLOW_STEPS, isRunStage, nextFlowStep, previousFlowStep, type FlowStepId } from "./ui/flow";
+import InputsStep from "./ui/InputsStep";
+import PublishStep from "./ui/PublishStep";
+import RunPanel from "./ui/RunPanel";
+import StageStep from "./ui/StageStep";
+
+const STAGE_STATUS: Record<string, [string, Tone | undefined]> = {
+  pending: ["Pending", undefined],
+  running: ["Running", "running"],
+  done: ["Complete", "complete"],
+  failed: ["Failed", "failed"],
+};
 
 export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [activeStep, setActiveStep] = useState<FlowStepId>("configure");
-  // StrictMode 下 effect 会跑两次，没有这道闸会把产物写两份。
-  const produced = useRef(new Set<string>());
+  useRunSimulation(state.run, dispatch);
 
-  const { run } = state;
-  const workload = workloadOf(state.configuration.workloadId);
-
-  function start() {
-    const recipe = recipeOf(state);
-    if (!recipe) return;
-    dispatch({ type: "startRun", run: createRun(`run-${Date.now()}`, recipe, new Date().toISOString()) });
-  }
+  const { run, selection } = state;
+  const plan = run?.plan ?? buildRunPlan(selection);
+  const configured = isComplete(selection);
+  const participants = run?.participants ?? state.participants;
+  const inputsReady = Boolean(plan && participants.length >= plan.minParticipants);
+  const scenario = scenarioFor(selection);
+  const stepLabel = FLOW_STEPS.find((step) => step.id === activeStep)?.label ?? "";
 
   function goNext() {
-    if (isRunStage(activeStep) && !state.run) start();
+    if (activeStep === "inputs" && !run) {
+      dispatch({ type: "startRun", id: `run-${Date.now()}`, createdAt: new Date().toISOString() });
+    }
     const next = nextFlowStep(activeStep);
     if (next) setActiveStep(next);
   }
@@ -38,80 +45,51 @@ export default function App() {
     if (previous) setActiveStep(previous);
   }
 
-  function resetRun() {
-    produced.current.clear();
+  function newRun() {
     dispatch({ type: "reset" });
     setActiveStep("configure");
   }
 
-  useEffect(() => {
-    if (!run || run.error || run.result) return;
-
-    const selected = selectedArtifacts(state);
-    const method = methodOf(run.recipe.methodId);
-    const privacy = privacyOf(run.recipe.privacyId);
-    const evaluation = evaluationOf(run.recipe.evaluationId);
-    if (!method || !privacy || !evaluation || selected.length < 2) return;
-
-    const context: Context = {
-      selected, method, privacy,
-      evaluation,
-      datasetName: null,
-    };
-    const backend = backendFor(method);
-
-    // 有阶段在跑：等它的演示时长走完再推进。
-    const running = run.stages.find((stage) => stage.status === "running");
-    if (running) {
-      const work = backend.plan(running.id, context);
-      const timer = setTimeout(() => {
-        dispatch({ type: "stageFinish", stage: running.id, detail: work.detail });
-      }, work.demoMs);
-      return () => clearTimeout(timer);
+  function content() {
+    if (activeStep === "configure") {
+      const answered = visibleLayers(selection).filter((layer) => selection[layer.id]).length;
+      return (
+        <StepFrame title={stepLabel} status={run ? "Locked" : configured ? "Ready" : `${answered} selected`} statusTone={configured ? "complete" : undefined}>
+          <ConfigurationStep selection={selection} locked={Boolean(run)} dispatch={dispatch} />
+          <StepActions onNext={goNext} nextLabel="Continue" nextDisabled={!configured} />
+        </StepFrame>
+      );
     }
-
-    // 还有阶段没跑：开下一个。阶段顺序由 L3 决定，这里不做判断。
-    const pending = nextStage(run);
-    if (pending) {
-      dispatch({ type: "stageStart", stage: pending.id });
-      return;
+    if (activeStep === "inputs") {
+      return (
+        <StepFrame title={stepLabel} status={`${participants.length} participants`} statusTone={inputsReady ? "complete" : undefined}>
+          <InputsStep state={state} plan={plan} dispatch={dispatch} />
+          <StepActions onBack={goBack} onNext={goNext} nextLabel={run ? "Continue" : "开始准入检查"} nextDisabled={!inputsReady} />
+        </StepFrame>
+      );
     }
-
-    if (produced.current.has(run.id)) return;
-    produced.current.add(run.id);
-
-    const result = backend.produce(context);
-    const base = selected[0];
-    const artifactId = `produced-${run.id}`;
-    const artifact: Artifact = {
-      id: artifactId,
-      name: result.name,
-      objectType: base.objectType,
-      domain: [...new Set(selected.map((item) => item.domain))].join("+"),
-      architecture: base.architecture,
-      baseCheckpoint: base.baseCheckpoint,
-      rank: base.rank,
-      provenance: "本平台合并产出",
-      trainingMethod: `由 ${selected.length} 项按「${method.name}」合并`,
-      sizeBytes: result.sizeBytes,
-      createdAt: new Date().toISOString().slice(0, 10),
-      metrics: result.metrics,
-      owner: "me",
-      lineage: selected.map((item) => item.id),
-    };
-
-    dispatch({
-      type: "runResult",
-      artifact,
-      result: {
-        artifactId,
-        name: result.name,
-        sizeBytes: result.sizeBytes,
-        metrics: result.metrics,
-        comparison: buildComparison(selected, METRIC_KEYS[base.objectType], result.metrics),
-      },
-    });
-  }, [run, state]);
+    if (activeStep === "publish") {
+      const stage = run ? stageOf(run, "publish") : undefined;
+      const [status, tone] = run?.error ? STAGE_STATUS.failed : STAGE_STATUS[stage?.status ?? "pending"];
+      return (
+        <StepFrame title={stepLabel} status={status} statusTone={tone}>
+          <PublishStep run={run} dispatch={dispatch} />
+          <StepActions onBack={goBack} onReset={run ? newRun : undefined} />
+        </StepFrame>
+      );
+    }
+    if (isRunStage(activeStep)) {
+      const stage = run ? stageOf(run, activeStep) : undefined;
+      const [status, tone] = STAGE_STATUS[stage?.status ?? "pending"];
+      return (
+        <StepFrame title={stepLabel} status={status} statusTone={tone}>
+          <StageStep stageId={activeStep} run={run} />
+          <StepActions onBack={goBack} onNext={goNext} onReset={run?.error ? newRun : undefined} nextLabel="Continue" />
+        </StepFrame>
+      );
+    }
+    return null;
+  }
 
   return (
     <div className="app-shell">
@@ -127,26 +105,19 @@ export default function App() {
             <i aria-hidden="true">/</i>
             <strong>New run</strong>
           </div>
-          <span className="environment">Demo</span>
+          <span className="environment" title="所有执行都是前端模拟，后端未接入">Simulation</span>
         </div>
       </header>
 
       <main className="page" id="main">
         <header className="page-head">
           <h1>Create a federation run</h1>
-          <span className="draft-id" translate="no">{workload.id}</span>
+          <span className="draft-id" translate="no">{run?.id ?? scenario?.id ?? "draft"}</span>
         </header>
 
         <div className="run-workspace">
-          <RunStepContent
-            activeStep={activeStep}
-            state={state}
-            dispatch={dispatch}
-            onNext={goNext}
-            onBack={goBack}
-            onReset={resetRun}
-          />
-          <RunOverview state={state} activeStep={activeStep} onSelectStep={setActiveStep} />
+          {content()}
+          <RunPanel state={state} minParticipants={plan?.minParticipants ?? null} activeStep={activeStep} onSelectStep={setActiveStep} />
         </div>
       </main>
     </div>

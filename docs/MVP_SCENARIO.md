@@ -1,6 +1,8 @@
-# 首个可执行场景：PEFT / LoRA
+# 后端 demo 候选：PEFT / LoRA
 
-通用前端已经覆盖多类联邦工作负载，但后端不应一次实现全部。第一条真实纵向切片建议选择：**跨机构、横向、同一基础模型上的 LoRA / Adapter 联合微调与聚合**。
+> 2026-09-24（T15）：状态改为**候选**。当前先用前端验证维度分层，分层确认后再选两个结构差异大的场景做后端 demo（见 [PROGRESS.md](./PROGRESS.md) M2）。本文保留 LoRA 候选的契约草案；新维度下它对应两个场景："LoRA / Adapter 联邦微调"（多轮联邦）和"模型与 Adapter 聚合"（产物处理），下文的一轮加权聚合属于后者。
+
+前端已经覆盖多个场景模板，但后端不应一次实现全部。LoRA 候选是：**跨机构、同一基础模型上的 LoRA / Adapter 聚合，再扩展为多轮联邦微调**。
 
 ## 为什么先做这个场景
 
@@ -13,10 +15,12 @@
 
 | 维度 | 值 |
 |---|---|
-| 工作负载 | LoRA / Adapter 联合微调 |
-| 数据关系 | 横向联邦 |
-| 拓扑 | Cross-silo |
-| 聚合策略 | FedAvg |
+| 协作目标 | 训练模型 |
+| 各方投入 | 第一步：已训练的 Adapter；第二步：本地数据 |
+| 数据关系 | 横向（第二步） |
+| 参与方形态 | 跨机构 Cross-silo |
+| 模型形态 | 神经网络 · LoRA / Adapter |
+| 协作策略 | 加权平均 → FedAvg |
 | 基础模型 | 固定一个小型、许可清晰的模型 |
 | Adapter | LoRA，统一 target modules 和 rank |
 | 保护 | 第一阶段 mTLS + 隔离沙箱；SecAgg 后续接入 |
@@ -52,8 +56,8 @@
 
 ```yaml
 schemaVersion: federation.run/v1alpha1
-workload: peft
-strategy: fedavg
+scenario: model-merge        # 第二步为 peft-finetune
+strategy: merge-weighted     # 第二步为 peft-fedavg
 runner:
   adapter: lora-fedavg
   version: 0.1.0
@@ -68,7 +72,7 @@ runner 不访问业务数据库，不持有长期凭据，只读取本次 Run �
 
 ## 实施顺序
 
-1. 将当前 LoRA mock 配置迁移到通用 RunSpec。
+1. 以前端 FrontendRunPlan 为基础定义 RunSpec（旧 LoRA mock 已在 T15 删除）。
 2. 实现真实上传、manifest extractor 和规则校验。
 3. 用本机 Docker Job 跑通加权聚合并回传日志。
 4. 增加独立评测 runner 和发布闸门。
