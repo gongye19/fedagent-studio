@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import {
   LAYERS,
   PARAMS_STEP,
+  SCENARIO_LAYERS,
   currentLayer,
   displayOptions,
   isAutoSelected,
@@ -29,39 +30,62 @@ type Props = {
 
 const GROUPS: ScenarioGroup[] = ["training", "analysis", "knowledge"];
 
-/** 所有维度和候选项始终展开；上游选完后，下游不支持的选项自动置灰。 */
+/**
+ * 所有维度和候选项始终展开；上游选完后，下游不支持的选项自动置灰。
+ * 维度 1–5 和场景选择在同一张卡片里：可以直接选场景，也可以逐个维度选；
+ * 场景确定后，维度 1–5 中会离开该场景的选项置灰。
+ */
 export default function ConfigurationStep({ selection, locked, dispatch }: Props) {
   const current = currentLayer(selection);
   const scenario = scenarioFor(selection);
   const params = paramsFor(selection);
 
+  function renderLayer(layer: LayerDefinition, nested: boolean) {
+    return (
+      <LayerCard
+        layer={layer}
+        title={layer.id === "sharing" && selection.contribution === "trained-artifact" ? "模型形态 · 产物类型" : layer.title}
+        options={displayOptions(layer.id, selection)}
+        value={selection[layer.id]}
+        current={layer.id === current}
+        inactive={!layerApplies(layer.id, selection)}
+        // 直接选了场景时，维度 1–5 的自动选中原因很明显，不再逐个标注。
+        auto={Boolean(selection[layer.id]) && !(nested && selection.scenario) && isAutoSelected(layer.id, selection)}
+        locked={locked}
+        nested={nested}
+        onChoose={(value) => dispatch({ type: "choose", layer: layer.id, value })}
+      >
+        {layer.id === "protection" ? <ProtectionExtras selection={selection} /> : null}
+      </LayerCard>
+    );
+  }
+
   return (
     <div className="config-flow">
-      <TemplateBar
-        activeId={scenario?.id}
-        locked={locked}
-        onApply={(id) => dispatch({ type: "applyTemplate", scenario: id })}
-        onClear={selection.goal ? () => dispatch({ type: "reset" }) : undefined}
-      />
+      <section className="layer-card scenario-card" aria-labelledby="scenario-card-title">
+        <header className="scenario-card-head">
+          <div>
+            <h3 id="scenario-card-title"><span className="layer-number">维度 1–5</span>定位场景</h3>
+            <p>直接选场景，下面的维度 1–5 会自动填好；也可以逐个维度往下选。场景确定后，维度 1–5 只能在该场景内调整，换场景请在这里重新选择。</p>
+          </div>
+          {selection.goal && !locked ? <button type="button" className="text-button" onClick={() => dispatch({ type: "reset" })}>清空</button> : null}
+        </header>
+        <ScenarioPicker
+          activeId={selection.scenario ?? undefined}
+          locked={locked}
+          onApply={(id) => dispatch({ type: "applyTemplate", scenario: id })}
+        />
+        {scenario ? <ScenarioMatch selection={selection} /> : null}
+        <ol className="scenario-dimensions" aria-label="维度 1–5">
+          {LAYERS.filter((layer) => SCENARIO_LAYERS.includes(layer.id)).map((layer) => (
+            <li key={layer.id}>{renderLayer(layer, true)}</li>
+          ))}
+        </ol>
+      </section>
 
-      <ol className="layer-list" aria-label="配置维度">
-        {LAYERS.map((layer) => (
-          <li className="layer-row" key={layer.id}>
-            {layer.id === "strategy" && scenario ? <ScenarioMatch selection={selection} /> : null}
-            <LayerCard
-              layer={layer}
-              title={layer.id === "sharing" && selection.contribution === "trained-artifact" ? "模型形态 · 产物类型" : layer.title}
-              options={displayOptions(layer.id, selection)}
-              value={selection[layer.id]}
-              current={layer.id === current}
-              inactive={!layerApplies(layer.id, selection)}
-              auto={Boolean(selection[layer.id]) && isAutoSelected(layer.id, selection)}
-              locked={locked}
-              onChoose={(value) => dispatch({ type: "choose", layer: layer.id, value })}
-            >
-              {layer.id === "protection" ? <ProtectionExtras selection={selection} /> : null}
-            </LayerCard>
-          </li>
+      <ol className="layer-list" aria-label="维度 6–8">
+        {LAYERS.filter((layer) => !SCENARIO_LAYERS.includes(layer.id)).map((layer) => (
+          <li className="layer-row" key={layer.id}>{renderLayer(layer, false)}</li>
         ))}
 
         <li className="layer-row">
@@ -96,51 +120,44 @@ export default function ConfigurationStep({ selection, locked, dispatch }: Props
   );
 }
 
-function TemplateBar({
-  activeId, locked, onApply, onClear,
+function ScenarioPicker({
+  activeId, locked, onApply,
 }: {
   activeId?: string;
   locked: boolean;
   onApply: (id: (typeof SCENARIOS)[number]["id"]) => void;
-  onClear?: () => void;
 }) {
   return (
-    <section className="template-bar" aria-labelledby="template-title">
-      <header className="template-head">
-        <div>
-          <h3 id="template-title">从场景模板开始</h3>
-          <p>一键填好维度 1–5，策略和保护仍由你选择。也可以直接从下方逐层选择。</p>
-        </div>
-        {onClear && !locked ? <button type="button" className="text-button" onClick={onClear}>清空</button> : null}
-      </header>
-      <div className="template-groups">
-        {GROUPS.map((group) => (
-          <div className="template-group" key={group}>
-            <span className="template-group-label">{SCENARIO_GROUP_LABEL[group]}</span>
-            <div className="template-chips">
-              {SCENARIOS.filter((scenario) => scenario.group === group).map((scenario) => (
-                <button
-                  type="button"
-                  className={`template-chip${activeId === scenario.id ? " template-chip--active" : ""}`}
-                  key={scenario.id}
-                  aria-pressed={activeId === scenario.id}
-                  title={scenario.summary}
-                  disabled={locked}
-                  onClick={() => onApply(scenario.id)}
-                >
-                  <span>{scenario.label}</span>
-                </button>
-              ))}
-            </div>
+    <div className="template-groups" role="radiogroup" aria-label="场景">
+      {GROUPS.map((group) => (
+        <div className="template-group" key={group}>
+          <span className="template-group-label">{SCENARIO_GROUP_LABEL[group]}</span>
+          <div className="template-chips">
+            {SCENARIOS.filter((scenario) => scenario.group === group).map((scenario) => (
+              <button
+                type="button"
+                role="radio"
+                className={`template-chip${activeId === scenario.id ? " template-chip--active" : ""}`}
+                key={scenario.id}
+                aria-checked={activeId === scenario.id}
+                title={scenario.summary}
+                disabled={locked}
+                onClick={() => {
+                  if (activeId !== scenario.id) onApply(scenario.id);
+                }}
+              >
+                {scenario.label}
+              </button>
+            ))}
           </div>
-        ))}
-      </div>
-    </section>
+        </div>
+      ))}
+    </div>
   );
 }
 
 function LayerCard({
-  layer, title, options, value, current, inactive, auto, locked, onChoose, children,
+  layer, title, options, value, current, inactive, auto, locked, nested, onChoose, children,
 }: {
   layer: LayerDefinition;
   title: string;
@@ -150,6 +167,7 @@ function LayerCard({
   inactive: boolean;
   auto: boolean;
   locked: boolean;
+  nested: boolean;
   onChoose: (value: string) => void;
   children?: ReactNode;
 }) {
@@ -158,7 +176,7 @@ function LayerCard({
   const groups = [...new Set(options.map((option) => option.group))];
 
   return (
-    <section className={`layer-card layer-card--${state}`} aria-labelledby={headingId}>
+    <section className={`layer-card layer-card--${state}${nested ? " layer-card--nested" : ""}`} aria-labelledby={headingId}>
       <header className="layer-head">
         <span className="layer-step" aria-hidden="true">{value ? "✓" : layer.step}</span>
         <div className="layer-heading">
@@ -223,7 +241,7 @@ function ScenarioMatch({ selection }: { selection: Selection }) {
   if (!scenario) return null;
   return (
     <div className="scenario-match" role="status">
-      <span className="scenario-match-label">已匹配场景</span>
+      <span className="scenario-match-label">当前场景</span>
       <div className="scenario-match-main">
         <strong>{scenario.label}</strong>
         <span className="badge">{PATTERN_LABEL[scenario.pattern(selection)]}</span>

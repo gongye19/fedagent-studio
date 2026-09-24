@@ -5,6 +5,8 @@
  * 1. 只有前面的维度约束后面的维度。
  * 2. 不适用的维度没有可选项；上游没答完时，下游也没有可选项（界面上置灰）。
  * 3. 上游改选后，下游失效的选择被清空；只剩一个可选项时自动选中。
+ * 4. 场景一旦确定（直接选场景，或维度 1–5 选到能确定场景），维度 1–5 只能在该场景内调整：
+ *    会让路径离开该场景的选项不可选。换场景要重新选场景或清空。
  */
 import {
   ARTIFACT_KINDS,
@@ -38,6 +40,8 @@ export type LayerId =
   | "protection";
 
 export type Selection = Record<LayerId, string | null> & {
+  /** 已确定的场景。确定后维度 1–5 只能在场景内调整。 */
+  scenario: ScenarioId | null;
   params: Record<string, string>;
 };
 
@@ -50,8 +54,12 @@ export const EMPTY_SELECTION: Selection = {
   sharing: null,
   strategy: null,
   protection: null,
+  scenario: null,
   params: {},
 };
+
+/** 维度 1–5：用来定位场景的维度。 */
+export const SCENARIO_LAYERS: readonly LayerId[] = ["goal", "contribution", "partition", "topology", "modelClass", "sharing"];
 
 export type LayerDefinition = {
   id: LayerId;
@@ -115,7 +123,8 @@ export function visibleLayers(selection: Selection): LayerDefinition[] {
 
 export function scenarioFor(selection: Selection): Scenario | undefined {
   if (!isLayerVisible("strategy", selection)) return undefined;
-  return matchScenario(selection);
+  const matched = matchScenario(selection);
+  return selection.scenario && matched?.id !== selection.scenario ? undefined : matched;
 }
 
 export function protectionContext(selection: Selection): ProtectionContext | undefined {
@@ -182,8 +191,8 @@ function protectionOptions(selection: Selection): OptionState[] {
   return PROTECTIONS.map((protection) => ({ choice: protection, ...protection.check(context) }));
 }
 
-/** 某个维度当前的候选项及可用性。上游没答完时返回空数组。 */
-export function layerOptions(id: LayerId, selection: Selection): OptionState[] {
+/** 不考虑场景锁定时，某个维度的候选项及可用性。 */
+function baseOptions(id: LayerId, selection: Selection): OptionState[] {
   if (!isLayerVisible(id, selection)) return [];
   switch (id) {
     case "goal":
@@ -204,6 +213,55 @@ export function layerOptions(id: LayerId, selection: Selection): OptionState[] {
     case "protection":
       return protectionOptions(selection);
   }
+}
+
+type ScenarioPathValues = Record<LayerId, string | null>;
+
+let pathCache: Map<ScenarioId, ScenarioPathValues[]> | null = null;
+
+/** 枚举维度 1–5 的全部可达组合，按落到的场景分组。只算一次。 */
+function scenarioPaths(id: ScenarioId): ScenarioPathValues[] {
+  if (!pathCache) {
+    const cache = new Map<ScenarioId, ScenarioPathValues[]>();
+    const walk = (selection: Selection) => {
+      const layer = SCENARIO_LAYERS.find((item) => isLayerVisible(item, selection) && !selection[item]);
+      if (!layer) {
+        const matched = matchScenario(selection);
+        if (matched) cache.set(matched.id, [...(cache.get(matched.id) ?? []), { ...selection }]);
+        return;
+      }
+      for (const option of baseOptions(layer, selection).filter((item) => item.available)) {
+        walk(normalizeWith({ ...selection, [layer]: option.choice.id }, false));
+      }
+    };
+    walk(EMPTY_SELECTION);
+    pathCache = cache;
+  }
+  return pathCache.get(id) ?? [];
+}
+
+/** 在已确定的场景内，某个维度取这个值后是否还能落回同一个场景。 */
+function staysInScenario(selection: Selection, layer: LayerId, value: string): boolean {
+  if (!selection.scenario) return true;
+  const upstream = SCENARIO_LAYERS.slice(0, SCENARIO_LAYERS.indexOf(layer));
+  return scenarioPaths(selection.scenario).some((path) => (
+    path[layer] === value && upstream.every((item) => path[item] === selection[item])
+  ));
+}
+
+function optionsWith(id: LayerId, selection: Selection, useLock: boolean): OptionState[] {
+  const base = baseOptions(id, selection);
+  if (!useLock || !selection.scenario || !SCENARIO_LAYERS.includes(id)) return base;
+  return base.map((option) => (
+    option.available && !staysInScenario(selection, id, option.choice.id)
+      ? { choice: option.choice, available: false, reason: "不属于当前场景" }
+      : option
+  ));
+}
+
+/** 某个维度当前的候选项及可用性（含场景锁定）。上游没答完时返回空数组。 */
+export function layerOptions(id: LayerId, selection: Selection): OptionState[] {
+  return optionsWith(id, selection, true);
 }
 
 /** 只剩一个可选项时，平台自动选中，界面标注"自动选中"。 */
@@ -252,15 +310,19 @@ export function paramsFor(selection: Selection): ParamDefinition[] {
   return scenario.params.filter((param) => !param.strategies || param.strategies.includes(selection.strategy ?? ""));
 }
 
-/** 从上到下重新校验：清掉失效选择，自动选中唯一可选项，补齐参数默认值。 */
+/** 从上到下重新校验：清掉失效选择，自动选中唯一可选项，锁定已确定的场景，补齐参数默认值。 */
 export function normalize(selection: Selection): Selection {
+  return normalizeWith(selection, true);
+}
+
+function normalizeWith(selection: Selection, useLock: boolean): Selection {
   const next: Selection = { ...selection, params: { ...selection.params } };
   for (const layer of LAYERS) {
     if (!isLayerVisible(layer.id, next)) {
       next[layer.id] = null;
       continue;
     }
-    const options = layerOptions(layer.id, next);
+    const options = optionsWith(layer.id, next, useLock);
     const current = next[layer.id];
     if (current && !options.some((option) => option.available && option.choice.id === current)) next[layer.id] = null;
     if (!next[layer.id]) {
@@ -268,6 +330,8 @@ export function normalize(selection: Selection): Selection {
       if (available.length === 1) next[layer.id] = available[0].choice.id;
     }
   }
+  // 维度 1–5 选到能确定场景时，锁定这个场景。
+  if (useLock && !next.scenario && isLayerVisible("strategy", next)) next.scenario = matchScenario(next)?.id ?? null;
 
   const params: Record<string, string> = {};
   for (const param of paramsFor(next)) {
@@ -292,11 +356,11 @@ export function setParam(selection: Selection, id: string, value: string): Selec
   return { ...selection, params: { ...selection.params, [id]: value } };
 }
 
-/** "从模板开始"：一键填好维度 1–5，策略和保护留给用户。 */
+/** 直接选场景：锁定场景并自动填好维度 1–5（场景内有多个选项的维度用默认值），策略和保护留给用户。 */
 export function applyTemplate(id: ScenarioId): Selection {
   const scenario = scenarioOf(id);
   if (!scenario) return EMPTY_SELECTION;
-  return normalize({ ...EMPTY_SELECTION, ...scenario.shortcut });
+  return normalize({ ...EMPTY_SELECTION, ...scenario.shortcut, scenario: id });
 }
 
 export function isComplete(selection: Selection): boolean {

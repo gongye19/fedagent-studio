@@ -177,9 +177,61 @@ describe("layered selection", () => {
   it("resets scenario parameters to the new scenario's defaults when the scenario changes", () => {
     const training = choose(applyTemplate("model-training"), "strategy", "train-fedavg");
     expect(training.params.rounds).toBe("20");
-    const peft = choose(training, "sharing", "peft");
+    const peft = applyTemplate("peft-finetune");
     expect(peft.params.rounds).toBe("10");
     expect(peft.params.rank).toBe("16");
+  });
+
+  it("locks the scenario when chosen directly and fills dimensions 1–5", () => {
+    const peft = applyTemplate("peft-finetune");
+    expect(peft.scenario).toBe("peft-finetune");
+    expect([peft.goal, peft.contribution, peft.partition, peft.topology, peft.modelClass, peft.sharing])
+      .toEqual(["train", "local-data", "horizontal", "cross-silo", "neural", "peft"]);
+  });
+
+  it("greys out options that would leave the locked scenario and keeps in-scenario alternatives", () => {
+    const peft = applyTemplate("peft-finetune");
+    expect(availableIds(peft, "goal")).toEqual(["train"]);
+    expect(availableIds(peft, "sharing")).toEqual(["peft"]);
+    expect(availableIds(peft, "modelClass")).toEqual(["neural"]);
+    expect(availableIds(peft, "topology")).toEqual(["cross-silo", "cross-device"]);
+    expect(choose(peft, "sharing", "full")).toBe(peft);
+
+    const device = choose(peft, "topology", "cross-device");
+    expect(device.scenario).toBe("peft-finetune");
+    expect(scenarioFor(device)?.id).toBe("peft-finetune");
+
+    const training = applyTemplate("model-training");
+    expect(availableIds(training, "modelClass")).toEqual(["neural", "tree", "linear"]);
+    expect(availableIds(training, "sharing")).toEqual(["full"]);
+
+    const analytics = applyTemplate("federated-analytics");
+    expect(availableIds(analytics, "partition")).toEqual(["horizontal", "vertical"]);
+    expect(choose(analytics, "partition", "vertical").scenario).toBe("federated-analytics");
+  });
+
+  it("locks the scenario once dimension-by-dimension choices determine it", () => {
+    const partial = pick(EMPTY_SELECTION, [["goal", "train"], ["contribution", "local-data"], ["partition", "horizontal"], ["topology", "cross-silo"], ["modelClass", "neural"]]);
+    expect(partial.scenario).toBeNull();
+    expect(availableIds(partial, "sharing")).toEqual(["full", "peft"]);
+
+    const locked = choose(partial, "sharing", "full");
+    expect(locked.scenario).toBe("model-training");
+    expect(availableIds(locked, "sharing")).toEqual(["full"]);
+    expect(availableIds(locked, "goal")).toEqual(["train"]);
+
+    expect(choose(EMPTY_SELECTION, "goal", "retrieval").scenario).toBe("fedrag");
+  });
+
+  it("never leaves a locked scenario with a dimension that has no selectable option", () => {
+    for (const scenario of SCENARIOS) {
+      const selection = applyTemplate(scenario.id);
+      for (const layer of ["goal", "contribution", "partition", "topology", "modelClass", "sharing"] as const) {
+        const options = layerOptions(layer, selection);
+        if (options.length) expect(options.some((option) => option.available), `${scenario.id}/${layer}`).toBe(true);
+      }
+      expect(scenarioFor(selection)?.id, scenario.id).toBe(scenario.id);
+    }
   });
 
   it("maps every scenario template to its own path and at least one runnable strategy", () => {
