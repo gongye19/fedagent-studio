@@ -5,11 +5,7 @@ import { initialState, inputStatus, reducer, runParticipants, type Action, type 
 
 const apply = (state: State, actions: Action[]) => actions.reduce(reducer, state);
 
-const peftReady: Action[] = [
-  { type: "applyTemplate", scenario: "peft-finetune" },
-  { type: "toggle", layer: "strategy", value: "peft-fedavg" },
-  { type: "toggle", layer: "protection", value: "standard" },
-];
+const peftReady: Action[] = [{ type: "applyTemplate", scenario: "peft-finetune" }];
 
 const goodJsonl = Array.from({ length: 60 }, (_, index) => JSON.stringify({ instruction: `问题 ${index}`, output: "回答" })).join("\n");
 
@@ -24,11 +20,13 @@ describe("page state", () => {
     const peft = apply(initialState, [...peftReady, { type: "toggleDataset", id: "peft-silo-3" }]);
     expect(runParticipants(peft)).toHaveLength(2);
 
-    const sameCatalog = reducer(peft, { type: "toggle", layer: "protection", value: "tee" });
+    const sameCatalog = reducer(peft, { type: "toggleEnhancement", id: "secagg" });
     expect(runParticipants(sameCatalog)).toHaveLength(2);
+    expect(sameCatalog.selection.enhancements).toEqual(["secagg"]);
 
-    const device = reducer(peft, { type: "toggle", layer: "topology", value: "cross-device" });
-    expect(runParticipants(device).every((participant) => participant.role === "端侧设备")).toBe(true);
+    const training = apply(initialState, [{ type: "applyTemplate", scenario: "model-training" }]);
+    const tree = reducer(training, { type: "toggle", layer: "modelClass", value: "tree" });
+    expect(runParticipants(tree).every((participant) => participant.provides === "表格数据")).toBe(true);
   });
 
   it("ignores datasets that do not match the current selection", () => {
@@ -67,7 +65,7 @@ describe("page state", () => {
   });
 
   it("starts a run only with a complete plan and enough data", () => {
-    const incomplete = apply(initialState, [{ type: "applyTemplate", scenario: "peft-finetune" }]);
+    const incomplete = apply(initialState, [{ type: "applyTemplate", scenario: "model-training" }]);
     expect(reducer(incomplete, { type: "startRun", id: "run-1", createdAt: "now" }).run).toBeNull();
 
     const tooFew = apply(initialState, [

@@ -16,11 +16,11 @@ import {
   type Run,
   type StageId,
 } from "./run";
-import { applyTemplate, choose } from "./selection";
+import { applyTemplate } from "./selection";
 import { artifactFor, stageWork } from "./simulator";
 
 function planFor(): FrontendRunPlan {
-  const selection = choose(choose(applyTemplate("peft-finetune"), "strategy", "peft-fedavg"), "protection", "standard");
+  const selection = applyTemplate("peft-finetune");
   const plan = buildRunPlan(selection);
   if (!plan) throw new Error("plan expected");
   return plan;

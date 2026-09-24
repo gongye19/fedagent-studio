@@ -40,7 +40,7 @@ export default function PublishStep({ run, dispatch }: { run: Run | null; dispat
         items={[
           ["产物类型", run.plan.output],
           ["谱系", run.participants.map((participant) => participant.name).join("、")],
-          ["运行计划", `${run.plan.scenario.label} · ${run.plan.strategy.label} · ${run.plan.protection.label}`],
+          ["运行计划", `${run.plan.scenario.label} · ${run.plan.strategy.label} · ${run.plan.security.enhancements.map((item) => item.label).join("、") || "内置保护"}`],
         ]}
       />
       <div className="segmented" role="radiogroup" aria-label="发布范围">

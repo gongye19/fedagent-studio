@@ -1,6 +1,6 @@
 # 后端 demo 候选：PEFT / LoRA
 
-> 2026-09-24（T15）：状态改为**候选**。当前先用前端验证维度分层，分层确认后再选两个结构差异大的场景做后端 demo（见 [PROGRESS.md](./PROGRESS.md) M2）。本文保留 LoRA 候选的契约草案；新维度下它对应两个场景："LoRA / Adapter 联邦微调"（多轮联邦）和"模型与 Adapter 聚合"（产物处理），下文的一轮加权聚合属于后者。
+> 2026-09-24（T15）：状态改为**候选**。当前先用前端验证维度分层，分层确认后再选两个结构差异大的场景做后端 demo（见 [PROGRESS.md](./PROGRESS.md) M2）。本文保留 LoRA 候选的契约草案，对应场景"LoRA / Adapter 联邦微调"（多轮联邦）。"模型与 Adapter 聚合"场景已在 T24 删除，下文的一轮加权聚合仅作为多轮训练前的验证步骤。
 
 前端已经覆盖多个场景模板，但后端不应一次实现全部。LoRA 候选是：**跨机构、同一基础模型上的 LoRA / Adapter 聚合，再扩展为多轮联邦微调**。
 
@@ -16,11 +16,10 @@
 | 维度 | 值 |
 |---|---|
 | 协作目标 | 训练模型 |
-| 各方投入 | 第一步：已训练的 Adapter；第二步：本地数据 |
+| 各方投入 | 本地数据 |
 | 数据关系 | 横向（第二步） |
-| 参与方形态 | 跨机构 Cross-silo |
-| 模型形态 | 神经网络 · LoRA / Adapter |
-| 协作策略 | 加权平均 → FedAvg |
+| 模型类别 / 共享方式 | 神经网络 · LoRA / Adapter |
+| 协作策略 | FedAvg |
 | 基础模型 | 固定一个小型、许可清晰的模型 |
 | Adapter | LoRA，统一 target modules 和 rank |
 | 保护 | 第一阶段 mTLS + 隔离沙箱；SecAgg 后续接入 |
@@ -56,8 +55,8 @@
 
 ```yaml
 schemaVersion: federation.run/v1alpha1
-scenario: model-merge        # 第二步为 peft-finetune
-strategy: merge-weighted     # 第二步为 peft-fedavg
+scenario: peft-finetune
+strategy: peft-fedavg
 runner:
   adapter: lora-fedavg
   version: 0.1.0

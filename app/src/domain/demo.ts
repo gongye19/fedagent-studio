@@ -30,72 +30,42 @@ function entries(scenario: ScenarioId, key: string, when: CatalogEntry["when"], 
 }
 
 export const DATA_CATALOG: CatalogEntry[] = [
-  ...entries("model-training", "mt-image", { topology: "cross-silo", modelClass: "neural" }, [
+  ...entries("model-training", "mt-image", { modelClass: "neural" }, [
     { name: "医院 A 影像数据", role: "参与方", provides: "影像分类数据", detail: "1,240 样本 · 已登记 schema" },
     { name: "医院 B 影像数据", role: "参与方", provides: "影像分类数据", detail: "980 样本 · 已登记 schema" },
     { name: "医院 C 影像数据", role: "参与方", provides: "影像分类数据", detail: "1,560 样本 · 已登记 schema" },
     { name: "医院 D 影像数据", role: "参与方", provides: "影像分类数据", detail: "730 样本 · 已登记 schema" },
   ]),
-  ...entries("model-training", "mt-tabular-tree", { topology: "cross-silo", modelClass: "tree" }, [
+  ...entries("model-training", "mt-tabular-tree", { modelClass: "tree" }, [
     { name: "保险 A 理赔表", role: "参与方", provides: "表格数据", detail: "42,000 行 · 36 列" },
     { name: "保险 B 理赔表", role: "参与方", provides: "表格数据", detail: "31,500 行 · 36 列" },
     { name: "保险 C 理赔表", role: "参与方", provides: "表格数据", detail: "27,800 行 · 36 列" },
   ]),
-  ...entries("model-training", "mt-tabular-linear", { topology: "cross-silo", modelClass: "linear" }, [
+  ...entries("model-training", "mt-tabular-linear", { modelClass: "linear" }, [
     { name: "银行 A 信用表", role: "参与方", provides: "表格数据", detail: "58,000 行 · 18 列" },
     { name: "银行 B 信用表", role: "参与方", provides: "表格数据", detail: "44,000 行 · 18 列" },
     { name: "银行 C 信用表", role: "参与方", provides: "表格数据", detail: "39,000 行 · 18 列" },
   ]),
-  ...entries("model-training", "mt-device", { topology: "cross-device" }, [
-    { name: "设备群组 A", role: "端侧设备", provides: "端侧训练数据", detail: "12,000 台设备 · 日均在线 38%" },
-    { name: "设备群组 B", role: "端侧设备", provides: "端侧训练数据", detail: "8,500 台设备 · 日均在线 41%" },
-  ]),
-  ...entries("peft-finetune", "peft-silo", { topology: "cross-silo" }, [
+  ...entries("peft-finetune", "peft-silo", undefined, [
     { name: "律所 A 问答数据", role: "参与方", provides: "指令数据 JSONL", detail: "3,200 条 · chat 模板" },
     { name: "券商 B 研报数据", role: "参与方", provides: "指令数据 JSONL", detail: "2,450 条 · chat 模板" },
     { name: "媒体 C 摘要数据", role: "参与方", provides: "指令数据 JSONL", detail: "4,100 条 · chat 模板" },
     { name: "高校 D 教学数据", role: "参与方", provides: "指令数据 JSONL", detail: "1,800 条 · chat 模板" },
-  ]),
-  ...entries("peft-finetune", "peft-device", { topology: "cross-device" }, [
-    { name: "手机端对话群组 A", role: "端侧设备", provides: "端侧对话数据", detail: "5,000 台设备 · 需 6GB 以上内存" },
-    { name: "手机端对话群组 B", role: "端侧设备", provides: "端侧对话数据", detail: "3,200 台设备 · 需 6GB 以上内存" },
-  ]),
-  ...entries("model-merge", "merge-adapter", { sharing: "adapter" }, [
-    { name: "news-summary-lora", role: "产物", provides: "LoRA Adapter", detail: "rank 16 · 新闻摘要 · 1,200 样本训练" },
-    { name: "legal-qa-lora", role: "产物", provides: "LoRA Adapter", detail: "rank 16 · 法律问答 · 900 样本训练" },
-    { name: "finance-report-lora", role: "产物", provides: "LoRA Adapter", detail: "rank 16 · 财报分析 · 1,500 样本训练" },
-  ]),
-  ...entries("model-merge", "merge-full", { sharing: "full-weights" }, [
-    { name: "medical-3b-sft", role: "产物", provides: "全量模型权重", detail: "3B · 医疗问答微调" },
-    { name: "code-3b-sft", role: "产物", provides: "全量模型权重", detail: "3B · 代码生成微调" },
   ]),
   ...entries("vertical-modeling", "vfl", undefined, [
     { name: "银行 A 交易特征", role: "Guest · 持有标签", provides: "特征表 + PSI key", detail: "12 个特征 · 52,000 用户" },
     { name: "电商 B 消费特征", role: "Host", provides: "特征表 + PSI key", detail: "28 个特征 · 81,000 用户" },
     { name: "运营商 C 通信特征", role: "Host", provides: "特征表 + PSI key", detail: "9 个特征 · 64,000 用户" },
   ]),
-  ...entries("federated-evaluation", "eval-local", { contribution: "local-test-data" }, [
+  ...entries("federated-evaluation", "eval-local", undefined, [
     { name: "站点 A 测试集", role: "评测节点", provides: "本地测试集", detail: "2,000 条 · 已脱敏" },
     { name: "站点 B 测试集", role: "评测节点", provides: "本地测试集", detail: "1,600 条 · 已脱敏" },
     { name: "站点 C 测试集", role: "评测节点", provides: "本地测试集", detail: "2,400 条 · 已脱敏" },
   ]),
-  ...entries("federated-evaluation", "eval-endpoint", { contribution: "model-endpoint" }, [
-    { name: "机构 A 模型服务", role: "模型 Endpoint", provides: "OpenAI 兼容接口", detail: "限流 20 QPS · 已登记模型卡" },
-    { name: "机构 B 模型服务", role: "模型 Endpoint", provides: "OpenAI 兼容接口", detail: "限流 10 QPS · 已登记模型卡" },
-    { name: "机构 C 模型服务", role: "模型 Endpoint", provides: "OpenAI 兼容接口", detail: "限流 15 QPS · 已登记模型卡" },
-  ]),
-  ...entries("federated-analytics", "fa-horizontal", { partition: "horizontal", topology: "cross-silo" }, [
+  ...entries("federated-analytics", "fa-horizontal", undefined, [
     { name: "医院 A 住院数据", role: "参与方", provides: "统计分析表", detail: "年龄、住院天数、费用 · 18,000 行" },
     { name: "医院 B 住院数据", role: "参与方", provides: "统计分析表", detail: "年龄、住院天数、费用 · 12,500 行" },
     { name: "医院 C 住院数据", role: "参与方", provides: "统计分析表", detail: "年龄、住院天数、费用 · 21,000 行" },
-  ]),
-  ...entries("federated-analytics", "fa-device", { partition: "horizontal", topology: "cross-device" }, [
-    { name: "设备群组 A 使用日志", role: "端侧设备", provides: "端侧统计数据", detail: "20,000 台设备" },
-    { name: "设备群组 B 使用日志", role: "端侧设备", provides: "端侧统计数据", detail: "14,000 台设备" },
-  ]),
-  ...entries("federated-analytics", "fa-vertical", { partition: "vertical" }, [
-    { name: "银行 A 客户表", role: "Guest", provides: "特征表 + PSI key", detail: "52,000 用户" },
-    { name: "电商 B 客户表", role: "Host", provides: "特征表 + PSI key", detail: "81,000 用户" },
   ]),
   ...entries("fedrag", "rag", undefined, [
     { name: "医院知识库", role: "检索节点", provides: "检索 Endpoint + 索引", detail: "FAISS · 42,000 片段" },
@@ -153,10 +123,6 @@ export const DEMO_METRICS: Record<ScenarioId, DemoMetric[]> = {
   "peft-finetune": [
     { name: "领域任务得分", baselineLabel: "基础模型", baseline: 0.62, output: 0.71, rule: "higher", format: "percent" },
     { name: "通用能力（回归检查）", baselineLabel: "基础模型", baseline: 0.74, output: 0.73, rule: "max-drop", tolerance: 0.02, format: "percent" },
-  ],
-  "model-merge": [
-    { name: "各领域平均得分", baselineLabel: "单个 Adapter 平均", baseline: 0.66, output: 0.7, rule: "higher", format: "percent" },
-    { name: "最差领域得分", baselineLabel: "该领域原 Adapter", baseline: 0.64, output: 0.63, rule: "max-drop", tolerance: 0.03, format: "percent" },
   ],
   "vertical-modeling": [
     { name: "AUC", baselineLabel: "Guest 单方模型", baseline: 0.71, output: 0.79, rule: "higher", format: "decimal" },

@@ -85,7 +85,7 @@ function body(stageId: RunStage, run: Run): ReactNode {
           items={[
             ["策略", plan.strategy.label],
             ["联邦对象", plan.exchanged],
-            ["保护机制", plan.protection.mechanisms.join(" · ")],
+            ["安全机制", plan.security.mechanisms.join(" · ")],
             ["参与方", `${run.participants.length} 个`],
           ]}
         />

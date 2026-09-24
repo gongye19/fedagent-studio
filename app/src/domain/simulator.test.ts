@@ -1,18 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { defaultDatasetIds, matchedDatasets, type Participant } from "./demo";
 import { buildRunPlan } from "./plan";
-import { applyTemplate, choose, layerOptions, type Selection } from "./selection";
+import { applyTemplate, choose, layerOptions, toggleEnhancement, type Selection } from "./selection";
 import { evaluationReport, preflightReport, stageWork } from "./simulator";
 import { SCENARIOS, type ScenarioId } from "./taxonomy";
 
-function planFor(id: ScenarioId, overrides: [keyof Selection, string][] = []) {
+function planFor(id: ScenarioId, adjust: (selection: Selection) => Selection = (selection) => selection) {
   let selection = applyTemplate(id);
-  for (const [layer, value] of overrides) selection = choose(selection, layer as never, value);
-  for (const layer of ["strategy", "protection"] as const) {
-    if (selection[layer]) continue;
-    const first = layerOptions(layer, selection).find((option) => option.available);
-    if (first) selection = choose(selection, layer, first.choice.id);
+  if (!selection.strategy) {
+    const first = layerOptions("strategy", selection).find((option) => option.available);
+    if (first) selection = choose(selection, "strategy", first.choice.id);
   }
+  selection = adjust(selection);
   const plan = buildRunPlan(selection);
   if (!plan) throw new Error(`plan expected for ${id}`);
   const ids = defaultDatasetIds(selection);
@@ -33,8 +32,8 @@ describe("per-scenario simulators", () => {
     const vertical = planFor("vertical-modeling");
     expect(stageWork("execute", vertical.plan, vertical.participants, "quick").logs.join(" ")).toContain("PSI");
 
-    const merge = planFor("model-merge");
-    expect(stageWork("execute", merge.plan, merge.participants, "quick").logs.join(" ")).toContain("合并");
+    const agent = planFor("agent-skill");
+    expect(stageWork("execute", agent.plan, agent.participants, "quick").logs.join(" ")).toContain("合并");
 
     const rag = planFor("fedrag");
     expect(stageWork("execute", rag.plan, rag.participants, "quick").logs.join(" ")).toContain("检索");
@@ -56,7 +55,7 @@ describe("per-scenario simulators", () => {
   });
 
   it("warns when secure aggregation has fewer than three participants", () => {
-    const { plan, participants } = planFor("peft-finetune", [["strategy", "peft-fedavg"], ["protection", "hide-updates"]]);
+    const { plan, participants } = planFor("peft-finetune", (selection) => toggleEnhancement(selection, "secagg"));
     const report = preflightReport(plan, participants.slice(0, 2));
     expect(report.passed).toBe(true);
     expect(report.checks.some((check) => check.status === "warn" && check.label.includes("SecAgg"))).toBe(true);

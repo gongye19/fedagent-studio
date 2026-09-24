@@ -171,3 +171,20 @@
   4. 测试：新增 `inputs.test.ts`（契约、匹配、JSONL / CSV / JSON / 二进制检查、抽样），改写 Store 测试，共 69 个。
   5. 文档：DIMENSIONS、GOAL（新增 C20）、FLOW（S2）、ARCHITECTURE、README、PROGRESS、DEVELOPMENT、DECISIONS（D17）。
   6. 验证：`npm run check` 通过；浏览器模拟上传一份合格 JSONL 和一份格式错误的 CSV，确认逐项结果、阻止开始、移除后以 4 份数据完成准入。
+
+## T24：按"最通用主流"精简全部候选，安全维度按框架实际能力重做
+
+- 类型：Delivery（正式交付，按用户原则缩小范围）
+- 时间：2026-09-24
+- 状态：完成
+- 相关：C18、C19（退役）→ C21、C22；影响 L1、L2、L3、L4、S1
+- 用户要求：只保留最通用常见主流的内容，小众的不要，demo 不用全覆盖也不用太细（Agent 相关除外）；安全与信任要按主流方法实际使用的机制来。
+- 调研：核实 Flower（SecAgg / SecAgg+、中心化与本地 DP）、NVFlare（TenSEAL CKKS、DP 过滤器、机密计算、安全 XGBoost、联邦统计隐私清洗、ECDH PSI）、FATE（SecureBoost Paillier / OU、Hetero LR 与 SSHE-LR、FATE 2.0 ECDH PSI）、FATE-LLM、Flower FedRAG 与机密 FedRAG、Gboard DP-FTRL + SecAgg。
+- 步骤：
+  1. 注册表：场景 8 → 7（删除模型与 Adapter 聚合），策略 23 → 14，删除参与方形态子项和模型服务 Endpoint；五档保护预设改为基础保护 + 策略内置保护 + 4 种可选增强。
+  2. 引擎：子项改为 1.1–1.5；`Selection` 去掉 `protection`，新增 `enhancements`（多选），换策略时自动去掉新 runner 不提供的增强；安全增强不再是开始运行的必选项。
+  3. 计划与模拟：`FrontendRunPlan.security`（内置、增强、机制清单）；准入检查展示内置保护和 runner 提供的增强，SecAgg+ 少于 3 方时提示，增强的注意事项进入提示。
+  4. 界面：维度 3 卡片分"内置保护"（只展示）和"可选增强（可多选）"。
+  5. 测试：重写选择引擎测试，新增安全增强用例，共 65 个。
+  6. 文档：重写 DIMENSIONS，更新 README、GOAL（C18、C19 退役，新增 C21、C22）、FLOW、ARCHITECTURE、PROGRESS、DEVELOPMENT、MVP_SCENARIO、DECISIONS（D18），更新截图。
+  7. 验证：`npm run check` 通过；浏览器验证 7 个场景、5 个子项、FedAvg 的增强多选、纵向内置加密和完整运行。

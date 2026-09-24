@@ -40,11 +40,6 @@ const CONTRACTS: Record<string, DataContract> = {
     },
     minRecords: 50,
   },
-  "model-merge": {
-    title: "已训练的模型或 Adapter",
-    requirements: ["safetensors 或 bin 权重文件", "与所选场景使用同一基座", "张量结构在后端解析（前端只检查格式和大小）"],
-    accept: [".safetensors", ".bin"],
-  },
   "vertical-modeling": {
     title: "纵向特征表",
     requirements: ["CSV，第一行为表头", "必须包含对齐主键列 id 或 user_id", "至少 100 条样本"],
@@ -52,18 +47,12 @@ const CONTRACTS: Record<string, DataContract> = {
     text: { formats: ["csv"], fieldsAnyOf: [["id"], ["user_id"]], fieldHint: "表头需要包含 id 或 user_id 作为对齐主键" },
     minRecords: 100,
   },
-  "federated-evaluation:local-test-data": {
+  "federated-evaluation": {
     title: "本地测试集",
     requirements: ["JSONL 或 CSV", "每条包含 label 或 answer", "至少 50 条"],
     accept: [".jsonl", ".csv"],
     text: { formats: ["jsonl", "csv"], fieldsAnyOf: [["label"], ["answer"]], fieldHint: "每条需要包含 label 或 answer" },
     minRecords: 50,
-  },
-  "federated-evaluation:model-endpoint": {
-    title: "模型服务说明",
-    requirements: ["JSON，描述模型服务", "包含 endpoint 或 url 字段"],
-    accept: [".json"],
-    text: { formats: ["json"], fieldsAnyOf: [["endpoint"], ["url"]], fieldHint: "需要包含 endpoint 或 url 字段" },
   },
   "federated-analytics": {
     title: "统计分析数据表",

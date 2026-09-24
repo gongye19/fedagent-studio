@@ -316,7 +316,6 @@ button:active:not(:disabled) { transform: translateY(1px); }
 .badge--auto { color: var(--muted); border-style: dashed; }
 
 
-.protection-extras { padding: 0 14px 14px 50px; display: grid; gap: 10px; }
 .mechanism-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .mechanism-list span { padding: 3px 7px; color: var(--secondary); background: var(--surface); border: 1px solid var(--border); border-radius: 5px; font-family: var(--mono); font-size: 10px; }
 
@@ -412,7 +411,7 @@ button:active:not(:disabled) { transform: translateY(1px); }
   .step-body { min-height: 0; }
   .stage-facts > div { grid-template-columns: minmax(0, 1fr); gap: 3px; padding: 10px 0; align-items: start; }
   .config-flow { padding: 12px; }
-  .option-group, .protection-extras, .params-grid, .scenario-dimensions { padding-left: 14px; }
+  .option-group, .params-grid, .scenario-dimensions { padding-left: 14px; }
   .option-grid { grid-template-columns: minmax(0, 1fr); }
   .check-list li { grid-template-columns: 18px minmax(0, 1fr); padding: 9px 12px; }
   .check-list li b { grid-column: 2; }

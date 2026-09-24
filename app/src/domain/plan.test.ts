@@ -1,23 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { buildRunPlan, planPreview } from "./plan";
-import { EMPTY_SELECTION, applyTemplate, choose, layerOptions, type Selection } from "./selection";
+import { EMPTY_SELECTION, applyTemplate, choose, layerOptions, toggleEnhancement, type Selection } from "./selection";
 import { SCENARIOS } from "./taxonomy";
 
-/** 从模板开始，策略和保护都选第一个可用项。 */
+/** 从场景开始，策略选第一个可用项。 */
 function completed(scenarioId: (typeof SCENARIOS)[number]["id"]): Selection {
-  let selection = applyTemplate(scenarioId);
-  for (const layer of ["strategy", "protection"] as const) {
-    if (selection[layer]) continue;
-    const first = layerOptions(layer, selection).find((option) => option.available);
-    if (first) selection = choose(selection, layer, first.choice.id);
-  }
-  return selection;
+  const selection = applyTemplate(scenarioId);
+  if (selection.strategy) return selection;
+  const first = layerOptions("strategy", selection).find((option) => option.available);
+  return first ? choose(selection, "strategy", first.choice.id) : selection;
 }
 
 describe("frontend run plan", () => {
   it("is only produced once every visible dimension is answered", () => {
     expect(buildRunPlan(EMPTY_SELECTION)).toBeNull();
-    expect(buildRunPlan(applyTemplate("peft-finetune"))).toBeNull();
+    expect(buildRunPlan(applyTemplate("model-training"))).toBeNull();
+    expect(buildRunPlan(completed("model-training"))).not.toBeNull();
     expect(buildRunPlan(completed("peft-finetune"))).not.toBeNull();
   });
 
@@ -35,24 +33,25 @@ describe("frontend run plan", () => {
     expect(peft?.exchanged).toBe("LoRA 增量");
     expect(peft?.runner).toBe("Flower");
 
-    const merge = buildRunPlan(completed("model-merge"));
-    expect(merge?.pattern).toBe("artifact-processing");
-    expect(merge?.input.kind).toBe("files");
-    expect(merge?.locations.participantWorker).toContain("不需要常驻节点");
+    const agent = buildRunPlan(completed("agent-skill"));
+    expect(agent?.pattern).toBe("artifact-processing");
+    expect(agent?.input.kind).toBe("files");
+    expect(agent?.locations.participantWorker).toContain("不需要常驻节点");
 
     const vertical = buildRunPlan(completed("vertical-modeling"));
     expect(vertical?.pattern).toBe("vertical-protocol");
     expect(vertical?.runner).toBe("FATE");
   });
 
-  it("switches analytics to the vertical protocol for vertical data", () => {
-    const horizontal = buildRunPlan(completed("federated-analytics"));
-    expect(horizontal?.pattern).toBe("single-round");
+  it("combines built-in protection with the selected enhancements", () => {
+    const vertical = buildRunPlan(completed("vertical-modeling"));
+    expect(vertical?.security.builtin).toEqual(expect.arrayContaining(["mTLS", "Paillier 同态加密", "ECDH PSI"]));
+    expect(vertical?.security.enhancements).toEqual([]);
 
-    const verticalSelection = choose(applyTemplate("federated-analytics"), "partition", "vertical");
-    const plan = buildRunPlan(verticalSelection);
-    expect(plan?.pattern).toBe("vertical-protocol");
-    expect(plan?.strategy.id).toBe("fa-psi-stats");
+    const peft = buildRunPlan(toggleEnhancement(toggleEnhancement(applyTemplate("peft-finetune"), "secagg"), "dp"));
+    expect(peft?.security.enhancements.map((item) => item.id)).toEqual(["secagg", "dp"]);
+    expect(peft?.security.mechanisms).toEqual(expect.arrayContaining(["mTLS", "SecAgg+", "中心化差分隐私"]));
+    expect(peft?.warnings.some((warning) => warning.includes("差分隐私"))).toBe(true);
   });
 
   it("records internally whether the plan uses a large-model / agent method", () => {

@@ -39,7 +39,7 @@ function rounds(plan: FrontendRunPlan, preset: ExecutionPreset): number {
 function executeWork(plan: FrontendRunPlan, participants: Participant[], preset: ExecutionPreset): StageResult {
   const count = participants.length;
   const strategy = plan.strategy.label;
-  const protection = plan.protection.mechanisms.join(" + ");
+  const protection = plan.security.mechanisms.join(" + ");
   switch (plan.pattern) {
     case "iterative": {
       const total = rounds(plan, preset);
@@ -80,7 +80,7 @@ function executeWork(plan: FrontendRunPlan, participants: Participant[], preset:
     case "artifact-processing":
       return {
         detail: `${count} 个产物按 ${strategy} 合并完成`,
-        realCost: plan.protection.id === "encrypted" ? "约 5–15 分钟，含密钥预处理" : "约 1–3 分钟",
+        realCost: "约 1–3 分钟",
         logs: [
           `校验 ${count} 个产物的摘要与 manifest`,
           `在隔离沙箱内按 ${strategy} 合并`,
@@ -121,10 +121,15 @@ export function preflightReport(plan: FrontendRunPlan, participants: Participant
     participants.length >= plan.minParticipants ? "pass" : "fail",
   );
   add("输入契约", `${participants[0]?.provides ?? "—"} 等 ${participants.length} 项声明一致`);
-  add("保护与计算类型", `${plan.protection.label} 可用于"${plan.computeKindLabel}"`);
-  add("Runner 能力", `${plan.runner} 支持 ${plan.strategy.label}`);
+  add("内置保护", plan.security.builtin.join("、"));
+  add(
+    "Runner 能力",
+    plan.security.enhancements.length
+      ? `${plan.runner} 支持 ${plan.strategy.label}，并提供 ${plan.security.enhancements.map((item) => item.label).join("、")}`
+      : `${plan.runner} 支持 ${plan.strategy.label}`,
+  );
 
-  if (plan.protection.id === "hide-updates" && participants.length < 3) {
+  if (plan.security.enhancements.some((item) => item.id === "secagg") && participants.length < 3) {
     add("SecAgg 参与方", `只有 ${participants.length} 方时，协调方可由聚合结果反推另一方更新`, "warn");
   }
   if (plan.pattern === "vertical-protocol" && !participants.some((participant) => participant.role.startsWith("Guest"))) {

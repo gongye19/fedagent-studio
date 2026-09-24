@@ -3,9 +3,12 @@ import {
   LAYERS,
   SCENARIO_LAYERS,
   SCENARIO_STEP,
+  SECURITY_STEP,
+  builtinProtection,
   canDeselect,
   currentLayer,
   displayOptions,
+  enhancementOptions,
   isAutoSelected,
   layerApplies,
   type DisplayOption,
@@ -15,7 +18,7 @@ import {
 import {
   SCENARIOS,
   SCENARIO_GROUP_LABEL,
-  protectionOf,
+  type EnhancementId,
   type ScenarioGroup,
 } from "../domain/taxonomy";
 import type { Action } from "../state/store";
@@ -29,8 +32,8 @@ type Props = {
 const GROUPS: ScenarioGroup[] = ["training", "analysis", "knowledge"];
 
 /**
- * 先选场景（维度 1），子项 1.1–1.6 自动填好，之后只能在场景内调整且不能取消。
- * 维度 2 协作策略、维度 3 安全与信任在场景之后。所有候选项始终展开；已选选项再点一次即取消。
+ * 先选场景（维度 1），子项 1.1–1.5 自动填好，之后只能在场景内调整且不能取消。
+ * 维度 2 协作策略、维度 3 安全与隐私在场景之后。所有候选项始终展开；已选选项再点一次即取消。
  * 场景参数都有默认值，不在界面上展示。
  */
 export default function ConfigurationStep({ selection, locked, dispatch }: Props) {
@@ -51,9 +54,7 @@ export default function ConfigurationStep({ selection, locked, dispatch }: Props
         fixed={!canDeselect(selection, layer.id)}
         locked={locked}
         onChoose={(value) => dispatch({ type: "toggle", layer: layer.id, value })}
-      >
-        {layer.id === "protection" ? <ProtectionExtras selection={selection} /> : null}
-      </LayerCard>
+      />
     );
   }
 
@@ -87,6 +88,13 @@ export default function ConfigurationStep({ selection, locked, dispatch }: Props
         {LAYERS.filter((layer) => !SCENARIO_LAYERS.includes(layer.id)).map((layer) => (
           <li className="layer-row" key={layer.id}>{renderLayer(layer)}</li>
         ))}
+        <li className="layer-row">
+          <SecurityCard
+            selection={selection}
+            locked={locked}
+            onToggle={(id) => dispatch({ type: "toggleEnhancement", id })}
+          />
+        </li>
 
       </ol>
     </div>
@@ -215,14 +223,53 @@ function OptionTile({
   );
 }
 
-function ProtectionExtras({ selection }: { selection: Selection }) {
-  const protection = protectionOf(selection.protection);
-  if (!protection) return null;
+function SecurityCard({
+  selection, locked, onToggle,
+}: {
+  selection: Selection;
+  locked: boolean;
+  onToggle: (id: EnhancementId) => void;
+}) {
+  const ready = Boolean(selection.strategy);
+  const options = enhancementOptions(selection);
   return (
-    <div className="protection-extras">
-      <div className="mechanism-list" aria-label="启用的保护机制">
-        {protection.mechanisms.map((mechanism) => <span key={mechanism}>{mechanism}</span>)}
+    <section className={`layer-card layer-card--${ready ? "answered" : "inactive"}`} aria-labelledby="layer-security">
+      <header className="layer-head">
+        <span className="layer-step" aria-hidden="true">{SECURITY_STEP.code}</span>
+        <div className="layer-heading">
+          <h3 id="layer-security">{SECURITY_STEP.title}</h3>
+          <p>{SECURITY_STEP.question}</p>
+        </div>
+      </header>
+      <div className="option-group">
+        <span className="option-group-label">内置保护</span>
+        <div className="mechanism-list" aria-label="内置保护">
+          {builtinProtection(selection).map((item) => <span key={item}>{item}</span>)}
+        </div>
       </div>
-    </div>
+      <div className="option-group">
+        <span className="option-group-label">可选增强（可多选）</span>
+        <div className="option-grid" role="group" aria-label="可选增强">
+          {options.map(({ enhancement, available }) => {
+            const selected = selection.enhancements.includes(enhancement.id);
+            return (
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={selected}
+                className={`option-tile${selected ? " option-tile--selected" : ""}`}
+                key={enhancement.id}
+                disabled={!available || locked}
+                onClick={() => onToggle(enhancement.id)}
+              >
+                <span className="option-top"><strong>{enhancement.label}</strong></span>
+                <span className="option-hint">{enhancement.hint}</span>
+                {selected && enhancement.caution ? <span className="option-warning">{enhancement.caution}</span> : null}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </section>
   );
 }

@@ -1,17 +1,20 @@
 import { describe, expect, it } from "vitest";
 import {
   EMPTY_SELECTION,
+  SCENARIO_LAYERS,
   applyTemplate,
+  builtinProtection,
   canDeselect,
   choose,
-  toggle,
   currentLayer,
   displayOptions,
+  enhancementOptions,
   isAutoSelected,
   isComplete,
   layerOptions,
-  paramsFor,
   scenarioFor,
+  toggle,
+  toggleEnhancement,
   visibleLayers,
   type LayerId,
   type Selection,
@@ -26,20 +29,22 @@ const ids = (selection: Selection, layer: LayerId) => layerOptions(layer, select
 const availableIds = (selection: Selection, layer: LayerId) => layerOptions(layer, selection)
   .filter((option) => option.available)
   .map((option) => option.choice.id);
+const availableEnhancements = (selection: Selection) => enhancementOptions(selection)
+  .filter((item) => item.available)
+  .map((item) => item.enhancement.id);
 
 describe("layered selection", () => {
-  it("reveals dimensions one at a time, starting from the goal", () => {
+  it("reveals dimensions in order, starting from the goal", () => {
     expect(visibleLayers(EMPTY_SELECTION).map((layer) => layer.id)).toEqual(["goal"]);
     expect(currentLayer(EMPTY_SELECTION)).toBe("goal");
-
-    const withGoal = choose(EMPTY_SELECTION, "goal", "train");
-    expect(visibleLayers(withGoal).map((layer) => layer.id)).toEqual(["goal", "contribution"]);
-    expect(currentLayer(withGoal)).toBe("contribution");
+    const train = choose(EMPTY_SELECTION, "goal", "train");
+    expect(visibleLayers(train).map((layer) => layer.id)).toEqual(["goal", "contribution", "partition"]);
   });
 
   it("lists only contributions that make sense for the goal", () => {
-    expect(ids(choose(EMPTY_SELECTION, "goal", "train"), "contribution")).toEqual(["local-data", "trained-artifact"]);
-    expect(ids(choose(EMPTY_SELECTION, "goal", "evaluate"), "contribution")).toEqual(["local-test-data", "model-endpoint"]);
+    expect(ids(choose(EMPTY_SELECTION, "goal", "agent"), "contribution")).toEqual(["traces-skills", "trained-artifact"]);
+    expect(choose(EMPTY_SELECTION, "goal", "train").contribution).toBe("local-data");
+    expect(choose(EMPTY_SELECTION, "goal", "evaluate").contribution).toBe("local-test-data");
   });
 
   it("auto-selects a dimension when only one option remains", () => {
@@ -49,215 +54,84 @@ describe("layered selection", () => {
   });
 
   it("skips data relation and model shape where they do not apply", () => {
-    const retrieval = choose(EMPTY_SELECTION, "goal", "retrieval");
-    const layers = visibleLayers(retrieval).map((layer) => layer.id);
+    const layers = visibleLayers(choose(EMPTY_SELECTION, "goal", "retrieval")).map((layer) => layer.id);
     expect(layers).not.toContain("partition");
     expect(layers).not.toContain("modelClass");
-    expect(layers).toContain("topology");
   });
 
-  it("offers only horizontal and vertical data relations", () => {
-    const train = pick(EMPTY_SELECTION, [["goal", "train"], ["contribution", "local-data"]]);
-    expect(availableIds(train, "partition")).toEqual(["horizontal", "vertical"]);
-  });
-
-  it("limits vertical federation to cross-silo and protocol-native encryption", () => {
-    const vertical = pick(EMPTY_SELECTION, [["goal", "train"], ["contribution", "local-data"], ["partition", "vertical"]]);
-    expect(vertical.topology).toBe("cross-silo");
+  it("uses protocol-native encryption for vertical federation and excludes Split NN", () => {
+    const vertical = pick(EMPTY_SELECTION, [["goal", "train"], ["partition", "vertical"]]);
     expect(visibleLayers(vertical).map((layer) => layer.id)).not.toContain("sharing");
+    expect(availableIds(vertical, "modelClass")).toEqual(["tree", "linear"]);
 
     const tree = choose(vertical, "modelClass", "tree");
     expect(scenarioFor(tree)?.id).toBe("vertical-modeling");
     expect(tree.strategy).toBe("vfl-secureboost");
-    expect(tree.protection).toBe("encrypted");
+    expect(builtinProtection(tree)).toEqual(expect.arrayContaining(["Paillier 同态加密", "ECDH PSI"]));
+    expect(choose(vertical, "modelClass", "linear").strategy).toBe("vfl-hetero-lr");
   });
 
-  it("only allows cross-device for horizontal training and analytics", () => {
-    const train = pick(EMPTY_SELECTION, [["goal", "train"], ["contribution", "local-data"], ["partition", "horizontal"]]);
-    expect(availableIds(train, "topology")).toContain("cross-device");
-
-    const evaluate = pick(EMPTY_SELECTION, [["goal", "evaluate"], ["contribution", "local-test-data"]]);
-    expect(availableIds(evaluate, "topology")).not.toContain("cross-device");
-  });
-
-  it("prevents tree models from choosing parameter-averaging strategies", () => {
-    const tree = pick(EMPTY_SELECTION, [
-      ["goal", "train"], ["contribution", "local-data"], ["partition", "horizontal"], ["topology", "cross-silo"], ["modelClass", "tree"],
-    ]);
+  it("gives tree models only the XGBoost histogram strategy", () => {
+    const tree = pick(EMPTY_SELECTION, [["goal", "train"], ["partition", "horizontal"], ["modelClass", "tree"]]);
     expect(tree.sharing).toBe("full");
     expect(availableIds(tree, "strategy")).toEqual(["train-xgb-histogram"]);
     expect(tree.strategy).toBe("train-xgb-histogram");
     const fedavg = layerOptions("strategy", tree).find((option) => option.choice.id === "train-fedavg");
     expect(fedavg?.available).toBe(false);
-    expect(fedavg?.reason).toContain("树模型");
   });
 
-  it("restricts PEFT to neural networks", () => {
-    const linear = pick(EMPTY_SELECTION, [
-      ["goal", "train"], ["contribution", "local-data"], ["partition", "horizontal"], ["topology", "cross-silo"], ["modelClass", "linear"],
-    ]);
+  it("restricts LoRA to neural networks", () => {
+    const linear = pick(EMPTY_SELECTION, [["goal", "train"], ["partition", "horizontal"], ["modelClass", "linear"]]);
     expect(availableIds(linear, "sharing")).toEqual(["full"]);
   });
 
-  it("derives protection availability from the strategy's compute kind", () => {
-    const merge = applyTemplate("model-merge");
-    const ties = choose(merge, "strategy", "merge-ties");
-    const options = layerOptions("protection", ties);
-    expect(options.find((option) => option.choice.id === "hide-updates")?.available).toBe(false);
-    expect(options.find((option) => option.choice.id === "encrypted")?.available).toBe(false);
-    expect(options.find((option) => option.choice.id === "tee")?.available).toBe(true);
-
-    const weighted = choose(merge, "strategy", "merge-weighted");
-    expect(availableIds(weighted, "protection")).toContain("encrypted");
-  });
-
-  it("greys out neural networks for vertical data because Split NN is not included", () => {
-    const vertical = pick(EMPTY_SELECTION, [["goal", "train"], ["contribution", "local-data"], ["partition", "vertical"]]);
-    expect(availableIds(vertical, "modelClass")).toEqual(["tree", "linear"]);
-    expect(choose(vertical, "modelClass", "linear").strategy).toBe("vfl-hetero-lr");
-  });
-
   it("clears downstream choices that become invalid when an upstream choice changes", () => {
-    const neural = pick(applyTemplate("model-training"), [["strategy", "train-fedavg"], ["protection", "hide-updates"]]);
+    const neural = choose(applyTemplate("model-training"), "strategy", "train-fedavg");
     expect(isComplete(neural)).toBe(true);
-
     const tree = choose(neural, "modelClass", "tree");
-    expect(tree.sharing).toBe("full");
-    // FedAvg 对树模型失效被清掉，直方图聚合是唯一可选项，被自动选中。
     expect(tree.strategy).toBe("train-xgb-histogram");
-
-    const merge = choose(pick(applyTemplate("model-merge"), [["strategy", "merge-weighted"], ["protection", "encrypted"]]), "strategy", "merge-ties");
-    expect(merge.protection).toBeNull();
-    expect(isComplete(merge)).toBe(false);
-  });
-
-  it("keeps downstream choices that are still valid", () => {
-    const peft = pick(applyTemplate("peft-finetune"), [["strategy", "peft-fedprox"], ["protection", "standard"]]);
-    const device = choose(peft, "topology", "cross-device");
-    expect(device.strategy).toBe("peft-fedprox");
-    expect(device.protection).toBe("standard");
   });
 
   it("ignores unavailable choices", () => {
-    const vertical = pick(EMPTY_SELECTION, [["goal", "train"], ["contribution", "local-data"], ["partition", "vertical"]]);
-    expect(choose(vertical, "topology", "cross-device")).toBe(vertical);
+    const vertical = pick(EMPTY_SELECTION, [["goal", "train"], ["partition", "vertical"]]);
+    expect(choose(vertical, "modelClass", "neural")).toBe(vertical);
   });
 
-  it("shows strategy-specific parameters only for that strategy", () => {
-    const merge = applyTemplate("model-merge");
-    expect(paramsFor(choose(merge, "strategy", "merge-weighted")).map((param) => param.id)).not.toContain("density");
-    expect(paramsFor(choose(merge, "strategy", "merge-ties")).map((param) => param.id)).toContain("density");
-  });
-
-  it("always lists every candidate and greys out those not yet reachable or not supported", () => {
-    const empty = displayOptions("topology", EMPTY_SELECTION);
-    expect(empty.map((option) => option.choice.id)).toEqual(["cross-silo", "cross-device"]);
-    expect(empty.every((option) => !option.available)).toBe(true);
-
-    const merge = applyTemplate("model-merge");
-    const contributions = displayOptions("contribution", merge);
-    expect(contributions).toHaveLength(6);
-    expect(contributions.filter((option) => option.available).map((option) => option.choice.id)).toEqual(["trained-artifact"]);
-
-    const topology = displayOptions("topology", applyTemplate("vertical-modeling"));
-    expect(topology.filter((option) => option.available).map((option) => option.choice.id)).toEqual(["cross-silo"]);
-    expect(topology.every((option) => !("reason" in option))).toBe(true);
-  });
-
-  it("requires a scenario before any scenario sub-item can be chosen", () => {
-    expect(displayOptions("goal", EMPTY_SELECTION).every((option) => !option.available)).toBe(true);
-    expect(toggle(EMPTY_SELECTION, "goal", "train")).toBe(EMPTY_SELECTION);
-    const peft = applyTemplate("peft-finetune");
-    expect(displayOptions("goal", peft).find((option) => option.choice.id === "train")?.available).toBe(true);
-  });
-
-  it("lists every strategy grouped by scenario and enables only the matched scenario's", () => {
-    const options = displayOptions("strategy", applyTemplate("fedrag"));
-    expect(options).toHaveLength(STRATEGIES.length);
-    expect(new Set(options.filter((option) => option.available).map((option) => option.group))).toEqual(new Set(["联邦检索 FedRAG"]));
-  });
-
-  it("switches the sharing candidates to artifact kinds for trained artifacts", () => {
-    const artifacts = pick(EMPTY_SELECTION, [["goal", "train"], ["contribution", "trained-artifact"]]);
-    expect(displayOptions("sharing", artifacts).map((option) => option.choice.id)).toEqual(["full-weights", "adapter"]);
-  });
-
-  it("resets scenario parameters to the new scenario's defaults when the scenario changes", () => {
-    const training = choose(applyTemplate("model-training"), "strategy", "train-fedavg");
-    expect(training.params.rounds).toBe("20");
-    const peft = applyTemplate("peft-finetune");
-    expect(peft.params.rounds).toBe("10");
-    expect(peft.params.rank).toBe("16");
-  });
-
-  it("locks the scenario when chosen directly and fills dimensions 1–5", () => {
+  it("locks the scenario when chosen directly and fills the sub-items", () => {
     const peft = applyTemplate("peft-finetune");
     expect(peft.scenario).toBe("peft-finetune");
-    expect([peft.goal, peft.contribution, peft.partition, peft.topology, peft.modelClass, peft.sharing])
-      .toEqual(["train", "local-data", "horizontal", "cross-silo", "neural", "peft"]);
+    expect([peft.goal, peft.contribution, peft.partition, peft.modelClass, peft.sharing])
+      .toEqual(["train", "local-data", "horizontal", "neural", "peft"]);
+    expect(peft.strategy).toBe("peft-fedavg");
   });
 
   it("greys out options that would leave the locked scenario and keeps in-scenario alternatives", () => {
     const peft = applyTemplate("peft-finetune");
     expect(availableIds(peft, "goal")).toEqual(["train"]);
     expect(availableIds(peft, "sharing")).toEqual(["peft"]);
-    expect(availableIds(peft, "modelClass")).toEqual(["neural"]);
-    expect(availableIds(peft, "topology")).toEqual(["cross-silo", "cross-device"]);
     expect(choose(peft, "sharing", "full")).toBe(peft);
-
-    const device = choose(peft, "topology", "cross-device");
-    expect(device.scenario).toBe("peft-finetune");
-    expect(scenarioFor(device)?.id).toBe("peft-finetune");
 
     const training = applyTemplate("model-training");
     expect(availableIds(training, "modelClass")).toEqual(["neural", "tree", "linear"]);
     expect(availableIds(training, "sharing")).toEqual(["full"]);
 
-    const analytics = applyTemplate("federated-analytics");
-    expect(availableIds(analytics, "partition")).toEqual(["horizontal", "vertical"]);
-    expect(choose(analytics, "partition", "vertical").scenario).toBe("federated-analytics");
+    expect(availableIds(applyTemplate("federated-analytics"), "partition")).toEqual(["horizontal"]);
+    expect(availableIds(applyTemplate("agent-skill"), "contribution")).toEqual(["traces-skills", "trained-artifact"]);
   });
 
-  it("locks the scenario once dimension-by-dimension choices determine it", () => {
-    const partial = pick(EMPTY_SELECTION, [["goal", "train"], ["contribution", "local-data"], ["partition", "horizontal"], ["topology", "cross-silo"], ["modelClass", "neural"]]);
+  it("locks the scenario once the underlying choices determine it", () => {
+    const partial = pick(EMPTY_SELECTION, [["goal", "train"], ["partition", "horizontal"], ["modelClass", "neural"]]);
     expect(partial.scenario).toBeNull();
-    expect(availableIds(partial, "sharing")).toEqual(["full", "peft"]);
-
     const locked = choose(partial, "sharing", "full");
     expect(locked.scenario).toBe("model-training");
     expect(availableIds(locked, "sharing")).toEqual(["full"]);
-    expect(availableIds(locked, "goal")).toEqual(["train"]);
-
     expect(choose(EMPTY_SELECTION, "goal", "retrieval").scenario).toBe("fedrag");
-  });
-
-  it("deselects an option when it is clicked again and clears what depended on it", () => {
-    const merge = choose(choose(applyTemplate("model-merge"), "strategy", "merge-ties"), "protection", "standard");
-    const noProtection = toggle(merge, "protection", "standard");
-    expect(noProtection.protection).toBeNull();
-    expect(noProtection.strategy).toBe("merge-ties");
-
-    const noStrategy = toggle(merge, "strategy", "merge-ties");
-    expect(noStrategy.strategy).toBeNull();
-    expect(noStrategy.protection).toBeNull();
-  });
-
-  it("does not let scenario sub-items be deselected once the scenario is set", () => {
-    const peft = applyTemplate("peft-finetune");
-    expect(canDeselect(peft, "topology")).toBe(false);
-    expect(toggle(peft, "topology", "cross-silo")).toBe(peft);
-    expect(toggle(peft, "topology", "cross-device").topology).toBe("cross-device");
-
-    const withStrategy = choose(choose(peft, "strategy", "peft-fedavg"), "protection", "standard");
-    expect(canDeselect(withStrategy, "protection")).toBe(true);
-    expect(toggle(withStrategy, "protection", "standard").protection).toBeNull();
-    expect(toggle(withStrategy, "strategy", "peft-fedavg").strategy).toBeNull();
   });
 
   it("never leaves a locked scenario with a dimension that has no selectable option", () => {
     for (const scenario of SCENARIOS) {
       const selection = applyTemplate(scenario.id);
-      for (const layer of ["goal", "contribution", "partition", "topology", "modelClass", "sharing"] as const) {
+      for (const layer of SCENARIO_LAYERS) {
         const options = layerOptions(layer, selection);
         if (options.length) expect(options.some((option) => option.available), `${scenario.id}/${layer}`).toBe(true);
       }
@@ -265,7 +139,34 @@ describe("layered selection", () => {
     }
   });
 
-  it("maps every scenario template to its own path and at least one runnable strategy", () => {
+  it("requires a scenario before any scenario sub-item can be chosen", () => {
+    expect(displayOptions("goal", EMPTY_SELECTION).every((option) => !option.available)).toBe(true);
+    expect(toggle(EMPTY_SELECTION, "goal", "train")).toBe(EMPTY_SELECTION);
+  });
+
+  it("does not let scenario sub-items be deselected, but lets strategies be deselected", () => {
+    const training = choose(applyTemplate("model-training"), "strategy", "train-fedprox");
+    expect(canDeselect(training, "modelClass")).toBe(false);
+    expect(toggle(training, "modelClass", "neural")).toBe(training);
+    expect(toggle(training, "strategy", "train-fedprox").strategy).toBeNull();
+  });
+
+  it("always lists every candidate and greys out those not reachable", () => {
+    const contributions = displayOptions("contribution", applyTemplate("agent-skill"));
+    expect(contributions).toHaveLength(5);
+    expect(contributions.filter((option) => option.available).map((option) => option.choice.id)).toEqual(["traces-skills", "trained-artifact"]);
+    const strategies = displayOptions("strategy", applyTemplate("fedrag"));
+    expect(strategies).toHaveLength(STRATEGIES.length);
+    expect(new Set(strategies.filter((option) => option.available).map((option) => option.group))).toEqual(new Set(["联邦检索 FedRAG"]));
+  });
+
+  it("resets scenario parameters to the new scenario's defaults when the scenario changes", () => {
+    const training = choose(applyTemplate("model-training"), "strategy", "train-fedavg");
+    expect(training.params.rounds).toBe("20");
+    expect(applyTemplate("peft-finetune").params.rounds).toBe("10");
+  });
+
+  it("maps every scenario to its own path and at least one strategy", () => {
     for (const scenario of SCENARIOS) {
       const selection = applyTemplate(scenario.id);
       expect(scenarioFor(selection)?.id, scenario.id).toBe(scenario.id);
@@ -273,18 +174,51 @@ describe("layered selection", () => {
     }
   });
 
-  it("marks only large-model and agent methods as frontier", () => {
-    const frontierScenarios = new Set(STRATEGIES.filter((strategy) => strategy.adoption === "frontier").map((strategy) => strategy.scenario));
-    expect(frontierScenarios).toEqual(new Set(["peft-finetune", "model-merge", "fedrag", "agent-skill"]));
-    expect(SCENARIOS.filter((scenario) => scenario.adoption === "frontier").map((scenario) => scenario.id).sort())
-      .toEqual(["agent-skill", "fedrag", "model-merge", "peft-finetune"]);
-  });
-
-  it("gives every strategy a scenario, runner and open-source reference", () => {
+  it("gives every strategy a runner and an open-source reference", () => {
     for (const strategy of STRATEGIES) {
       expect(SCENARIOS.some((scenario) => scenario.id === strategy.scenario), strategy.id).toBe(true);
       expect(strategy.runner, strategy.id).toBeTruthy();
       expect(strategy.references.length, strategy.id).toBeGreaterThan(0);
     }
+  });
+
+  it("keeps large-model and agent methods as the only frontier entries", () => {
+    expect(SCENARIOS.filter((scenario) => scenario.adoption === "frontier").map((scenario) => scenario.id).sort())
+      .toEqual(["agent-skill", "fedrag", "peft-finetune"]);
+  });
+});
+
+describe("security and privacy", () => {
+  it("offers only the enhancements the strategy's runner actually provides", () => {
+    expect(availableEnhancements(choose(applyTemplate("model-training"), "strategy", "train-fedavg"))).toEqual(["secagg", "dp"]);
+    expect(availableEnhancements(choose(applyTemplate("model-training"), "modelClass", "tree"))).toEqual(["he"]);
+    expect(availableEnhancements(applyTemplate("peft-finetune"))).toEqual(["secagg", "dp"]);
+    expect(availableEnhancements(choose(applyTemplate("fedrag"), "strategy", "rag-rrf"))).toEqual(["tee"]);
+    expect(availableEnhancements(applyTemplate("vertical-modeling"))).toEqual([]);
+    expect(availableEnhancements(applyTemplate("federated-analytics"))).toEqual([]);
+  });
+
+  it("always includes the baseline protection and protocol built-ins", () => {
+    expect(builtinProtection(EMPTY_SELECTION)).toEqual(["mTLS", "隔离沙箱", "审计日志"]);
+    const stats = choose(applyTemplate("federated-analytics"), "strategy", "fa-histogram");
+    expect(builtinProtection(stats)).toEqual(expect.arrayContaining(["最小计数阈值", "分箱数上限", "统计值加噪"]));
+  });
+
+  it("lets secure aggregation and differential privacy be combined", () => {
+    const peft = toggleEnhancement(toggleEnhancement(applyTemplate("peft-finetune"), "secagg"), "dp");
+    expect(peft.enhancements).toEqual(["secagg", "dp"]);
+    expect(toggleEnhancement(peft, "secagg").enhancements).toEqual(["dp"]);
+  });
+
+  it("ignores enhancements the runner does not provide", () => {
+    const peft = applyTemplate("peft-finetune");
+    expect(toggleEnhancement(peft, "he")).toBe(peft);
+  });
+
+  it("drops enhancements the new strategy does not support", () => {
+    const fedavg = toggleEnhancement(choose(applyTemplate("model-training"), "strategy", "train-fedavg"), "secagg");
+    expect(fedavg.enhancements).toEqual(["secagg"]);
+    expect(choose(fedavg, "modelClass", "tree").enhancements).toEqual([]);
+    expect(toggle(fedavg, "strategy", "train-fedavg").enhancements).toEqual([]);
   });
 });

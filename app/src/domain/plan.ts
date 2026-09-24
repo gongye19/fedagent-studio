@@ -8,7 +8,7 @@ import {
   COMPUTE_KIND_LABEL,
   PATTERN_LABEL,
   SCENARIO_GROUP_LABEL,
-  protectionOf,
+  enhancementOf,
   strategyOf,
   combinedAdoption,
   type ComputeKind,
@@ -20,11 +20,11 @@ import {
 } from "./taxonomy";
 import {
   LAYERS,
+  builtinProtection,
   isComplete,
   isLayerVisible,
   layerOptions,
   paramsFor,
-  protectionContext,
   scenarioFor,
   type Selection,
 } from "./selection";
@@ -47,7 +47,8 @@ export type FrontendRunPlan = {
   exchanged: string;
   computeKind: ComputeKind;
   computeKindLabel: string;
-  protection: { id: string; label: string; mechanisms: string[] };
+  /** 维度 3：内置保护 + 已选增强；mechanisms 为两者合并后的机制清单。 */
+  security: { builtin: string[]; enhancements: { id: string; label: string }[]; mechanisms: string[] };
   runner: string;
   references: string[];
   input: { kind: InputKind; label: string; accept?: string };
@@ -116,11 +117,13 @@ export function planPreview(selection: Selection): PlanPreview {
     preview.computeKind = COMPUTE_KIND_LABEL[strategy.computeKind];
     preview.runner = strategy.runner;
   }
-  const protection = protectionOf(selection.protection);
-  if (protection) {
-    preview.mechanisms = [...protection.mechanisms];
-  }
+  preview.mechanisms = securityMechanisms(selection);
   return preview;
+}
+
+function securityMechanisms(selection: Selection): string[] {
+  const added = selection.enhancements.flatMap((id) => enhancementOf(id)?.mechanisms ?? []);
+  return [...builtinProtection(selection), ...added];
 }
 
 function selectedLabel(selection: Selection, id: (typeof LAYERS)[number]["id"]): string {
@@ -131,19 +134,19 @@ function selectedLabel(selection: Selection, id: (typeof LAYERS)[number]["id"]):
 export function buildRunPlan(selection: Selection): FrontendRunPlan | null {
   if (!isComplete(selection)) return null;
   const scenario = scenarioFor(selection);
-  const context = protectionContext(selection);
-  const protection = protectionOf(selection.protection);
-  if (!scenario || !context || !protection) return null;
-
-  const { strategy, pattern } = context;
-  const protectionState = protection.check(context);
-  if (!protectionState.available) return null;
+  const strategy = strategyOf(selection.strategy);
+  if (!scenario || !strategy) return null;
+  const pattern = scenario.pattern(selection);
 
   const warnings: string[] = [];
   for (const layer of LAYERS) {
     if (!isLayerVisible(layer.id, selection)) continue;
     const option = layerOptions(layer.id, selection).find((item) => item.choice.id === selection[layer.id]);
     if (option?.warning) warnings.push(option.warning);
+  }
+  for (const id of selection.enhancements) {
+    const caution = enhancementOf(id)?.caution;
+    if (caution) warnings.push(caution);
   }
   const adoption = combinedAdoption(scenario.adoption, strategy.adoption);
 
@@ -160,10 +163,10 @@ export function buildRunPlan(selection: Selection): FrontendRunPlan | null {
     exchanged: strategy.exchanged,
     computeKind: strategy.computeKind,
     computeKindLabel: COMPUTE_KIND_LABEL[strategy.computeKind],
-    protection: {
-      id: protection.id,
-      label: protection.label,
-      mechanisms: [...protection.mechanisms],
+    security: {
+      builtin: builtinProtection(selection),
+      enhancements: selection.enhancements.map((id) => ({ id, label: enhancementOf(id)?.label ?? id })),
+      mechanisms: securityMechanisms(selection),
     },
     runner: strategy.runner,
     references: [...strategy.references],

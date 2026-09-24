@@ -8,6 +8,7 @@ import {
   EMPTY_SELECTION,
   applyTemplate,
   toggle,
+  toggleEnhancement,
   type LayerId,
   type Selection,
 } from "../domain/selection";
@@ -24,7 +25,7 @@ import {
   type StageResult,
   type Visibility,
 } from "../domain/run";
-import type { ScenarioId } from "../domain/taxonomy";
+import type { EnhancementId, ScenarioId } from "../domain/taxonomy";
 
 export type Upload = {
   id: string;
@@ -54,6 +55,7 @@ export const initialState: State = {
 
 export type Action =
   | { type: "toggle"; layer: LayerId; value: string }
+  | { type: "toggleEnhancement"; id: EnhancementId }
   | { type: "clearScenario" }
   | { type: "applyTemplate"; scenario: ScenarioId }
   | { type: "toggleDataset"; id: string }
@@ -123,6 +125,9 @@ export function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "toggle":
       return locked ? state : withSelection(state, toggle(state.selection, action.layer, action.value));
+
+    case "toggleEnhancement":
+      return locked ? state : { ...state, selection: toggleEnhancement(state.selection, action.id) };
 
     case "clearScenario":
       // 取消场景：维度 1 及其下游全部清空，重新开始选择。

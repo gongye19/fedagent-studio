@@ -8,41 +8,36 @@
  * 4. 场景（维度 1）一旦确定，子项只能在该场景内调整：会让路径离开该场景的选项不可选，且子项不能取消。
  * 5. 界面交互（displayOptions / toggle）要求先选场景，未选场景时子项不可选；
  *    choose 保留逐项选择的底层规则，用于枚举场景路径和测试依赖关系。
+ * 6. 维度 3 安全与隐私：内置保护随策略自动带上；可选增强可多选，只列策略所在 runner 实际提供的。
  */
 import {
-  ARTIFACT_KINDS,
+  BASELINE_PROTECTION,
   CONTRIBUTIONS,
+  ENHANCEMENTS,
   GOALS,
   MODEL_CLASSES,
   PARTITIONS,
-  PROTECTIONS,
   SHARING_MODES,
   STRATEGIES,
-  TOPOLOGIES,
   matchScenario,
   scenarioOf,
   strategyOf,
   type Availability,
   type Choice,
+  type Enhancement,
+  type EnhancementId,
   type ParamDefinition,
-  type ProtectionContext,
   type Scenario,
   type ScenarioId,
 } from "./taxonomy";
 
-export type LayerId =
-  | "goal"
-  | "contribution"
-  | "partition"
-  | "topology"
-  | "modelClass"
-  | "sharing"
-  | "strategy"
-  | "protection";
+export type LayerId = "goal" | "contribution" | "partition" | "modelClass" | "sharing" | "strategy";
 
 export type Selection = Record<LayerId, string | null> & {
-  /** 已确定的场景（维度 1）。确定后子项 1.1–1.6 只能在场景内调整。 */
+  /** 已确定的场景（维度 1）。确定后子项 1.1–1.5 只能在场景内调整。 */
   scenario: ScenarioId | null;
+  /** 维度 3 已选的可选增强。 */
+  enhancements: EnhancementId[];
   params: Record<string, string>;
 };
 
@@ -50,21 +45,20 @@ export const EMPTY_SELECTION: Selection = {
   goal: null,
   contribution: null,
   partition: null,
-  topology: null,
   modelClass: null,
   sharing: null,
   strategy: null,
-  protection: null,
   scenario: null,
+  enhancements: [],
   params: {},
 };
 
-/** 维度 1（场景）的子项 1.1–1.6。 */
-export const SCENARIO_LAYERS: readonly LayerId[] = ["goal", "contribution", "partition", "topology", "modelClass", "sharing"];
+/** 维度 1（场景）的子项 1.1–1.5。 */
+export const SCENARIO_LAYERS: readonly LayerId[] = ["goal", "contribution", "partition", "modelClass", "sharing"];
 
 export type LayerDefinition = {
   id: LayerId;
-  /** 编号：维度 1 是场景，1.1–1.6 是它的子项；策略、保护依次为维度 2、3。场景参数只用默认值，不在界面展示。 */
+  /** 编号：维度 1 是场景，1.1–1.5 是它的子项；策略为维度 2。场景参数只用默认值，不在界面展示。 */
   code: string;
   title: string;
   question: string;
@@ -74,20 +68,15 @@ export const LAYERS: readonly LayerDefinition[] = [
   { id: "goal", code: "1.1", title: "协作目标", question: "想共同完成什么？" },
   { id: "contribution", code: "1.2", title: "各方投入", question: "每个参与方拿出来的是什么？" },
   { id: "partition", code: "1.3", title: "数据关系", question: "各方数据怎么分布？" },
-  { id: "topology", code: "1.4", title: "参与方形态", question: "谁参与，规模和稳定性如何？" },
-  { id: "modelClass", code: "1.5", title: "模型类别", question: "训练什么类型的模型？" },
-  { id: "sharing", code: "1.6", title: "共享方式", question: "模型怎么在各方之间共享？" },
+  { id: "modelClass", code: "1.4", title: "模型类别", question: "训练什么类型的模型？" },
+  { id: "sharing", code: "1.5", title: "共享方式", question: "模型怎么在各方之间共享？" },
   { id: "strategy", code: "2", title: "协作策略", question: "用哪种算法协作？" },
-  { id: "protection", code: "3", title: "安全与信任", question: "要防谁、保护到什么程度？" },
 ];
 
 export const SCENARIO_STEP = { code: "1", title: "场景", question: "要做哪一类联邦协作？" } as const;
+export const SECURITY_STEP = { code: "3", title: "安全与隐私", question: "内置保护自动生效；可以按需叠加增强。" } as const;
 
 export type OptionState = Availability & { choice: Choice };
-
-export function layerOf(id: LayerId): LayerDefinition {
-  return LAYERS.find((layer) => layer.id === id) ?? LAYERS[0];
-}
 
 /** 这个维度对当前路径是否有意义。 */
 export function layerApplies(id: LayerId, selection: Selection): boolean {
@@ -97,10 +86,7 @@ export function layerApplies(id: LayerId, selection: Selection): boolean {
     case "modelClass":
       return selection.goal === "train" && selection.contribution === "local-data";
     case "sharing":
-      return selection.goal === "train" && (
-        selection.contribution === "trained-artifact"
-        || (selection.contribution === "local-data" && selection.partition === "horizontal")
-      );
+      return selection.goal === "train" && selection.contribution === "local-data" && selection.partition === "horizontal";
     default:
       return true;
   }
@@ -128,44 +114,21 @@ export function scenarioFor(selection: Selection): Scenario | undefined {
   return selection.scenario && matched?.id !== selection.scenario ? undefined : matched;
 }
 
-export function protectionContext(selection: Selection): ProtectionContext | undefined {
-  const scenario = scenarioFor(selection);
-  const strategy = strategyOf(selection.strategy);
-  if (!scenario || !strategy || !selection.topology) return undefined;
-  return { scenario, strategy, pattern: scenario.pattern(selection), topology: selection.topology };
-}
-
 const ok = (choice: Choice, extra: Omit<Availability, "available"> = {}): OptionState => ({ choice, available: true, ...extra });
 const blocked = (choice: Choice, reason: string): OptionState => ({ choice, available: false, reason });
-
-function topologyOptions(selection: Selection): OptionState[] {
-  const localHorizontal = selection.contribution === "local-data" && selection.partition === "horizontal";
-  return TOPOLOGIES.map((choice) => {
-    if (choice.id === "cross-silo") return ok(choice);
-    if (selection.partition === "vertical") return blocked(choice, "纵向协议需要少量稳定在线的机构节点");
-    if (localHorizontal && (selection.goal === "train" || selection.goal === "analytics")) return ok(choice);
-    return blocked(choice, "端侧设备只支持横向数据上的训练和统计");
-  });
-}
 
 function modelClassOptions(selection: Selection): OptionState[] {
   return MODEL_CLASSES.map((choice) => (
     selection.partition === "vertical" && choice.id === "neural"
-      ? blocked(choice, "纵向神经网络（Split NN）用得较少，暂未收录")
+      ? blocked(choice, "纵向神经网络（Split NN）不够通用，未收录")
       : ok(choice)
   ));
 }
 
 function sharingOptions(selection: Selection): OptionState[] {
-  if (selection.contribution === "trained-artifact") return ARTIFACT_KINDS.map((choice) => ok(choice));
-  return SHARING_MODES.map((choice) => {
-    if (choice.id === "full") return ok(choice);
-    if (selection.modelClass !== "neural") return blocked(choice, "只适用于预训练神经网络");
-    if (choice.id === "peft" && selection.topology === "cross-device") {
-      return ok(choice, { warning: "端侧设备需要具备本地微调大模型的算力，目前以研究验证为主" });
-    }
-    return ok(choice);
-  });
+  return SHARING_MODES.map((choice) => (
+    choice.id === "peft" && selection.modelClass !== "neural" ? blocked(choice, "只适用于预训练神经网络") : ok(choice)
+  ));
 }
 
 function strategyOptions(selection: Selection): OptionState[] {
@@ -174,22 +137,11 @@ function strategyOptions(selection: Selection): OptionState[] {
   return STRATEGIES
     .filter((strategy) => strategy.scenario === scenario.id)
     .filter((strategy) => !strategy.contributions || strategy.contributions.includes(selection.contribution ?? ""))
-    .map((strategy) => {
-      if (strategy.modelClasses && !strategy.modelClasses.includes(selection.modelClass ?? "")) {
-        return blocked(strategy, strategy.blockedReason ?? "与前面的选择不兼容");
-      }
-      if (strategy.partitions && !strategy.partitions.includes(selection.partition ?? "")) {
-        return blocked(strategy, strategy.partitions.includes("vertical") ? "只适用于纵向数据" : "只适用于横向数据");
-      }
-      const warning = selection.topology ? strategy.topologyWarnings?.[selection.topology] : undefined;
-      return ok(strategy, warning ? { warning } : {});
-    });
-}
-
-function protectionOptions(selection: Selection): OptionState[] {
-  const context = protectionContext(selection);
-  if (!context) return [];
-  return PROTECTIONS.map((protection) => ({ choice: protection, ...protection.check(context) }));
+    .map((strategy) => (
+      strategy.modelClasses && !strategy.modelClasses.includes(selection.modelClass ?? "")
+        ? blocked(strategy, strategy.blockedReason ?? "与前面的选择不兼容")
+        : ok(strategy)
+    ));
 }
 
 /** 不考虑场景锁定时，某个维度的候选项及可用性。 */
@@ -203,16 +155,12 @@ function baseOptions(id: LayerId, selection: Selection): OptionState[] {
       return CONTRIBUTIONS.filter((choice) => (choice.goals as readonly string[]).includes(selection.goal ?? "")).map((choice) => ok(choice));
     case "partition":
       return PARTITIONS.map((choice) => ok(choice));
-    case "topology":
-      return topologyOptions(selection);
     case "modelClass":
       return modelClassOptions(selection);
     case "sharing":
       return sharingOptions(selection);
     case "strategy":
       return strategyOptions(selection);
-    case "protection":
-      return protectionOptions(selection);
   }
 }
 
@@ -220,7 +168,7 @@ type ScenarioPathValues = Record<LayerId, string | null>;
 
 let pathCache: Map<ScenarioId, ScenarioPathValues[]> | null = null;
 
-/** 枚举子项 1.1–1.6 的全部可达组合，按落到的场景分组。只算一次。 */
+/** 枚举子项 1.1–1.5 的全部可达组合，按落到的场景分组。只算一次。 */
 function scenarioPaths(id: ScenarioId): ScenarioPathValues[] {
   if (!pathCache) {
     const cache = new Map<ScenarioId, ScenarioPathValues[]>();
@@ -272,7 +220,7 @@ export function isAutoSelected(id: LayerId, selection: Selection): boolean {
 
 export type DisplayOption = { choice: Choice; available: boolean; warning?: string; group?: string };
 
-function candidatesOf(id: LayerId, selection: Selection): { choice: Choice; group?: string }[] {
+function candidatesOf(id: LayerId): { choice: Choice; group?: string }[] {
   switch (id) {
     case "goal":
       return GOALS.map((choice) => ({ choice }));
@@ -280,16 +228,12 @@ function candidatesOf(id: LayerId, selection: Selection): { choice: Choice; grou
       return CONTRIBUTIONS.map((choice) => ({ choice }));
     case "partition":
       return PARTITIONS.map((choice) => ({ choice }));
-    case "topology":
-      return TOPOLOGIES.map((choice) => ({ choice }));
     case "modelClass":
       return MODEL_CLASSES.map((choice) => ({ choice }));
     case "sharing":
-      return (selection.contribution === "trained-artifact" ? ARTIFACT_KINDS : SHARING_MODES).map((choice) => ({ choice }));
+      return SHARING_MODES.map((choice) => ({ choice }));
     case "strategy":
       return STRATEGIES.map((strategy) => ({ choice: strategy, group: scenarioOf(strategy.scenario)?.label }));
-    case "protection":
-      return PROTECTIONS.map((choice) => ({ choice }));
   }
 }
 
@@ -300,10 +244,27 @@ function candidatesOf(id: LayerId, selection: Selection): { choice: Choice; grou
 export function displayOptions(id: LayerId, selection: Selection): DisplayOption[] {
   // 先选场景：未选场景时，场景子项全部不可选。
   const states = SCENARIO_LAYERS.includes(id) && !selection.scenario ? [] : layerOptions(id, selection);
-  return candidatesOf(id, selection).map(({ choice, group }) => {
+  return candidatesOf(id).map(({ choice, group }) => {
     const state = states.find((option) => option.choice.id === choice.id);
     return { choice, group, available: Boolean(state?.available), warning: state?.available ? state.warning : undefined };
   });
+}
+
+/** 维度 3：当前策略的内置保护（基础保护 + 协议自带）。未选策略时只有基础保护。 */
+export function builtinProtection(selection: Selection): string[] {
+  return [...BASELINE_PROTECTION, ...(strategyOf(selection.strategy)?.builtin ?? [])];
+}
+
+/** 维度 3：列出全部可选增强，只有当前策略所在 runner 提供的可选。 */
+export function enhancementOptions(selection: Selection): { enhancement: Enhancement; available: boolean }[] {
+  const supported = strategyOf(selection.strategy)?.enhancements ?? [];
+  return ENHANCEMENTS.map((enhancement) => ({ enhancement, available: supported.includes(enhancement.id) }));
+}
+
+export function toggleEnhancement(selection: Selection, id: EnhancementId): Selection {
+  if (!enhancementOptions(selection).some((item) => item.enhancement.id === id && item.available)) return selection;
+  const has = selection.enhancements.includes(id);
+  return { ...selection, enhancements: has ? selection.enhancements.filter((item) => item !== id) : [...selection.enhancements, id] };
 }
 
 export function paramsFor(selection: Selection): ParamDefinition[] {
@@ -318,7 +279,7 @@ export function normalize(selection: Selection): Selection {
 }
 
 function normalizeWith(selection: Selection, useLock: boolean): Selection {
-  const next: Selection = { ...selection, params: { ...selection.params } };
+  const next: Selection = { ...selection, enhancements: [...selection.enhancements], params: { ...selection.params } };
   for (const layer of LAYERS) {
     if (!isLayerVisible(layer.id, next)) {
       next[layer.id] = null;
@@ -332,8 +293,12 @@ function normalizeWith(selection: Selection, useLock: boolean): Selection {
       if (available.length === 1) next[layer.id] = available[0].choice.id;
     }
   }
-  // 子项 1.1–1.6 选到能确定场景时，锁定这个场景。
+  // 子项 1.1–1.5 选到能确定场景时，锁定这个场景。
   if (useLock && !next.scenario && isLayerVisible("strategy", next)) next.scenario = matchScenario(next)?.id ?? null;
+
+  // 换了策略后，新 runner 不提供的增强自动去掉。
+  const supported = strategyOf(next.strategy)?.enhancements ?? [];
+  next.enhancements = next.enhancements.filter((id) => supported.includes(id));
 
   const params: Record<string, string> = {};
   for (const param of paramsFor(next)) {
@@ -365,17 +330,17 @@ export function toggle(selection: Selection, layer: LayerId, value: string): Sel
   return normalize({ ...selection, [layer]: null });
 }
 
-/** 直接选场景：锁定场景并自动填好子项 1.1–1.6（场景内有多个选项的子项用默认值），策略和保护留给用户。 */
+/** 直接选场景：锁定场景并自动填好子项 1.1–1.5（场景内有多个选项的子项用默认值），策略和增强留给用户。 */
 export function applyTemplate(id: ScenarioId): Selection {
   const scenario = scenarioOf(id);
   if (!scenario) return EMPTY_SELECTION;
   return normalize({ ...EMPTY_SELECTION, ...scenario.shortcut, scenario: id });
 }
 
+/** 场景和策略都确定即可开始；安全增强是可选项。 */
 export function isComplete(selection: Selection): boolean {
   return LAYERS.every((layer) => !isLayerVisible(layer.id, selection) || Boolean(selection[layer.id]))
-    && Boolean(scenarioFor(selection))
-    && Boolean(selection.protection);
+    && Boolean(scenarioFor(selection));
 }
 
 /** 用户当前该回答的维度：第一个可见但还没选的。 */

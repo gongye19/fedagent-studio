@@ -30,7 +30,7 @@ npm run check
 ```text
 app/src/
 ├── domain/
-│   ├── taxonomy.ts     维度候选项、8 个场景模板、策略、保护预设（注册表）
+│   ├── taxonomy.ts     维度候选项、7 个场景、策略、安全增强（注册表）
 │   ├── selection.ts    逐层选择引擎：适用性、可见性、候选与原因、自动选中、下游清理
 │   ├── plan.ts         由选择推导 FrontendRunPlan 和实时预览
 │   ├── run.ts          Run 生命周期状态机（不含场景分支）
@@ -57,9 +57,9 @@ app/src/
 
 入口是 `domain/taxonomy.ts`，组件和状态机不需要改：
 
-1. 在 `SCENARIOS` 增加场景：`matches`（子项 1.1–1.6 的路径）、`shortcut`、`pattern`、`input`、`evaluation`、`output`、`minParticipants`、`params`。
+1. 在 `SCENARIOS` 增加场景：`matches`（子项 1.1–1.5 的路径）、`shortcut`、`pattern`、`input`、`evaluation`、`output`、`minParticipants`、`params`。
 2. 如果路径需要新的维度取值，在对应候选列表中增加，并在 `selection.ts` 中补充适用规则。
-3. 先确认符合 [DIMENSIONS.md](./DIMENSIONS.md) 的收录原则（主流，或大模型 / Agent 相关），再在 `STRATEGIES` 增加策略：标注（`mainstream` / `frontier`）、计算类型、联邦对象、runner、参考实现，以及需要的模型类别 / 数据关系 / 各方投入。
+3. 先确认符合 [DIMENSIONS.md](./DIMENSIONS.md) 的收录原则（主流，或大模型 / Agent 相关），再在 `STRATEGIES` 增加策略：标注（`mainstream` / `frontier`）、计算类型、协议内置保护（`builtin`）、runner 实际提供的可选增强（`enhancements`）、联邦对象、runner、参考实现，以及需要的模型类别 / 数据关系 / 各方投入。
 4. 在 `inputs.ts` 补充数据契约，在 `demo.ts` 补充已登记的联邦数据（用 `when` 标明适用的子项）和评测指标。
 5. 测试会自动覆盖"每个模板可到达、可生成计划、能通过默认准入和评测"；新增的约束规则要单独补测试。
 6. 同步更新 [DIMENSIONS.md](./DIMENSIONS.md)。
@@ -76,7 +76,7 @@ app/src/
 5. runner 只返回标准化事件、输出摘要和退出状态。
 6. 评测 runner 通过后，artifact registry 才允许发布。
 
-任何安全能力都必须由服务端验证；前端传入的保护预设只是请求，不能作为能力证明。
+任何安全能力都必须由服务端验证；前端传入的安全增强只是请求，不能作为能力证明。
 
 ## 测试约定
 
@@ -94,6 +94,6 @@ app/src/
 feat: add vertical modeling scenario
 fix: align timeline connector
 docs: refresh architecture and roadmap
-test: cover protection profile resolution
+test: cover security enhancement availability
 ```
 

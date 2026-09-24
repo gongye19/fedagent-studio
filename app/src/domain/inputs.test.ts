@@ -65,7 +65,7 @@ describe("data contracts and upload checks", () => {
   });
 
   it("only checks format and size for binary weights", () => {
-    const contract = dataContract("model-merge", "trained-artifact");
+    const contract = dataContract("agent-skill", "trained-artifact");
     expect(checkUpload(contract, { name: "adapter.safetensors", size: 4096 }).passed).toBe(true);
     expect(checkUpload(contract, { name: "adapter.safetensors", size: 0 }).passed).toBe(false);
   });

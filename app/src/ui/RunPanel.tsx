@@ -41,7 +41,7 @@ export default function RunPanel({ state, inputsReady, datasets, activeStep, onS
     ["联邦对象", preview.exchanged],
     ["计算类型", preview.computeKind],
     ["Runner", preview.runner],
-    ["保护机制", preview.mechanisms?.join(" · ")],
+    ["安全机制", preview.mechanisms?.join(" · ")],
   ];
 
   return (
