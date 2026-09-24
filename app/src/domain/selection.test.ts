@@ -4,6 +4,7 @@ import {
   applyTemplate,
   choose,
   currentLayer,
+  displayOptions,
   isAutoSelected,
   isComplete,
   layerOptions,
@@ -149,6 +150,33 @@ describe("layered selection", () => {
     const merge = applyTemplate("model-merge");
     expect(paramsFor(choose(merge, "strategy", "merge-weighted")).map((param) => param.id)).not.toContain("density");
     expect(paramsFor(choose(merge, "strategy", "merge-ties")).map((param) => param.id)).toContain("density");
+  });
+
+  it("always lists every candidate and greys out those not yet reachable or not supported", () => {
+    const empty = displayOptions("topology", EMPTY_SELECTION);
+    expect(empty.map((option) => option.choice.id)).toEqual(["cross-silo", "cross-device", "hybrid-nodes"]);
+    expect(empty.every((option) => !option.available)).toBe(true);
+
+    const train = choose(EMPTY_SELECTION, "goal", "train");
+    const contributions = displayOptions("contribution", train);
+    expect(contributions).toHaveLength(6);
+    expect(contributions.filter((option) => option.available).map((option) => option.choice.id)).toEqual(["local-data", "trained-artifact"]);
+
+    const vertical = pick(train, [["contribution", "local-data"], ["partition", "vertical"]]);
+    const topology = displayOptions("topology", vertical);
+    expect(topology.filter((option) => option.available).map((option) => option.choice.id)).toEqual(["cross-silo"]);
+    expect(topology.every((option) => !("reason" in option))).toBe(true);
+  });
+
+  it("lists every strategy grouped by scenario and enables only the matched scenario's", () => {
+    const options = displayOptions("strategy", applyTemplate("fedrag"));
+    expect(options).toHaveLength(STRATEGIES.length);
+    expect(new Set(options.filter((option) => option.available).map((option) => option.group))).toEqual(new Set(["联邦检索 FedRAG"]));
+  });
+
+  it("switches the sharing candidates to artifact kinds for trained artifacts", () => {
+    const artifacts = pick(EMPTY_SELECTION, [["goal", "train"], ["contribution", "trained-artifact"]]);
+    expect(displayOptions("sharing", artifacts).map((option) => option.choice.id)).toEqual(["full-weights", "adapter"]);
   });
 
   it("resets scenario parameters to the new scenario's defaults when the scenario changes", () => {

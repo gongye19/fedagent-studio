@@ -1,16 +1,16 @@
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import {
+  LAYERS,
   PARAMS_STEP,
   currentLayer,
+  displayOptions,
   isAutoSelected,
-  layerOptions,
+  layerApplies,
   paramsFor,
   robustState,
   scenarioFor,
-  visibleLayers,
+  type DisplayOption,
   type LayerDefinition,
-  type LayerId,
-  type OptionState,
   type Selection,
 } from "../domain/selection";
 import {
@@ -33,64 +33,51 @@ type Props = {
 
 const GROUPS: ScenarioGroup[] = ["training", "analysis", "knowledge"];
 
+/** 所有维度和候选项始终展开；上游选完后，下游不支持的选项自动置灰。 */
 export default function ConfigurationStep({ selection, locked, dispatch }: Props) {
-  const [editing, setEditing] = useState<LayerId | null>(null);
-  const layers = visibleLayers(selection);
   const current = currentLayer(selection);
   const scenario = scenarioFor(selection);
   const params = paramsFor(selection);
-
-  function choose(layer: LayerId, value: string) {
-    dispatch({ type: "choose", layer, value });
-    setEditing(null);
-  }
 
   return (
     <div className="config-flow">
       <TemplateBar
         activeId={scenario?.id}
         locked={locked}
-        onApply={(id) => {
-          dispatch({ type: "applyTemplate", scenario: id });
-          setEditing(null);
-        }}
-        onClear={selection.goal ? () => {
-          dispatch({ type: "reset" });
-          setEditing(null);
-        } : undefined}
+        onApply={(id) => dispatch({ type: "applyTemplate", scenario: id })}
+        onClear={selection.goal ? () => dispatch({ type: "reset" }) : undefined}
       />
 
       <ol className="layer-list" aria-label="配置维度">
-        {layers.map((layer) => (
-          <LayerRow key={layer.id} layer={layer} selection={selection}>
+        {LAYERS.map((layer) => (
+          <li className="layer-row" key={layer.id}>
             {layer.id === "strategy" && scenario ? <ScenarioMatch selection={selection} /> : null}
             <LayerCard
               layer={layer}
-              options={layerOptions(layer.id, selection)}
+              title={layer.id === "sharing" && selection.contribution === "trained-artifact" ? "模型形态 · 产物类型" : layer.title}
+              options={displayOptions(layer.id, selection)}
               value={selection[layer.id]}
-              auto={isAutoSelected(layer.id, selection)}
-              expanded={!locked && (layer.id === current || layer.id === editing)}
+              current={layer.id === current}
+              inactive={!layerApplies(layer.id, selection)}
+              auto={Boolean(selection[layer.id]) && isAutoSelected(layer.id, selection)}
               locked={locked}
-              onEdit={() => setEditing((value) => (value === layer.id ? null : layer.id))}
-              onChoose={(value) => choose(layer.id, value)}
+              onChoose={(value) => dispatch({ type: "choose", layer: layer.id, value })}
             >
-              {layer.id === "protection" && selection.protection ? (
-                <ProtectionExtras selection={selection} locked={locked} dispatch={dispatch} />
-              ) : null}
+              {layer.id === "protection" ? <ProtectionExtras selection={selection} locked={locked} dispatch={dispatch} /> : null}
             </LayerCard>
-          </LayerRow>
+          </li>
         ))}
 
-        {selection.protection && params.length ? (
-          <li className="layer-row">
-            <section className="layer-card layer-card--answered" aria-labelledby="layer-params">
-              <header className="layer-head">
-                <span className="layer-step" aria-hidden="true">{PARAMS_STEP.step}</span>
-                <div className="layer-heading">
-                  <h3 id="layer-params"><span className="layer-number">维度 {PARAMS_STEP.step}</span>{PARAMS_STEP.title}</h3>
-                  <p>{PARAMS_STEP.question}</p>
-                </div>
-              </header>
+        <li className="layer-row">
+          <section className={`layer-card${params.length ? " layer-card--answered" : " layer-card--inactive"}`} aria-labelledby="layer-params">
+            <header className="layer-head">
+              <span className="layer-step" aria-hidden="true">{PARAMS_STEP.step}</span>
+              <div className="layer-heading">
+                <h3 id="layer-params"><span className="layer-number">维度 {PARAMS_STEP.step}</span>{PARAMS_STEP.title}</h3>
+                <p>{params.length ? PARAMS_STEP.question : "匹配到场景后显示该场景的可调参数"}</p>
+              </div>
+            </header>
+            {params.length ? (
               <div className="params-grid">
                 {params.map((param) => (
                   <label className="param-field" key={param.id}>
@@ -105,16 +92,12 @@ export default function ConfigurationStep({ selection, locked, dispatch }: Props
                   </label>
                 ))}
               </div>
-            </section>
-          </li>
-        ) : null}
+            ) : null}
+          </section>
+        </li>
       </ol>
     </div>
   );
-}
-
-function LayerRow({ layer, selection, children }: { layer: LayerDefinition; selection: Selection; children: ReactNode }) {
-  return <li className={`layer-row${selection[layer.id] ? "" : " layer-row--open"}`}>{children}</li>;
 }
 
 function TemplateBar({
@@ -125,7 +108,6 @@ function TemplateBar({
   onApply: (id: (typeof SCENARIOS)[number]["id"]) => void;
   onClear?: () => void;
 }) {
-  const [open, setOpen] = useState(false);
   return (
     <section className="template-bar" aria-labelledby="template-title">
       <header className="template-head">
@@ -133,97 +115,96 @@ function TemplateBar({
           <h3 id="template-title">从场景模板开始</h3>
           <p>一键填好维度 1–5，策略和保护仍由你选择。也可以直接从下方逐层选择。</p>
         </div>
-        <div className="template-actions">
-          {onClear && !locked ? <button type="button" className="text-button" onClick={onClear}>清空</button> : null}
-          <button type="button" className="button button--secondary button--small" aria-expanded={open} onClick={() => setOpen((value) => !value)} disabled={locked}>
-            {open ? "收起模板" : "查看 10 个模板"}
-          </button>
-        </div>
+        {onClear && !locked ? <button type="button" className="text-button" onClick={onClear}>清空</button> : null}
       </header>
-      {open && !locked ? (
-        <div className="template-groups">
-          {GROUPS.map((group) => (
-            <div className="template-group" key={group}>
-              <span className="template-group-label">{SCENARIO_GROUP_LABEL[group]}</span>
-              <div className="template-chips">
-                {SCENARIOS.filter((scenario) => scenario.group === group).map((scenario) => (
-                  <button
-                    type="button"
-                    className={`template-chip${activeId === scenario.id ? " template-chip--active" : ""}`}
-                    key={scenario.id}
-                    aria-pressed={activeId === scenario.id}
-                    title={scenario.summary}
-                    onClick={() => {
-                      onApply(scenario.id);
-                      setOpen(false);
-                    }}
-                  >
-                    <span>{scenario.label}</span>
-                    <MaturityBadge maturity={scenario.maturity} />
-                  </button>
-                ))}
-              </div>
+      <div className="template-groups">
+        {GROUPS.map((group) => (
+          <div className="template-group" key={group}>
+            <span className="template-group-label">{SCENARIO_GROUP_LABEL[group]}</span>
+            <div className="template-chips">
+              {SCENARIOS.filter((scenario) => scenario.group === group).map((scenario) => (
+                <button
+                  type="button"
+                  className={`template-chip${activeId === scenario.id ? " template-chip--active" : ""}`}
+                  key={scenario.id}
+                  aria-pressed={activeId === scenario.id}
+                  title={scenario.summary}
+                  disabled={locked}
+                  onClick={() => onApply(scenario.id)}
+                >
+                  <span>{scenario.label}</span>
+                  <MaturityBadge maturity={scenario.maturity} />
+                </button>
+              ))}
             </div>
-          ))}
-        </div>
-      ) : null}
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
 
 function LayerCard({
-  layer, options, value, auto, expanded, locked, onEdit, onChoose, children,
+  layer, title, options, value, current, inactive, auto, locked, onChoose, children,
 }: {
   layer: LayerDefinition;
-  options: OptionState[];
+  title: string;
+  options: DisplayOption[];
   value: string | null;
+  current: boolean;
+  inactive: boolean;
   auto: boolean;
-  expanded: boolean;
   locked: boolean;
-  onEdit: () => void;
   onChoose: (value: string) => void;
   children?: ReactNode;
 }) {
-  const selected = options.find((option) => option.choice.id === value);
   const headingId = `layer-${layer.id}`;
+  const state = value ? "answered" : current ? "current" : inactive ? "inactive" : "waiting";
+  const groups = [...new Set(options.map((option) => option.group))];
+
   return (
-    <section className={`layer-card${value ? " layer-card--answered" : " layer-card--current"}`} aria-labelledby={headingId}>
+    <section className={`layer-card layer-card--${state}`} aria-labelledby={headingId}>
       <header className="layer-head">
         <span className="layer-step" aria-hidden="true">{value ? "✓" : layer.step}</span>
         <div className="layer-heading">
           <h3 id={headingId}>
             <span className="layer-number">维度 {layer.step}</span>
-            {layer.title}
+            {title}
+            {auto ? <span className="badge badge--auto">自动选中</span> : null}
           </h3>
-          {selected && !expanded ? (
-            <p className="layer-value">
-              <strong>{selected.choice.label}</strong>
-              {selected.choice.maturity ? <MaturityBadge maturity={selected.choice.maturity} /> : null}
-              {auto ? <span className="badge badge--auto">唯一可选</span> : null}
-            </p>
-          ) : (
-            <p>{layer.question}</p>
-          )}
+          <p>{layer.question}</p>
         </div>
-        {value && !locked ? (
-          <button type="button" className="text-button" aria-expanded={expanded} onClick={onEdit}>
-            {expanded ? "收起" : auto ? "查看原因" : "更改"}
-          </button>
-        ) : null}
       </header>
 
-      {expanded ? (
-        <div className="option-grid" role="radiogroup" aria-labelledby={headingId}>
-          {options.map((option) => <OptionTile key={option.choice.id} option={option} selected={option.choice.id === value} onChoose={onChoose} />)}
+      {groups.map((group) => (
+        <div className="option-group" key={group ?? "all"}>
+          {group ? <span className="option-group-label">{group}</span> : null}
+          <div className="option-grid" role="radiogroup" aria-labelledby={headingId}>
+            {options.filter((option) => option.group === group).map((option) => (
+              <OptionTile
+                key={option.choice.id}
+                option={option}
+                selected={option.choice.id === value}
+                locked={locked}
+                onChoose={onChoose}
+              />
+            ))}
+          </div>
         </div>
-      ) : null}
-      {selected?.warning && !expanded ? <p className="option-warning option-warning--inline">{selected.warning}</p> : null}
+      ))}
       {children}
     </section>
   );
 }
 
-function OptionTile({ option, selected, onChoose }: { option: OptionState; selected: boolean; onChoose: (value: string) => void }) {
+function OptionTile({
+  option, selected, locked, onChoose,
+}: {
+  option: DisplayOption;
+  selected: boolean;
+  locked: boolean;
+  onChoose: (value: string) => void;
+}) {
   const strategy = strategyOf(option.choice.id);
   return (
     <button
@@ -231,7 +212,7 @@ function OptionTile({ option, selected, onChoose }: { option: OptionState; selec
       role="radio"
       aria-checked={selected}
       className={`option-tile${selected ? " option-tile--selected" : ""}`}
-      disabled={!option.available}
+      disabled={!option.available || locked}
       onClick={() => onChoose(option.choice.id)}
     >
       <span className="option-top">
@@ -239,8 +220,7 @@ function OptionTile({ option, selected, onChoose }: { option: OptionState; selec
         {option.choice.maturity ? <MaturityBadge maturity={option.choice.maturity} /> : null}
       </span>
       <span className="option-hint">{option.choice.hint}</span>
-      {strategy && option.available ? <span className="option-meta">参考实现 · {strategy.references.join(" / ")}</span> : null}
-      {option.reason ? <span className="option-reason">{option.reason}</span> : null}
+      {strategy ? <span className="option-meta">参考实现 · {strategy.references.join(" / ")}</span> : null}
       {option.warning ? <span className="option-warning">{option.warning}</span> : null}
     </button>
   );
@@ -267,10 +247,12 @@ function ProtectionExtras({ selection, locked, dispatch }: { selection: Selectio
   const robust = robustState(selection);
   return (
     <div className="protection-extras">
-      <div className="mechanism-list" aria-label="启用的保护机制">
-        {protection?.mechanisms.map((mechanism) => <span key={mechanism}>{mechanism}</span>)}
-        {selection.robust ? ROBUST_AGGREGATION.mechanisms.map((mechanism) => <span key={mechanism}>{mechanism}</span>) : null}
-      </div>
+      {protection ? (
+        <div className="mechanism-list" aria-label="启用的保护机制">
+          {protection.mechanisms.map((mechanism) => <span key={mechanism}>{mechanism}</span>)}
+          {selection.robust ? ROBUST_AGGREGATION.mechanisms.map((mechanism) => <span key={mechanism}>{mechanism}</span>) : null}
+        </div>
+      ) : null}
       <label className={`robust-toggle${robust.available ? "" : " robust-toggle--disabled"}`}>
         <input
           type="checkbox"
@@ -280,10 +262,9 @@ function ProtectionExtras({ selection, locked, dispatch }: { selection: Selectio
         />
         <span>
           <strong>完整性 · {ROBUST_AGGREGATION.label}</strong>
-          <small>{robust.available ? `${ROBUST_AGGREGATION.hint}（${ROBUST_AGGREGATION.mechanisms.join(" / ")}）` : robust.reason}</small>
+          <small>{ROBUST_AGGREGATION.hint}（{ROBUST_AGGREGATION.mechanisms.join(" / ")}）</small>
         </span>
       </label>
     </div>
   );
 }
-

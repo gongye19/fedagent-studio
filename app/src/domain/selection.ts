@@ -213,6 +213,41 @@ export function isAutoSelected(id: LayerId, selection: Selection): boolean {
   return layerOptions(id, selection).filter((option) => option.available).length === 1;
 }
 
+export type DisplayOption = { choice: Choice; available: boolean; warning?: string; group?: string };
+
+function candidatesOf(id: LayerId, selection: Selection): { choice: Choice; group?: string }[] {
+  switch (id) {
+    case "goal":
+      return GOALS.map((choice) => ({ choice }));
+    case "contribution":
+      return CONTRIBUTIONS.map((choice) => ({ choice }));
+    case "partition":
+      return PARTITIONS.map((choice) => ({ choice }));
+    case "topology":
+      return TOPOLOGIES.map((choice) => ({ choice }));
+    case "modelClass":
+      return MODEL_CLASSES.map((choice) => ({ choice }));
+    case "sharing":
+      return (selection.contribution === "trained-artifact" ? ARTIFACT_KINDS : SHARING_MODES).map((choice) => ({ choice }));
+    case "strategy":
+      return STRATEGIES.map((strategy) => ({ choice: strategy, group: scenarioOf(strategy.scenario)?.label }));
+    case "protection":
+      return PROTECTIONS.map((choice) => ({ choice }));
+  }
+}
+
+/**
+ * 界面展示用：每个维度始终列出全部候选项。只有上游已选、且与上游兼容的选项可点，
+ * 其余置灰。维度不适用于当前路径时整组置灰。
+ */
+export function displayOptions(id: LayerId, selection: Selection): DisplayOption[] {
+  const states = layerOptions(id, selection);
+  return candidatesOf(id, selection).map(({ choice, group }) => {
+    const state = states.find((option) => option.choice.id === choice.id);
+    return { choice, group, available: Boolean(state?.available), warning: state?.available ? state.warning : undefined };
+  });
+}
+
 export function paramsFor(selection: Selection): ParamDefinition[] {
   const scenario = scenarioFor(selection);
   if (!scenario) return [];
