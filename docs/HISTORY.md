@@ -146,3 +146,28 @@
   3. 测试：改写 2 个用例，新增"先选场景"用例，共 58 个。
   4. 文档：DIMENSIONS、FLOW、ARCHITECTURE、README、PROGRESS、GOAL（C14、C16 退役，新增 C17、C18）、DECISIONS（D15），更新截图。
   5. 验证：`npm run check` 通过；浏览器验证先选场景、子项置灰与自动填充、无横幅、标题无重复编号。
+
+## T22：去掉场景参数维度
+
+- 类型：Delivery（正式交付）
+- 时间：2026-09-24
+- 状态：完成
+- 相关：C17（退役）→ C19；影响 L1、S1
+- 用户要求：场景参数如果不是必须选的，可以去掉。
+- 修改：删除配置页"场景参数"卡片和 `setParam` 动作；默认值仍由引擎补齐，只在 FrontendRunPlan 中记录；维度变为 3 个。新增 D16。
+- 验证：测试通过；浏览器确认配置页只剩协作策略、安全与信任两张卡片。
+
+## T23：数据步骤改为"匹配联邦数据 + 上传 + Agent 检查"
+
+- 类型：Delivery（正式交付）
+- 时间：2026-09-24
+- 状态：完成
+- 相关：新增 C20；影响 L1、L3、S2
+- 用户要求：这一步根据前面的选择匹配符合的联邦数据，用户也可以上传自己的数据；上传后 Agent 检查是否匹配、是否符合要求，符合再开始，不符合给出提示。
+- 步骤：
+  1. 新增 `inputs.ts`：每个场景（及各方投入）的数据契约（格式、必需字段、最少条数），`checkUpload` 对浏览器本地抽样内容做确定性检查并生成 Agent 说明。
+  2. `demo.ts` 改为已登记的联邦数据目录，按场景和子项（`when`）匹配；Store 改为勾选数据 `datasetIds` + 上传 `uploads`（检查中 / 通过 / 未通过），`runParticipants` 合并两者，`inputStatus` 判断能否开始。
+  3. 界面：步骤改名 "Data & participants"，展示数据要求、匹配到的联邦数据（勾选）、上传区与逐项检查结果、运行设置和能否开始的说明。
+  4. 测试：新增 `inputs.test.ts`（契约、匹配、JSONL / CSV / JSON / 二进制检查、抽样），改写 Store 测试，共 69 个。
+  5. 文档：DIMENSIONS、GOAL（新增 C20）、FLOW（S2）、ARCHITECTURE、README、PROGRESS、DEVELOPMENT、DECISIONS（D17）。
+  6. 验证：`npm run check` 通过；浏览器模拟上传一份合格 JSONL 和一份格式错误的 CSV，确认逐项结果、阻止开始、移除后以 4 份数据完成准入。

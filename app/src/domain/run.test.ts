@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { defaultParticipants } from "./demo";
+import { defaultDatasetIds, matchedDatasets, type Participant } from "./demo";
 import { buildRunPlan, type FrontendRunPlan } from "./plan";
 import {
   canPublish,
@@ -31,8 +31,14 @@ function advance(run: Run, stage: Exclude<StageId, "publish">): Run {
   return finishStage(started, stage, stageWork(stage, started.plan, started.participants, started.preset));
 }
 
+function peftParticipants(): Participant[] {
+  const selection = applyTemplate("peft-finetune");
+  const ids = defaultDatasetIds(selection);
+  return matchedDatasets(selection).filter((entry) => ids.includes(entry.id));
+}
+
 function newRun(): Run {
-  return createRun("run-1", planFor(), defaultParticipants("peft-finetune", "local-data"), "quick", "2026-09-24T00:00:00Z");
+  return createRun("run-1", planFor(), peftParticipants(), "quick", "2026-09-24T00:00:00Z");
 }
 
 describe("run lifecycle", () => {
@@ -71,7 +77,7 @@ describe("run lifecycle", () => {
   });
 
   it("stops the run when preflight rejects the inputs", () => {
-    const run = createRun("run-2", planFor(), defaultParticipants("peft-finetune", "local-data").slice(0, 1), "quick", "2026-09-24T00:00:00Z");
+    const run = createRun("run-2", planFor(), peftParticipants().slice(0, 1), "quick", "2026-09-24T00:00:00Z");
     const checked = advance(run, "preflight");
     expect(checked.preflight?.passed).toBe(false);
     expect(stageOf(checked, "preflight").status).toBe("failed");

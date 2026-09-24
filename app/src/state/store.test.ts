@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { initialState, reducer, type Action, type State } from "./store";
+import { checkUpload, dataContract } from "../domain/inputs";
+import { buildRunPlan } from "../domain/plan";
+import { initialState, inputStatus, reducer, runParticipants, type Action, type State } from "./store";
 
 const apply = (state: State, actions: Action[]) => actions.reduce(reducer, state);
 
@@ -9,61 +11,81 @@ const peftReady: Action[] = [
   { type: "toggle", layer: "protection", value: "standard" },
 ];
 
+const goodJsonl = Array.from({ length: 60 }, (_, index) => JSON.stringify({ instruction: `问题 ${index}`, output: "回答" })).join("\n");
+
 describe("page state", () => {
-  it("starts empty and loads demo participants once a scenario is matched", () => {
-    expect(initialState.selection.goal).toBeNull();
-    expect(initialState.participants).toEqual([]);
-
+  it("starts empty and pre-selects matched federated data once a scenario is chosen", () => {
+    expect(initialState.datasetIds).toEqual([]);
     const state = apply(initialState, [{ type: "applyTemplate", scenario: "vertical-modeling" }]);
-    expect(state.participants.map((participant) => participant.role)).toEqual(["Guest · 持有标签", "Host"]);
+    expect(runParticipants(state).map((participant) => participant.role)).toEqual(["Guest · 持有标签", "Host"]);
   });
 
-  it("swaps participants when the scenario changes and keeps them otherwise", () => {
-    const peft = apply(initialState, [...peftReady, { type: "removeParticipant", id: "peft-finetune-p3" }]);
-    expect(peft.participants).toHaveLength(2);
+  it("re-matches data when a sub-item changes the catalog and keeps the user's picks otherwise", () => {
+    const peft = apply(initialState, [...peftReady, { type: "toggleDataset", id: "peft-silo-3" }]);
+    expect(runParticipants(peft)).toHaveLength(2);
 
-    const sameScenario = reducer(peft, { type: "setParam", id: "rank", value: "32" });
-    expect(sameScenario.participants).toHaveLength(2);
+    const sameCatalog = reducer(peft, { type: "toggle", layer: "protection", value: "tee" });
+    expect(runParticipants(sameCatalog)).toHaveLength(2);
 
-    const merge = reducer(peft, { type: "applyTemplate", scenario: "model-merge" });
-    expect(merge.participants[0].provides).toBe("LoRA Adapter");
+    const device = reducer(peft, { type: "toggle", layer: "topology", value: "cross-device" });
+    expect(runParticipants(device).every((participant) => participant.role === "端侧设备")).toBe(true);
   });
 
-  it("adds demo participants until the pool is exhausted", () => {
-    const one = apply(initialState, [...peftReady, { type: "addParticipant" }]);
-    expect(one.participants).toHaveLength(4);
-    expect(reducer(one, { type: "addParticipant" })).toBe(one);
+  it("ignores datasets that do not match the current selection", () => {
+    const peft = apply(initialState, peftReady);
+    expect(reducer(peft, { type: "toggleDataset", id: "vfl-1" })).toBe(peft);
   });
 
-  it("records uploaded files without their content", () => {
-    const state = apply(initialState, [
-      { type: "applyTemplate", scenario: "model-merge" },
-      { type: "uploadFiles", files: [{ name: "clinic-lora.safetensors", size: 3_400_000, lastModified: 1 }] },
+  it("only counts an upload after the agent check passes", () => {
+    const contract = dataContract("peft-finetune", "local-data");
+    const peft = apply(initialState, [...peftReady, { type: "addUploads", files: [{ id: "u1", name: "mine.jsonl", size: goodJsonl.length }] }]);
+    const plan = buildRunPlan(peft.selection);
+    expect(inputStatus(peft, plan).checking).toBe(1);
+    expect(inputStatus(peft, plan).ready).toBe(false);
+
+    const passed = reducer(peft, { type: "uploadChecked", id: "u1", check: checkUpload(contract, { name: "mine.jsonl", size: goodJsonl.length, sample: goodJsonl }) });
+    expect(inputStatus(passed, plan).ready).toBe(true);
+    expect(runParticipants(passed).find((participant) => participant.source === "upload")?.detail).toContain("60 条");
+  });
+
+  it("blocks the run while an upload has failed the check", () => {
+    const contract = dataContract("peft-finetune", "local-data");
+    const failed = apply(initialState, [
+      ...peftReady,
+      { type: "addUploads", files: [{ id: "u2", name: "wrong.csv", size: 10 }] },
+      { type: "uploadChecked", id: "u2", check: checkUpload(contract, { name: "wrong.csv", size: 10, sample: "a,b\n1,2" }) },
     ]);
-    const uploaded = state.participants.find((participant) => participant.source === "upload");
-    expect(uploaded?.name).toBe("clinic-lora.safetensors");
-    expect(uploaded?.detail).toContain("3.2 MB");
+    const plan = buildRunPlan(failed.selection);
+    expect(inputStatus(failed, plan)).toMatchObject({ failed: 1, ready: false });
+    expect(reducer(failed, { type: "startRun", id: "run-1", createdAt: "now" }).run).toBeNull();
+    expect(inputStatus(reducer(failed, { type: "removeUpload", id: "u2" }), plan).ready).toBe(true);
   });
 
-  it("starts a run only with a complete plan and enough participants", () => {
+  it("clears uploads when the scenario changes because the data contract changes", () => {
+    const peft = apply(initialState, [...peftReady, { type: "addUploads", files: [{ id: "u3", name: "mine.jsonl", size: 5 }] }]);
+    expect(reducer(peft, { type: "applyTemplate", scenario: "fedrag" }).uploads).toEqual([]);
+  });
+
+  it("starts a run only with a complete plan and enough data", () => {
     const incomplete = apply(initialState, [{ type: "applyTemplate", scenario: "peft-finetune" }]);
     expect(reducer(incomplete, { type: "startRun", id: "run-1", createdAt: "now" }).run).toBeNull();
 
     const tooFew = apply(initialState, [
       ...peftReady,
-      { type: "removeParticipant", id: "peft-finetune-p1" },
-      { type: "removeParticipant", id: "peft-finetune-p2" },
+      { type: "toggleDataset", id: "peft-silo-1" },
+      { type: "toggleDataset", id: "peft-silo-2" },
     ]);
     expect(reducer(tooFew, { type: "startRun", id: "run-1", createdAt: "now" }).run).toBeNull();
 
     const ready = apply(initialState, [...peftReady, { type: "startRun", id: "run-1", createdAt: "now" }]);
     expect(ready.run?.plan.scenario.id).toBe("peft-finetune");
+    expect(ready.run?.participants).toHaveLength(3);
   });
 
-  it("locks configuration and participants while a run exists", () => {
+  it("locks configuration and data while a run exists", () => {
     const running = apply(initialState, [...peftReady, { type: "startRun", id: "run-1", createdAt: "now" }]);
     expect(reducer(running, { type: "toggle", layer: "goal", value: "analytics" })).toBe(running);
-    expect(reducer(running, { type: "removeParticipant", id: "peft-finetune-p1" })).toBe(running);
+    expect(reducer(running, { type: "toggleDataset", id: "peft-silo-1" })).toBe(running);
     expect(reducer(running, { type: "setPreset", preset: "standard" })).toBe(running);
   });
 
@@ -72,7 +94,7 @@ describe("page state", () => {
     const cleared = reducer(peft, { type: "clearScenario" });
     expect(cleared.selection.scenario).toBeNull();
     expect(cleared.selection.goal).toBeNull();
-    expect(cleared.participants).toEqual([]);
+    expect(cleared.datasetIds).toEqual([]);
   });
 
   it("resets to an empty draft", () => {

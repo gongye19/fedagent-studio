@@ -6,7 +6,8 @@ import { FLOW_STEPS, isRunStage, type FlowStepId } from "./flow";
 
 type Props = {
   state: State;
-  minParticipants: number | null;
+  inputsReady: boolean;
+  datasets: number;
   activeStep: FlowStepId;
   onSelectStep: (step: FlowStepId) => void;
 };
@@ -18,19 +19,17 @@ const STATUS_LABEL: Record<StageStatus, string> = {
   failed: "Failed",
 };
 
-export default function RunPanel({ state, minParticipants, activeStep, onSelectStep }: Props) {
+export default function RunPanel({ state, inputsReady, datasets, activeStep, onSelectStep }: Props) {
   const { run } = state;
   const configured = isComplete(state.selection);
   const published = run ? stageOf(run, "publish").status === "done" : false;
   const status = run?.error ? "Failed" : published ? "Complete" : run ? "Running" : configured ? "Ready" : "Draft";
   const preview = planPreview(state.selection);
-  const participants = run?.participants.length ?? state.participants.length;
 
   function stepStatus(id: FlowStepId): { state: StageStatus; label: string } {
     if (id === "configure") return configured ? { state: "done", label: "Ready" } : { state: "pending", label: "Needs input" };
     if (id === "inputs") {
-      const done = configured && minParticipants !== null && participants >= minParticipants;
-      return { state: done ? "done" : "pending", label: configured ? `${participants} participants` : "Waiting" };
+      return { state: configured && inputsReady ? "done" : "pending", label: configured ? `${datasets} datasets` : "Waiting" };
     }
     const stage = run && isRunStage(id) ? stageOf(run, id) : undefined;
     const value = stage?.status ?? "pending";

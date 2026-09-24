@@ -1,15 +1,15 @@
 import type { ChangeEvent, DragEvent } from "react";
-import { participantPool } from "../domain/demo";
+import { matchedDatasets } from "../domain/demo";
+import { SAMPLE_BYTES, checkUpload, dataContract, isTextFile } from "../domain/inputs";
 import type { FrontendRunPlan } from "../domain/plan";
 import { PRESET_LABEL, type ExecutionPreset } from "../domain/run";
-import type { Action, State } from "../state/store";
-import { Facts, StageMessage } from "./common";
+import { inputStatus, type Action, type State } from "../state/store";
+import { StageMessage } from "./common";
 
-const INPUT_KIND_LABEL = {
-  nodes: "连接节点",
-  files: "上传文件",
-  endpoints: "注册 Endpoint",
-} as const;
+/** Agent 检查的演示时长；检查本身在浏览器本地同步完成。 */
+const CHECK_DEMO_MS = 900;
+
+const STATUS_TEXT = { checking: "Agent 检查中", passed: "检查通过", failed: "未通过" } as const;
 
 export default function InputsStep({
   state, plan, dispatch,
@@ -18,83 +18,131 @@ export default function InputsStep({
   plan: FrontendRunPlan | null;
   dispatch: (action: Action) => void;
 }) {
-  if (!plan) return <div className="step-pad"><StageMessage text="先在 Configuration 完成全部维度，平台才能确定需要哪种输入。" /></div>;
+  const scenario = state.selection.scenario;
+  if (!plan || !scenario) return <div className="step-pad"><StageMessage text="先在 Configuration 选好场景、协作策略和安全与信任，平台才能确定需要什么数据。" /></div>;
 
   const locked = Boolean(state.run);
-  const participants = state.run?.participants ?? state.participants;
-  const pool = participantPool(plan.scenario.id, state.selection.contribution);
-  const canAdd = !locked && pool.some((candidate) => !participants.some((participant) => participant.id === candidate.id));
+  const contract = dataContract(scenario, state.selection.contribution);
+  const datasets = matchedDatasets(state.selection);
+  const status = inputStatus(state, plan);
 
-  function upload(files: FileList | null) {
-    if (!files?.length) return;
-    dispatch({
-      type: "uploadFiles",
-      files: Array.from(files).map((file) => ({ name: file.name, size: file.size, lastModified: file.lastModified })),
-    });
+  async function upload(files: FileList | null) {
+    if (!files?.length || locked) return;
+    const list = Array.from(files).map((file) => ({ file, id: `upload-${file.name}-${file.size}-${file.lastModified}` }));
+    dispatch({ type: "addUploads", files: list.map(({ file, id }) => ({ id, name: file.name, size: file.size })) });
+    for (const { file, id } of list) {
+      // 只在浏览器本地读取前 256KB 做结构检查，不上传、不保存文件内容。
+      const sample = isTextFile(file.name) ? await file.slice(0, SAMPLE_BYTES).text() : undefined;
+      const check = checkUpload(contract, { name: file.name, size: file.size, sample });
+      setTimeout(() => dispatch({ type: "uploadChecked", id, check }), CHECK_DEMO_MS);
+    }
   }
 
   return (
     <div className="inputs-workspace">
-      <Facts
-        items={[
-          ["接入方式", `${INPUT_KIND_LABEL[plan.input.kind]} · ${plan.input.label}`],
-          ["参与方侧", plan.locations.participantWorker],
-          ["最少参与方", `${plan.minParticipants} 个`],
-        ]}
-      />
-
-      <section className="participants" aria-labelledby="participants-title">
+      <section className="data-contract" aria-labelledby="contract-title">
         <header className="section-head">
-          <h3 id="participants-title">参与方（{participants.length}）</h3>
-          <button type="button" className="button button--secondary button--small" disabled={!canAdd} onClick={() => dispatch({ type: "addParticipant" })}>
-            添加示例参与方
-          </button>
+          <h3 id="contract-title">数据要求 · {contract.title}</h3>
+          <span className="badge">至少 {plan.minParticipants} 份数据</span>
         </header>
-        <ul className="participant-list">
-          {participants.map((participant) => (
-            <li className="participant-row" key={participant.id}>
-              <div>
-                <strong>{participant.name}</strong>
-                <span className="badge">{participant.role}</span>
-              </div>
-              <p>{participant.provides} · {participant.detail}</p>
-              {!locked ? (
-                <button type="button" className="remove-button" aria-label={`移除 ${participant.name}`} onClick={() => dispatch({ type: "removeParticipant", id: participant.id })}>
-                  移除
-                </button>
-              ) : <span className="input-ready">已冻结</span>}
-            </li>
-          ))}
-          {!participants.length ? <li className="participant-empty">还没有参与方。</li> : null}
+        <ul>
+          {contract.requirements.map((item) => <li key={item}>{item}</li>)}
         </ul>
-        {participants.length < plan.minParticipants ? (
-          <p className="option-reason">至少需要 {plan.minParticipants} 个参与方才能开始准入检查。</p>
-        ) : null}
       </section>
 
-      {plan.input.kind === "files" && !locked ? (
-        <label
-          className="upload-zone"
-          onDragOver={(event: DragEvent<HTMLLabelElement>) => event.preventDefault()}
-          onDrop={(event: DragEvent<HTMLLabelElement>) => {
-            event.preventDefault();
-            upload(event.dataTransfer.files);
-          }}
-        >
-          <input
-            type="file"
-            multiple
-            accept={plan.input.accept}
-            onChange={(event: ChangeEvent<HTMLInputElement>) => {
-              upload(event.target.files);
-              event.target.value = "";
+      <section aria-labelledby="catalog-title">
+        <header className="section-head">
+          <h3 id="catalog-title">匹配到的联邦数据（{datasets.length}）</h3>
+        </header>
+        <p className="section-note">按前面的选择从已登记的数据中匹配。数据留在各参与方本地，平台只登记契约和摘要。</p>
+        <ul className="dataset-list">
+          {datasets.map((entry) => {
+            const checked = state.datasetIds.includes(entry.id);
+            return (
+              <li key={entry.id}>
+                <label className={`dataset-row${checked ? " dataset-row--checked" : ""}`}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={locked}
+                    onChange={() => dispatch({ type: "toggleDataset", id: entry.id })}
+                  />
+                  <span className="dataset-copy">
+                    <span className="dataset-title">
+                      <strong>{entry.name}</strong>
+                      <span className="badge">{entry.role}</span>
+                    </span>
+                    <small>{entry.provides} · {entry.detail}</small>
+                  </span>
+                </label>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
+      <section aria-labelledby="upload-title">
+        <header className="section-head">
+          <h3 id="upload-title">上传自己的数据</h3>
+        </header>
+        {!locked ? (
+          <label
+            className="upload-zone"
+            onDragOver={(event: DragEvent<HTMLLabelElement>) => event.preventDefault()}
+            onDrop={(event: DragEvent<HTMLLabelElement>) => {
+              event.preventDefault();
+              void upload(event.dataTransfer.files);
             }}
-          />
-          <strong>拖入产物文件，或点击选择</strong>
-          <span>{plan.input.accept}</span>
-          <small>前端模拟：只记录文件名和大小，不读取、不上传文件内容</small>
-        </label>
-      ) : null}
+          >
+            <input
+              type="file"
+              multiple
+              accept={contract.accept.join(",")}
+              onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                void upload(event.target.files);
+                event.target.value = "";
+              }}
+            />
+            <strong>拖入文件，或点击选择</strong>
+            <span>{contract.accept.join(" / ")}</span>
+            <small>上传后由 Agent 检查格式、字段和条数。文件只在浏览器本地读取前 256KB，不会上传或保存。</small>
+          </label>
+        ) : null}
+
+        {state.uploads.length ? (
+          <ul className="upload-results">
+            {state.uploads.map((item) => (
+              <li className={`upload-result upload-result--${item.status}`} key={item.id}>
+                <header>
+                  <strong>{item.name}</strong>
+                  <span className={`status${item.status === "passed" ? " status--complete" : item.status === "failed" ? " status--failed" : " status--running"}`}>
+                    {STATUS_TEXT[item.status]}
+                  </span>
+                  {!locked ? (
+                    <button type="button" className="remove-button" aria-label={`移除 ${item.name}`} onClick={() => dispatch({ type: "removeUpload", id: item.id })}>
+                      移除
+                    </button>
+                  ) : null}
+                </header>
+                {item.check ? (
+                  <>
+                    <ul className="upload-checks">
+                      {item.check.items.map((check) => (
+                        <li key={check.label} className={check.ok ? "" : "upload-check--failed"}>
+                          <span aria-hidden="true">{check.ok ? "✓" : "✕"}</span>
+                          <b>{check.label}</b>
+                          <span>{check.detail}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="agent-line"><span>Agent</span>{item.check.note}</p>
+                  </>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </section>
 
       <section className="run-settings" aria-labelledby="run-settings-title">
         <header className="section-head"><h3 id="run-settings-title">运行设置</h3></header>
@@ -117,6 +165,15 @@ export default function InputsStep({
           <button type="button" role="radio" aria-checked="false" disabled title="后端未接入">真实运行 · 后端未接入</button>
         </div>
       </section>
+
+      {!locked ? <p className={`inputs-summary${status.ready ? "" : " inputs-summary--blocked"}`}>{summaryText(status)}</p> : null}
     </div>
   );
+}
+
+function summaryText(status: ReturnType<typeof inputStatus>): string {
+  if (status.checking) return `有 ${status.checking} 份上传数据正在检查，完成后才能开始。`;
+  if (status.failed) return `有 ${status.failed} 份上传数据未通过检查，请修改后重新上传，或移除后再开始。`;
+  if (status.count < status.min) return `已选 ${status.count} 份数据，至少需要 ${status.min} 份。`;
+  return `已选 ${status.count} 份数据，可以开始准入检查。`;
 }

@@ -1,9 +1,10 @@
 /**
- * 前端演示数据：每个场景的示例参与方和评测指标。
+ * 前端演示数据：已登记的联邦数据目录和每个场景的评测指标。
  *
  * 这些都是虚构的样例，只为让时间轴每一步有可看的内容。接入后端后由真实的
- * 参与方接入记录、manifest 和评测结果替代，不应被当作平台能力的证明。
+ * 数据登记记录、manifest 和评测结果替代，不应被当作平台能力的证明。
  */
+import type { LayerId } from "./selection";
 import type { ScenarioId } from "./taxonomy";
 
 export type Participant = {
@@ -12,86 +13,122 @@ export type Participant = {
   role: string;
   provides: string;
   detail: string;
-  source: "demo" | "upload";
+  source: "catalog" | "upload";
 };
 
-type ParticipantSeed = Omit<Participant, "id" | "source">;
+/** 登记在平台上的联邦数据：只登记契约和摘要，数据本身留在参与方本地。 */
+export type CatalogEntry = Participant & {
+  scenario: ScenarioId;
+  /** 只在这些子项取值下匹配；缺省表示场景内都匹配。 */
+  when?: Partial<Record<LayerId, string>>;
+};
 
-const seeds = (scenario: string, list: ParticipantSeed[]): Participant[] => list.map((item, index) => ({
-  ...item,
-  id: `${scenario}-p${index + 1}`,
-  source: "demo",
-}));
+type Seed = Omit<CatalogEntry, "id" | "source" | "scenario" | "when">;
 
-/**
- * 每个场景的候选参与方。前 DEFAULT_PARTICIPANTS 个默认接入，其余可以手动添加。
- * 同一场景下各方投入不同时（如评估用本地测试集还是 Endpoint），用 "场景:投入" 区分。
- */
-export const PARTICIPANT_POOL: Record<string, Participant[]> = {
-  "model-training": seeds("model-training", [
-    { name: "医院 A", role: "参与方", provides: "影像分类数据契约", detail: "1,240 样本 · schema 已声明" },
-    { name: "医院 B", role: "参与方", provides: "影像分类数据契约", detail: "980 样本 · schema 已声明" },
-    { name: "医院 C", role: "参与方", provides: "影像分类数据契约", detail: "1,560 样本 · schema 已声明" },
-    { name: "医院 D", role: "参与方", provides: "影像分类数据契约", detail: "730 样本 · schema 已声明" },
+function entries(scenario: ScenarioId, key: string, when: CatalogEntry["when"], list: Seed[]): CatalogEntry[] {
+  return list.map((item, index) => ({ ...item, id: `${key}-${index + 1}`, source: "catalog", scenario, when }));
+}
+
+export const DATA_CATALOG: CatalogEntry[] = [
+  ...entries("model-training", "mt-image", { topology: "cross-silo", modelClass: "neural" }, [
+    { name: "医院 A 影像数据", role: "参与方", provides: "影像分类数据", detail: "1,240 样本 · 已登记 schema" },
+    { name: "医院 B 影像数据", role: "参与方", provides: "影像分类数据", detail: "980 样本 · 已登记 schema" },
+    { name: "医院 C 影像数据", role: "参与方", provides: "影像分类数据", detail: "1,560 样本 · 已登记 schema" },
+    { name: "医院 D 影像数据", role: "参与方", provides: "影像分类数据", detail: "730 样本 · 已登记 schema" },
   ]),
-  "peft-finetune": seeds("peft-finetune", [
-    { name: "律所 A", role: "参与方", provides: "指令数据 JSONL 契约", detail: "3,200 条 · chat 模板" },
-    { name: "券商 B", role: "参与方", provides: "指令数据 JSONL 契约", detail: "2,450 条 · chat 模板" },
-    { name: "媒体 C", role: "参与方", provides: "指令数据 JSONL 契约", detail: "4,100 条 · chat 模板" },
-    { name: "高校 D", role: "参与方", provides: "指令数据 JSONL 契约", detail: "1,800 条 · chat 模板" },
+  ...entries("model-training", "mt-tabular-tree", { topology: "cross-silo", modelClass: "tree" }, [
+    { name: "保险 A 理赔表", role: "参与方", provides: "表格数据", detail: "42,000 行 · 36 列" },
+    { name: "保险 B 理赔表", role: "参与方", provides: "表格数据", detail: "31,500 行 · 36 列" },
+    { name: "保险 C 理赔表", role: "参与方", provides: "表格数据", detail: "27,800 行 · 36 列" },
   ]),
-  "model-merge": seeds("model-merge", [
+  ...entries("model-training", "mt-tabular-linear", { topology: "cross-silo", modelClass: "linear" }, [
+    { name: "银行 A 信用表", role: "参与方", provides: "表格数据", detail: "58,000 行 · 18 列" },
+    { name: "银行 B 信用表", role: "参与方", provides: "表格数据", detail: "44,000 行 · 18 列" },
+    { name: "银行 C 信用表", role: "参与方", provides: "表格数据", detail: "39,000 行 · 18 列" },
+  ]),
+  ...entries("model-training", "mt-device", { topology: "cross-device" }, [
+    { name: "设备群组 A", role: "端侧设备", provides: "端侧训练数据", detail: "12,000 台设备 · 日均在线 38%" },
+    { name: "设备群组 B", role: "端侧设备", provides: "端侧训练数据", detail: "8,500 台设备 · 日均在线 41%" },
+  ]),
+  ...entries("peft-finetune", "peft-silo", { topology: "cross-silo" }, [
+    { name: "律所 A 问答数据", role: "参与方", provides: "指令数据 JSONL", detail: "3,200 条 · chat 模板" },
+    { name: "券商 B 研报数据", role: "参与方", provides: "指令数据 JSONL", detail: "2,450 条 · chat 模板" },
+    { name: "媒体 C 摘要数据", role: "参与方", provides: "指令数据 JSONL", detail: "4,100 条 · chat 模板" },
+    { name: "高校 D 教学数据", role: "参与方", provides: "指令数据 JSONL", detail: "1,800 条 · chat 模板" },
+  ]),
+  ...entries("peft-finetune", "peft-device", { topology: "cross-device" }, [
+    { name: "手机端对话群组 A", role: "端侧设备", provides: "端侧对话数据", detail: "5,000 台设备 · 需 6GB 以上内存" },
+    { name: "手机端对话群组 B", role: "端侧设备", provides: "端侧对话数据", detail: "3,200 台设备 · 需 6GB 以上内存" },
+  ]),
+  ...entries("model-merge", "merge-adapter", { sharing: "adapter" }, [
     { name: "news-summary-lora", role: "产物", provides: "LoRA Adapter", detail: "rank 16 · 新闻摘要 · 1,200 样本训练" },
     { name: "legal-qa-lora", role: "产物", provides: "LoRA Adapter", detail: "rank 16 · 法律问答 · 900 样本训练" },
     { name: "finance-report-lora", role: "产物", provides: "LoRA Adapter", detail: "rank 16 · 财报分析 · 1,500 样本训练" },
   ]),
-  "vertical-modeling": seeds("vertical-modeling", [
-    { name: "银行 A", role: "Guest · 持有标签", provides: "交易特征数据契约 + PSI key manifest", detail: "12 个特征 · 52,000 用户" },
-    { name: "电商 B", role: "Host", provides: "消费特征数据契约 + PSI key manifest", detail: "28 个特征 · 81,000 用户" },
-    { name: "运营商 C", role: "Host", provides: "通信特征数据契约 + PSI key manifest", detail: "9 个特征 · 64,000 用户" },
+  ...entries("model-merge", "merge-full", { sharing: "full-weights" }, [
+    { name: "medical-3b-sft", role: "产物", provides: "全量模型权重", detail: "3B · 医疗问答微调" },
+    { name: "code-3b-sft", role: "产物", provides: "全量模型权重", detail: "3B · 代码生成微调" },
   ]),
-  "federated-evaluation": seeds("federated-evaluation", [
-    { name: "站点 A", role: "评测节点", provides: "本地测试集契约", detail: "2,000 条 · 已脱敏" },
-    { name: "站点 B", role: "评测节点", provides: "本地测试集契约", detail: "1,600 条 · 已脱敏" },
-    { name: "站点 C", role: "评测节点", provides: "本地测试集契约", detail: "2,400 条 · 已脱敏" },
+  ...entries("vertical-modeling", "vfl", undefined, [
+    { name: "银行 A 交易特征", role: "Guest · 持有标签", provides: "特征表 + PSI key", detail: "12 个特征 · 52,000 用户" },
+    { name: "电商 B 消费特征", role: "Host", provides: "特征表 + PSI key", detail: "28 个特征 · 81,000 用户" },
+    { name: "运营商 C 通信特征", role: "Host", provides: "特征表 + PSI key", detail: "9 个特征 · 64,000 用户" },
   ]),
-  "federated-evaluation:model-endpoint": seeds("federated-evaluation-endpoint", [
+  ...entries("federated-evaluation", "eval-local", { contribution: "local-test-data" }, [
+    { name: "站点 A 测试集", role: "评测节点", provides: "本地测试集", detail: "2,000 条 · 已脱敏" },
+    { name: "站点 B 测试集", role: "评测节点", provides: "本地测试集", detail: "1,600 条 · 已脱敏" },
+    { name: "站点 C 测试集", role: "评测节点", provides: "本地测试集", detail: "2,400 条 · 已脱敏" },
+  ]),
+  ...entries("federated-evaluation", "eval-endpoint", { contribution: "model-endpoint" }, [
     { name: "机构 A 模型服务", role: "模型 Endpoint", provides: "OpenAI 兼容接口", detail: "限流 20 QPS · 已登记模型卡" },
     { name: "机构 B 模型服务", role: "模型 Endpoint", provides: "OpenAI 兼容接口", detail: "限流 10 QPS · 已登记模型卡" },
     { name: "机构 C 模型服务", role: "模型 Endpoint", provides: "OpenAI 兼容接口", detail: "限流 15 QPS · 已登记模型卡" },
   ]),
-  "federated-analytics": seeds("federated-analytics", [
-    { name: "医院 A", role: "参与方", provides: "分析 schema", detail: "年龄、住院天数、费用" },
-    { name: "医院 B", role: "参与方", provides: "分析 schema", detail: "年龄、住院天数、费用" },
-    { name: "医院 C", role: "参与方", provides: "分析 schema", detail: "年龄、住院天数、费用" },
+  ...entries("federated-analytics", "fa-horizontal", { partition: "horizontal", topology: "cross-silo" }, [
+    { name: "医院 A 住院数据", role: "参与方", provides: "统计分析表", detail: "年龄、住院天数、费用 · 18,000 行" },
+    { name: "医院 B 住院数据", role: "参与方", provides: "统计分析表", detail: "年龄、住院天数、费用 · 12,500 行" },
+    { name: "医院 C 住院数据", role: "参与方", provides: "统计分析表", detail: "年龄、住院天数、费用 · 21,000 行" },
   ]),
-  fedrag: seeds("fedrag", [
-    { name: "医院知识库", role: "检索节点", provides: "检索 Endpoint + 索引声明", detail: "FAISS · 42,000 片段" },
-    { name: "药企文献库", role: "检索节点", provides: "检索 Endpoint + 索引声明", detail: "Qdrant · 18,000 片段" },
-    { name: "高校论文库", role: "检索节点", provides: "检索 Endpoint + 索引声明", detail: "FAISS · 65,000 片段" },
+  ...entries("federated-analytics", "fa-device", { partition: "horizontal", topology: "cross-device" }, [
+    { name: "设备群组 A 使用日志", role: "端侧设备", provides: "端侧统计数据", detail: "20,000 台设备" },
+    { name: "设备群组 B 使用日志", role: "端侧设备", provides: "端侧统计数据", detail: "14,000 台设备" },
   ]),
-  "agent-skill": seeds("agent-skill", [
+  ...entries("federated-analytics", "fa-vertical", { partition: "vertical" }, [
+    { name: "银行 A 客户表", role: "Guest", provides: "特征表 + PSI key", detail: "52,000 用户" },
+    { name: "电商 B 客户表", role: "Host", provides: "特征表 + PSI key", detail: "81,000 用户" },
+  ]),
+  ...entries("fedrag", "rag", undefined, [
+    { name: "医院知识库", role: "检索节点", provides: "检索 Endpoint + 索引", detail: "FAISS · 42,000 片段" },
+    { name: "药企文献库", role: "检索节点", provides: "检索 Endpoint + 索引", detail: "Qdrant · 18,000 片段" },
+    { name: "高校论文库", role: "检索节点", provides: "检索 Endpoint + 索引", detail: "FAISS · 65,000 片段" },
+  ]),
+  ...entries("agent-skill", "agent-skill", { contribution: "traces-skills" }, [
     { name: "研究组 Skill 包", role: "产物", provides: "经验卡 · 214 条", detail: "文献检索与总结" },
     { name: "运维组 Skill 包", role: "产物", provides: "经验卡 · 167 条", detail: "故障排查" },
     { name: "客服组 Skill 包", role: "产物", provides: "经验卡 · 305 条", detail: "工单分类与回复" },
   ]),
-  "agent-skill:trained-artifact": seeds("agent-skill-adapter", [
+  ...entries("agent-skill", "agent-adapter", { contribution: "trained-artifact" }, [
     { name: "research-agent-lora", role: "产物", provides: "Agent Adapter", detail: "rank 16 · 文献检索任务" },
     { name: "ops-agent-lora", role: "产物", provides: "Agent Adapter", detail: "rank 16 · 运维任务" },
     { name: "support-agent-lora", role: "产物", provides: "Agent Adapter", detail: "rank 16 · 客服任务" },
   ]),
-};
+];
 
-export function participantPool(scenario: ScenarioId | undefined, contribution: string | null): Participant[] {
-  if (!scenario) return [];
-  return PARTICIPANT_POOL[`${scenario}:${contribution}`] ?? PARTICIPANT_POOL[scenario];
+type SelectionLike = { scenario: ScenarioId | null } & Partial<Record<LayerId, string | null>>;
+
+/** 按已选场景和子项匹配已登记的联邦数据。 */
+export function matchedDatasets(selection: SelectionLike): CatalogEntry[] {
+  if (!selection.scenario) return [];
+  return DATA_CATALOG.filter((entry) => (
+    entry.scenario === selection.scenario
+    && Object.entries(entry.when ?? {}).every(([layer, value]) => selection[layer as LayerId] === value)
+  ));
 }
 
-export const DEFAULT_PARTICIPANTS = 3;
-
-export function defaultParticipants(scenario: ScenarioId | undefined, contribution: string | null): Participant[] {
-  // 纵向默认一个 Guest + 一个 Host，最贴近常见的两方建模。
-  return participantPool(scenario, contribution).slice(0, scenario === "vertical-modeling" ? 2 : DEFAULT_PARTICIPANTS);
+/** 默认勾选的数据：纵向默认一个 Guest + 一个 Host，其余默认前 3 个。 */
+export function defaultDatasetIds(selection: SelectionLike): string[] {
+  const matched = matchedDatasets(selection);
+  return matched.slice(0, selection.scenario === "vertical-modeling" ? 2 : 3).map((entry) => entry.id);
 }
 
 export type MetricRule = "higher" | "lower" | "max-drop";

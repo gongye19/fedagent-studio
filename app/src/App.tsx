@@ -2,7 +2,7 @@ import { useReducer, useState } from "react";
 import { buildRunPlan } from "./domain/plan";
 import { isComplete, scenarioFor, visibleLayers } from "./domain/selection";
 import { stageOf } from "./domain/run";
-import { initialState, reducer } from "./state/store";
+import { initialState, inputStatus, reducer } from "./state/store";
 import { useRunSimulation } from "./state/useRunSimulation";
 import { StepActions, StepFrame, type Tone } from "./ui/common";
 import ConfigurationStep from "./ui/ConfigurationStep";
@@ -27,8 +27,8 @@ export default function App() {
   const { run, selection } = state;
   const plan = run?.plan ?? buildRunPlan(selection);
   const configured = isComplete(selection);
-  const participants = run?.participants ?? state.participants;
-  const inputsReady = Boolean(plan && participants.length >= plan.minParticipants);
+  const status = inputStatus(state, plan);
+  const inputsReady = Boolean(run) || status.ready;
   const scenario = scenarioFor(selection);
   const stepLabel = FLOW_STEPS.find((step) => step.id === activeStep)?.label ?? "";
 
@@ -62,7 +62,7 @@ export default function App() {
     }
     if (activeStep === "inputs") {
       return (
-        <StepFrame title={stepLabel} status={`${participants.length} participants`} statusTone={inputsReady ? "complete" : undefined}>
+        <StepFrame title={stepLabel} status={`${status.count} datasets`} statusTone={inputsReady ? "complete" : undefined}>
           <InputsStep state={state} plan={plan} dispatch={dispatch} />
           <StepActions onBack={goBack} onNext={goNext} nextLabel={run ? "Continue" : "开始准入检查"} nextDisabled={!inputsReady} />
         </StepFrame>
@@ -117,7 +117,7 @@ export default function App() {
 
         <div className="run-workspace">
           {content()}
-          <RunPanel state={state} minParticipants={plan?.minParticipants ?? null} activeStep={activeStep} onSelectStep={setActiveStep} />
+          <RunPanel state={state} inputsReady={inputsReady} datasets={status.count} activeStep={activeStep} onSelectStep={setActiveStep} />
         </div>
       </main>
     </div>

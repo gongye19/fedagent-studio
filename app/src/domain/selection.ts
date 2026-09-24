@@ -64,7 +64,7 @@ export const SCENARIO_LAYERS: readonly LayerId[] = ["goal", "contribution", "par
 
 export type LayerDefinition = {
   id: LayerId;
-  /** 编号：维度 1 是场景，1.1–1.6 是它的子项；策略、保护依次为维度 2、3。 */
+  /** 编号：维度 1 是场景，1.1–1.6 是它的子项；策略、保护依次为维度 2、3。场景参数只用默认值，不在界面展示。 */
   code: string;
   title: string;
   question: string;
@@ -82,7 +82,6 @@ export const LAYERS: readonly LayerDefinition[] = [
 ];
 
 export const SCENARIO_STEP = { code: "1", title: "场景", question: "要做哪一类联邦协作？" } as const;
-export const PARAMS_STEP = { code: "4", title: "场景参数", question: "策略之外还有哪些可调项？" } as const;
 
 export type OptionState = Availability & { choice: Choice };
 
@@ -364,12 +363,6 @@ export function toggle(selection: Selection, layer: LayerId, value: string): Sel
   if (selection[layer] !== value) return choose(selection, layer, value);
   if (!canDeselect(selection, layer)) return selection;
   return normalize({ ...selection, [layer]: null });
-}
-
-export function setParam(selection: Selection, id: string, value: string): Selection {
-  const param = paramsFor(selection).find((item) => item.id === id);
-  if (!param || !param.options.some((option) => option.id === value)) return selection;
-  return { ...selection, params: { ...selection.params, [id]: value } };
 }
 
 /** 直接选场景：锁定场景并自动填好子项 1.1–1.6（场景内有多个选项的子项用默认值），策略和保护留给用户。 */

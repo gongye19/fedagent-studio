@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import {
   LAYERS,
-  PARAMS_STEP,
   SCENARIO_LAYERS,
   SCENARIO_STEP,
   canDeselect,
@@ -9,7 +8,6 @@ import {
   displayOptions,
   isAutoSelected,
   layerApplies,
-  paramsFor,
   type DisplayOption,
   type LayerDefinition,
   type Selection,
@@ -32,12 +30,12 @@ const GROUPS: ScenarioGroup[] = ["training", "analysis", "knowledge"];
 
 /**
  * 先选场景（维度 1），子项 1.1–1.6 自动填好，之后只能在场景内调整且不能取消。
- * 维度 2–4 在场景之后。所有候选项始终展开；已选选项再点一次即取消。
+ * 维度 2 协作策略、维度 3 安全与信任在场景之后。所有候选项始终展开；已选选项再点一次即取消。
+ * 场景参数都有默认值，不在界面上展示。
  */
 export default function ConfigurationStep({ selection, locked, dispatch }: Props) {
   // 未选场景时，当前该回答的是场景本身。
   const current = selection.scenario ? currentLayer(selection) : null;
-  const params = paramsFor(selection);
 
   function renderLayer(layer: LayerDefinition) {
     return (
@@ -85,38 +83,11 @@ export default function ConfigurationStep({ selection, locked, dispatch }: Props
         </ol>
       </section>
 
-      <ol className="layer-list" aria-label="维度 2–4">
+      <ol className="layer-list" aria-label="维度 2–3">
         {LAYERS.filter((layer) => !SCENARIO_LAYERS.includes(layer.id)).map((layer) => (
           <li className="layer-row" key={layer.id}>{renderLayer(layer)}</li>
         ))}
 
-        <li className="layer-row">
-          <section className={`layer-card${params.length ? " layer-card--answered" : " layer-card--inactive"}`} aria-labelledby="layer-params">
-            <header className="layer-head">
-              <span className="layer-step" aria-hidden="true">{PARAMS_STEP.code}</span>
-              <div className="layer-heading">
-                <h3 id="layer-params">{PARAMS_STEP.title}</h3>
-                <p>{params.length ? PARAMS_STEP.question : "确定场景后显示该场景的可调参数"}</p>
-              </div>
-            </header>
-            {params.length ? (
-              <div className="params-grid">
-                {params.map((param) => (
-                  <label className="param-field" key={param.id}>
-                    <span>{param.label}</span>
-                    <select
-                      value={selection.params[param.id] ?? param.defaultValue}
-                      disabled={locked}
-                      onChange={(event) => dispatch({ type: "setParam", id: param.id, value: event.target.value })}
-                    >
-                      {param.options.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
-                    </select>
-                  </label>
-                ))}
-              </div>
-            ) : null}
-          </section>
-        </li>
       </ol>
     </div>
   );

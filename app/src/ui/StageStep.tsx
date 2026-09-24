@@ -5,7 +5,7 @@ import { Facts, LogList, StageMessage } from "./common";
 type RunStage = Exclude<StageId, "publish">;
 
 const IDLE_TEXT: Record<RunStage, string> = {
-  preflight: "在 Inputs & participants 确认参与方后开始。规则引擎先检查硬规则，Agent 只负责解释结果和给出修复建议，不能覆盖拒绝。",
+  preflight: "在 Data & participants 确认数据后开始。规则引擎先检查硬规则，Agent 只负责解释结果和给出修复建议，不能覆盖拒绝。",
   provision: "准入通过后，平台冻结运行计划，按执行模式创建协调方沙箱。",
   execute: "沙箱就绪后，按所选策略和执行模式运行。",
   evaluate: "执行完成后，在独立评测沙箱中对比基线，未通过闸门的结果不能发布。",

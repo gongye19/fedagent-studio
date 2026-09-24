@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultParticipants } from "./demo";
+import { defaultDatasetIds, matchedDatasets, type Participant } from "./demo";
 import { buildRunPlan } from "./plan";
 import { applyTemplate, choose, layerOptions, type Selection } from "./selection";
 import { evaluationReport, preflightReport, stageWork } from "./simulator";
@@ -15,7 +15,9 @@ function planFor(id: ScenarioId, overrides: [keyof Selection, string][] = []) {
   }
   const plan = buildRunPlan(selection);
   if (!plan) throw new Error(`plan expected for ${id}`);
-  return { plan, participants: defaultParticipants(id, selection.contribution) };
+  const ids = defaultDatasetIds(selection);
+  const participants: Participant[] = matchedDatasets(selection).filter((entry) => ids.includes(entry.id));
+  return { plan, participants };
 }
 
 describe("per-scenario simulators", () => {

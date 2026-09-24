@@ -328,14 +328,37 @@ button:active:not(:disabled) { transform: translateY(1px); }
 /* 输入与参与方 */
 .section-head { display: flex; gap: 12px; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .section-head h3 { font-size: 13px; font-weight: 570; }
-.participant-list { border-top: 1px solid var(--border); }
-.participant-row { min-height: 58px; padding: 9px 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name action" "detail action"; gap: 2px 16px; align-items: center; border-bottom: 1px solid var(--border); }
-.participant-row > div { grid-area: name; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.participant-row strong { font-size: 12px; font-weight: 560; }
-.participant-row p { grid-area: detail; color: var(--muted); font-size: 11px; }
-.participant-row > button, .participant-row > .input-ready { grid-area: action; }
-.participant-empty { padding: 16px 0; color: var(--muted); font-size: 12px; }
 .upload-zone small { color: var(--muted); font-size: 10px; }
+.data-contract { padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.data-contract .section-head { margin-bottom: 6px; }
+.data-contract ul { display: grid; gap: 3px; padding-left: 16px; list-style: disc; color: var(--secondary); font-size: 12px; }
+.section-note { margin: -4px 0 8px; color: var(--muted); font-size: 11px; }
+.dataset-list { display: grid; gap: 6px; }
+.dataset-row { padding: 10px 12px; display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 10px; align-items: start; border: 1px solid var(--border-strong); border-radius: 7px; cursor: pointer; transition: border-color .15s ease; }
+.dataset-row:hover { border-color: #a1a1aa; }
+.dataset-row--checked { border-color: var(--foreground); box-shadow: inset 0 0 0 1px var(--foreground); }
+.dataset-row input { margin-top: 3px; accent-color: var(--foreground); }
+.dataset-copy { min-width: 0; display: grid; gap: 2px; }
+.dataset-title { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.dataset-title strong { font-size: 12px; font-weight: 570; }
+.dataset-copy small { color: var(--muted); font-size: 11px; }
+.upload-results { margin-top: 10px; display: grid; gap: 8px; }
+.upload-result { padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; }
+.upload-result--failed { background: var(--danger-soft); border-color: #fecaca; }
+.upload-result--passed { border-color: #bbf7d0; }
+.upload-result header { display: flex; gap: 10px; align-items: center; }
+.upload-result header strong { min-width: 0; overflow: hidden; font-size: 12px; font-weight: 570; text-overflow: ellipsis; white-space: nowrap; }
+.upload-result header .remove-button { margin-left: auto; }
+.upload-checks { margin-top: 8px; display: grid; gap: 3px; }
+.upload-checks li { display: grid; grid-template-columns: 14px 64px minmax(0, 1fr); gap: 6px; font-size: 11px; }
+.upload-checks li > span:first-child { color: var(--success); }
+.upload-checks b { font-weight: 550; }
+.upload-checks li > span:last-child { color: var(--secondary); }
+.upload-check--failed > span:first-child, .upload-check--failed > span:last-child { color: var(--danger) !important; }
+.agent-line { margin-top: 8px; display: flex; gap: 8px; font-size: 11px; line-height: 1.5; }
+.agent-line span { flex: none; color: var(--muted); font-family: var(--mono); font-size: 10px; text-transform: uppercase; }
+.inputs-summary { padding: 10px 12px; color: var(--success); background: #ecfdf5; border: 1px solid #bbf7d0; border-radius: 7px; font-size: 12px; }
+.inputs-summary--blocked { color: #a15c07; background: #fffbeb; border-color: #fde68a; }
 .run-settings { display: grid; gap: 8px; }
 .segmented { width: fit-content; max-width: 100%; padding: 3px; display: flex; flex-wrap: wrap; gap: 3px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; }
 .segmented button { min-height: 30px; padding: 0 12px; background: transparent; border: 1px solid transparent; border-radius: 5px; font-size: 12px; font-weight: 520; }
