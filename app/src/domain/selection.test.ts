@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   EMPTY_SELECTION,
   applyTemplate,
+  canDeselect,
   choose,
+  toggle,
   currentLayer,
   displayOptions,
   isAutoSelected,
@@ -221,6 +223,29 @@ describe("layered selection", () => {
     expect(availableIds(locked, "goal")).toEqual(["train"]);
 
     expect(choose(EMPTY_SELECTION, "goal", "retrieval").scenario).toBe("fedrag");
+  });
+
+  it("deselects an option when it is clicked again and clears what depended on it", () => {
+    const partial = pick(EMPTY_SELECTION, [["goal", "train"], ["contribution", "local-data"], ["partition", "horizontal"]]);
+    const undone = toggle(partial, "partition", "horizontal");
+    expect(undone.partition).toBeNull();
+    expect(undone.contribution).toBe("local-data");
+
+    const empty = toggle(partial, "goal", "train");
+    expect(empty.goal).toBeNull();
+    expect(empty.contribution).toBeNull();
+  });
+
+  it("does not let scenario sub-items be deselected once the scenario is set", () => {
+    const peft = applyTemplate("peft-finetune");
+    expect(canDeselect(peft, "topology")).toBe(false);
+    expect(toggle(peft, "topology", "cross-silo")).toBe(peft);
+    expect(toggle(peft, "topology", "cross-device").topology).toBe("cross-device");
+
+    const withStrategy = choose(choose(peft, "strategy", "peft-fedavg"), "protection", "standard");
+    expect(canDeselect(withStrategy, "protection")).toBe(true);
+    expect(toggle(withStrategy, "protection", "standard").protection).toBeNull();
+    expect(toggle(withStrategy, "strategy", "peft-fedavg").strategy).toBeNull();
   });
 
   it("never leaves a locked scenario with a dimension that has no selectable option", () => {

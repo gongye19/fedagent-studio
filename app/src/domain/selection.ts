@@ -5,8 +5,8 @@
  * 1. 只有前面的维度约束后面的维度。
  * 2. 不适用的维度没有可选项；上游没答完时，下游也没有可选项（界面上置灰）。
  * 3. 上游改选后，下游失效的选择被清空；只剩一个可选项时自动选中。
- * 4. 场景一旦确定（直接选场景，或维度 1–5 选到能确定场景），维度 1–5 只能在该场景内调整：
- *    会让路径离开该场景的选项不可选。换场景要重新选场景或清空。
+ * 4. 场景（维度 1）一旦确定（直接选场景，或子项 1.1–1.6 选到能确定场景），子项只能在该场景内调整：
+ *    会让路径离开该场景的选项不可选，且子项不能取消。换场景要重新选场景，或再点一次当前场景取消。
  */
 import {
   ARTIFACT_KINDS,
@@ -40,7 +40,7 @@ export type LayerId =
   | "protection";
 
 export type Selection = Record<LayerId, string | null> & {
-  /** 已确定的场景。确定后维度 1–5 只能在场景内调整。 */
+  /** 已确定的场景（维度 1）。确定后子项 1.1–1.6 只能在场景内调整。 */
   scenario: ScenarioId | null;
   params: Record<string, string>;
 };
@@ -58,29 +58,30 @@ export const EMPTY_SELECTION: Selection = {
   params: {},
 };
 
-/** 维度 1–5：用来定位场景的维度。 */
+/** 维度 1（场景）的子项 1.1–1.6。 */
 export const SCENARIO_LAYERS: readonly LayerId[] = ["goal", "contribution", "partition", "topology", "modelClass", "sharing"];
 
 export type LayerDefinition = {
   id: LayerId;
-  /** 维度序号，模型类别和共享方式同属维度 5。 */
-  step: number;
+  /** 编号：维度 1 是场景，1.1–1.6 是它的子项；策略、保护依次为维度 2、3。 */
+  code: string;
   title: string;
   question: string;
 };
 
 export const LAYERS: readonly LayerDefinition[] = [
-  { id: "goal", step: 1, title: "协作目标", question: "想共同完成什么？" },
-  { id: "contribution", step: 2, title: "各方投入", question: "每个参与方拿出来的是什么？" },
-  { id: "partition", step: 3, title: "数据关系", question: "各方数据怎么分布？" },
-  { id: "topology", step: 4, title: "参与方形态", question: "谁参与，规模和稳定性如何？" },
-  { id: "modelClass", step: 5, title: "模型形态 · 模型类别", question: "训练什么类型的模型？" },
-  { id: "sharing", step: 5, title: "模型形态 · 共享方式", question: "模型怎么在各方之间共享？" },
-  { id: "strategy", step: 6, title: "协作策略", question: "用哪种算法协作？" },
-  { id: "protection", step: 7, title: "安全与信任", question: "要防谁、保护到什么程度？" },
+  { id: "goal", code: "1.1", title: "协作目标", question: "想共同完成什么？" },
+  { id: "contribution", code: "1.2", title: "各方投入", question: "每个参与方拿出来的是什么？" },
+  { id: "partition", code: "1.3", title: "数据关系", question: "各方数据怎么分布？" },
+  { id: "topology", code: "1.4", title: "参与方形态", question: "谁参与，规模和稳定性如何？" },
+  { id: "modelClass", code: "1.5", title: "模型类别", question: "训练什么类型的模型？" },
+  { id: "sharing", code: "1.6", title: "共享方式", question: "模型怎么在各方之间共享？" },
+  { id: "strategy", code: "2", title: "协作策略", question: "用哪种算法协作？" },
+  { id: "protection", code: "3", title: "安全与信任", question: "要防谁、保护到什么程度？" },
 ];
 
-export const PARAMS_STEP = { step: 8, title: "场景参数", question: "策略之外还有哪些可调项？" } as const;
+export const SCENARIO_STEP = { code: "1", title: "场景", question: "要做哪一类联邦协作？" } as const;
+export const PARAMS_STEP = { code: "4", title: "场景参数", question: "策略之外还有哪些可调项？" } as const;
 
 export type OptionState = Availability & { choice: Choice };
 
@@ -219,7 +220,7 @@ type ScenarioPathValues = Record<LayerId, string | null>;
 
 let pathCache: Map<ScenarioId, ScenarioPathValues[]> | null = null;
 
-/** 枚举维度 1–5 的全部可达组合，按落到的场景分组。只算一次。 */
+/** 枚举子项 1.1–1.6 的全部可达组合，按落到的场景分组。只算一次。 */
 function scenarioPaths(id: ScenarioId): ScenarioPathValues[] {
   if (!pathCache) {
     const cache = new Map<ScenarioId, ScenarioPathValues[]>();
@@ -330,7 +331,7 @@ function normalizeWith(selection: Selection, useLock: boolean): Selection {
       if (available.length === 1) next[layer.id] = available[0].choice.id;
     }
   }
-  // 维度 1–5 选到能确定场景时，锁定这个场景。
+  // 子项 1.1–1.6 选到能确定场景时，锁定这个场景。
   if (useLock && !next.scenario && isLayerVisible("strategy", next)) next.scenario = matchScenario(next)?.id ?? null;
 
   const params: Record<string, string> = {};
@@ -350,13 +351,25 @@ export function choose(selection: Selection, layer: LayerId, value: string): Sel
   return scenarioFor(next)?.id === scenarioFor(selection)?.id ? next : normalize({ ...next, params: {} });
 }
 
+/** 当前选项能否通过再点一次取消：场景确定后，场景子项必须保留一个选择。 */
+export function canDeselect(selection: Selection, layer: LayerId): boolean {
+  return !(selection.scenario && SCENARIO_LAYERS.includes(layer));
+}
+
+/** 点一个选项：未选则选中；已选则取消（场景确定后的子项除外）。 */
+export function toggle(selection: Selection, layer: LayerId, value: string): Selection {
+  if (selection[layer] !== value) return choose(selection, layer, value);
+  if (!canDeselect(selection, layer)) return selection;
+  return normalize({ ...selection, [layer]: null });
+}
+
 export function setParam(selection: Selection, id: string, value: string): Selection {
   const param = paramsFor(selection).find((item) => item.id === id);
   if (!param || !param.options.some((option) => option.id === value)) return selection;
   return { ...selection, params: { ...selection.params, [id]: value } };
 }
 
-/** 直接选场景：锁定场景并自动填好维度 1–5（场景内有多个选项的维度用默认值），策略和保护留给用户。 */
+/** 直接选场景：锁定场景并自动填好子项 1.1–1.6（场景内有多个选项的子项用默认值），策略和保护留给用户。 */
 export function applyTemplate(id: ScenarioId): Selection {
   const scenario = scenarioOf(id);
   if (!scenario) return EMPTY_SELECTION;

@@ -40,7 +40,7 @@ app/src/
 │   ├── store.ts            页面状态与 reducer
 │   └── useRunSimulation.ts 按演示时长推进 Run
 ├── ui/
-│   ├── ConfigurationStep.tsx  逐层维度卡片、模板入口、场景参数
+│   ├── ConfigurationStep.tsx  维度 1 场景卡片（含子项）、维度 2–4 卡片
 │   ├── InputsStep.tsx         输入与参与方接入、运行设置
 │   ├── StageStep.tsx          准入、沙箱、执行、评测视图
 │   ├── PublishStep.tsx        发布范围与确认
@@ -56,7 +56,7 @@ app/src/
 
 入口是 `domain/taxonomy.ts`，组件和状态机不需要改：
 
-1. 在 `SCENARIOS` 增加模板：`matches`（维度 1–5 的路径）、`shortcut`、`pattern`、`input`、`evaluation`、`output`、`minParticipants`、`params`。
+1. 在 `SCENARIOS` 增加场景：`matches`（子项 1.1–1.6 的路径）、`shortcut`、`pattern`、`input`、`evaluation`、`output`、`minParticipants`、`params`。
 2. 如果路径需要新的维度取值，在对应候选列表中增加，并在 `selection.ts` 中补充适用规则。
 3. 先确认符合 [DIMENSIONS.md](./DIMENSIONS.md) 的收录原则（主流，或大模型 / Agent 相关），再在 `STRATEGIES` 增加策略：标注（`mainstream` / `frontier`）、计算类型、联邦对象、runner、参考实现，以及需要的模型类别 / 数据关系 / 各方投入。
 4. 在 `demo.ts` 补充示例参与方和评测指标。

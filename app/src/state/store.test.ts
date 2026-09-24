@@ -5,8 +5,8 @@ const apply = (state: State, actions: Action[]) => actions.reduce(reducer, state
 
 const peftReady: Action[] = [
   { type: "applyTemplate", scenario: "peft-finetune" },
-  { type: "choose", layer: "strategy", value: "peft-fedavg" },
-  { type: "choose", layer: "protection", value: "standard" },
+  { type: "toggle", layer: "strategy", value: "peft-fedavg" },
+  { type: "toggle", layer: "protection", value: "standard" },
 ];
 
 describe("page state", () => {
@@ -62,9 +62,17 @@ describe("page state", () => {
 
   it("locks configuration and participants while a run exists", () => {
     const running = apply(initialState, [...peftReady, { type: "startRun", id: "run-1", createdAt: "now" }]);
-    expect(reducer(running, { type: "choose", layer: "goal", value: "analytics" })).toBe(running);
+    expect(reducer(running, { type: "toggle", layer: "goal", value: "analytics" })).toBe(running);
     expect(reducer(running, { type: "removeParticipant", id: "peft-finetune-p1" })).toBe(running);
     expect(reducer(running, { type: "setPreset", preset: "standard" })).toBe(running);
+  });
+
+  it("clears the scenario and its sub-items when the active scenario is clicked again", () => {
+    const peft = apply(initialState, [{ type: "applyTemplate", scenario: "peft-finetune" }]);
+    const cleared = reducer(peft, { type: "clearScenario" });
+    expect(cleared.selection.scenario).toBeNull();
+    expect(cleared.selection.goal).toBeNull();
+    expect(cleared.participants).toEqual([]);
   });
 
   it("resets to an empty draft", () => {

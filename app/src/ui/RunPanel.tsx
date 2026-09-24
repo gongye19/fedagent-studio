@@ -74,7 +74,7 @@ export default function RunPanel({ state, minParticipants, activeStep, onSelectS
         <header className="derived-head">
           <h3 id="derived-title">平台推导</h3>
         </header>
-        <p className="derived-scenario">{preview.scenario ?? "完成维度 1–5 后匹配场景"}</p>
+        <p className="derived-scenario">{preview.scenario ?? "确定场景后显示"}</p>
         <dl>
           {derived.map(([label, value]) => (
             <div key={label}>

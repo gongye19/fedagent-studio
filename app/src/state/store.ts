@@ -6,9 +6,9 @@ import { buildRunPlan } from "../domain/plan";
 import {
   EMPTY_SELECTION,
   applyTemplate,
-  choose,
   scenarioFor,
   setParam,
+  toggle,
   type LayerId,
   type Selection,
 } from "../domain/selection";
@@ -42,7 +42,8 @@ export const initialState: State = {
 };
 
 export type Action =
-  | { type: "choose"; layer: LayerId; value: string }
+  | { type: "toggle"; layer: LayerId; value: string }
+  | { type: "clearScenario" }
   | { type: "applyTemplate"; scenario: ScenarioId }
   | { type: "setParam"; id: string; value: string }
   | { type: "addParticipant" }
@@ -77,8 +78,12 @@ export function reducer(state: State, action: Action): State {
   const locked = Boolean(state.run);
 
   switch (action.type) {
-    case "choose":
-      return locked ? state : withSelection(state, choose(state.selection, action.layer, action.value));
+    case "toggle":
+      return locked ? state : withSelection(state, toggle(state.selection, action.layer, action.value));
+
+    case "clearScenario":
+      // 取消场景：维度 1 及其下游全部清空，重新开始选择。
+      return locked ? state : withSelection(state, EMPTY_SELECTION);
 
     case "applyTemplate":
       return locked ? state : withSelection(state, applyTemplate(action.scenario));

@@ -1,12 +1,12 @@
 /**
  * 联邦协作的分层维度与候选项注册表。
  *
- * 维度按"用户最先能回答的问题"排序：协作目标 → 各方投入 → 数据关系 → 参与方形态 →
- * 模型形态 → 协作策略 → 安全与信任 → 场景参数。只有前面的维度约束后面的维度。
- * 场景模板不是入口下拉框，而是维度 1–5 组合的落点。完整设计见 docs/DIMENSIONS.md。
+ * 维度 1 是场景，子项按"用户最先能回答的问题"排序：1.1 协作目标 → 1.2 各方投入 → 1.3 数据关系 →
+ * 1.4 参与方形态 → 1.5 模型类别 → 1.6 共享方式；之后是维度 2 协作策略、维度 3 安全与信任、
+ * 维度 4 场景参数。只有前面的约束后面的。完整设计见 docs/DIMENSIONS.md。
  *
  * 收录原则：只保留主流、实际用得多的方法；小众方法即使成熟也不收录；
- * 大模型 / Agent 相关、仍在快速演进的方法保留，并标为"前沿"。
+ * 大模型 / Agent 相关、仍在快速演进的方法保留，内部标为 frontier（界面不显示）。
  */
 
 export type Adoption = "mainstream" | "frontier";
@@ -58,7 +58,7 @@ export type Choice = {
 
 export type GoalId = "train" | "evaluate" | "analytics" | "retrieval" | "agent";
 
-/* 维度 1：协作目标 */
+/* 1.1 协作目标 */
 export const GOALS: readonly (Choice & { id: GoalId })[] = [
   { id: "train", label: "训练模型", hint: "共同得到一个或多个模型" },
   { id: "evaluate", label: "评估模型", hint: "在多方数据或基准上验证已有模型" },
@@ -67,7 +67,7 @@ export const GOALS: readonly (Choice & { id: GoalId })[] = [
   { id: "agent", label: "Agent 与技能协作", hint: "共享轨迹、技能或 Agent 策略", adoption: "frontier" },
 ];
 
-/* 维度 2：各方投入。回答"每个参与方拿出来的是什么"，决定输入接入方式和执行模式。 */
+/* 1.2 各方投入。回答"每个参与方拿出来的是什么"，决定输入接入方式和执行模式。 */
 export const CONTRIBUTIONS: readonly (Choice & { goals: readonly GoalId[] })[] = [
   { id: "local-data", label: "本地数据（不出域）", hint: "数据留在各方环境，只交换计算结果", goals: ["train", "analytics"] },
   { id: "trained-artifact", label: "已训练的模型或 Adapter", hint: "各方已有训练好的产物，交给平台聚合", goals: ["train", "agent"] },
@@ -77,19 +77,19 @@ export const CONTRIBUTIONS: readonly (Choice & { goals: readonly GoalId[] })[] =
   { id: "traces-skills", label: "轨迹与 Skill", hint: "各方提供 Agent 执行轨迹、经验卡或 Skill 包", goals: ["agent"] },
 ];
 
-/* 维度 3：数据关系。仅在各方投入为"本地数据"时出现。 */
+/* 1.3 数据关系。仅在各方投入为"本地数据"时出现。 */
 export const PARTITIONS: readonly Choice[] = [
   { id: "horizontal", label: "横向", hint: "字段相同，样本不同" },
   { id: "vertical", label: "纵向", hint: "样本重叠，字段不同，需要样本对齐" },
 ];
 
-/* 维度 4：参与方形态 */
+/* 1.4 参与方形态 */
 export const TOPOLOGIES: readonly Choice[] = [
   { id: "cross-silo", label: "跨机构 Cross-silo", hint: "2 到几十个稳定在线的机构节点" },
   { id: "cross-device", label: "端侧设备 Cross-device", hint: "大量设备，随时可能离线" },
 ];
 
-/* 维度 5：模型形态，分"模型类别"和"共享方式"两个问题。仅在训练模型时出现。 */
+/* 1.5 模型类别、1.6 共享方式。仅在训练模型时出现。 */
 export const MODEL_CLASSES: readonly Choice[] = [
   { id: "neural", label: "神经网络", hint: "CNN、Transformer、大模型等" },
   { id: "tree", label: "树模型", hint: "GBDT、XGBoost 等" },
@@ -136,7 +136,7 @@ export type ParamDefinition = {
   strategies?: readonly string[];
 };
 
-/** 场景判定只依赖维度 1–5，这里只列出需要的字段，避免与选择状态模块循环依赖。 */
+/** 场景判定只依赖子项 1.1–1.6，这里只列出需要的字段，避免与选择状态模块循环依赖。 */
 export type ScenarioPath = {
   goal: string | null;
   contribution: string | null;
@@ -151,9 +151,9 @@ export type Scenario = {
   group: ScenarioGroup;
   summary: string;
   adoption: Adoption;
-  /** 维度 1–5 的组合是否落到这个场景。 */
+  /** 子项 1.1–1.6 的组合是否落到这个场景。 */
   matches: (path: ScenarioPath) => boolean;
-  /** "从模板开始"一键填好的维度 1–5。 */
+  /** 直接选场景时填好的子项默认值。 */
   shortcut: Partial<ScenarioPath> & { topology: string };
   pattern: (path: ScenarioPath) => ExecutionPattern;
   input: { kind: InputKind; label: string; accept?: string };
@@ -368,7 +368,7 @@ export function matchScenario(path: ScenarioPath): Scenario | undefined {
   return SCENARIOS.find((scenario) => scenario.matches(path));
 }
 
-/* 维度 6：协作策略。每条带收录类别、计算类型、联邦对象和参考开源实现。 */
+/* 维度 2：协作策略。每条带收录类别、计算类型、联邦对象和参考开源实现。 */
 export type Strategy = Choice & {
   scenario: ScenarioId;
   adoption: Adoption;
@@ -428,7 +428,7 @@ export function strategyOf(id: string | null): Strategy | undefined {
   return id ? STRATEGIES.find((strategy) => strategy.id === id) : undefined;
 }
 
-/* 维度 7：安全与信任。选一档保护预设，可用性由计算类型和 runner 能力判断。 */
+/* 维度 3：安全与信任。选一档保护预设，可用性由计算类型和 runner 能力判断。 */
 export type ProtectionContext = {
   scenario: Scenario;
   strategy: Strategy;
