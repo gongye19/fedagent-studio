@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildRunPlan, planPreview } from "./plan";
-import { EMPTY_SELECTION, applyTemplate, choose, layerOptions, setRobust, type Selection } from "./selection";
+import { EMPTY_SELECTION, applyTemplate, choose, layerOptions, type Selection } from "./selection";
 import { SCENARIOS } from "./taxonomy";
 
 /** 从模板开始，策略和保护都选第一个可用项。 */
@@ -55,21 +55,14 @@ describe("frontend run plan", () => {
     expect(plan?.strategy.id).toBe("fa-psi-stats");
   });
 
-  it("takes the weakest maturity of scenario and strategy and warns about research methods", () => {
-    const personalized = buildRunPlan(completed("personalized"));
-    expect(personalized?.maturity).toBe("research");
-    expect(personalized?.warnings.some((warning) => warning.includes("研究阶段"))).toBe(true);
+  it("marks the plan as frontier when the scenario or strategy is a large-model / agent method", () => {
+    const rag = buildRunPlan(completed("fedrag"));
+    expect(rag?.adoption).toBe("frontier");
+    expect(rag?.warnings.some((warning) => warning.includes("前沿"))).toBe(true);
 
     const training = buildRunPlan(completed("model-training"));
-    expect(training?.maturity).toBe("mature");
-  });
-
-  it("includes robust aggregation mechanisms only when enabled and allowed", () => {
-    const base = choose(choose(applyTemplate("model-training"), "strategy", "train-fedavg"), "protection", "standard");
-    expect(buildRunPlan(base)?.protection.mechanisms).not.toContain("Krum");
-    const robust = buildRunPlan(setRobust(base, true));
-    expect(robust?.robust).toBe(true);
-    expect(robust?.protection.mechanisms).toContain("Krum");
+    expect(training?.adoption).toBe("mainstream");
+    expect(training?.warnings.some((warning) => warning.includes("前沿"))).toBe(false);
   });
 
   it("previews derived values while the user is still choosing", () => {

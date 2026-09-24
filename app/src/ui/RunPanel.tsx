@@ -2,7 +2,7 @@ import { planPreview } from "../domain/plan";
 import { isComplete } from "../domain/selection";
 import { stageOf, type StageStatus } from "../domain/run";
 import type { State } from "../state/store";
-import { MaturityBadge } from "./common";
+import { AdoptionBadge } from "./common";
 import { FLOW_STEPS, isRunStage, type FlowStepId } from "./flow";
 
 type Props = {
@@ -75,7 +75,7 @@ export default function RunPanel({ state, minParticipants, activeStep, onSelectS
       <section className="derived" aria-labelledby="derived-title">
         <header className="derived-head">
           <h3 id="derived-title">平台推导</h3>
-          {preview.maturity ? <MaturityBadge maturity={preview.maturity} /> : null}
+          <AdoptionBadge adoption={preview.adoption} />
         </header>
         <p className="derived-scenario">{preview.scenario ?? "完成维度 1–5 后匹配场景"}</p>
         <dl>

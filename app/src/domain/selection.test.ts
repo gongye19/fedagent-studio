@@ -9,9 +9,7 @@ import {
   isComplete,
   layerOptions,
   paramsFor,
-  robustState,
   scenarioFor,
-  setRobust,
   visibleLayers,
   type LayerId,
   type Selection,
@@ -56,11 +54,9 @@ describe("layered selection", () => {
     expect(layers).toContain("topology");
   });
 
-  it("keeps federated transfer learning visible but not yet selectable", () => {
+  it("offers only horizontal and vertical data relations", () => {
     const train = pick(EMPTY_SELECTION, [["goal", "train"], ["contribution", "local-data"]]);
-    const transfer = layerOptions("partition", train).find((option) => option.choice.id === "transfer");
-    expect(transfer?.available).toBe(false);
-    expect(transfer?.reason).toContain("研究阶段");
+    expect(availableIds(train, "partition")).toEqual(["horizontal", "vertical"]);
   });
 
   it("limits vertical federation to cross-silo and protocol-native encryption", () => {
@@ -87,13 +83,14 @@ describe("layered selection", () => {
       ["goal", "train"], ["contribution", "local-data"], ["partition", "horizontal"], ["topology", "cross-silo"], ["modelClass", "tree"],
     ]);
     expect(tree.sharing).toBe("full");
-    expect(availableIds(tree, "strategy")).toEqual(["train-xgb-histogram", "train-tree-bagging"]);
+    expect(availableIds(tree, "strategy")).toEqual(["train-xgb-histogram"]);
+    expect(tree.strategy).toBe("train-xgb-histogram");
     const fedavg = layerOptions("strategy", tree).find((option) => option.choice.id === "train-fedavg");
     expect(fedavg?.available).toBe(false);
     expect(fedavg?.reason).toContain("树模型");
   });
 
-  it("restricts PEFT, personalization and heterogeneity to neural networks", () => {
+  it("restricts PEFT to neural networks", () => {
     const linear = pick(EMPTY_SELECTION, [
       ["goal", "train"], ["contribution", "local-data"], ["partition", "horizontal"], ["topology", "cross-silo"], ["modelClass", "linear"],
     ]);
@@ -112,15 +109,10 @@ describe("layered selection", () => {
     expect(availableIds(weighted, "protection")).toContain("encrypted");
   });
 
-  it("blocks robust aggregation when individual updates are hidden", () => {
-    const peft = pick(applyTemplate("peft-finetune"), [["strategy", "peft-fedavg"], ["protection", "standard"]]);
-    expect(robustState(peft).available).toBe(true);
-    const robust = setRobust(peft, true);
-    expect(robust.robust).toBe(true);
-
-    const secagg = choose(robust, "protection", "hide-updates");
-    expect(secagg.robust).toBe(false);
-    expect(robustState(secagg).reason).toContain("SecAgg");
+  it("greys out neural networks for vertical data because Split NN is not included", () => {
+    const vertical = pick(EMPTY_SELECTION, [["goal", "train"], ["contribution", "local-data"], ["partition", "vertical"]]);
+    expect(availableIds(vertical, "modelClass")).toEqual(["tree", "linear"]);
+    expect(choose(vertical, "modelClass", "linear").strategy).toBe("vfl-hetero-lr");
   });
 
   it("clears downstream choices that become invalid when an upstream choice changes", () => {
@@ -129,16 +121,19 @@ describe("layered selection", () => {
 
     const tree = choose(neural, "modelClass", "tree");
     expect(tree.sharing).toBe("full");
-    expect(tree.strategy).toBeNull();
-    expect(tree.protection).toBeNull();
-    expect(isComplete(tree)).toBe(false);
+    // FedAvg 对树模型失效被清掉，直方图聚合是唯一可选项，被自动选中。
+    expect(tree.strategy).toBe("train-xgb-histogram");
+
+    const merge = choose(pick(applyTemplate("model-merge"), [["strategy", "merge-weighted"], ["protection", "encrypted"]]), "strategy", "merge-ties");
+    expect(merge.protection).toBeNull();
+    expect(isComplete(merge)).toBe(false);
   });
 
   it("keeps downstream choices that are still valid", () => {
     const peft = pick(applyTemplate("peft-finetune"), [["strategy", "peft-fedprox"], ["protection", "standard"]]);
-    const hybrid = choose(peft, "topology", "hybrid-nodes");
-    expect(hybrid.strategy).toBe("peft-fedprox");
-    expect(hybrid.protection).toBe("standard");
+    const device = choose(peft, "topology", "cross-device");
+    expect(device.strategy).toBe("peft-fedprox");
+    expect(device.protection).toBe("standard");
   });
 
   it("ignores unavailable choices", () => {
@@ -154,7 +149,7 @@ describe("layered selection", () => {
 
   it("always lists every candidate and greys out those not yet reachable or not supported", () => {
     const empty = displayOptions("topology", EMPTY_SELECTION);
-    expect(empty.map((option) => option.choice.id)).toEqual(["cross-silo", "cross-device", "hybrid-nodes"]);
+    expect(empty.map((option) => option.choice.id)).toEqual(["cross-silo", "cross-device"]);
     expect(empty.every((option) => !option.available)).toBe(true);
 
     const train = choose(EMPTY_SELECTION, "goal", "train");
@@ -187,18 +182,19 @@ describe("layered selection", () => {
     expect(peft.params.rank).toBe("16");
   });
 
-  it("offers LoRA concatenation only for adapter artifacts", () => {
-    const weights = choose(applyTemplate("model-merge"), "sharing", "full-weights");
-    const concat = layerOptions("strategy", weights).find((option) => option.choice.id === "merge-lora-concat");
-    expect(concat?.available).toBe(false);
-  });
-
   it("maps every scenario template to its own path and at least one runnable strategy", () => {
     for (const scenario of SCENARIOS) {
       const selection = applyTemplate(scenario.id);
       expect(scenarioFor(selection)?.id, scenario.id).toBe(scenario.id);
       expect(availableIds(selection, "strategy").length, scenario.id).toBeGreaterThan(0);
     }
+  });
+
+  it("marks only large-model and agent methods as frontier", () => {
+    const frontierScenarios = new Set(STRATEGIES.filter((strategy) => strategy.adoption === "frontier").map((strategy) => strategy.scenario));
+    expect(frontierScenarios).toEqual(new Set(["peft-finetune", "model-merge", "fedrag", "agent-skill"]));
+    expect(SCENARIOS.filter((scenario) => scenario.adoption === "frontier").map((scenario) => scenario.id).sort())
+      .toEqual(["agent-skill", "fedrag", "model-merge", "peft-finetune"]);
   });
 
   it("gives every strategy a scenario, runner and open-source reference", () => {

@@ -30,7 +30,7 @@ npm run check
 ```text
 app/src/
 ├── domain/
-│   ├── taxonomy.ts     维度候选项、10 个场景模板、策略、保护预设（注册表）
+│   ├── taxonomy.ts     维度候选项、8 个场景模板、策略、保护预设（注册表）
 │   ├── selection.ts    逐层选择引擎：适用性、可见性、候选与原因、自动选中、下游清理
 │   ├── plan.ts         由选择推导 FrontendRunPlan 和实时预览
 │   ├── run.ts          Run 生命周期状态机（不含场景分支）
@@ -58,7 +58,7 @@ app/src/
 
 1. 在 `SCENARIOS` 增加模板：`matches`（维度 1–5 的路径）、`shortcut`、`pattern`、`input`、`evaluation`、`output`、`minParticipants`、`params`。
 2. 如果路径需要新的维度取值，在对应候选列表中增加，并在 `selection.ts` 中补充适用规则。
-3. 在 `STRATEGIES` 增加策略：成熟度、计算类型、联邦对象、runner、参考实现，以及需要的模型类别 / 共享方式 / 数据关系 / 各方投入。
+3. 先确认符合 [DIMENSIONS.md](./DIMENSIONS.md) 的收录原则（主流，或大模型 / Agent 相关），再在 `STRATEGIES` 增加策略：标注（`mainstream` / `frontier`）、计算类型、联邦对象、runner、参考实现，以及需要的模型类别 / 数据关系 / 各方投入。
 4. 在 `demo.ts` 补充示例参与方和评测指标。
 5. 测试会自动覆盖"每个模板可到达、可生成计划、能通过默认准入和评测"；新增的约束规则要单独补测试。
 6. 同步更新 [DIMENSIONS.md](./DIMENSIONS.md)。

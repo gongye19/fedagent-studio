@@ -48,7 +48,6 @@ function executeWork(plan: FrontendRunPlan, participants: Participant[], preset:
         `第 ${index + 1}/${total} 轮：${count}/${count} 方上报${plan.exchanged}，按 ${strategy} 聚合`
       ));
       if (total > shown) logs.push(`…… 第 ${total}/${total} 轮完成，全局结果收敛`);
-      if (plan.robust) logs.push("鲁棒聚合：本次运行未发现异常更新");
       return {
         detail: `${total} 轮 ${strategy} 完成，${count} 个参与方全部在线`,
         realCost: `约 ${Math.round(total * 1.5)}–${total * 4} 分钟，取决于本地训练量`,

@@ -7,7 +7,6 @@ import {
   isAutoSelected,
   layerApplies,
   paramsFor,
-  robustState,
   scenarioFor,
   type DisplayOption,
   type LayerDefinition,
@@ -15,7 +14,6 @@ import {
 } from "../domain/selection";
 import {
   PATTERN_LABEL,
-  ROBUST_AGGREGATION,
   SCENARIOS,
   SCENARIO_GROUP_LABEL,
   protectionOf,
@@ -23,7 +21,7 @@ import {
   type ScenarioGroup,
 } from "../domain/taxonomy";
 import type { Action } from "../state/store";
-import { MaturityBadge } from "./common";
+import { AdoptionBadge } from "./common";
 
 type Props = {
   selection: Selection;
@@ -63,7 +61,7 @@ export default function ConfigurationStep({ selection, locked, dispatch }: Props
               locked={locked}
               onChoose={(value) => dispatch({ type: "choose", layer: layer.id, value })}
             >
-              {layer.id === "protection" ? <ProtectionExtras selection={selection} locked={locked} dispatch={dispatch} /> : null}
+              {layer.id === "protection" ? <ProtectionExtras selection={selection} /> : null}
             </LayerCard>
           </li>
         ))}
@@ -113,7 +111,7 @@ function TemplateBar({
       <header className="template-head">
         <div>
           <h3 id="template-title">从场景模板开始</h3>
-          <p>一键填好维度 1–5，策略和保护仍由你选择。也可以直接从下方逐层选择。</p>
+          <p>一键填好维度 1–5，策略和保护仍由你选择。只收录主流方法；标"前沿"的是大模型 / Agent 相关、仍在快速演进的方法。</p>
         </div>
         {onClear && !locked ? <button type="button" className="text-button" onClick={onClear}>清空</button> : null}
       </header>
@@ -133,7 +131,7 @@ function TemplateBar({
                   onClick={() => onApply(scenario.id)}
                 >
                   <span>{scenario.label}</span>
-                  <MaturityBadge maturity={scenario.maturity} />
+                  <AdoptionBadge adoption={scenario.adoption} />
                 </button>
               ))}
             </div>
@@ -217,7 +215,7 @@ function OptionTile({
     >
       <span className="option-top">
         <strong>{option.choice.label}</strong>
-        {option.choice.maturity ? <MaturityBadge maturity={option.choice.maturity} /> : null}
+        <AdoptionBadge adoption={option.choice.adoption} />
       </span>
       <span className="option-hint">{option.choice.hint}</span>
       {strategy ? <span className="option-meta">参考实现 · {strategy.references.join(" / ")}</span> : null}
@@ -234,7 +232,7 @@ function ScenarioMatch({ selection }: { selection: Selection }) {
       <span className="scenario-match-label">已匹配场景</span>
       <div className="scenario-match-main">
         <strong>{scenario.label}</strong>
-        <MaturityBadge maturity={scenario.maturity} />
+        <AdoptionBadge adoption={scenario.adoption} />
         <span className="badge">{PATTERN_LABEL[scenario.pattern(selection)]}</span>
       </div>
       <p>{scenario.summary}</p>
@@ -242,29 +240,14 @@ function ScenarioMatch({ selection }: { selection: Selection }) {
   );
 }
 
-function ProtectionExtras({ selection, locked, dispatch }: { selection: Selection; locked: boolean; dispatch: (action: Action) => void }) {
+function ProtectionExtras({ selection }: { selection: Selection }) {
   const protection = protectionOf(selection.protection);
-  const robust = robustState(selection);
+  if (!protection) return null;
   return (
     <div className="protection-extras">
-      {protection ? (
-        <div className="mechanism-list" aria-label="启用的保护机制">
-          {protection.mechanisms.map((mechanism) => <span key={mechanism}>{mechanism}</span>)}
-          {selection.robust ? ROBUST_AGGREGATION.mechanisms.map((mechanism) => <span key={mechanism}>{mechanism}</span>) : null}
-        </div>
-      ) : null}
-      <label className={`robust-toggle${robust.available ? "" : " robust-toggle--disabled"}`}>
-        <input
-          type="checkbox"
-          checked={selection.robust}
-          disabled={locked || !robust.available}
-          onChange={(event) => dispatch({ type: "setRobust", value: event.target.checked })}
-        />
-        <span>
-          <strong>完整性 · {ROBUST_AGGREGATION.label}</strong>
-          <small>{ROBUST_AGGREGATION.hint}（{ROBUST_AGGREGATION.mechanisms.join(" / ")}）</small>
-        </span>
-      </label>
+      <div className="mechanism-list" aria-label="启用的保护机制">
+        {protection.mechanisms.map((mechanism) => <span key={mechanism}>{mechanism}</span>)}
+      </div>
     </div>
   );
 }

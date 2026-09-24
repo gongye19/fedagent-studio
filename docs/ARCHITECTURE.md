@@ -1,6 +1,6 @@
 # 系统架构
 
-最后复核：2026-09-24（T16）
+最后复核：2026-09-24（T17）
 
 ## 架构原则
 
@@ -44,8 +44,8 @@ L1 展示层 ──► L2 维度注册表 ──► L3 选择与兼容引擎
 位置：`app/src/domain/taxonomy.ts`
 
 - 声明 8 个维度的候选项：协作目标、各方投入、数据关系、参与方形态、模型类别、共享方式 / 产物类型、协作策略、安全与信任。
-- 声明 10 个场景模板：匹配规则、快捷入口、执行模式、输入接入方式、评测、输出、最少参与方、场景参数。
-- 每条策略声明成熟度、计算类型、联邦对象、runner、参考开源实现和适用条件。
+- 声明 8 个场景模板：匹配规则、快捷入口、执行模式、输入接入方式、评测、输出、最少参与方、场景参数。
+- 只收录主流方法和大模型 / Agent 相关方法；每条策略声明标注（主流 / 前沿）、计算类型、联邦对象、runner、参考开源实现和适用条件。
 - 每档保护预设声明机制和基于能力的可用性检查。
 
 状态：已实现静态注册表。后续应从版本化服务端 schema 加载。
@@ -56,7 +56,7 @@ L1 展示层 ──► L2 维度注册表 ──► L3 选择与兼容引擎
 
 - 判断维度是否适用、有哪些可选项及不可用原因；`displayOptions` 给界面提供完整候选列表和可用状态。
 - 改选后从上到下重新校验：清空失效选择、自动选中唯一可选项、补齐场景参数默认值。
-- 维度全部答完后生成不可变的 `FrontendRunPlan`：场景、路径、策略、执行模式、联邦对象、计算类型、保护机制、runner、输入接入、执行位置、评测、输出、成熟度、提示。
+- 维度全部答完后生成不可变的 `FrontendRunPlan`：场景、路径、策略、执行模式、联邦对象、计算类型、保护机制、runner、输入接入、执行位置、评测、输出、是否前沿、提示。
 - 后端阶段由 policy service 重新校验，前端结果只是请求，不是能力证明。
 
 状态：前端已实现；服务端 policy service 未实现。
@@ -118,7 +118,7 @@ type RunSpec = {
   selection: Record<string, string>; // 8 个维度的取值
   strategy: string;
   pattern: string;                    // 执行模式
-  protection: { preset: string; robust: boolean };
+  protection: { preset: string };
   params: Record<string, string>;
   inputs: Array<{ uri: string; digest: string; manifest: unknown }>;
   runner: { adapter: string; version: string; resources: unknown };

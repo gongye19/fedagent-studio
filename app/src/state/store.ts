@@ -9,7 +9,6 @@ import {
   choose,
   scenarioFor,
   setParam,
-  setRobust,
   type LayerId,
   type Selection,
 } from "../domain/selection";
@@ -46,7 +45,6 @@ export type Action =
   | { type: "choose"; layer: LayerId; value: string }
   | { type: "applyTemplate"; scenario: ScenarioId }
   | { type: "setParam"; id: string; value: string }
-  | { type: "setRobust"; value: boolean }
   | { type: "addParticipant" }
   | { type: "removeParticipant"; id: string }
   | { type: "uploadFiles"; files: { name: string; size: number; lastModified: number }[] }
@@ -87,9 +85,6 @@ export function reducer(state: State, action: Action): State {
 
     case "setParam":
       return locked ? state : { ...state, selection: setParam(state.selection, action.id, action.value) };
-
-    case "setRobust":
-      return locked ? state : { ...state, selection: setRobust(state.selection, action.value) };
 
     case "addParticipant": {
       if (locked) return state;

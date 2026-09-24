@@ -7,15 +7,14 @@
 import {
   COMPUTE_KIND_LABEL,
   PATTERN_LABEL,
-  ROBUST_AGGREGATION,
   SCENARIO_GROUP_LABEL,
   protectionOf,
   strategyOf,
-  weakestMaturity,
+  combinedAdoption,
   type ComputeKind,
   type ExecutionPattern,
   type InputKind,
-  type Maturity,
+  type Adoption,
   type ScenarioGroup,
   type ScenarioId,
 } from "./taxonomy";
@@ -26,7 +25,6 @@ import {
   layerOptions,
   paramsFor,
   protectionContext,
-  robustState,
   scenarioFor,
   type Selection,
 } from "./selection";
@@ -50,7 +48,6 @@ export type FrontendRunPlan = {
   computeKind: ComputeKind;
   computeKindLabel: string;
   protection: { id: string; label: string; mechanisms: string[] };
-  robust: boolean;
   runner: string;
   references: string[];
   input: { kind: InputKind; label: string; accept?: string };
@@ -58,7 +55,7 @@ export type FrontendRunPlan = {
   evaluation: string;
   output: string;
   minParticipants: number;
-  maturity: Maturity;
+  adoption: Adoption;
   params: { id: string; label: string; value: string; valueLabel: string }[];
   warnings: string[];
 };
@@ -99,7 +96,7 @@ const LOCATIONS: Record<ExecutionPattern, Omit<ExecutionLocations, "controlPlane
 /** 已经能推导出的部分，供右侧面板在选择过程中实时展示。 */
 export type PlanPreview = {
   scenario?: string;
-  maturity?: Maturity;
+  adoption?: Adoption;
   pattern?: string;
   exchanged?: string;
   computeKind?: string;
@@ -113,12 +110,12 @@ export function planPreview(selection: Selection): PlanPreview {
   if (!scenario) return {};
   const preview: PlanPreview = {
     scenario: scenario.label,
-    maturity: scenario.maturity,
+    adoption: scenario.adoption,
     pattern: PATTERN_LABEL[scenario.pattern(selection)],
   };
   const strategy = strategyOf(selection.strategy);
   if (strategy) {
-    preview.maturity = weakestMaturity(scenario.maturity, strategy.maturity);
+    preview.adoption = combinedAdoption(scenario.adoption, strategy.adoption);
     preview.exchanged = strategy.exchanged;
     preview.computeKind = COMPUTE_KIND_LABEL[strategy.computeKind];
     preview.runner = strategy.runner;
@@ -126,7 +123,7 @@ export function planPreview(selection: Selection): PlanPreview {
   }
   const protection = protectionOf(selection.protection);
   if (protection) {
-    preview.mechanisms = [...protection.mechanisms, ...(selection.robust ? ROBUST_AGGREGATION.mechanisms : [])];
+    preview.mechanisms = [...protection.mechanisms];
   }
   return preview;
 }
@@ -153,10 +150,8 @@ export function buildRunPlan(selection: Selection): FrontendRunPlan | null {
     const option = layerOptions(layer.id, selection).find((item) => item.choice.id === selection[layer.id]);
     if (option?.warning) warnings.push(option.warning);
   }
-  const maturity = weakestMaturity(scenario.maturity, strategy.maturity);
-  if (maturity === "research") warnings.push("包含研究阶段的方法，结果只用于验证，不建议直接用于生产");
-
-  const robust = selection.robust && robustState(selection).available;
+  const adoption = combinedAdoption(scenario.adoption, strategy.adoption);
+  if (adoption === "frontier") warnings.push("包含大模型 / Agent 前沿方法，工具链和最佳实践仍在快速变化");
 
   return {
     schemaVersion: "frontend.run-plan/v1",
@@ -174,9 +169,8 @@ export function buildRunPlan(selection: Selection): FrontendRunPlan | null {
     protection: {
       id: protection.id,
       label: protection.label,
-      mechanisms: [...protection.mechanisms, ...(robust ? ROBUST_AGGREGATION.mechanisms : [])],
+      mechanisms: [...protection.mechanisms],
     },
-    robust,
     runner: strategy.runner,
     references: [...strategy.references],
     input: { ...scenario.input },
@@ -184,7 +178,7 @@ export function buildRunPlan(selection: Selection): FrontendRunPlan | null {
     evaluation: scenario.evaluation,
     output: scenario.output,
     minParticipants: scenario.minParticipants,
-    maturity,
+    adoption,
     params: paramsFor(selection).map((param) => {
       const value = selection.params[param.id] ?? param.defaultValue;
       return {

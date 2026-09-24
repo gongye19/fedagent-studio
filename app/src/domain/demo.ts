@@ -50,16 +50,6 @@ export const PARTICIPANT_POOL: Record<string, Participant[]> = {
     { name: "电商 B", role: "Host", provides: "消费特征数据契约 + PSI key manifest", detail: "28 个特征 · 81,000 用户" },
     { name: "运营商 C", role: "Host", provides: "通信特征数据契约 + PSI key manifest", detail: "9 个特征 · 64,000 用户" },
   ]),
-  personalized: seeds("personalized", [
-    { name: "门店 A", role: "参与方", provides: "本地模型包 + 数据契约", detail: "销量预测 · 18 个月数据" },
-    { name: "门店 B", role: "参与方", provides: "本地模型包 + 数据契约", detail: "销量预测 · 24 个月数据" },
-    { name: "门店 C", role: "参与方", provides: "本地模型包 + 数据契约", detail: "销量预测 · 12 个月数据" },
-  ]),
-  heterogeneous: seeds("heterogeneous", [
-    { name: "机构 A", role: "参与方", provides: "模型契约 · ResNet-50", detail: "10 类输出 · 本地 8,000 样本" },
-    { name: "机构 B", role: "参与方", provides: "模型契约 · ViT-S", detail: "10 类输出 · 本地 5,500 样本" },
-    { name: "机构 C", role: "参与方", provides: "模型契约 · MobileNetV3", detail: "10 类输出 · 本地 3,200 样本" },
-  ]),
   "federated-evaluation": seeds("federated-evaluation", [
     { name: "站点 A", role: "评测节点", provides: "本地测试集契约", detail: "2,000 条 · 已脱敏" },
     { name: "站点 B", role: "评测节点", provides: "本地测试集契约", detail: "1,600 条 · 已脱敏" },
@@ -134,14 +124,6 @@ export const DEMO_METRICS: Record<ScenarioId, DemoMetric[]> = {
   "vertical-modeling": [
     { name: "AUC", baselineLabel: "Guest 单方模型", baseline: 0.71, output: 0.79, rule: "higher", format: "decimal" },
     { name: "KS", baselineLabel: "Guest 单方模型", baseline: 0.32, output: 0.41, rule: "higher", format: "decimal" },
-  ],
-  personalized: [
-    { name: "本地个性化准确率", baselineLabel: "全局 FedAvg 模型", baseline: 0.8, output: 0.88, rule: "higher", format: "percent" },
-    { name: "全局泛化准确率", baselineLabel: "全局 FedAvg 模型", baseline: 0.8, output: 0.79, rule: "max-drop", tolerance: 0.02, format: "percent" },
-  ],
-  heterogeneous: [
-    { name: "各站平均准确率", baselineLabel: "各站独立训练", baseline: 0.74, output: 0.79, rule: "higher", format: "percent" },
-    { name: "最差站点准确率", baselineLabel: "各站独立训练", baseline: 0.66, output: 0.71, rule: "higher", format: "percent" },
   ],
   "federated-evaluation": [
     { name: "加权准确率", baselineLabel: "上一版本模型", baseline: 0.81, output: 0.83, rule: "max-drop", tolerance: 0.01, format: "percent" },

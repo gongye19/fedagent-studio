@@ -323,9 +323,7 @@ button:active:not(:disabled) { transform: translateY(1px); }
 .option-reason::before { content: "×"; }
 
 .badge { flex: none; padding: 1px 6px; color: var(--secondary); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; font-family: var(--mono); font-size: 9px; font-weight: 500; line-height: 1.6; white-space: nowrap; }
-.badge--mature { color: var(--success); background: #ecfdf5; border-color: #bbf7d0; }
-.badge--pilot { color: #1d4ed8; background: var(--accent-soft); border-color: #bfdbfe; }
-.badge--research { color: #a15c07; background: #fffbeb; border-color: #fde68a; }
+.badge--frontier { color: #6d28d9; background: #f5f3ff; border-color: #ddd6fe; }
 .badge--auto { color: var(--muted); border-style: dashed; }
 
 .scenario-match { padding: 12px 14px; display: grid; gap: 4px; background: #fafaf9; border: 1px solid var(--border); border-left: 3px solid var(--foreground); border-radius: var(--radius); }
@@ -337,13 +335,6 @@ button:active:not(:disabled) { transform: translateY(1px); }
 .protection-extras { padding: 0 14px 14px 50px; display: grid; gap: 10px; }
 .mechanism-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .mechanism-list span { padding: 3px 7px; color: var(--secondary); background: var(--surface); border: 1px solid var(--border); border-radius: 5px; font-family: var(--mono); font-size: 10px; }
-.robust-toggle { padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--border); border-radius: 7px; cursor: pointer; }
-.robust-toggle input { margin-top: 2px; accent-color: var(--foreground); }
-.robust-toggle span { display: grid; gap: 1px; }
-.robust-toggle strong { font-size: 12px; font-weight: 560; }
-.robust-toggle small { color: var(--muted); font-size: 11px; }
-.robust-toggle--disabled { cursor: not-allowed; background: var(--surface); }
-.robust-toggle--disabled strong { color: var(--faint); }
 
 .params-grid { padding: 0 14px 14px 50px; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
 .param-field { display: grid; gap: 4px; }

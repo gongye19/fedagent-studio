@@ -3,7 +3,7 @@
  *
  * 规则：
  * 1. 只有前面的维度约束后面的维度。
- * 2. 不适用的维度自动跳过；上游没答完时，下游不出现。
+ * 2. 不适用的维度没有可选项；上游没答完时，下游也没有可选项（界面上置灰）。
  * 3. 上游改选后，下游失效的选择被清空；只剩一个可选项时自动选中。
  */
 import {
@@ -17,7 +17,6 @@ import {
   STRATEGIES,
   TOPOLOGIES,
   matchScenario,
-  robustAvailability,
   scenarioOf,
   strategyOf,
   type Availability,
@@ -39,7 +38,6 @@ export type LayerId =
   | "protection";
 
 export type Selection = Record<LayerId, string | null> & {
-  robust: boolean;
   params: Record<string, string>;
 };
 
@@ -52,7 +50,6 @@ export const EMPTY_SELECTION: Selection = {
   sharing: null,
   strategy: null,
   protection: null,
-  robust: false,
   params: {},
 };
 
@@ -133,24 +130,27 @@ const blocked = (choice: Choice, reason: string): OptionState => ({ choice, avai
 
 function topologyOptions(selection: Selection): OptionState[] {
   const localHorizontal = selection.contribution === "local-data" && selection.partition === "horizontal";
-  const vertical = selection.partition === "vertical";
   return TOPOLOGIES.map((choice) => {
     if (choice.id === "cross-silo") return ok(choice);
-    if (vertical) return blocked(choice, "纵向协议需要少量稳定在线的机构节点");
-    if (selection.contribution === "trained-artifact") return blocked(choice, "产物聚合在平台沙箱内一次完成，不需要常驻节点");
-    if (choice.id === "cross-device") {
-      if (localHorizontal && (selection.goal === "train" || selection.goal === "analytics")) return ok(choice);
-      return blocked(choice, "端侧设备只支持横向数据上的训练和统计");
-    }
-    return ok(choice);
+    if (selection.partition === "vertical") return blocked(choice, "纵向协议需要少量稳定在线的机构节点");
+    if (localHorizontal && (selection.goal === "train" || selection.goal === "analytics")) return ok(choice);
+    return blocked(choice, "端侧设备只支持横向数据上的训练和统计");
   });
+}
+
+function modelClassOptions(selection: Selection): OptionState[] {
+  return MODEL_CLASSES.map((choice) => (
+    selection.partition === "vertical" && choice.id === "neural"
+      ? blocked(choice, "纵向神经网络（Split NN）用得较少，暂未收录")
+      : ok(choice)
+  ));
 }
 
 function sharingOptions(selection: Selection): OptionState[] {
   if (selection.contribution === "trained-artifact") return ARTIFACT_KINDS.map((choice) => ok(choice));
   return SHARING_MODES.map((choice) => {
     if (choice.id === "full") return ok(choice);
-    if (selection.modelClass !== "neural") return blocked(choice, "只适用于神经网络");
+    if (selection.modelClass !== "neural") return blocked(choice, "只适用于预训练神经网络");
     if (choice.id === "peft" && selection.topology === "cross-device") {
       return ok(choice, { warning: "端侧设备需要具备本地微调大模型的算力，目前以研究验证为主" });
     }
@@ -165,9 +165,9 @@ function strategyOptions(selection: Selection): OptionState[] {
     .filter((strategy) => strategy.scenario === scenario.id)
     .filter((strategy) => !strategy.contributions || strategy.contributions.includes(selection.contribution ?? ""))
     .map((strategy) => {
-      const classMismatch = strategy.modelClasses && !strategy.modelClasses.includes(selection.modelClass ?? "");
-      const sharingMismatch = strategy.sharing && !strategy.sharing.includes(selection.sharing ?? "");
-      if (classMismatch || sharingMismatch) return blocked(strategy, strategy.blockedReason ?? "与前面的选择不兼容");
+      if (strategy.modelClasses && !strategy.modelClasses.includes(selection.modelClass ?? "")) {
+        return blocked(strategy, strategy.blockedReason ?? "与前面的选择不兼容");
+      }
       if (strategy.partitions && !strategy.partitions.includes(selection.partition ?? "")) {
         return blocked(strategy, strategy.partitions.includes("vertical") ? "只适用于纵向数据" : "只适用于横向数据");
       }
@@ -192,13 +192,11 @@ export function layerOptions(id: LayerId, selection: Selection): OptionState[] {
       // 与目标无关的投入属于类别错误，直接不列出，而不是置灰。
       return CONTRIBUTIONS.filter((choice) => (choice.goals as readonly string[]).includes(selection.goal ?? "")).map((choice) => ok(choice));
     case "partition":
-      return PARTITIONS
-        .filter((choice) => selection.goal === "train" || choice.id !== "transfer")
-        .map((choice) => (choice.open ? ok(choice) : blocked(choice, "研究阶段，平台暂未开放")));
+      return PARTITIONS.map((choice) => ok(choice));
     case "topology":
       return topologyOptions(selection);
     case "modelClass":
-      return MODEL_CLASSES.map((choice) => ok(choice));
+      return modelClassOptions(selection);
     case "sharing":
       return sharingOptions(selection);
     case "strategy":
@@ -208,7 +206,7 @@ export function layerOptions(id: LayerId, selection: Selection): OptionState[] {
   }
 }
 
-/** 只剩一个可选项时，平台自动选中，界面标注"唯一可选"。 */
+/** 只剩一个可选项时，平台自动选中，界面标注"自动选中"。 */
 export function isAutoSelected(id: LayerId, selection: Selection): boolean {
   return layerOptions(id, selection).filter((option) => option.available).length === 1;
 }
@@ -254,12 +252,6 @@ export function paramsFor(selection: Selection): ParamDefinition[] {
   return scenario.params.filter((param) => !param.strategies || param.strategies.includes(selection.strategy ?? ""));
 }
 
-export function robustState(selection: Selection): Availability {
-  const context = protectionContext(selection);
-  if (!context) return { available: false, reason: "先完成协作策略" };
-  return robustAvailability(context, selection.protection);
-}
-
 /** 从上到下重新校验：清掉失效选择，自动选中唯一可选项，补齐参数默认值。 */
 export function normalize(selection: Selection): Selection {
   const next: Selection = { ...selection, params: { ...selection.params } };
@@ -276,8 +268,6 @@ export function normalize(selection: Selection): Selection {
       if (available.length === 1) next[layer.id] = available[0].choice.id;
     }
   }
-
-  if (next.robust && !robustState(next).available) next.robust = false;
 
   const params: Record<string, string> = {};
   for (const param of paramsFor(next)) {
@@ -300,11 +290,6 @@ export function setParam(selection: Selection, id: string, value: string): Selec
   const param = paramsFor(selection).find((item) => item.id === id);
   if (!param || !param.options.some((option) => option.id === value)) return selection;
   return { ...selection, params: { ...selection.params, [id]: value } };
-}
-
-export function setRobust(selection: Selection, robust: boolean): Selection {
-  if (robust && !robustState(selection).available) return selection;
-  return { ...selection, robust };
 }
 
 /** "从模板开始"：一键填好维度 1–5，策略和保护留给用户。 */

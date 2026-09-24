@@ -76,3 +76,18 @@
   3. 测试新增 3 个，共 51 个。
   4. 文档：DIMENSIONS、FLOW、ARCHITECTURE、PROGRESS、GOAL（C10 退役，新增 C12），更新截图。
   5. 验证：`npm run check` 通过；浏览器检查置灰效果和策略分组。
+
+## T17：按"主流 + Agent 相关"精简候选方法
+
+- 类型：Delivery（正式交付，按用户原则调整）
+- 时间：2026-09-24
+- 状态：完成
+- 相关：C9（退役）→ C13；影响 L1、L2、L3
+- 用户原则：只保留主流、用得多的方法；小众的即使成熟也不要；Agent 相关的可以保留。
+- 性质：范围缩小（10 个场景 → 8 个，36 条策略 → 23 条，去掉抗恶意参与方叠加），由用户明确要求。
+- 步骤：
+  1. 确定保留清单：删除个性化联邦、异构模型协作两个场景；删除 SCAFFOLD、树 Bagging、Split NN、PEFT 场景的 FedAdam、Task Arithmetic、LoRA 拼接、FedRAG 分数融合；删除混合节点、联邦迁移、抗恶意参与方。
+  2. 注册表：`maturity`（成熟 / 试点 / 研究）改为 `adoption`（主流 / 前沿），只在大模型 / Agent 相关的场景、策略和目标上标"前沿"；纵向数据下神经网络置灰。
+  3. 测试：删去已移除方法的用例，新增"只有大模型 / Agent 相关标前沿"和"纵向不收录神经网络"的检查，共 50 个。
+  4. 文档：重写 DIMENSIONS（新增收录原则和"未收录"清单），更新 README、GOAL（C9 退役，新增 C13）、ARCHITECTURE、PROGRESS、DECISIONS（D13）、DEVELOPMENT。
+  5. 验证：`npm run check` 通过；浏览器检查模板标签和 PEFT 完整运行。
