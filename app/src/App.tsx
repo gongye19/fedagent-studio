@@ -8,7 +8,7 @@ import { StepActions, StepFrame, type Tone } from "./ui/common";
 import ConfigurationStep from "./ui/ConfigurationStep";
 import { FLOW_STEPS, isRunStage, nextFlowStep, previousFlowStep, type FlowStepId } from "./ui/flow";
 import InputsStep from "./ui/InputsStep";
-import { STATUS_LABEL, stepStates } from "./ui/progress";
+import { STATUS_LABEL, participantsLabel, stepStates } from "./ui/progress";
 import PublishStep from "./ui/PublishStep";
 import RunPanel from "./ui/RunPanel";
 import StageStep from "./ui/StageStep";
@@ -67,7 +67,7 @@ export default function App() {
     }
     if (activeStep === "inputs") {
       return (
-        <StepFrame title={stepLabel} status={`${status.count} 份数据`} statusTone={inputsReady ? "complete" : undefined}>
+        <StepFrame title={stepLabel} status={participantsLabel(state, status.count)} statusTone={inputsReady ? "complete" : undefined}>
           <InputsStep state={state} plan={plan} dispatch={dispatch} />
           <StepActions onBack={goBack} onNext={goNext} nextLabel={run ? nextLabel : "开始准入检查"} nextDisabled={!inputsReady} />
         </StepFrame>

@@ -1,5 +1,6 @@
 import { stageOf, type StageStatus } from "../domain/run";
 import { isComplete } from "../domain/selection";
+import { scenarioOf } from "../domain/taxonomy";
 import type { State } from "../state/store";
 import { FLOW_STEPS, isRunStage, type FlowStepId } from "./flow";
 
@@ -12,6 +13,11 @@ export const STATUS_LABEL: Record<StageStatus, string> = {
 
 export type StepState = { state: StageStatus; label: string };
 
+/** 数据接入的数量：节点类场景按节点数，文件类场景按文件数。 */
+export function participantsLabel(state: State, count: number): string {
+  return scenarioOf(state.selection.scenario)?.input.kind === "nodes" ? `${count} 个节点` : `${count} 份文件`;
+}
+
 /** 时间轴每一步的状态，右侧时间轴和手机端进度条共用。 */
 export function stepStates(state: State, inputsReady: boolean, datasets: number): Record<FlowStepId, StepState> {
   const { run } = state;
@@ -21,7 +27,7 @@ export function stepStates(state: State, inputsReady: boolean, datasets: number)
     if (step.id === "configure") {
       result[step.id] = configured ? { state: "done", label: "已就绪" } : { state: "pending", label: "待完成" };
     } else if (step.id === "inputs") {
-      result[step.id] = { state: configured && inputsReady ? "done" : "pending", label: configured ? `${datasets} 份数据` : "等待配置" };
+      result[step.id] = { state: configured && inputsReady ? "done" : "pending", label: configured ? participantsLabel(state, datasets) : "等待配置" };
     } else {
       const stage = run && isRunStage(step.id) ? stageOf(run, step.id) : undefined;
       const value = stage?.status ?? "pending";

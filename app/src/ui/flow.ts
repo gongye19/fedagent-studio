@@ -2,7 +2,7 @@ import type { StageId } from "../domain/run";
 
 export const FLOW_STEPS = [
   { id: "configure", label: "配置", hint: "逐层选择维度" },
-  { id: "inputs", label: "数据接入", hint: "匹配数据、上传并检查" },
+  { id: "inputs", label: "数据接入", hint: "连接节点或上传文件" },
   { id: "preflight", label: "准入检查", hint: "硬规则 + Agent 说明" },
   { id: "provision", label: "创建沙箱", hint: "冻结计划，创建沙箱" },
   { id: "execute", label: "执行", hint: "按执行模式运行" },

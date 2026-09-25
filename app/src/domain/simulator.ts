@@ -45,66 +45,48 @@ function executeWork(plan: FrontendRunPlan, participants: Participant[], preset:
       const total = rounds(plan, preset);
       const shown = Math.min(total, 3);
       const logs = Array.from({ length: shown }, (_, index) => (
-        `第 ${index + 1}/${total} 轮：${count}/${count} 方上报${plan.exchanged}，按 ${strategy} 聚合`
+        `第 ${index + 1}/${total} 轮：下发全局模型 → ${count} 个节点本地训练 → 回传${plan.exchanged} → 按 ${strategy} 合并`
       ));
       if (total > shown) logs.push(`…… 第 ${total}/${total} 轮完成，全局结果收敛`);
       return {
-        detail: `${total} 轮 ${strategy} 完成，${count} 个参与方全部在线`,
+        detail: `${total} 轮 ${strategy} 完成，${count} 个节点全部在线`,
         realCost: `约 ${Math.round(total * 1.5)}–${total * 4} 分钟，取决于本地训练量`,
-        logs: [`协调方在沙箱内启动，保护机制：${protection}`, ...logs],
+        logs: [`SuperLink 启动 ServerApp，${count} 个 SuperNode 已连接，保护机制：${protection}`, ...logs],
       };
     }
-    case "single-round":
-      return {
-        detail: `${count} 方本地计算完成，已聚合 ${strategy}`,
-        realCost: "约 1–5 分钟",
-        logs: [
-          `下发分析任务到 ${count} 个节点`,
-          ...participants.map((participant) => `${participant.name}：本地计算完成，上报${plan.exchanged}`),
-          `聚合服务按 ${protection} 汇总结果`,
-        ],
-      };
     case "vertical-protocol": {
-      const guest = participants.find((participant) => participant.role.startsWith("Guest")) ?? participants[0];
+      const label = participants.find((participant) => participant.role === "标签方") ?? participants[0];
       return {
-        detail: `PSI 对齐后完成 ${strategy}`,
+        detail: `隐私求交对齐样本后完成 ${strategy}`,
         realCost: "约 20–90 分钟，其中同态加密计算占大头",
         logs: [
-          `${paramValue(plan, "psi") ?? "PSI"}：${count} 方求交，共同样本 18,420 个`,
-          `${guest.name} 作为标签方生成加密梯度`,
-          `迭代 ${paramValue(plan, "iterations") ?? "若干"} 次：交换${plan.exchanged}`,
-          "模型按参与方分片保存，任何一方都拿不到完整模型",
+          `ECDH PSI：${count} 方求交，共同样本 18,420 个（名单不以明文交换）`,
+          `${label.name} 作为标签方，每步生成加密梯度`,
+          `特征方在密文上计算分裂统计，共训练 ${paramValue(plan, "trees") ?? "若干"}`,
+          "模型按参与方分片保存，任何一方都拿不到完整模型；预测时也需要各方一起计算",
         ],
       };
     }
-    case "artifact-processing":
+    case "aggregate-once":
       return {
-        detail: `${count} 个产物按 ${strategy} 合并完成`,
-        realCost: "约 1–3 分钟",
+        detail: `${count} 份汇总表已按 ${strategy} 合并`,
+        realCost: "约 1–5 分钟",
         logs: [
-          `校验 ${count} 个产物的摘要与 manifest`,
-          `在隔离沙箱内按 ${strategy} 合并`,
+          `校验 ${count} 份汇总表的表头和分组是否一致`,
+          ...participants.map((participant) => `${participant.name}：读取${plan.exchanged}`),
+          "由计数和求和重新计算整体比例、均值和方差（不直接平均各方的比例）",
+          `按 ${protection} 处理：人数过少的分组不公布`,
+        ],
+      };
+    case "merge-once":
+      return {
+        detail: `${count} 份记忆已按 ${strategy} 合并`,
+        realCost: "约 2–10 分钟，取决于记忆条数和冲突数量",
+        logs: [
+          `扫描 ${count} 份记忆文件中的敏感信息并脱敏`,
+          "按内容相似度去重，保留来源和时间",
+          strategy.includes("冲突") ? "Agent 审阅互相矛盾的记忆，只保留一致的条目" : "相互矛盾的记忆保留两条并标注来源",
           `写出候选产物：${plan.output}`,
-        ],
-      };
-    case "query-time":
-      return {
-        detail: `评测查询已通过 ${count} 个检索节点完成融合`,
-        realCost: "单次查询约 1–3 秒；200 条评测查询约 5 分钟",
-        logs: [
-          "下发 200 条评测查询",
-          `各站本地检索 ${paramValue(plan, "top-k") ?? "Top-k"}，返回${plan.exchanged}`,
-          `平台按 ${strategy} 融合并生成回答`,
-        ],
-      };
-    case "evaluation-only":
-      return {
-        detail: `${count} 个评测节点完成 ${strategy}`,
-        realCost: "约 5–30 分钟",
-        logs: [
-          `下发评测任务到 ${count} 个节点`,
-          ...participants.map((participant) => `${participant.name}：评测完成，上报${plan.exchanged}`),
-          "汇总指标并生成报告草稿",
         ],
       };
   }
@@ -132,8 +114,8 @@ export function preflightReport(plan: FrontendRunPlan, participants: Participant
   if (plan.security.enhancements.some((item) => item.id === "secagg") && participants.length < 3) {
     add("SecAgg 参与方", `只有 ${participants.length} 方时，协调方可由聚合结果反推另一方更新`, "warn");
   }
-  if (plan.pattern === "vertical-protocol" && !participants.some((participant) => participant.role.startsWith("Guest"))) {
-    add("标签持有方", "纵向协议需要一个持有标签的 Guest", "fail");
+  if (plan.pattern === "vertical-protocol" && !participants.some((participant) => participant.role === "标签方")) {
+    add("标签方", "纵向训练需要一个持有标签的参与方", "fail");
   }
   for (const warning of plan.warnings) add("提示", warning, "warn");
 
@@ -169,7 +151,7 @@ function gateOf(metric: DemoMetric): { gate: string; passed: boolean } {
 }
 
 export function evaluationReport(plan: FrontendRunPlan): EvaluationReport {
-  const metrics: MetricResult[] = DEMO_METRICS[plan.scenario.id].map((metric) => ({
+  const metrics: MetricResult[] = (DEMO_METRICS[plan.metricsKey] ?? DEMO_METRICS[plan.scenario.id]).map((metric) => ({
     name: metric.name,
     baselineLabel: metric.baselineLabel,
     baseline: formatValue(metric.baseline, metric.format),
@@ -204,6 +186,7 @@ export function stageWork(
         realCost: "约 30 秒–3 分钟（拉取镜像、挂载只读输入）",
         logs: [
           `冻结 FrontendRunPlan（${plan.schemaVersion}）`,
+          `接入方式：${plan.scenario.inputKindLabel}`,
           `协调方：${plan.locations.coordinator}`,
           `参与方侧：${plan.locations.participantWorker}`,
           "网络策略：默认拒绝，只放行参与方与协调方之间的通道",

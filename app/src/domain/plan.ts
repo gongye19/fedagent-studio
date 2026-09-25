@@ -6,8 +6,9 @@
  */
 import {
   COMPUTE_KIND_LABEL,
+  INPUT_KIND_LABEL,
   PATTERN_LABEL,
-  SCENARIO_GROUP_LABEL,
+  SHARING_MODES,
   enhancementOf,
   strategyOf,
   combinedAdoption,
@@ -15,12 +16,12 @@ import {
   type ExecutionPattern,
   type InputKind,
   type Adoption,
-  type ScenarioGroup,
   type ScenarioId,
 } from "./taxonomy";
 import {
   LAYERS,
   builtinProtection,
+  exchangedFor,
   isComplete,
   isLayerVisible,
   layerOptions,
@@ -39,7 +40,9 @@ export type ExecutionLocations = {
 export type FrontendRunPlan = {
   schemaVersion: "frontend.run-plan/v1";
   simulated: true;
-  scenario: { id: ScenarioId; label: string; group: ScenarioGroup; groupLabel: string };
+  scenario: { id: ScenarioId; label: string; inputKindLabel: string };
+  /** 演示指标的键：场景，或 场景:peft。 */
+  metricsKey: string;
   path: { title: string; value: string }[];
   strategy: { id: string; label: string };
   pattern: ExecutionPattern;
@@ -51,7 +54,7 @@ export type FrontendRunPlan = {
   security: { builtin: string[]; enhancements: { id: string; label: string }[]; mechanisms: string[] };
   runner: string;
   references: string[];
-  input: { kind: InputKind; label: string; accept?: string };
+  input: { kind: InputKind; label: string };
   locations: ExecutionLocations;
   evaluation: string;
   output: string;
@@ -63,37 +66,26 @@ export type FrontendRunPlan = {
 
 const LOCATIONS: Record<ExecutionPattern, Omit<ExecutionLocations, "controlPlane">> = {
   iterative: {
-    coordinator: "平台沙箱中的聚合器",
-    participantWorker: "各参与方本地训练节点",
-    evaluator: "各方本地评估 + 平台独立评测沙箱",
-  },
-  "single-round": {
-    coordinator: "平台沙箱中的聚合服务",
-    participantWorker: "各参与方本地计算节点",
-    evaluator: "平台一致性检查",
+    coordinator: "平台上的 Flower SuperLink + ServerApp（按策略合并）",
+    participantWorker: "各参与方的 Flower SuperNode，本地运行 ClientApp 训练",
+    evaluator: "各方本地验证 + 平台独立评测沙箱",
   },
   "vertical-protocol": {
-    coordinator: "平台沙箱中的协议协调方（Arbiter）",
-    participantWorker: "Guest / Host 本地节点",
+    coordinator: "平台上的 NVFlare 服务端（协调求交和训练步骤）",
+    participantWorker: "各参与方的 NVFlare 客户端（标签方 + 特征方）",
     evaluator: "标签方本地验证",
   },
-  "artifact-processing": {
-    coordinator: "平台沙箱中的合并器",
-    participantWorker: "不需要常驻节点（产物进入隔离 staging）",
-    evaluator: "平台独立评测沙箱",
+  "aggregate-once": {
+    coordinator: "平台沙箱中的统计服务",
+    participantWorker: "不需要常驻节点（各方上传汇总表）",
+    evaluator: "平台一致性检查",
   },
-  "query-time": {
-    coordinator: "平台沙箱中的查询路由与融合服务",
-    participantWorker: "各方本地检索服务",
-    evaluator: "平台评测沙箱（检索与答案质量）",
-  },
-  "evaluation-only": {
-    coordinator: "平台沙箱中的评测调度",
-    participantWorker: "各方本地评测节点或模型 Endpoint",
-    evaluator: "平台汇总与报告检查",
+  "merge-once": {
+    coordinator: "平台沙箱中的记忆合并器",
+    participantWorker: "不需要常驻节点（各方上传记忆文件）",
+    evaluator: "平台回放评测沙箱",
   },
 };
-
 /** 已经能推导出的部分，供右侧面板在选择过程中实时展示。 */
 export type PlanPreview = {
   scenario?: string;
@@ -109,11 +101,11 @@ export function planPreview(selection: Selection): PlanPreview {
   if (!scenario) return {};
   const preview: PlanPreview = {
     scenario: scenario.label,
-    pattern: PATTERN_LABEL[scenario.pattern(selection)],
+    pattern: PATTERN_LABEL[scenario.pattern],
   };
   const strategy = strategyOf(selection.strategy);
   if (strategy) {
-    preview.exchanged = strategy.exchanged;
+    preview.exchanged = exchangedFor(selection);
     preview.computeKind = COMPUTE_KIND_LABEL[strategy.computeKind];
     preview.runner = strategy.runner;
   }
@@ -136,7 +128,7 @@ export function buildRunPlan(selection: Selection): FrontendRunPlan | null {
   const scenario = scenarioFor(selection);
   const strategy = strategyOf(selection.strategy);
   if (!scenario || !strategy) return null;
-  const pattern = scenario.pattern(selection);
+  const pattern = scenario.pattern;
 
   const warnings: string[] = [];
   for (const layer of LAYERS) {
@@ -148,19 +140,22 @@ export function buildRunPlan(selection: Selection): FrontendRunPlan | null {
     const caution = enhancementOf(id)?.caution;
     if (caution) warnings.push(caution);
   }
-  const adoption = combinedAdoption(scenario.adoption, strategy.adoption);
+  // LoRA 属于大模型方法，和场景、策略一起决定整体是否前沿。
+  const sharing = SHARING_MODES.find((mode) => mode.id === selection.sharing);
+  const adoption = combinedAdoption(scenario.adoption, strategy.adoption, sharing?.adoption ?? "mainstream");
 
   return {
     schemaVersion: "frontend.run-plan/v1",
     simulated: true,
-    scenario: { id: scenario.id, label: scenario.label, group: scenario.group, groupLabel: SCENARIO_GROUP_LABEL[scenario.group] },
+    scenario: { id: scenario.id, label: scenario.label, inputKindLabel: INPUT_KIND_LABEL[scenario.input.kind] },
+    metricsKey: selection.sharing === "peft" ? `${scenario.id}:peft` : scenario.id,
     path: LAYERS
       .filter((layer) => isLayerVisible(layer.id, selection))
       .map((layer) => ({ title: layer.title, value: selectedLabel(selection, layer.id) })),
     strategy: { id: strategy.id, label: strategy.label },
     pattern,
     patternLabel: PATTERN_LABEL[pattern],
-    exchanged: strategy.exchanged,
+    exchanged: exchangedFor(selection) ?? strategy.exchanged,
     computeKind: strategy.computeKind,
     computeKindLabel: COMPUTE_KIND_LABEL[strategy.computeKind],
     security: {
@@ -173,7 +168,7 @@ export function buildRunPlan(selection: Selection): FrontendRunPlan | null {
     input: { ...scenario.input },
     locations: { controlPlane: "Federation Studio 控制面", ...LOCATIONS[pattern] },
     evaluation: scenario.evaluation,
-    output: scenario.output,
+    output: scenario.output(selection),
     minParticipants: scenario.minParticipants,
     adoption,
     params: paramsFor(selection).map((param) => {

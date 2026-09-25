@@ -16,10 +16,10 @@ import {
   type Selection,
 } from "../domain/selection";
 import {
+  INPUT_KIND_LABEL,
   SCENARIOS,
-  SCENARIO_GROUP_LABEL,
   type EnhancementId,
-  type ScenarioGroup,
+  type InputKind,
 } from "../domain/taxonomy";
 import type { Action } from "../state/store";
 
@@ -29,26 +29,27 @@ type Props = {
   dispatch: (action: Action) => void;
 };
 
-const GROUPS: ScenarioGroup[] = ["training", "analysis", "knowledge"];
+const GROUPS: InputKind[] = ["nodes", "files"];
 
 /**
- * 先选场景（维度 1），子项 1.1–1.5 自动填好，之后只能在场景内调整且不能取消。
+ * 先选场景（维度 1，按运行方式分组），训练场景的子项 1.1–1.2 自动填好，之后可调整但不能取消。
  * 维度 2 协作策略、维度 3 安全与隐私在场景之后。所有候选项始终展开；已选选项再点一次即取消。
  * 场景参数都有默认值，不在界面上展示。
  */
 export default function ConfigurationStep({ selection, locked, dispatch }: Props) {
   // 未选场景时，当前该回答的是场景本身。
   const current = selection.scenario ? currentLayer(selection) : null;
+  const subLayers = LAYERS.filter((layer) => SCENARIO_LAYERS.includes(layer.id));
 
   function renderLayer(layer: LayerDefinition) {
     return (
       <LayerCard
         layer={layer}
-        title={layer.id === "sharing" && selection.contribution === "trained-artifact" ? "产物类型" : layer.title}
+        title={layer.title}
         options={displayOptions(layer.id, selection)}
         value={selection[layer.id]}
         current={layer.id === current}
-        inactive={!layerApplies(layer.id, selection) || (SCENARIO_LAYERS.includes(layer.id) && !selection.scenario)}
+        inactive={!layerApplies(layer.id, selection)}
         // 场景确定后，子项的自动选中原因很明显，不再逐个标注。
         auto={Boolean(selection[layer.id]) && !(SCENARIO_LAYERS.includes(layer.id) && selection.scenario) && isAutoSelected(layer.id, selection)}
         fixed={!canDeselect(selection, layer.id)}
@@ -78,11 +79,12 @@ export default function ConfigurationStep({ selection, locked, dispatch }: Props
           onApply={(id) => dispatch({ type: "applyTemplate", scenario: id })}
           onClear={() => dispatch({ type: "clearScenario" })}
         />
-        <ol className="scenario-dimensions" aria-label="场景子项">
-          {LAYERS.filter((layer) => SCENARIO_LAYERS.includes(layer.id)).map((layer) => (
-            <li key={layer.id}>{renderLayer(layer)}</li>
-          ))}
-        </ol>
+        {/* 选了不需要子项的场景（统计分析、记忆联邦）时不显示子项；未选场景时子项置灰。 */}
+        {!selection.scenario || subLayers.some((layer) => layerApplies(layer.id, selection)) ? (
+          <ol className="scenario-dimensions" aria-label="场景子项">
+            {subLayers.map((layer) => <li key={layer.id}>{renderLayer(layer)}</li>)}
+          </ol>
+        ) : null}
       </section>
 
       <ol className="layer-list" aria-label="维度 2–3">
@@ -114,9 +116,9 @@ function ScenarioOptions({
     <>
       {GROUPS.map((group) => (
         <div className="option-group" key={group}>
-          <span className="option-group-label" aria-hidden="true">{SCENARIO_GROUP_LABEL[group]}</span>
-          <div className="option-grid" role="radiogroup" aria-label={`场景 · ${SCENARIO_GROUP_LABEL[group]}`}>
-            {SCENARIOS.filter((scenario) => scenario.group === group).map((scenario) => {
+          <span className="option-group-label" aria-hidden="true">{INPUT_KIND_LABEL[group]}</span>
+          <div className="option-grid" role="radiogroup" aria-label={`场景 · ${INPUT_KIND_LABEL[group]}`}>
+            {SCENARIOS.filter((scenario) => scenario.input.kind === group).map((scenario) => {
               const selected = activeId === scenario.id;
               return (
                 <button

@@ -20,7 +20,7 @@ import { applyTemplate } from "./selection";
 import { artifactFor, stageWork } from "./simulator";
 
 function planFor(): FrontendRunPlan {
-  const selection = applyTemplate("peft-finetune");
+  const selection = applyTemplate("vertical-training");
   const plan = buildRunPlan(selection);
   if (!plan) throw new Error("plan expected");
   return plan;
@@ -31,14 +31,14 @@ function advance(run: Run, stage: Exclude<StageId, "publish">): Run {
   return finishStage(started, stage, stageWork(stage, started.plan, started.participants, started.preset));
 }
 
-function peftParticipants(): Participant[] {
-  const selection = applyTemplate("peft-finetune");
+function verticalParticipants(): Participant[] {
+  const selection = applyTemplate("vertical-training");
   const ids = defaultDatasetIds(selection);
   return matchedDatasets(selection).filter((entry) => ids.includes(entry.id));
 }
 
 function newRun(): Run {
-  return createRun("run-1", planFor(), peftParticipants(), "quick", "2026-09-24T00:00:00Z");
+  return createRun("run-1", planFor(), verticalParticipants(), "quick", "2026-09-24T00:00:00Z");
 }
 
 describe("run lifecycle", () => {
@@ -58,7 +58,7 @@ describe("run lifecycle", () => {
 
     const published = publishRun(run, artifactFor(run.plan, run.participants, run.id, "participants"));
     expect(stageOf(published, "publish").status).toBe("done");
-    expect(published.artifact?.lineage).toHaveLength(3);
+    expect(published.artifact?.lineage).toHaveLength(2);
     expect(isFinished(published)).toBe(true);
     expect(progressOf(published)).toBe(1);
   });
@@ -77,7 +77,7 @@ describe("run lifecycle", () => {
   });
 
   it("stops the run when preflight rejects the inputs", () => {
-    const run = createRun("run-2", planFor(), peftParticipants().slice(0, 1), "quick", "2026-09-24T00:00:00Z");
+    const run = createRun("run-2", planFor(), verticalParticipants().slice(0, 1), "quick", "2026-09-24T00:00:00Z");
     const checked = advance(run, "preflight");
     expect(checked.preflight?.passed).toBe(false);
     expect(stageOf(checked, "preflight").status).toBe("failed");
@@ -102,6 +102,6 @@ describe("run lifecycle", () => {
 
   it("keeps the state machine free of scenario-specific branches", () => {
     const source = readFileSync(fileURLToPath(new URL("./run.ts", import.meta.url)), "utf8");
-    expect(source).not.toMatch(/scenario\.id|peft|lora|vertical-modeling/i);
+    expect(source).not.toMatch(/scenario\.id|peft|lora|vertical-training|agent-memory/i);
   });
 });

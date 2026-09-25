@@ -1,9 +1,9 @@
 /**
  * 数据契约与上传检查。
  *
- * 每个场景（及各方投入）声明需要什么样的数据：格式、必需字段、最少条数。
- * 用户上传的文件在浏览器本地抽样检查（只读前 256KB，不上传、不保存），
- * 结果由 Agent 转成通过 / 不通过的说明和修改建议。
+ * 每个场景声明需要什么样的数据：格式、必需字段、最少条数。
+ * 节点类场景的数据留在节点本地，这里只展示要求；文件类场景的上传文件在浏览器本地抽样检查
+ * （只读前 256KB，不上传、不保存），结果由 Agent 转成通过 / 不通过的说明和修改建议。
  */
 import type { ScenarioId } from "./taxonomy";
 
@@ -21,69 +21,74 @@ export type DataContract = {
 
 export const SAMPLE_BYTES = 256 * 1024;
 
+type ContractKey = { scenario: ScenarioId; modelClass?: string | null; sharing?: string | null };
+
 const CONTRACTS: Record<string, DataContract> = {
-  "model-training": {
-    title: "训练数据表",
-    requirements: ["CSV 或 Parquet，第一行为表头", "必须包含 label 列", "至少 100 条样本"],
-    accept: [".csv", ".parquet"],
-    text: { formats: ["csv"], fieldsAnyOf: [["label"]], fieldHint: "表头需要包含 label 列" },
-    minRecords: 100,
+  "horizontal-training:neural": {
+    title: "本地训练数据",
+    requirements: ["各方字段 / 输入格式一致（如同尺寸图像或同一张表结构）", "每条样本带 label", "数据留在节点本地，只在本地训练时读取"],
+    accept: [],
   },
-  "peft-finetune": {
-    title: "指令微调数据",
-    requirements: ["JSONL，每行一条 JSON", "每条包含 messages，或 instruction + output，或 prompt + completion", "至少 50 条"],
-    accept: [".jsonl"],
-    text: {
-      formats: ["jsonl"],
-      fieldsAnyOf: [["messages"], ["instruction", "output"], ["prompt", "completion"]],
-      fieldHint: "每条需要包含 messages，或 instruction + output，或 prompt + completion",
-    },
-    minRecords: 50,
+  "horizontal-training:peft": {
+    title: "本地指令数据",
+    requirements: ["JSONL，每行一条 JSON", "每条包含 messages，或 instruction + output，或 prompt + completion", "各方使用同一个基础模型"],
+    accept: [],
   },
-  "vertical-modeling": {
-    title: "纵向特征表",
-    requirements: ["CSV，第一行为表头", "必须包含对齐主键列 id 或 user_id", "至少 100 条样本"],
-    accept: [".csv"],
-    text: { formats: ["csv"], fieldsAnyOf: [["id"], ["user_id"]], fieldHint: "表头需要包含 id 或 user_id 作为对齐主键" },
-    minRecords: 100,
+  "horizontal-training:table": {
+    title: "本地表格数据",
+    requirements: ["CSV 或 Parquet，各方列名和列顺序一致", "必须包含 label 列", "数据留在节点本地，只在本地训练时读取"],
+    accept: [],
   },
-  "federated-evaluation": {
-    title: "本地测试集",
-    requirements: ["JSONL 或 CSV", "每条包含 label 或 answer", "至少 50 条"],
-    accept: [".jsonl", ".csv"],
-    text: { formats: ["jsonl", "csv"], fieldsAnyOf: [["label"], ["answer"]], fieldHint: "每条需要包含 label 或 answer" },
-    minRecords: 50,
+  "vertical-training": {
+    title: "本地特征表",
+    requirements: ["CSV，包含对齐主键列 id 或 user_id", "标签方另含 label 列", "主键只在隐私求交时使用，不会以明文发给其他方"],
+    accept: [],
   },
   "federated-analytics": {
-    title: "统计分析数据表",
-    requirements: ["CSV，第一行为表头", "至少包含一列数值字段", "至少 20 条记录"],
+    title: "统计汇总表",
+    requirements: [
+      "CSV，第一行为表头，每行一个分组",
+      "分组列（如 地区、年龄段）+ count 列",
+      "算均值 / 方差时再加 sum、sum_sq 列；直方图用 bin + count",
+      "只上传汇总后的数字，不要上传个人明细",
+    ],
     accept: [".csv"],
-    text: { formats: ["csv"], fieldsAnyOf: [], fieldHint: "至少需要一列数值字段" },
-    minRecords: 20,
+    text: { formats: ["csv"], fieldsAnyOf: [["count"]], fieldHint: "表头需要包含 count 列" },
+    minRecords: 1,
   },
-  fedrag: {
-    title: "知识库或索引说明",
-    requirements: ["JSONL 语料（每条包含 text）或 JSON 索引说明（包含 endpoint 或 index）"],
-    accept: [".jsonl", ".json"],
-    text: { formats: ["jsonl", "json"], fieldsAnyOf: [["text"], ["endpoint"], ["index"]], fieldHint: "语料每条需要包含 text；索引说明需要包含 endpoint 或 index" },
-  },
-  "agent-skill:traces-skills": {
-    title: "轨迹或 Skill 包",
-    requirements: ["JSON / JSONL", "每条包含 skill、steps 或 trajectory", "至少 5 条"],
-    accept: [".json", ".jsonl"],
-    text: { formats: ["json", "jsonl"], fieldsAnyOf: [["skill"], ["steps"], ["trajectory"]], fieldHint: "每条需要包含 skill、steps 或 trajectory" },
+  "agent-memory": {
+    title: "Agent 记忆文件",
+    requirements: [
+      "JSONL，每行一条记忆",
+      "每条包含 content，建议带 type、source、created_at",
+      "上传后平台会做敏感信息扫描，请不要包含账号、密钥等",
+      "至少 5 条",
+    ],
+    accept: [".jsonl"],
+    text: { formats: ["jsonl"], fieldsAnyOf: [["content"]], fieldHint: "每条需要包含 content" },
     minRecords: 5,
-  },
-  "agent-skill:trained-artifact": {
-    title: "Agent Adapter",
-    requirements: ["safetensors 权重文件", "张量结构在后端解析（前端只检查格式和大小）"],
-    accept: [".safetensors"],
   },
 };
 
-export function dataContract(scenario: ScenarioId, contribution: string | null): DataContract {
-  return CONTRACTS[`${scenario}:${contribution}`] ?? CONTRACTS[scenario];
+export function dataContract({ scenario, modelClass, sharing }: ContractKey): DataContract {
+  if (scenario === "horizontal-training") {
+    if (sharing === "peft") return CONTRACTS["horizontal-training:peft"];
+    return CONTRACTS[modelClass === "neural" ? "horizontal-training:neural" : "horizontal-training:table"];
+  }
+  return CONTRACTS[scenario];
 }
+
+/** 节点类场景：各参与方启动节点的方式（示例命令，平台地址和证书由平台签发）。 */
+export const NODE_SETUP: Record<string, { steps: string[]; command: string }> = {
+  Flower: {
+    steps: ["安装 Flower：pip install flwr", "用平台签发的证书启动 SuperNode，节点主动连接平台，不需要开放端口"],
+    command: "flower-supernode --superlink studio.example.com:9092 --root-certificates ca.crt --node-config \"data-path='/data/local'\"",
+  },
+  NVFlare: {
+    steps: ["从平台下载本参与方的启动包（含证书和配置）", "解压后运行启动脚本，节点主动连接平台"],
+    command: "./startup/start.sh",
+  },
+};
 
 export type UploadCheckItem = { label: string; ok: boolean; detail: string };
 
