@@ -53,6 +53,7 @@ export default function ConfigurationStep({ selection, locked, dispatch }: Props
         auto={Boolean(selection[layer.id]) && !(SCENARIO_LAYERS.includes(layer.id) && selection.scenario) && isAutoSelected(layer.id, selection)}
         fixed={!canDeselect(selection, layer.id)}
         locked={locked}
+        sub={SCENARIO_LAYERS.includes(layer.id)}
         onChoose={(value) => dispatch({ type: "toggle", layer: layer.id, value })}
       />
     );
@@ -61,7 +62,7 @@ export default function ConfigurationStep({ selection, locked, dispatch }: Props
   return (
     <div className="config-flow">
       <section
-        className={`layer-card scenario-card layer-card--${selection.scenario ? "answered" : "current"}`}
+        className={`layer-card layer-card--dimension scenario-card layer-card--${selection.scenario ? "answered" : "current"}`}
         aria-labelledby="scenario-card-title"
       >
         <header className="layer-head">
@@ -113,8 +114,8 @@ function ScenarioOptions({
     <>
       {GROUPS.map((group) => (
         <div className="option-group" key={group}>
-          <span className="option-group-label">{SCENARIO_GROUP_LABEL[group]}</span>
-          <div className="option-grid" role="radiogroup" aria-label={SCENARIO_GROUP_LABEL[group]}>
+          <span className="option-group-label" aria-hidden="true">{SCENARIO_GROUP_LABEL[group]}</span>
+          <div className="option-grid" role="radiogroup" aria-label={`场景 · ${SCENARIO_GROUP_LABEL[group]}`}>
             {SCENARIOS.filter((scenario) => scenario.group === group).map((scenario) => {
               const selected = activeId === scenario.id;
               return (
@@ -140,7 +141,7 @@ function ScenarioOptions({
 }
 
 function LayerCard({
-  layer, title, options, value, current, inactive, auto, fixed, locked, onChoose, children,
+  layer, title, options, value, current, inactive, auto, fixed, locked, sub, onChoose, children,
 }: {
   layer: LayerDefinition;
   title: string;
@@ -151,30 +152,40 @@ function LayerCard({
   auto: boolean;
   fixed: boolean;
   locked: boolean;
+  /** 场景子项：嵌在场景卡片里，标题低一级。 */
+  sub: boolean;
   onChoose: (value: string) => void;
   children?: ReactNode;
 }) {
   const headingId = `layer-${layer.id}`;
   const state = value ? "answered" : current ? "current" : inactive ? "inactive" : "waiting";
   const groups = [...new Set(options.map((option) => option.group))];
+  // 只有一组时组名和标题重复，不再显示。
+  const showGroups = groups.length > 1;
+  const Heading = sub ? "h4" : "h3";
 
   return (
-    <section className={`layer-card layer-card--${state}`} aria-labelledby={headingId}>
+    <section className={`layer-card layer-card--${state}${sub ? " layer-card--sub" : " layer-card--dimension"}`} aria-labelledby={headingId}>
       <header className="layer-head">
         <span className="layer-step" aria-hidden="true">{layer.code}</span>
         <div className="layer-heading">
-          <h3 id={headingId}>
+          <Heading id={headingId}>
             {title}
             {auto ? <span className="badge badge--auto">自动选中</span> : null}
-          </h3>
+          </Heading>
           <p>{layer.question}</p>
         </div>
       </header>
 
       {groups.map((group) => (
         <div className="option-group" key={group ?? "all"}>
-          {group ? <span className="option-group-label">{group}</span> : null}
-          <div className="option-grid" role="radiogroup" aria-labelledby={headingId}>
+          {showGroups && group ? <span className="option-group-label" aria-hidden="true">{group}</span> : null}
+          <div
+            className="option-grid"
+            role="radiogroup"
+            aria-labelledby={showGroups && group ? undefined : headingId}
+            aria-label={showGroups && group ? `${title} · ${group}` : undefined}
+          >
             {options.filter((option) => option.group === group).map((option) => {
               const selected = option.choice.id === value;
               return (
@@ -233,7 +244,7 @@ function SecurityCard({
   const ready = Boolean(selection.strategy);
   const options = enhancementOptions(selection);
   return (
-    <section className={`layer-card layer-card--${ready ? "answered" : "inactive"}`} aria-labelledby="layer-security">
+    <section className={`layer-card layer-card--dimension layer-card--${ready ? "answered" : "inactive"}`} aria-labelledby="layer-security">
       <header className="layer-head">
         <span className="layer-step" aria-hidden="true">{SECURITY_STEP.code}</span>
         <div className="layer-heading">

@@ -220,7 +220,7 @@ export function isAutoSelected(id: LayerId, selection: Selection): boolean {
 
 export type DisplayOption = { choice: Choice; available: boolean; warning?: string; group?: string };
 
-function candidatesOf(id: LayerId): { choice: Choice; group?: string }[] {
+function candidatesOf(id: LayerId, selection: Selection): { choice: Choice; group?: string }[] {
   switch (id) {
     case "goal":
       return GOALS.map((choice) => ({ choice }));
@@ -233,18 +233,21 @@ function candidatesOf(id: LayerId): { choice: Choice; group?: string }[] {
     case "sharing":
       return SHARING_MODES.map((choice) => ({ choice }));
     case "strategy":
-      return STRATEGIES.map((strategy) => ({ choice: strategy, group: scenarioOf(strategy.scenario)?.label }));
+      // 选了场景后只列该场景的策略；未选场景时列出全部（置灰），按场景分组。
+      return STRATEGIES
+        .filter((strategy) => !selection.scenario || strategy.scenario === selection.scenario)
+        .map((strategy) => ({ choice: strategy, group: scenarioOf(strategy.scenario)?.label }));
   }
 }
 
 /**
- * 界面展示用：每个维度始终列出全部候选项。只有上游已选、且与上游兼容的选项可点，
- * 其余置灰。维度不适用于当前路径时整组置灰。
+ * 界面展示用：每个维度始终列出全部候选项（协作策略在选了场景后只列该场景的）。
+ * 只有上游已选、且与上游兼容的选项可点，其余置灰。维度不适用于当前路径时整组置灰。
  */
 export function displayOptions(id: LayerId, selection: Selection): DisplayOption[] {
   // 先选场景：未选场景时，场景子项全部不可选。
   const states = SCENARIO_LAYERS.includes(id) && !selection.scenario ? [] : layerOptions(id, selection);
-  return candidatesOf(id).map(({ choice, group }) => {
+  return candidatesOf(id, selection).map(({ choice, group }) => {
     const state = states.find((option) => option.choice.id === choice.id);
     return { choice, group, available: Boolean(state?.available), warning: state?.available ? state.warning : undefined };
   });

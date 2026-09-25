@@ -1,13 +1,13 @@
 import type { StageId } from "../domain/run";
 
 export const FLOW_STEPS = [
-  { id: "configure", label: "Configuration", hint: "逐层选择维度" },
-  { id: "inputs", label: "Data & participants", hint: "匹配数据、上传并检查" },
-  { id: "preflight", label: "Agent preflight", hint: "硬规则 + Agent 说明" },
-  { id: "provision", label: "Provision sandbox", hint: "冻结计划，创建沙箱" },
-  { id: "execute", label: "Execute", hint: "按执行模式运行" },
-  { id: "evaluate", label: "Evaluate", hint: "独立评测与发布闸门" },
-  { id: "publish", label: "Publish", hint: "确认范围后发布" },
+  { id: "configure", label: "配置", hint: "逐层选择维度" },
+  { id: "inputs", label: "数据接入", hint: "匹配数据、上传并检查" },
+  { id: "preflight", label: "准入检查", hint: "硬规则 + Agent 说明" },
+  { id: "provision", label: "创建沙箱", hint: "冻结计划，创建沙箱" },
+  { id: "execute", label: "执行", hint: "按执行模式运行" },
+  { id: "evaluate", label: "评测", hint: "独立评测与发布闸门" },
+  { id: "publish", label: "发布", hint: "确认范围后发布" },
 ] as const;
 
 export type FlowStepId = (typeof FLOW_STEPS)[number]["id"];

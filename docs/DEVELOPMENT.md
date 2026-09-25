@@ -47,6 +47,8 @@ app/src/
 │   ├── PublishStep.tsx        发布范围与确认
 │   ├── RunPanel.tsx           时间轴与平台推导面板
 │   ├── common.tsx             通用展示组件
+│   ├── icons.tsx              状态图标（SVG）
+│   ├── progress.ts            步骤状态，时间轴与手机端进度条共用
 │   └── flow.ts                七步时间轴定义
 ├── App.tsx
 ├── main.tsx

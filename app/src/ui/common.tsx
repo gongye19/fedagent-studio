@@ -32,10 +32,10 @@ export function StepActions({
 }) {
   return (
     <footer className="step-actions">
-      <div>{onBack ? <button type="button" className="button button--secondary" onClick={onBack}>Back</button> : null}</div>
+      <div>{onBack ? <button type="button" className="button button--secondary" onClick={onBack}>上一步</button> : null}</div>
       <div className="step-actions-end">
-        {onReset ? <button type="button" className="button button--secondary" onClick={onReset}>New run</button> : null}
-        {onNext ? <button type="button" className="button button--primary" disabled={nextDisabled} onClick={onNext}>{nextLabel ?? "Continue"}</button> : null}
+        {onReset ? <button type="button" className="button button--secondary" onClick={onReset}>新建运行</button> : null}
+        {onNext ? <button type="button" className="button button--primary" disabled={nextDisabled} onClick={onNext}>{nextLabel ?? "下一步"}</button> : null}
       </div>
     </footer>
   );

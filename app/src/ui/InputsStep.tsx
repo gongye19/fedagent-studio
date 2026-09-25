@@ -5,11 +5,12 @@ import type { FrontendRunPlan } from "../domain/plan";
 import { PRESET_LABEL, type ExecutionPreset } from "../domain/run";
 import { inputStatus, type Action, type State } from "../state/store";
 import { StageMessage } from "./common";
+import { Icon } from "./icons";
 
 /** Agent 检查的演示时长；检查本身在浏览器本地同步完成。 */
 const CHECK_DEMO_MS = 900;
 
-const STATUS_TEXT = { checking: "Agent 检查中", passed: "检查通过", failed: "未通过" } as const;
+const STATUS_TEXT = { checking: "Agent 检查中…", passed: "检查通过", failed: "未通过" } as const;
 
 export default function InputsStep({
   state, plan, dispatch,
@@ -19,7 +20,7 @@ export default function InputsStep({
   dispatch: (action: Action) => void;
 }) {
   const scenario = state.selection.scenario;
-  if (!plan || !scenario) return <div className="step-pad"><StageMessage text="先在 Configuration 选好场景、协作策略和安全与信任，平台才能确定需要什么数据。" /></div>;
+  if (!plan || !scenario) return <div className="step-pad"><StageMessage text="先在「配置」里选好场景和协作策略，平台才能确定需要什么数据。" /></div>;
 
   const locked = Boolean(state.run);
   const contract = dataContract(scenario, state.selection.contribution);
@@ -115,7 +116,7 @@ export default function InputsStep({
               <li className={`upload-result upload-result--${item.status}`} key={item.id}>
                 <header>
                   <strong>{item.name}</strong>
-                  <span className={`status${item.status === "passed" ? " status--complete" : item.status === "failed" ? " status--failed" : " status--running"}`}>
+                  <span aria-live="polite" className={`status${item.status === "passed" ? " status--complete" : item.status === "failed" ? " status--failed" : " status--running"}`}>
                     {STATUS_TEXT[item.status]}
                   </span>
                   {!locked ? (
@@ -129,7 +130,7 @@ export default function InputsStep({
                     <ul className="upload-checks">
                       {item.check.items.map((check) => (
                         <li key={check.label} className={check.ok ? "" : "upload-check--failed"}>
-                          <span aria-hidden="true">{check.ok ? "✓" : "✕"}</span>
+                          <span><Icon name={check.ok ? "check" : "x"} label={check.ok ? "通过" : "未通过"} /></span>
                           <b>{check.label}</b>
                           <span>{check.detail}</span>
                         </li>
@@ -166,7 +167,7 @@ export default function InputsStep({
         </div>
       </section>
 
-      {!locked ? <p className={`inputs-summary${status.ready ? "" : " inputs-summary--blocked"}`}>{summaryText(status)}</p> : null}
+      {!locked ? <p aria-live="polite" className={`inputs-summary${status.ready ? "" : " inputs-summary--blocked"}`}>{summaryText(status)}</p> : null}
     </div>
   );
 }

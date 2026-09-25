@@ -1,8 +1,8 @@
 import { planPreview } from "../domain/plan";
-import { isComplete } from "../domain/selection";
-import { stageOf, type StageStatus } from "../domain/run";
 import type { State } from "../state/store";
-import { FLOW_STEPS, isRunStage, type FlowStepId } from "./flow";
+import { FLOW_STEPS, type FlowStepId } from "./flow";
+import { Icon } from "./icons";
+import { RUN_STATUS_LABEL, runStatus, stepStates } from "./progress";
 
 type Props = {
   state: State;
@@ -12,29 +12,10 @@ type Props = {
   onSelectStep: (step: FlowStepId) => void;
 };
 
-const STATUS_LABEL: Record<StageStatus, string> = {
-  pending: "Pending",
-  running: "Running",
-  done: "Complete",
-  failed: "Failed",
-};
-
 export default function RunPanel({ state, inputsReady, datasets, activeStep, onSelectStep }: Props) {
-  const { run } = state;
-  const configured = isComplete(state.selection);
-  const published = run ? stageOf(run, "publish").status === "done" : false;
-  const status = run?.error ? "Failed" : published ? "Complete" : run ? "Running" : configured ? "Ready" : "Draft";
+  const status = runStatus(state);
+  const steps = stepStates(state, inputsReady, datasets);
   const preview = planPreview(state.selection);
-
-  function stepStatus(id: FlowStepId): { state: StageStatus; label: string } {
-    if (id === "configure") return configured ? { state: "done", label: "Ready" } : { state: "pending", label: "Needs input" };
-    if (id === "inputs") {
-      return { state: configured && inputsReady ? "done" : "pending", label: configured ? `${datasets} datasets` : "Waiting" };
-    }
-    const stage = run && isRunStage(id) ? stageOf(run, id) : undefined;
-    const value = stage?.status ?? "pending";
-    return { state: value, label: id === "publish" && value === "pending" && run?.evaluation?.passed ? "Awaiting confirm" : STATUS_LABEL[value] };
-  }
 
   const derived: [string, string | undefined][] = [
     ["执行模式", preview.pattern],
@@ -47,18 +28,20 @@ export default function RunPanel({ state, inputsReady, datasets, activeStep, onS
   return (
     <aside className="run-panel" aria-labelledby="run-plan-title">
       <header className="run-panel-head">
-        <h2 id="run-plan-title">Run plan</h2>
-        <span className={`status status--${status.toLowerCase()}`}>{status}</span>
+        <h2 id="run-plan-title">运行计划</h2>
+        <span className={`status status--${status}`}>{RUN_STATUS_LABEL[status]}</span>
       </header>
 
-      <ol className="run-timeline" aria-label="联邦运行阶段">
+      <ol className="run-timeline" aria-label="运行步骤">
         {FLOW_STEPS.map((step) => {
-          const item = stepStatus(step.id);
+          const item = steps[step.id];
           const current = activeStep === step.id;
           return (
             <li className={`timeline-item timeline-item--${item.state}${current ? " timeline-item--current" : ""}`} key={step.id}>
               <button type="button" aria-current={current ? "step" : undefined} onClick={() => onSelectStep(step.id)}>
-                <span className="timeline-mark" aria-hidden="true">{item.state === "done" ? "✓" : ""}</span>
+                <span className="timeline-mark" aria-hidden="true">
+                  {item.state === "done" ? <Icon name="check" /> : item.state === "failed" ? <Icon name="x" /> : null}
+                </span>
                 <span className="timeline-copy">
                   <strong>{step.label}</strong>
                   <small>{item.label}</small>
@@ -70,10 +53,8 @@ export default function RunPanel({ state, inputsReady, datasets, activeStep, onS
       </ol>
 
       <section className="derived" aria-labelledby="derived-title">
-        <header className="derived-head">
-          <h3 id="derived-title">平台推导</h3>
-        </header>
-        <p className="derived-scenario">{preview.scenario ?? "确定场景后显示"}</p>
+        <h3 id="derived-title">平台推导</h3>
+        <p className="derived-scenario">{preview.scenario ?? "选择场景后显示"}</p>
         <dl>
           {derived.map(([label, value]) => (
             <div key={label}>

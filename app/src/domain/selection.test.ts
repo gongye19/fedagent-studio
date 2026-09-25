@@ -151,13 +151,14 @@ describe("layered selection", () => {
     expect(toggle(training, "strategy", "train-fedprox").strategy).toBeNull();
   });
 
-  it("always lists every candidate and greys out those not reachable", () => {
+  it("lists every candidate, and only the chosen scenario's strategies once a scenario is set", () => {
     const contributions = displayOptions("contribution", applyTemplate("agent-skill"));
     expect(contributions).toHaveLength(5);
     expect(contributions.filter((option) => option.available).map((option) => option.choice.id)).toEqual(["traces-skills", "trained-artifact"]);
+    expect(displayOptions("strategy", EMPTY_SELECTION)).toHaveLength(STRATEGIES.length);
     const strategies = displayOptions("strategy", applyTemplate("fedrag"));
-    expect(strategies).toHaveLength(STRATEGIES.length);
-    expect(new Set(strategies.filter((option) => option.available).map((option) => option.group))).toEqual(new Set(["联邦检索 FedRAG"]));
+    expect(strategies.map((option) => option.choice.id)).toEqual(["rag-rrf", "rag-central-rerank"]);
+    expect(strategies.every((option) => option.available)).toBe(true);
   });
 
   it("resets scenario parameters to the new scenario's defaults when the scenario changes", () => {

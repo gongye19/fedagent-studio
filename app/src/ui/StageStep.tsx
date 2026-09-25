@@ -1,17 +1,18 @@
 import type { ReactNode } from "react";
 import { stageOf, type Run, type StageId } from "../domain/run";
 import { Facts, LogList, StageMessage } from "./common";
+import { Icon, type IconName } from "./icons";
 
 type RunStage = Exclude<StageId, "publish">;
 
 const IDLE_TEXT: Record<RunStage, string> = {
-  preflight: "在 Data & participants 确认数据后开始。规则引擎先检查硬规则，Agent 只负责解释结果和给出修复建议，不能覆盖拒绝。",
+  preflight: "在数据接入确认数据后开始。规则引擎先检查硬规则，Agent 只负责解释结果和给出修复建议，不能覆盖拒绝。",
   provision: "准入通过后，平台冻结运行计划，按执行模式创建协调方沙箱。",
   execute: "沙箱就绪后，按所选策略和执行模式运行。",
   evaluate: "执行完成后，在独立评测沙箱中对比基线，未通过闸门的结果不能发布。",
 };
 
-const CHECK_ICON = { pass: "✓", warn: "!", fail: "✕" } as const;
+const CHECK_ICON: Record<"pass" | "warn" | "fail", IconName> = { pass: "check", warn: "alert", fail: "x" };
 
 export default function StageStep({ stageId, run }: { stageId: RunStage; run: Run | null }) {
   if (!run) return <div className="step-pad"><StageMessage text={IDLE_TEXT[stageId]} /></div>;
@@ -56,7 +57,7 @@ function body(stageId: RunStage, run: Run): ReactNode {
           <ul className="check-list" aria-label="准入检查结果">
             {run.preflight.checks.map((check, index) => (
               <li className={`check--${check.status}`} key={`${check.label}-${index}`}>
-                <span aria-hidden="true">{CHECK_ICON[check.status]}</span>
+                <span><Icon name={CHECK_ICON[check.status]} label={check.status === "pass" ? "通过" : check.status === "warn" ? "提示" : "未通过"} /></span>
                 <strong>{check.label}</strong>
                 <b>{check.detail}</b>
               </li>
