@@ -109,8 +109,8 @@
 <text x="1143.0" y="541.5" font-size="11" font-weight="400" fill="#4b5563" text-anchor="middle">OpenAI 兼容 · 经模型网关</text>
 <rect x="60" y="630" width="240" height="116" rx="8" ry="8" fill="#ffffff" stroke="#fdba74" stroke-width="1.2"/>
 <text x="180.0" y="667.8" font-size="13" font-weight="600" fill="#111827" text-anchor="middle">沙箱调度（K8s Agent Sandbox）</text>
-<text x="180.0" y="684.2" font-size="11.5" font-weight="400" fill="#4b5563" text-anchor="middle">gVisor：默认 · 可用 GPU</text>
-<text x="180.0" y="700.8" font-size="11.5" font-weight="400" fill="#4b5563" text-anchor="middle">Kata + Firecracker：高风险</text>
+<text x="180.0" y="684.2" font-size="11.5" font-weight="400" fill="#4b5563" text-anchor="middle">默认 microVM：Kata + Firecracker</text>
+<text x="180.0" y="700.8" font-size="11.5" font-weight="400" fill="#4b5563" text-anchor="middle">gVisor：GPU 评测 · 无 KVM 兜底</text>
 <text x="180.0" y="717.2" font-size="11.5" font-weight="400" fill="#4b5563" text-anchor="middle">签名镜像 · 默认拒绝网络 · 用完即毁</text>
 <rect x="320" y="624" width="680" height="126" rx="10" ry="10" fill="#ffffff" stroke="#fdba74" stroke-width="1.2" stroke-dasharray="5,4"/>
 <text x="334" y="642" font-size="12.5" font-weight="700" fill="#c2410c" text-anchor="start">Runner 适配器</text>

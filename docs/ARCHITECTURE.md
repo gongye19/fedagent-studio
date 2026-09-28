@@ -1,6 +1,6 @@
 # 系统架构
 
-最后复核：2026-09-28（T29：Agent 改用自有大模型 API；沙箱统一为 K8s Agent Sandbox + gVisor / Kata-Firecracker）
+最后复核：2026-09-28（T30：沙箱改为 microVM 优先、gVisor 兜底）
 
 ## 架构原则
 
@@ -147,12 +147,14 @@ fedctl deliver <run>                 确认交付
 
 | 沙箱 | 里面跑什么 | 代码与输入的可信度 | 需要 GPU | 隔离运行时 |
 |---|---|---|---|---|
-| 协调 / 聚合沙箱 | Flower ServerApp、隐语调度 | 平台代码 | 否 | gVisor |
-| 统计 / 记忆合并沙箱 | 汇总表重算、记忆脱敏与合并 | 平台代码 + 外部数据 | 否 | gVisor |
+| 协调 / 聚合沙箱 | Flower ServerApp、隐语调度 | 平台代码 | 否 | microVM |
+| 统计 / 记忆合并沙箱 | 汇总表重算、记忆脱敏与合并 | 平台代码 + 外部数据 | 否 | microVM |
+| 上传检查沙箱 | 解析各方上传的文件 | 不可信输入 | 否 | microVM |
+| Agent 工作沙箱 | Agent 执行命令和脚本 | 不可信（模型生成） | 否 | microVM |
+| 镜像验证沙箱 | 运维 Agent 用小任务回归验证新运行时镜像 | 待验证镜像 | 视镜像而定 | microVM；需要 GPU 的验证用 gVisor |
 | 评测沙箱 | 用测试集评估交付物 | 外部产物 | 大模型评测需要 | gVisor（nvproxy 访问 GPU） |
-| 上传检查沙箱 | 解析各方上传的文件 | 不可信输入 | 否 | Kata + Firecracker |
-| Agent 工作沙箱 | Agent 执行命令和脚本 | 不可信（模型生成） | 否 | Kata + Firecracker |
-| 镜像验证沙箱 | 运维 Agent 用小任务回归验证新运行时镜像 | 待验证镜像 | 视镜像而定 | gVisor |
+
+microVM 指 Kata Containers + Firecracker：每个沙箱一台极简虚拟机，有独立内核。
 
 参与方侧不在平台沙箱里：`fs-node` 在各机构自己的机器上以容器拉起联邦运行时，数据只读挂载，由机构自己掌控。
 
@@ -167,10 +169,10 @@ fedctl deliver <run>                 确认交付
 | 进程级沙箱（bubblewrap、seccomp、Landlock） | 限制单个进程的文件与网络访问 | 较弱 | — | 本地编程 Agent |
 | WebAssembly / V8 isolate | 语言级隔离 | 强，但只能跑特定运行时 | 否 | Cloudflare |
 
-选 gVisor 和 Firecracker 两种，是因为它们互补：
-- **gVisor 做默认**：在普通服务器和 K8s 上通过 RuntimeClass 即可使用，不需要硬件虚拟化，也能通过 nvproxy 使用 GPU，适合平台自己的服务和评测。
-- **Firecracker 管最高风险**：模型生成的代码和外部上传的文件用虚拟机级隔离，逃逸需要攻破虚拟机监控器而不是一个系统调用实现；它也是目前 Agent 沙箱最主流的隔离技术。代价是需要 KVM、不支持 GPU，所以只用在不需要 GPU 的两类沙箱上。
-- 如果服务器不支持 KVM（例如没有开启嵌套虚拟化的云主机），起步阶段全部用 gVisor，之后再给高风险沙箱换上 Firecracker。
+方案是 **microVM 优先，gVisor 兜底**：
+- **microVM（Kata + Firecracker）做默认**：虚拟机级隔离，逃逸需要攻破虚拟机监控器，而不是一个系统调用实现；它是目前 Agent 沙箱最主流的隔离方式（E2B、AWS Lambda、Vercel 都用 Firecracker），在读写频繁的负载上也没有 gVisor 的 10–30% 开销。代价是需要 KVM，且稳定版不支持 GPU。
+- **gVisor 只用在两处**：需要 GPU 的评测沙箱（通过 nvproxy 共用宿主机显卡驱动，一张卡可以被多个沙箱轮流使用），以及服务器不支持 KVM 时的整体兜底。
+- **部署时自动判断**：节点有 `/dev/kvm` 就启用 microVM 运行时，没有就全部回落到 gVisor。架构和代码不变，只是 SandboxTemplate 里的 RuntimeClass 不同；之后换到支持 KVM 的机器，改配置即可切回 microVM。
 
 ### 统一管理：Kubernetes Agent Sandbox
 
@@ -206,7 +208,7 @@ fedctl deliver <run>                 确认交付
 | 工作流编排 | Temporal | 多轮训练是长时间任务，需要持久化状态、重试和断点恢复 |
 | 策略引擎 | OPA（Rego） | 硬规则独立于代码和 Agent，可审计、可测试 |
 | 数据与存储 | PostgreSQL · MinIO（S3 兼容） | 通用、可私有化部署 |
-| 沙箱 | Kubernetes Agent Sandbox（k3s 单机起步）+ gVisor / Kata-Firecracker | 统一的沙箱模板与预热池；GPU 与虚拟机级隔离各取所长 |
+| 沙箱 | Kubernetes Agent Sandbox（k3s 单机起步）+ microVM（Kata + Firecracker）为默认，gVisor 用于 GPU 与无 KVM 兜底 | 统一的沙箱模板与预热池；虚拟机级隔离为主，GPU 场景用 gVisor |
 | 身份与证书 | Keycloak（OIDC）· step-ca（节点证书）· Vault | 机构登录、节点 mTLS 和密钥分开管理 |
 | 可观测性 | OpenTelemetry · Prometheus · Loki · Grafana | 运行、节点和 Agent 操作统一追踪 |
 | 事件 | NATS · Webhook | 运行进度、邀请和交付事件推送 |

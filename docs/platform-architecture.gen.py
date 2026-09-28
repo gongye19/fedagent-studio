@@ -139,7 +139,7 @@ for x, y, t, s in agents:
 box(1046, 508, 194, 42, "自有大模型 API", ["OpenAI 兼容 · 经模型网关"], "#faf5ff", "#c4b5fd", ts=13, ss=11, dash="4,3")
 
 # ---------- 执行面 ----------
-box(60, 630, 240, 116, "沙箱调度（K8s Agent Sandbox）", ["gVisor：默认 · 可用 GPU", "Kata + Firecracker：高风险", "签名镜像 · 默认拒绝网络 · 用完即毁"], "#ffffff", "#fdba74", ts=13)
+box(60, 630, 240, 116, "沙箱调度（K8s Agent Sandbox）", ["默认 microVM：Kata + Firecracker", "gVisor：GPU 评测 · 无 KVM 兜底", "签名镜像 · 默认拒绝网络 · 用完即毁"], "#ffffff", "#fdba74", ts=13)
 rect(320, 624, 680, 126, "#ffffff", "#fdba74", rx=10, dash="5,4")
 text(334, 642, "Runner 适配器", 12.5, 700, "#c2410c")
 runners = [

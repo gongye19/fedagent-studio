@@ -260,3 +260,12 @@
 - 调研：E2B（Firecracker，采用最广）、Daytona（容器）、Modal（gVisor，唯一支持 GPU）等托管沙箱的对比；Kubernetes Agent Sandbox（SIG Apps 子项目，SandboxTemplate / WarmPool，支持 gVisor 与 Kata）；gVisor nvproxy 支持 CUDA；Firecracker 的 GPU 直通仍在开发分支；模型无关的 Agent 框架（Pydantic AI、LangGraph）对 OpenAI 兼容接口和 MCP 的支持。
 - 产出：架构图 Agent 层改为"模型与框架解耦 · 自有大模型 API"，沙箱调度改为 K8s Agent Sandbox + gVisor / Kata-Firecracker；ARCHITECTURE 新增沙箱清单与隔离技术对比；DECISIONS 新增 D24。
 
+## T30：沙箱改为 microVM 优先、gVisor 兜底
+
+- 类型：Design（架构调整，未改代码）
+- 时间：2026-09-28
+- 状态：完成
+- 相关：D24（部分取代）→ D25；影响 ARCHITECTURE（沙箱清单与隔离方案、技术选型）、架构图
+- 用户要求：由我选择最合适的沙箱方案；服务器暂时连不上，确认是否需要等服务器确定。
+- 结论：不需要等服务器。5 类不需要 GPU 的沙箱默认用 microVM（Kata + Firecracker），GPU 评测和无 KVM 的宿主机用 gVisor；服务器检查只决定部署时启用哪种 RuntimeClass。
+
