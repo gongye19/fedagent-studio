@@ -13,7 +13,8 @@ describe("store", () => {
   it("creates a task from a complete draft and resets the draft", () => {
     const state = ready(seedState());
     const next = reducer(state, { type: "createTask", id: "task-new", createdAt: NOW });
-    expect(next.tasks[0]).toMatchObject({ id: "task-new", status: "running", name: "横向联邦 · FoT · 8 方 · 试跑" });
+    expect(next.tasks[0]).toMatchObject({ id: "task-new", status: "running" });
+    expect(next.tasks[0].name).toMatch(/^FoT 任务 · \d{2}-\d{2} \d{2}:\d{2}$/);
     expect(next.tasks[0].members).toHaveLength(8);
     expect(next.draft.scenario).toBeNull();
   });
@@ -61,7 +62,6 @@ describe("store", () => {
 describe("route", () => {
   it("round-trips every page", () => {
     const routes: Route[] = [
-      { page: "overview" },
       { page: "tasks" },
       { page: "newTask" },
       { page: "newTask", scenario: "horizontal" },
@@ -77,7 +77,9 @@ describe("route", () => {
   });
 
   it("falls back for unknown pages and tabs", () => {
-    expect(parseHash("#/nowhere")).toEqual({ page: "overview" });
+    expect(parseHash("#/nowhere")).toEqual({ page: "tasks" });
+    expect(parseHash("#/tasks")).toEqual({ page: "tasks" });
+    expect(parseHash("#/tasks/t1/uploads")).toEqual({ page: "task", id: "t1", tab: undefined });
     expect(parseHash("#/tasks/t1/unknown")).toEqual({ page: "task", id: "t1", tab: undefined });
   });
 });

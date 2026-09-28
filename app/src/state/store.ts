@@ -105,7 +105,7 @@ export function reducer(state: State, action: Action): State {
       if (!config || draftIssues(state.draft, state.datasets, state.participants, state.endpoints).length) return state;
       const task = createTask({
         id: action.id,
-        name: state.draft.name.trim() || defaultTaskName(state.draft),
+        name: state.draft.name.trim() || defaultTaskName(state.draft, new Date(action.createdAt)),
         createdAt: action.createdAt,
         config,
         datasets: state.datasets,

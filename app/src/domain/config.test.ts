@@ -87,8 +87,9 @@ describe("draft", () => {
     expect(toConfig(deselected)?.clientOverrides).toEqual({});
   });
 
-  it("names tasks from the choices", () => {
-    expect(defaultTaskName(draft({ mode: "trial" }))).toBe("横向联邦 · FoT · 8 方 · 试跑");
-    expect(defaultTaskName(withDefaults({}))).toBe("新任务");
+  it("names tasks by algorithm and time, without repeating the summary", () => {
+    const at = new Date(2026, 8, 28, 16, 36);
+    expect(defaultTaskName(draft({ mode: "trial" }), at)).toBe("FoT 任务 · 09-28 16:36");
+    expect(defaultTaskName(withDefaults({}), at)).toBe("联邦任务 · 09-28 16:36");
   });
 });

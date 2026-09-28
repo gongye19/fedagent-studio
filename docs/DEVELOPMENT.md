@@ -44,15 +44,15 @@ app/src/
 │   ├── persistence.ts  浏览器本地保存与恢复
 │   └── route.ts        hash 路由
 ├── ui/
-│   ├── OverviewPage.tsx     总览
-│   ├── TasksPage.tsx        任务列表
+│   ├── TasksPage.tsx        联邦任务（首页；没有任务时显示使用流程）
 │   ├── NewTaskPage.tsx      新建联邦任务（分段选择 + 右侧配置清单 + 手机端操作栏）
-│   ├── TaskPage.tsx         任务详情（task/ 下是各标签页）
+│   ├── TaskPage.tsx         任务详情（task/ 下是结果、进度、洞见库、配置四个标签）
 │   ├── LibrariesPage.tsx    已发布的洞见库
 │   ├── LibraryPage.tsx      洞见库详情：洞见、试用、接入方式
 │   ├── ParticipantsPage.tsx 参与方与数据、题库上传
 │   ├── ModelsPage.tsx       模型接口
-│   ├── Chart.tsx            ECharts 封装（按需加载）
+│   ├── Chart.tsx            ECharts 封装（按需加载，结果页的哑铃图）
+│   ├── InsightGroups.tsx    按类别列出洞见（任务详情和洞见库页共用）
 │   ├── TaskTable.tsx / common.tsx / labels.ts / format.ts / icons.tsx
 ├── App.tsx             外框与侧栏导航
 ├── main.tsx
@@ -87,6 +87,7 @@ app/src/
 - `state/*.test.ts`：reducer、初始数据和路由。
 - 示例数据要自洽：例如关系分析各类的 trace 数之和等于上传总数，后一版洞见库包含前一版。
 - 页面结构变化时，至少做一次桌面和手机端的浏览器验证。
+- 界面规范写在 `styles.css` 开头：字号 6 档、字重 3 档、4 为基数的间距；区块之间靠留白，不给每块套边框；状态胶囊只用于需要注意的状态。
 
 ## 提交约定
 

@@ -1,7 +1,7 @@
 import { useState, type Dispatch } from "react";
 import { DEFAULT_ENDPOINT_ID, endpointOf, isConfigured, type Endpoint } from "../domain/resources";
 import type { Action, State } from "../state/store";
-import { Badge, Note, PageHead, Panel } from "./common";
+import { PageHead, StatusPill } from "./common";
 import { Icon } from "./icons";
 
 type Props = { state: State; dispatch: Dispatch<Action> };
@@ -17,8 +17,8 @@ export default function ModelsPage({ state, dispatch }: Props) {
     <>
       <PageHead
         title="模型接口"
-        meta="平台侧的模型调用都通过 OpenAI 兼容的 LLM API。现在只预留了默认接口，具体服务和模型之后再配置。"
-        actions={adding ? null : <button type="button" className="button button--primary" onClick={() => setAdding(true)}><Icon name="plus" />新增接口</button>}
+        meta="平台侧的模型调用都走 OpenAI 兼容的 LLM API，密钥只存在服务端；本地参与方用自己的模型，不经过这里。"
+        actions={adding ? null : <button type="button" className="button button--secondary" onClick={() => setAdding(true)}><Icon name="plus" />新增接口</button>}
       />
       {adding ? <NewEndpoint state={state} dispatch={dispatch} onDone={() => setAdding(false)} /> : null}
       <div className="endpoint-grid">
@@ -26,7 +26,6 @@ export default function ModelsPage({ state, dispatch }: Props) {
           <EndpointCard key={endpoint.id} endpoint={endpoint} used={usedBy(state, endpoint.id)} dispatch={dispatch} />
         ))}
       </div>
-      <Note>API 密钥只保存在服务端，前端原型不保存密钥。单价用于新建任务时的费用预估；本地参与方用自己的模型密钥，不经过这里。</Note>
     </>
   );
 }
@@ -35,30 +34,26 @@ function EndpointCard({ endpoint, used, dispatch }: { endpoint: Endpoint; used: 
   const configured = isConfigured(endpoint);
   const fallback = endpoint.id === DEFAULT_ENDPOINT_ID;
   return (
-    <Panel
-      title={endpoint.name}
-      id={`endpoint-${endpoint.id}`}
-      extra={configured ? <Badge>未测试</Badge> : <Badge tone="sample">预留 · 待配置</Badge>}
-    >
+    <section className="endpoint-card" aria-labelledby={`endpoint-${endpoint.id}`}>
+      <header>
+        <h2 id={`endpoint-${endpoint.id}`}>{endpoint.name}</h2>
+        {configured ? null : <StatusPill tone="warning">待配置</StatusPill>}
+      </header>
       <dl className="facts">
-        <div><dt>接口类型</dt><dd>OpenAI 兼容（chat/completions）</dd></div>
-        <div><dt>接口地址</dt><dd>{endpoint.baseUrl ? <code>{endpoint.baseUrl}</code> : <span className="muted">待配置</span>}</dd></div>
+        <div><dt>接口地址</dt><dd>{endpoint.baseUrl ? <code>{endpoint.baseUrl}</code> : <span className="muted">接入后端后填写</span>}</dd></div>
         <div>
           <dt>模型</dt>
           <dd>
             {endpoint.models.length
               ? <ul className="chips">{endpoint.models.map((model) => <li key={model}><code>{model}</code></li>)}</ul>
-              : <span className="muted">待配置</span>}
+              : <span className="muted">接入后端后填写</span>}
           </dd>
         </div>
-        <div><dt>任务使用</dt><dd>{used ? `${used} 个任务${fallback ? "（未单独指定模型时都用它）" : ""}` : "暂未使用"}</dd></div>
+        <div><dt>使用</dt><dd>{used ? `${used} 个任务${fallback ? "（没有单独指定模型的调用都走这里）" : ""}` : "暂未使用"}</dd></div>
       </dl>
-      {fallback && !configured ? (
-        <p className="panel-text">接入后端后在这里填写接口地址、模型和 API 密钥。没有单独指定模型的参与方和服务端调用都走这个接口。</p>
-      ) : null}
       <div className="form-grid form-grid--tight">
-        <label className="setting">
-          <span className="setting-label">并发上限</span>
+        <label className="field">
+          <span>并发上限</span>
           <input
             type="number"
             min={1}
@@ -70,8 +65,8 @@ function EndpointCard({ endpoint, used, dispatch }: { endpoint: Endpoint; used: 
             }}
           />
         </label>
-        <label className="setting">
-          <span className="setting-label">单价（元 / 百万 token）</span>
+        <label className="field">
+          <span>单价（元 / 百万 token）</span>
           <input
             type="number"
             min={0}
@@ -85,10 +80,8 @@ function EndpointCard({ endpoint, used, dispatch }: { endpoint: Endpoint; used: 
           />
         </label>
       </div>
-      <div className="detail-actions">
-        <button type="button" className="button button--secondary button--compact" disabled title="接入后端后可用">测试连通</button>
-      </div>
-    </Panel>
+      <p className="section-meta">单价用于新建任务时的费用预估。接入后端后可以测试连通。</p>
+    </section>
   );
 }
 
@@ -111,27 +104,28 @@ function NewEndpoint({ state, dispatch, onDone }: Props & { onDone: () => void }
   }
 
   return (
-    <Panel title="新增接口" id="new-endpoint">
+    <section className="form-card" aria-labelledby="new-endpoint-title">
+      <h2 id="new-endpoint-title">新增接口</h2>
       <div className="form-grid">
-        <label className="setting">
-          <span className="setting-label">名称</span>
+        <label className="field">
+          <span>名称</span>
           <input value={name} maxLength={30} onChange={(event) => setName(event.target.value)} placeholder="例如：实验室模型服务" />
         </label>
-        <label className="setting">
-          <span className="setting-label">接口地址</span>
+        <label className="field">
+          <span>接口地址</span>
           <input value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} placeholder="https://…/v1" aria-invalid={baseUrl !== "" && !validUrl} />
-          {baseUrl !== "" && !validUrl ? <small className="setting-error">以 http:// 或 https:// 开头</small> : null}
+          {baseUrl !== "" && !validUrl ? <span className="field-error">以 http:// 或 https:// 开头</span> : null}
         </label>
-        <label className="setting setting--wide">
-          <span className="setting-label">模型（每行一个，或用逗号分隔）</span>
-          <textarea rows={3} value={models} onChange={(event) => setModels(event.target.value)} placeholder="模型名称，每行一个" />
+        <label className="field field--wide">
+          <span>模型（每行一个，或用逗号分隔）</span>
+          <textarea rows={3} value={models} onChange={(event) => setModels(event.target.value)} placeholder="模型名称" />
         </label>
-        <label className="setting">
-          <span className="setting-label">并发上限</span>
+        <label className="field">
+          <span>并发上限</span>
           <input type="number" min={1} max={256} value={concurrency} onChange={(event) => setConcurrency(Math.max(1, Math.min(256, Number.parseInt(event.target.value, 10) || 1)))} />
         </label>
-        <label className="setting">
-          <span className="setting-label">API 密钥</span>
+        <label className="field">
+          <span>API 密钥</span>
           <input type="password" disabled placeholder="接入后端后填写，只保存在服务端" />
         </label>
       </div>
@@ -139,6 +133,6 @@ function NewEndpoint({ state, dispatch, onDone }: Props & { onDone: () => void }
         <button type="button" className="button button--secondary" onClick={onDone}>取消</button>
         <button type="button" className="button button--primary" disabled={!ready} onClick={save}>保存</button>
       </div>
-    </Panel>
+    </section>
   );
 }

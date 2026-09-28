@@ -1,13 +1,13 @@
 /**
- * ECharts 的薄封装：按需引入折线图，SVG 渲染，随容器宽度自适应。
+ * ECharts 的薄封装：按需引入条形图和散点图（用来画"第 1 轮 → 最后一轮"的哑铃图），SVG 渲染，随容器宽度自适应。
  */
 import { useEffect, useRef } from "react";
-import { LineChart } from "echarts/charts";
+import { BarChart, ScatterChart } from "echarts/charts";
 import { GridComponent, LegendComponent, TooltipComponent } from "echarts/components";
 import * as echarts from "echarts/core";
 import { SVGRenderer } from "echarts/renderers";
 
-echarts.use([LineChart, GridComponent, LegendComponent, TooltipComponent, SVGRenderer]);
+echarts.use([BarChart, ScatterChart, GridComponent, LegendComponent, TooltipComponent, SVGRenderer]);
 
 export type ChartOption = echarts.EChartsCoreOption;
 

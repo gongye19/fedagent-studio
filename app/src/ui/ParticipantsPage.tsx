@@ -3,25 +3,15 @@ import { HOSTING_LABELS, PARTICIPANT_STATUS, type Dataset, type Hosting, type Pa
 import { checkJsonl, MAX_FILE_BYTES, type JsonlCheck } from "../domain/validate";
 import { hrefOf, navigate } from "../state/route";
 import { datasetsOf, taskCountOf, type Action, type State } from "../state/store";
-import { Badge, PageHead, Panel, StatusPill, type Tone } from "./common";
+import { PageHead, StatusPill } from "./common";
 import { formatNumber } from "./format";
 import { Icon } from "./icons";
 
 type Props = { state: State; dispatch: Dispatch<Action>; selectedId?: string };
 
-const STATUS_TONE: Record<Participant["status"], Tone> = { online: "success", offline: "neutral", waiting: "warning" };
-
-const HOSTING_DETAIL: Record<Hosting, { where: string; uploads: string; fits: string }> = {
-  platform: {
-    where: "题库上传到平台，由平台运行这个参与方的 Agent",
-    uploads: "平台能看到题库；服务端步骤仍然只用 trace",
-    fits: "公开数据、演示、算法验证",
-  },
-  local: {
-    where: "题库和模型密钥留在参与方自己的环境，由参与方运行客户端",
-    uploads: "只有 trace 离开参与方，上传前可以先审查",
-    fits: "真实的跨机构联邦",
-  },
+const HOSTING_DETAIL: Record<Hosting, string> = {
+  platform: "题库上传到平台，由平台运行这一方的 Agent。平台能看到题库，适合公开数据和演示。",
+  local: "题库和模型密钥留在参与方自己的环境，由参与方运行客户端，每轮只上传 trace。适合真实的跨机构联邦。",
 };
 
 function newId(prefix: string): string {
@@ -31,6 +21,12 @@ function newId(prefix: string): string {
 export default function ParticipantsPage({ state, dispatch, selectedId }: Props) {
   const [adding, setAdding] = useState(false);
   const toggle = (id: string) => navigate(selectedId === id ? { page: "participants" } : { page: "participants", id }, { keepScroll: true });
+  const builtin = state.participants.filter((participant) => participant.builtin);
+  const others = state.participants.filter((participant) => !participant.builtin);
+  const groups = [
+    { key: "others", title: "添加的参与方", note: null, members: others },
+    { key: "builtin", title: "内置示例", note: "平台托管，各持一份数学题库", members: builtin },
+  ].filter((group) => group.members.length);
 
   return (
     <>
@@ -40,56 +36,48 @@ export default function ParticipantsPage({ state, dispatch, selectedId }: Props)
         actions={adding ? null : <button type="button" className="button button--primary" onClick={() => setAdding(true)}><Icon name="plus" />新增参与方</button>}
       />
 
-      <div className="hosting-grid" aria-label="两种运行位置">
-        {(["platform", "local"] as const).map((hosting) => (
-          <div key={hosting} className="hosting-card">
-            <strong>{HOSTING_LABELS[hosting]}</strong>
-            <dl>
-              <div><dt>运行</dt><dd>{HOSTING_DETAIL[hosting].where}</dd></div>
-              <div><dt>数据</dt><dd>{HOSTING_DETAIL[hosting].uploads}</dd></div>
-              <div><dt>适合</dt><dd>{HOSTING_DETAIL[hosting].fits}</dd></div>
-            </dl>
-          </div>
-        ))}
-      </div>
-
       {adding ? <NewParticipant dispatch={dispatch} onDone={(id) => { setAdding(false); if (id) navigate({ page: "participants", id }, { keepScroll: true }); }} /> : null}
 
-      <Panel title="参与方" id="participants" flush extra={<small className="muted">点一行查看详情</small>}>
-        <div className="table-wrap">
-          <table className="table table--rows table--stack">
-            <thead>
-              <tr>
-                <th scope="col">参与方</th>
-                <th scope="col">运行位置</th>
-                <th scope="col">题库</th>
-                <th scope="col" className="numeric">题目</th>
-                <th scope="col">状态</th>
-                <th scope="col" className="numeric">参加任务</th>
+      <div className="table-shell">
+        <table className="table table--rows">
+          <thead>
+            <tr>
+              <th scope="col">参与方</th>
+              <th scope="col" className="numeric">题目</th>
+              <th scope="col" className="numeric">参加任务</th>
+            </tr>
+          </thead>
+          {groups.map((group) => (
+            <tbody key={group.key}>
+              <tr className="group-row">
+                <th scope="colgroup" colSpan={3}>{group.title} · {group.members.length}{group.note ? <span>{group.note}</span> : null}</th>
               </tr>
-            </thead>
-            <tbody>
-              {state.participants.map((participant) => {
+              {group.members.map((participant) => {
                 const datasets = datasetsOf(state, participant.id);
                 const open = selectedId === participant.id;
+                const flags = [
+                  participant.hosting === "local" ? HOSTING_LABELS.local : null,
+                  participant.status !== "online" ? PARTICIPANT_STATUS[participant.status] : null,
+                ].filter((flag): flag is string => Boolean(flag));
                 return (
                   <Fragment key={participant.id}>
                     <tr className={open ? "row--open" : undefined}>
                       <th scope="row">
                         <button type="button" className="row-button" aria-expanded={open} onClick={() => toggle(participant.id)}>
                           <Icon name="chevron" />
-                          <span>{participant.name}<small>{participant.org || "未填写机构"}</small></span>
+                          <span className="row-title">
+                            {participant.name}
+                            {participant.org && !participant.builtin ? <small>{participant.org}</small> : null}
+                          </span>
+                          {flags.map((flag) => <StatusPill key={flag} tone={flag === PARTICIPANT_STATUS.waiting ? "warning" : "neutral"}>{flag}</StatusPill>)}
                         </button>
                       </th>
-                      <td data-label="运行位置">{HOSTING_LABELS[participant.hosting]}</td>
-                      <td data-label="题库">{datasets.length ? datasets.map((dataset) => dataset.name).join("、") : <span className="muted">未登记</span>}</td>
-                      <td className="numeric" data-label="题目">{formatNumber(datasets.reduce((sum, dataset) => sum + dataset.count, 0))}</td>
-                      <td data-label="状态"><StatusPill tone={STATUS_TONE[participant.status]}>{PARTICIPANT_STATUS[participant.status]}</StatusPill></td>
+                      <td className="numeric" data-label="题目">{datasets.length ? formatNumber(datasets.reduce((sum, dataset) => sum + dataset.count, 0)) : <span className="muted">未登记</span>}</td>
                       <td className="numeric" data-label="参加任务">{taskCountOf(state, participant.id)}</td>
                     </tr>
                     {open ? (
                       <tr className="detail-row">
-                        <td colSpan={6}>
+                        <td colSpan={3}>
                           <ParticipantDetail participant={participant} datasets={datasets} dispatch={dispatch} />
                         </td>
                       </tr>
@@ -98,9 +86,9 @@ export default function ParticipantsPage({ state, dispatch, selectedId }: Props)
                 );
               })}
             </tbody>
-          </table>
-        </div>
-      </Panel>
+          ))}
+        </table>
+      </div>
     </>
   );
 }
@@ -109,7 +97,7 @@ function ParticipantDetail({ participant, datasets, dispatch }: { participant: P
   const [uploading, setUploading] = useState(false);
 
   function remove() {
-    if (window.confirm(`删除参与方"${participant.name}"和它的题库？已有任务里的记录不受影响。`)) {
+    if (window.confirm(`删除参与方“${participant.name}”和它的题库？已有任务里的记录不受影响。`)) {
       dispatch({ type: "removeParticipant", id: participant.id });
       navigate({ page: "participants" }, { keepScroll: true });
     }
@@ -117,46 +105,41 @@ function ParticipantDetail({ participant, datasets, dispatch }: { participant: P
 
   return (
     <div className="participant-detail">
-      <p>{participant.intro || "没有简介。"}</p>
+      <p className="detail-lede">{participant.intro || "没有简介。"}</p>
       {participant.hosting === "local" ? <LocalConnect /> : null}
       {datasets.map((dataset) => (
-        <div key={dataset.id} className="dataset-card">
-          <div className="dataset-head">
-            <strong>{dataset.name}</strong>
-            <span className="muted">{dataset.description}</span>
-            <Badge>{dataset.source === "builtin" ? "内置" : "上传"}</Badge>
-          </div>
+        <div key={dataset.id} className="dataset-info">
+          <h3>{dataset.name}<span>{dataset.description}</span></h3>
           <dl className="facts facts--row">
             <div><dt>题目</dt><dd>{formatNumber(dataset.count)}</dd></div>
             <div><dt>带答案</dt><dd>{formatNumber(dataset.answered)}</dd></div>
             <div><dt>字段</dt><dd><code>id</code> <code>question</code> <code>answer</code></dd></div>
+            <div><dt>来源</dt><dd>{dataset.source === "builtin" ? "FoT 复现包" : "上传"}</dd></div>
           </dl>
           {dataset.sample ? (
             <div className="sample-question">
               <span>样例题</span>
               <p lang="en">{dataset.sample.question}</p>
-              {dataset.sample.answer ? <small lang="en">答案：{dataset.sample.answer}</small> : null}
+              {dataset.sample.answer ? <p className="sample-answer" lang="en">答案：{dataset.sample.answer}</p> : null}
             </div>
           ) : null}
         </div>
       ))}
-      {participant.hosting === "platform" && !participant.builtin ? (
-        uploading ? (
-          <DatasetForm
-            participantId={participant.id}
-            onCancel={() => setUploading(false)}
-            onSave={(dataset) => { dispatch({ type: "addDataset", dataset }); setUploading(false); }}
-          />
-        ) : null
+      {participant.hosting === "platform" && !participant.builtin && uploading ? (
+        <DatasetForm
+          participantId={participant.id}
+          onCancel={() => setUploading(false)}
+          onSave={(dataset) => { dispatch({ type: "addDataset", dataset }); setUploading(false); }}
+        />
       ) : null}
-      <div className="detail-actions">
-        {participant.hosting === "platform" && !participant.builtin && !uploading ? (
-          <button type="button" className="button button--secondary button--compact" onClick={() => setUploading(true)}><Icon name="upload" />上传题库</button>
-        ) : null}
-        {!participant.builtin ? (
+      {participant.builtin ? null : (
+        <div className="detail-actions">
+          {participant.hosting === "platform" && !uploading ? (
+            <button type="button" className="button button--secondary button--compact" onClick={() => setUploading(true)}><Icon name="upload" />上传题库</button>
+          ) : null}
           <button type="button" className="button button--ghost button--compact button--danger" onClick={remove}>删除参与方</button>
-        ) : <span className="muted">内置示例参与方不能删除</span>}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -164,18 +147,14 @@ function ParticipantDetail({ participant, datasets, dispatch }: { participant: P
 function LocalConnect() {
   return (
     <div className="connect-steps">
-      <strong>在参与方的环境里连接</strong>
-      <ol>
-        <li>安装客户端</li>
-        <li>登记题库并连接平台</li>
-        <li>客户端用参与方自己的模型密钥解题，每轮只上传 trace；加 <code>--review</code> 可以在上传前逐条确认。</li>
-      </ol>
+      <h3>在参与方的环境里连接</h3>
+      <p className="detail-lede">安装客户端，登记题库并连接平台。客户端用参与方自己的模型解题，每轮只上传 trace；加 <code>--review</code> 可以在上传前逐条确认。</p>
       <pre className="code-block code-block--wrap">{`pip install fedagent-client
 fedagent-client connect \\
   --server https://<平台地址> \\
   --token <平台签发的令牌> \\
   --data ./questions.jsonl --review`}</pre>
-      <small className="muted">客户端尚未发布。连上之前这个参与方显示"等待连接"，不能加入任务。</small>
+      <p className="section-meta">客户端尚未发布。连上之前显示“等待连接”，不能加入任务。</p>
     </div>
   );
 }
@@ -204,42 +183,39 @@ function NewParticipant({ dispatch, onDone }: { dispatch: Dispatch<Action>; onDo
   }
 
   return (
-    <Panel title="新增参与方" id="new-participant">
+    <section className="form-card" aria-labelledby="new-participant-title">
+      <h2 id="new-participant-title">新增参与方</h2>
       <div className="form-grid">
-        <label className="setting">
-          <span className="setting-label">名称</span>
+        <label className="field">
+          <span>名称</span>
           <input value={name} maxLength={40} onChange={(event) => setName(event.target.value)} placeholder="例如：某高校数学组" />
         </label>
-        <label className="setting">
-          <span className="setting-label">所属机构</span>
-          <input value={org} maxLength={40} onChange={(event) => setOrg(event.target.value)} placeholder="可不填" />
+        <label className="field">
+          <span>所属机构（可不填）</span>
+          <input value={org} maxLength={40} onChange={(event) => setOrg(event.target.value)} />
         </label>
-        <label className="setting setting--wide">
-          <span className="setting-label">简介</span>
+        <label className="field field--wide">
+          <span>简介（可不填）</span>
           <input value={intro} maxLength={120} onChange={(event) => setIntro(event.target.value)} placeholder="这个参与方的数据是什么、来自哪里" />
         </label>
-        <fieldset className="setting setting--wide">
-          <legend className="setting-label">运行位置</legend>
+        <fieldset className="field field--wide">
+          <legend>运行位置</legend>
           <div className="radio-row">
             {(["platform", "local"] as const).map((option) => (
               <label key={option} className={`radio-card${hosting === option ? " radio-card--checked" : ""}`}>
                 <input type="radio" name="hosting" checked={hosting === option} onChange={() => setHosting(option)} />
-                <span><strong>{HOSTING_LABELS[option]}</strong><small>{HOSTING_DETAIL[option].where}</small></span>
+                <span><strong>{HOSTING_LABELS[option]}</strong><small>{HOSTING_DETAIL[option]}</small></span>
               </label>
             ))}
           </div>
         </fieldset>
       </div>
-      {hosting === "platform" ? (
-        <DatasetPicker onChange={setDataset} />
-      ) : (
-        <LocalConnect />
-      )}
+      {hosting === "platform" ? <DatasetPicker onChange={setDataset} /> : <LocalConnect />}
       <div className="form-actions">
         <button type="button" className="button button--secondary" onClick={() => onDone()}>取消</button>
         <button type="button" className="button button--primary" disabled={!ready} onClick={save}>保存</button>
       </div>
-    </Panel>
+    </section>
   );
 }
 
@@ -302,7 +278,7 @@ function DatasetPicker({ onChange }: { onChange: (dataset: Omit<Dataset, "partic
         <input type="file" accept=".jsonl,.json,application/json" onChange={(event) => pick(event.target.files?.[0])} />
         <Icon name="upload" />
         <strong>{file ? file.name : "选择题库文件（JSONL）"}</strong>
-        <small>每行一道题：<code>{`{"id": "q1", "question": "…", "answer": "…"}`}</code>；answer 可以没有。文件只在浏览器里检查，不会上传。</small>
+        <span>每行一道题：<code>{`{"id": "q1", "question": "…", "answer": "…"}`}</code>，answer 可以没有。文件只在浏览器里检查，不会上传。</span>
       </label>
       {file ? (
         <div className={`check-result${file.check?.ok ? " check-result--ok" : " check-result--failed"}`} aria-live="polite">
@@ -324,17 +300,17 @@ function DatasetPicker({ onChange }: { onChange: (dataset: Omit<Dataset, "partic
       ) : null}
       {file?.check?.ok ? (
         <div className="form-grid">
-          <label className="setting">
-            <span className="setting-label">题库名称</span>
+          <label className="field">
+            <span>题库名称</span>
             <input value={title} placeholder={file.name.replace(/\.jsonl?$/i, "")} maxLength={40} onChange={(event) => { setTitle(event.target.value); emit(file, event.target.value, description); }} />
           </label>
-          <label className="setting">
-            <span className="setting-label">说明</span>
+          <label className="field">
+            <span>说明</span>
             <input value={description} placeholder="例如：2024 年校内竞赛题" maxLength={60} onChange={(event) => { setDescription(event.target.value); emit(file, title, event.target.value); }} />
           </label>
         </div>
       ) : null}
-      <p className="panel-foot">第一版只支持数学推理题（按 <code>\boxed{}</code> 里的答案判分）。<a className="text-link" href={hrefOf({ page: "newTask", scenario: "horizontal" })}>保存后可在新建任务里选择</a></p>
+      <p className="section-meta">第一版只支持数学推理题（按 <code>\boxed{}</code> 里的答案判分）。<a className="text-link" href={hrefOf({ page: "newTask", scenario: "horizontal" })}>保存后可在新建任务里选择</a></p>
     </div>
   );
 }

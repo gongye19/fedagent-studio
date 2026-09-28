@@ -13,7 +13,7 @@ const LOCAL_EXAMPLE: Participant = {
   id: "p-local-example",
   name: "示例合作方",
   org: "示例机构",
-  intro: "在自己的环境运行客户端的参与方：题库和模型密钥都留在本地，只上传 trace。连上客户端之前不能加入任务。",
+  intro: "演示用的本地参与方，还没有连上客户端。",
   hosting: "local",
   status: "waiting",
 };
@@ -64,7 +64,7 @@ function completedPaperTask(): Task {
 function runningTrialTask(): Task {
   const task = createTask({
     id: "task-trial-4",
-    name: "横向 · FoT · 4 方 · 试跑",
+    name: "快速试跑 · 4 个题库",
     createdAt: "2026-09-28T15:30:00+08:00",
     config: seedConfig({ mode: "trial", trialCap: 5, rounds: 2, datasetIds: ["ds-aime24", "ds-amc", "ds-ccee", "ds-cnmo"] }),
     datasets: BUILTIN_DATASETS,

@@ -8,19 +8,14 @@ import LibrariesPage from "./ui/LibrariesPage";
 import LibraryPage from "./ui/LibraryPage";
 import ModelsPage from "./ui/ModelsPage";
 import NewTaskPage from "./ui/NewTaskPage";
-import OverviewPage from "./ui/OverviewPage";
 import ParticipantsPage from "./ui/ParticipantsPage";
 import TaskPage from "./ui/TaskPage";
 import TasksPage from "./ui/TasksPage";
 
-type NavKey = "overview" | "tasks" | "libraries" | "participants" | "models";
+type NavKey = "tasks" | "libraries" | "participants" | "models";
 
 function navKeyOf(route: Route): NavKey {
   switch (route.page) {
-    case "tasks":
-    case "newTask":
-    case "task":
-      return "tasks";
     case "libraries":
     case "library":
       return "libraries";
@@ -29,7 +24,7 @@ function navKeyOf(route: Route): NavKey {
     case "models":
       return "models";
     default:
-      return "overview";
+      return "tasks";
   }
 }
 
@@ -37,7 +32,6 @@ const NAV: readonly { group: string; items: readonly { key: NavKey; label: strin
   {
     group: "工作区",
     items: [
-      { key: "overview", label: "总览", route: { page: "overview" } },
       { key: "tasks", label: "联邦任务", route: { page: "tasks" } },
       { key: "libraries", label: "洞见库", route: { page: "libraries" } },
     ],
@@ -77,8 +71,6 @@ export default function App() {
 
 function Page({ state, dispatch, route }: { state: State; dispatch: Dispatch<Action>; route: Route }) {
   switch (route.page) {
-    case "tasks":
-      return <TasksPage state={state} />;
     case "newTask":
       return <NewTaskPage state={state} dispatch={dispatch} scenario={route.scenario} />;
     case "task": {
@@ -98,7 +90,7 @@ function Page({ state, dispatch, route }: { state: State; dispatch: Dispatch<Act
     case "models":
       return <ModelsPage state={state} dispatch={dispatch} />;
     default:
-      return <OverviewPage state={state} dispatch={dispatch} />;
+      return <TasksPage state={state} />;
   }
 }
 
@@ -111,12 +103,9 @@ function Sidebar({ route, state, onReset }: { route: Route; state: State; onRese
   return (
     <aside className={`sidebar${open ? " sidebar--open" : ""}`}>
       <div className="sidebar-top">
-        <a className="wordmark" href={hrefOf({ page: "overview" })} aria-label="Federation Studio 总览" onClick={close}>
-          <span aria-hidden="true">F</span>
-          <div>
-            <strong>Federation Studio</strong>
-            <small>联邦 Agent 平台</small>
-          </div>
+        <a className="wordmark" href={hrefOf({ page: "tasks" })} onClick={close}>
+          <strong>Federation Studio</strong>
+          <small>联邦 Agent 平台</small>
         </a>
         <button type="button" className="menu-button" aria-expanded={open} aria-controls="main-nav" onClick={() => setOpen((value) => !value)}>
           {open ? "收起" : "菜单"}

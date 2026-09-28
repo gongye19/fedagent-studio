@@ -212,11 +212,13 @@ export function toDraft(config: TaskConfig, name = ""): Draft {
   return { ...config, name, datasetIds: [...config.datasetIds], clientOverrides: { ...config.clientOverrides } };
 }
 
-export function defaultTaskName(draft: Pick<Draft, "scenario" | "algorithm" | "datasetIds" | "mode">): string {
-  if (!draft.scenario || !draft.algorithm) return "新任务";
-  const parts = [scenarioOf(draft.scenario).name.replace(" Agent", ""), algorithmOf(draft.algorithm).name, `${draft.datasetIds.length} 方`];
-  if (draft.mode === "trial") parts.push("试跑");
-  return parts.join(" · ");
+/**
+ * 默认任务名：算法 + 创建时间。参与方数、运行方式等已经显示在任务摘要里，不再塞进名字。
+ */
+export function defaultTaskName(draft: Pick<Draft, "algorithm">, now: Date = new Date()): string {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  const stamp = `${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  return `${draft.algorithm ? `${algorithmOf(draft.algorithm).name} 任务` : "联邦任务"} · ${stamp}`;
 }
 
 /** 算法能处理的数据（按任务类型匹配）。 */

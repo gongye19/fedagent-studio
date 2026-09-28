@@ -1,8 +1,7 @@
 /**
  * 基于 hash 的页面路由。用 hash 是为了让静态部署和本地预览都不需要服务端路由配置。
  *
- * #/                          总览
- * #/tasks                     联邦任务
+ * #/（或 #/tasks）              联邦任务（首页）
  * #/tasks/new[/场景]           新建联邦任务
  * #/tasks/:id[/标签]           任务详情
  * #/libraries                 洞见库
@@ -13,14 +12,13 @@
 import { useEffect, useState } from "react";
 import { SCENARIOS, type ScenarioId } from "../domain/catalog";
 
-export const TASK_TABS = ["results", "progress", "library", "uploads", "config"] as const;
+export const TASK_TABS = ["results", "progress", "library", "config"] as const;
 export type TaskTab = (typeof TASK_TABS)[number];
 
 export const LIBRARY_TABS = ["insights", "try", "integrate"] as const;
 export type LibraryTab = (typeof LIBRARY_TABS)[number];
 
 export type Route =
-  | { page: "overview" }
   | { page: "tasks" }
   | { page: "newTask"; scenario?: ScenarioId }
   | { page: "task"; id: string; tab?: TaskTab }
@@ -48,15 +46,13 @@ export function parseHash(hash: string): Route {
     case "models":
       return { page: "models" };
     default:
-      return { page: "overview" };
+      return { page: "tasks" };
   }
 }
 
 export function hrefOf(route: Route): string {
   const part = (value: string) => encodeURIComponent(value);
   switch (route.page) {
-    case "tasks":
-      return "#/tasks";
     case "newTask":
       return route.scenario ? `#/tasks/new/${route.scenario}` : "#/tasks/new";
     case "task":

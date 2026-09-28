@@ -1,9 +1,7 @@
-/** 任务相关的展示文字：状态色、当前步骤、摘要、轮次和洞见库版本的叫法。 */
-import { algorithmOf, FOT_STAGES, scenarioOf, stageOf } from "../domain/catalog";
+/** 任务相关的展示文字：状态色、当前步骤、摘要、轮次和洞见库版本的叫法，以及列表排序。 */
+import { algorithmOf, stageOf } from "../domain/catalog";
 import { totalProblems, type LibraryVersion, type Task } from "../domain/task";
 import type { Tone } from "./common";
-
-const CIRCLED = ["①", "②", "③", "④", "⑤", "⑥"];
 
 export function statusTone(task: Task): Tone {
   switch (task.status) {
@@ -11,23 +9,34 @@ export function statusTone(task: Task): Tone {
       return "info";
     case "paused":
       return "warning";
-    case "completed":
-      return "success";
     default:
       return "neutral";
   }
 }
 
-/** 当前停在哪一轮哪一步。 */
-export function stageText(task: Task): string {
-  if (!task.cursor) return `${task.config.rounds} 轮全部完成`;
-  const index = FOT_STAGES.findIndex((stage) => stage.id === task.cursor?.stage);
-  return `第 ${task.cursor.round} / ${task.config.rounds} 轮 · ${CIRCLED[index]} ${stageOf(task.cursor.stage).label}`;
+/** 当前停在哪一轮哪一步；完成的任务返回 null。 */
+export function stageText(task: Task): string | null {
+  if (!task.cursor) return null;
+  return `第 ${task.cursor.round} / ${task.config.rounds} 轮 · ${stageOf(task.cursor.stage).label}`;
 }
 
+/** 列表和详情页标题下的一行摘要。场景由算法决定（FoT 只属于横向），不再重复。 */
 export function taskSummary(task: Task): string {
-  const mode = task.config.mode === "trial" ? `试跑（每份前 ${task.config.trialCap} 题）` : "正式运行";
-  return `${scenarioOf(task.config.scenario).name} · ${algorithmOf(task.config.algorithm).name} · ${task.members.length} 方 · ${totalProblems(task)} 题 · ${mode}`;
+  const mode = task.config.mode === "trial" ? "试跑" : "正式运行";
+  return `${algorithmOf(task.config.algorithm).name} · ${task.members.length} 方 · ${totalProblems(task)} 题 · ${mode}`;
+}
+
+/** 运行中、暂停的任务排在前面，其余按创建时间从新到旧。 */
+export function sortTasks(tasks: readonly Task[]): Task[] {
+  const rank = (task: Task) => (task.status === "running" ? 0 : task.status === "paused" ? 1 : 2);
+  return [...tasks].sort((a, b) => rank(a) - rank(b) || b.createdAt.localeCompare(a.createdAt));
+}
+
+/** 嵌进中文句子的名称：以英文或数字开头 / 结尾时补一个空格，中文开头就不加。 */
+export function inline(text: string): string {
+  const start = /^[A-Za-z0-9]/.test(text) ? " " : "";
+  const end = /[A-Za-z0-9)]$/.test(text) ? " " : "";
+  return `${start}${text}${end}`;
 }
 
 /** 变化的颜色：上升绿、下降红，持平不着色。 */

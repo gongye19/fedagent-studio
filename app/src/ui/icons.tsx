@@ -1,5 +1,5 @@
 /** 统一线宽的小图标，替代 ✓ ✕ ! 这类字符。 */
-export type IconName = "check" | "x" | "alert" | "chevron" | "plus" | "download" | "pause" | "play" | "stop" | "copy" | "upload";
+export type IconName = "check" | "x" | "alert" | "chevron" | "plus" | "minus" | "arrow" | "download" | "pause" | "play" | "stop" | "copy" | "upload";
 
 const PATHS: Record<IconName, string> = {
   check: "M3.5 8.5 6.5 11.5 12.5 4.5",
@@ -7,6 +7,8 @@ const PATHS: Record<IconName, string> = {
   alert: "M8 3.5V9M8 11.75V12",
   chevron: "M6 3.5 10.5 8 6 12.5",
   plus: "M8 3.5V12.5M3.5 8H12.5",
+  minus: "M3.5 8H12.5",
+  arrow: "M3 8H13M9.5 4.5 13 8 9.5 11.5",
   download: "M8 2.5V10M4.75 7 8 10.25 11.25 7M3 13H13",
   pause: "M5.5 3.5V12.5M10.5 3.5V12.5",
   play: "M5 3.5 12 8 5 12.5Z",

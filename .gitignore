@@ -8,3 +8,4 @@ app/coverage/
 app/*.log
 app/*.local
 
+.impeccable/
