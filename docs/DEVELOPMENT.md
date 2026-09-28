@@ -4,6 +4,7 @@
 
 - Node.js 20.19+ 或 22.12+
 - npm 10+
+- 以后的后端：Python 3.11+，用 uv 在项目目录内建虚拟环境（`server/.venv`），不全局安装。
 
 ```bash
 cd app
@@ -30,80 +31,70 @@ npm run check
 ```text
 app/src/
 ├── domain/
-│   ├── taxonomy.ts     场景、算力规格、部署位置、数据类型、模型（注册表）
-│   ├── dimensions.ts   7 个维度及 22 个子项：候选、锁定、推荐默认值
-│   ├── selection.ts    配置引擎：逐项校验、补推荐值、选择与取消场景
-│   ├── plan.ts         FrontendRunPlan、配置清单、资源与耗时预估
-│   ├── project.ts      项目、成员与组队规则、开始条件、交付对象、邀请
-│   ├── run.ts          Run 生命周期状态机（不含场景分支）
-│   ├── simulator.ts    按执行模式生成阶段内容、准入报告、评测报告
-│   ├── inputs.ts       数据要求、上传检查、节点交付方式
-│   └── demo.ts         示例机构与评测指标（演示数据）
+│   ├── catalog.ts      场景与算法注册表、FoT 的 6 步、任务类型与评分方式
+│   ├── resources.ts    参与方（两种运行位置）、数据集、模型接口，内置的 8 个题库
+│   ├── config.ts       任务配置：默认值、草稿校验、选场景 / 算法 / 数据、调用量与费用预估
+│   ├── task.ts         任务状态机：创建、按轮推进 6 步、暂停 / 继续 / 取消、指标
+│   ├── sample.ts       示例数据：准确率、trace 数、洞见库、token（确定性生成）
+│   └── validate.ts     题库 JSONL 检查
 ├── state/
-│   ├── store.ts        页面状态与 reducer（节点、数据、项目、邀请、配置草稿）
-│   ├── seed.ts         体验模式的初始数据
-│   ├── simulation.ts   从状态推导待发生的模拟事件并计时派发
+│   ├── store.ts        页面状态与 reducer
+│   ├── seed.ts         初始数据：示例参与方、模型接口、已完成的示例任务、正在试跑的任务
+│   ├── simulation.ts   有运行中的任务时定时推进
 │   ├── persistence.ts  浏览器本地保存与恢复
 │   └── route.ts        hash 路由
 ├── ui/
-│   ├── WorkbenchPage.tsx   工作台
-│   ├── NewProjectPage.tsx  新建项目（配置表单 + 订单摘要 + 手机端订单栏）
-│   ├── ConfigForm.tsx      7 个维度的配置表单
-│   ├── OrderSummary.tsx    订单摘要
-│   ├── ConfigSummary.tsx   只读配置清单（项目配置步骤、邀请页）
-│   ├── ProjectPage.tsx     项目详情与七步时间轴
-│   ├── ParticipantsStep.tsx 参与要求、成员进度、邀请、组织内部节点、上传
-│   ├── NodeBinding.tsx     选择节点和数据（含交付新节点）
-│   ├── StageStep.tsx       准入、创建环境、执行、评测视图
-│   ├── DeliveryStep.tsx    交付确认
-│   ├── InvitationPage.tsx  邀请详情与加入
-│   ├── common.tsx / icons.tsx / format.ts / progress.ts / flow.ts
-├── App.tsx
+│   ├── OverviewPage.tsx     总览
+│   ├── TasksPage.tsx        任务列表
+│   ├── NewTaskPage.tsx      新建联邦任务（分段选择 + 右侧配置清单 + 手机端操作栏）
+│   ├── TaskPage.tsx         任务详情（task/ 下是各标签页）
+│   ├── LibrariesPage.tsx    已发布的洞见库
+│   ├── LibraryPage.tsx      洞见库详情：洞见、试用、接入方式
+│   ├── ParticipantsPage.tsx 参与方与数据、题库上传
+│   ├── ModelsPage.tsx       模型接口
+│   ├── Chart.tsx            ECharts 封装（按需加载）
+│   ├── TaskTable.tsx / common.tsx / labels.ts / format.ts / icons.tsx
+├── App.tsx             外框与侧栏导航
 ├── main.tsx
 └── styles.css
 ```
 
-## 增加一个选项、模型或场景
+## 增加一个算法
 
-入口是注册表，组件和状态机不需要改：
+入口是注册表：
 
-1. **新选项**：在 `dimensions.ts` 对应子项的 `candidates` 中加入，并写明适用条件（返回 `null` 表示不适用，`when(choice, 条件)` 表示条件不满足时置灰）；需要推荐值时补 `preferred`。
-2. **新模型**：在 `taxonomy.ts` 的 `MODELS` 中加入，声明数据类型、模型族、算力要求（大模型另声明 LoRA / QLoRA 显存）和每轮耗时；`plan.ts` 按模型族推导交换对象和交付物。
-3. **新场景**：在 `SCENARIOS` 中加入接入方式、执行模式和执行框架，在 `DATA_TYPES` 和 `MODELS` 中补齐对应条目，并在 `simulator.ts` 为新的执行模式补充执行内容。
-4. 在 `inputs.ts` 补充数据要求，在 `demo.ts` 补充示例机构和评测指标。
-5. 先确认符合 [DIMENSIONS.md](./DIMENSIONS.md) 的收录原则，并同步更新该文档。
-6. 测试会覆盖"每个场景选完即为完整配置、可生成计划、默认参与方能通过准入和评测"；新增的约束规则要单独补测试。
-7. 验证桌面、移动端和完整时间轴。
+1. 在 `catalog.ts` 的 `ALGORITHMS` 里登记算法：所属场景、参与方步骤和服务端步骤、适用的任务类型、是否需要标准答案、最少参与方和轮次、来源。
+2. 场景从"规划中"改为"可用"（`SCENARIOS` 的 `status`）。
+3. 新的任务类型或评分方式，在 `TASK_TYPES`、`GRADERS` 里补充；数据集的 `taskType` 与之匹配后，就会出现在新建任务的数据列表里。
+4. 算法参数有差异时，扩展 `config.ts` 的配置类型和默认值，并在"运行设置"里加对应的控件。
+5. 目前 `task.ts` 按 FoT 的 6 步推进。第二个算法接入时，把步骤列表改为从算法定义读取，再补状态机测试。
+6. 验证桌面和手机端，以及从创建到完成的全过程。
 
-## 接入真实 runner
+## 接入后端
 
-真实后端不应直接复用前端状态对象。先定义版本化 RunSpec，再实现 adapter：
+真实后端不直接复用前端状态对象：
 
-1. 前端配置提交给 API。
-2. API 重新校验并冻结 RunSpec。
-3. 编排器根据 `runner.adapter + version` 找到实现。
-4. adapter 声明镜像、命令、资源、挂载、网络和超时。
-5. runner 只返回标准化事件、输出摘要和退出状态。
-6. 评测 runner 通过后，artifact registry 才允许发布。
+1. 前端提交任务草稿，API 重新校验并冻结配置。
+2. 任务调度为任务启动引擎进程，进度和结果写入运行目录。
+3. 前端改为读 API（用 TanStack Query 轮询运行中的任务），删掉 `domain/sample.ts` 和 `tick` 模拟。
+4. 页面、任务状态机和配置校验保持不变。
 
-任何安全能力都必须由服务端验证；前端传入的安全增强只是请求，不能作为能力证明。
+后端结构、FoT 引擎的拆分方式和参数映射见 [ARCHITECTURE.md](./ARCHITECTURE.md)。
 
 ## 测试约定
 
-- `domain/*.test.ts`：纯领域规则和状态机。
-- `state/*.test.ts`：reducer、初始数据、模拟事件（用 `pendingEvents` 立即执行到稳定）、路由和本地保存。
-- UI 发生结构变化时至少做一次桌面和移动端浏览器验证。
-- 新增选项或模型必须测试适用条件、置灰规则和推导结果。
-- 修改状态机必须测试非法跳转和评测闸门。
+- `domain/*.test.ts`：配置校验与预估、题库检查、任务状态机和指标。
+- `state/*.test.ts`：reducer、初始数据和路由。
+- 示例数据要自洽：例如关系分析各类的 trace 数之和等于上传总数，后一版洞见库包含前一版。
+- 页面结构变化时，至少做一次桌面和手机端的浏览器验证。
 
 ## 提交约定
 
 建议使用简洁的 Conventional Commit：
 
 ```text
-feat: add vertical modeling scenario
-fix: align timeline connector
-docs: refresh architecture and roadmap
-test: cover security enhancement availability
+feat: add transfer scenario algorithm
+fix: keep delta column visible on phones
+docs: refresh architecture and usage flow
+test: cover library publishing
 ```
-

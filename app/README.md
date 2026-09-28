@@ -1,6 +1,6 @@
 # Federation Studio 前端
 
-React 19 + TypeScript 6 + Vite 8 的交互原型。
+联邦 Agent 平台的交互原型，基于 React 19 + TypeScript 6 + Vite 8。
 
 ```bash
 npm install
@@ -15,7 +15,14 @@ npm run dev:demo
 npm run check
 ```
 
-当前前端包含 3 个维度的配置（维度 1 场景含 5 个子项，共 7 个场景）和七步 Run 向导。页面中的 Agent、沙箱、联邦执行、评测和发布均为前端模拟，未连接真实后端。
+页面包括：
 
-项目介绍、架构、进度和扩展方式见根目录 [README](../README.md) 与 [开发说明](../docs/DEVELOPMENT.md)。
+- 总览
+- 联邦任务（新建 / 详情）
+- 洞见库（试用 / 接入）
+- 参与方与数据
+- 模型接口
 
+任务运行、准确率、trace 和洞见库都是前端模拟生成的示例数据，未连接后端。题库上传检查和导出 JSON 是真实执行的。
+
+项目介绍、使用流程和架构见根目录 [README](../README.md)，代码结构见 [开发说明](../docs/DEVELOPMENT.md)。

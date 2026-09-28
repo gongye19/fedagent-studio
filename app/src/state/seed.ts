@@ -1,120 +1,96 @@
 /**
- * 体验模式的初始数据：本机构的节点与数据、两个已有项目和一份收到的邀请。
+ * 演示环境的初始数据：8 个内置示例参与方（各持一份数学题库）、一个等待连接的本地参与方示例、
+ * 两个模型接口、一个已完成的示例任务（其最终洞见库已发布）和一个正在试跑的任务。
  *
- * 全部通过领域函数生成（与用户操作走同一套规则），界面上的对方机构都标为"示例"。
+ * 任务都通过领域函数推进生成，与用户新建的任务走同一套规则。结果都是示例数据。
  */
-import { checkUpload, dataContract } from "../domain/inputs";
-import { buildRunPlan } from "../domain/plan";
-import {
-  advanceMember,
-  bindSelf,
-  createProject,
-  deliverProject,
-  deliveryRecipients,
-  inviteMember,
-  startProjectRun,
-  type Dataset,
-  type Invitation,
-  type Project,
-  type WorkspaceNode,
-} from "../domain/project";
-import { finishStage, nextAutoStage, startStage, type Run } from "../domain/run";
-import { EMPTY_SELECTION, applyScenario } from "../domain/selection";
-import { stageWork } from "../domain/simulator";
+import { DEFAULT_DRAFT, toConfig, withDefaults, type Draft, type TaskConfig } from "../domain/config";
+import { BUILTIN_DATASETS, BUILTIN_PARTICIPANTS, DEFAULT_ENDPOINTS, type Participant } from "../domain/resources";
+import { completeStage, createTask, tick, type Task } from "../domain/task";
 import type { State } from "./store";
 
-const NODES: WorkspaceNode[] = [
-  { id: "node-sh-01", name: "上海机房-01", location: "on-prem", spec: "gpu-24", status: "online" },
-  { id: "node-bj-02", name: "北京机房-02", location: "on-prem", spec: "cpu-compute", status: "online" },
-  { id: "node-hz-01", name: "阿里云-杭州-01", location: "aliyun", spec: "gpu-16", status: "offline" },
-];
+const LOCAL_EXAMPLE: Participant = {
+  id: "p-local-example",
+  name: "示例合作方",
+  org: "示例机构",
+  intro: "在自己的环境运行客户端的参与方：题库和模型密钥都留在本地，只上传 trace。连上客户端之前不能加入任务。",
+  hosting: "local",
+  status: "waiting",
+};
 
-const DATASETS: Dataset[] = [
-  { id: "ds-qa", name: "客服问答指令集", type: "instruction", detail: "3,200 条 · chat 模板" },
-  { id: "ds-aftersale", name: "售后工单指令集", type: "instruction", detail: "2,100 条 · chat 模板" },
-  { id: "ds-image", name: "门诊影像数据", type: "image", detail: "1,240 张 · 已标注" },
-  { id: "ds-credit", name: "客户信用表", type: "table", detail: "58,000 行 · 18 列" },
-  { id: "ds-txn", name: "客户交易特征表", type: "vertical-table", detail: "52,000 用户 · 12 个特征 · 含 label 列", hasLabel: true },
-  { id: "ds-member", name: "会员消费特征表", type: "vertical-table", detail: "64,000 用户 · 15 个特征", hasLabel: false },
-];
+/** 已完成示例任务每份数据第 1–3 轮的答对题数。 */
+const PAPER_CORRECT: Record<string, readonly [number, number, number]> = {
+  "ds-aime24": [9, 11, 12],
+  "ds-aime25": [8, 9, 11],
+  "ds-amc": [26, 29, 30],
+  "ds-ccee": [28, 27, 28],
+  "ds-cnmo": [7, 8, 8],
+  "ds-wlpmc": [5, 5, 4],
+  "ds-v202412hard": [7, 8, 10],
+  "ds-v202505hard": [31, 35, 38],
+};
 
-function plan(selection: ReturnType<typeof applyScenario>) {
-  const result = buildRunPlan(selection);
-  if (!result) throw new Error("seed plan expected");
-  return result;
+function seedConfig(patch: Partial<Draft>): TaskConfig {
+  const config = toConfig(withDefaults({ scenario: "horizontal", algorithm: "fot", ...patch }));
+  if (!config) throw new Error("seed config expected");
+  return config;
 }
 
-function invitePartners(project: Project, orgs: string[], confirm: boolean): Project {
-  let next = project;
-  orgs.forEach((org, index) => {
-    next = inviteMember(next, { id: `${project.id}-p${index}`, org, simulated: true, example: true });
-    if (confirm) for (let step = 0; step < 4; step += 1) next = advanceMember(next, `${project.id}-p${index}`);
-  });
-  return next;
-}
-
-/** 按模拟器把一次运行从头跑到评测完成。 */
-function runToEvaluation(run: Run): Run {
-  let current = run;
-  let stage = nextAutoStage(current);
-  while (stage && stage !== "publish") {
-    const started = startStage(current, stage);
-    current = finishStage(started, stage, stageWork(stage, started.plan, started.participants));
-    stage = nextAutoStage(current);
-  }
+function runUntil(task: Task, stop: (task: Task) => boolean, now: string): Task {
+  let current = task;
+  for (let guard = 0; guard < 5000 && !stop(current); guard += 1) current = tick(current, now);
   return current;
 }
 
-/** 已完成的统计分析项目：本机构上传一份汇总表，三个示例统计局参与。 */
-function deliveredStatsProject(): Project {
-  let project = createProject({
-    id: "prj-population",
-    name: "多省人口结构统计",
-    plan: plan(applyScenario("federated-analytics")),
-    createdAt: "2026-09-18T09:30:00+08:00",
+function completedPaperTask(): Task {
+  const task = createTask({
+    id: "task-paper-math8",
+    name: "论文复现 · 数学 8 方",
+    createdAt: "2026-09-26T10:02:00+08:00",
+    config: seedConfig({ mode: "full", rounds: 3, datasetIds: BUILTIN_DATASETS.map((dataset) => dataset.id) }),
+    datasets: BUILTIN_DATASETS,
+    participants: BUILTIN_PARTICIPANTS,
   });
-  project = invitePartners(project, ["云南省统计局", "安徽省统计局", "浙江省统计局"], true);
-  const sample = ["region,age_group,count,sum_age", ...Array.from({ length: 118 }, (_, index) => `地区${index},60+,${800 + index},${52000 + index}`)].join("\n");
-  const check = checkUpload(dataContract("summary-table"), { name: "本机构汇总表.csv", size: sample.length, sample });
-  project = { ...project, uploads: [{ id: "upload-seed", name: "本机构汇总表.csv", size: sample.length, status: "passed", check }] };
-  project = startProjectRun(project, "run-20260918-0930", "2026-09-18T09:42:00+08:00");
-  if (project.run) project = { ...project, run: runToEvaluation(project.run) };
-  return deliverProject(project, deliveryRecipients(project));
-}
-
-/** 组队中的大模型微调项目：本机构节点已绑定，一个示例机构已确认，另一个还在等待接受邀请。 */
-function formingLoraProject(): Project {
-  let project = createProject({
-    id: "prj-lora",
-    name: "客服大模型联合微调",
-    plan: plan(applyScenario("horizontal-training")),
-    createdAt: "2026-09-24T14:10:00+08:00",
-  });
-  project = bindSelf(project, `${project.id}-self`, NODES[0], DATASETS[0]);
-  project = invitePartners(project, ["启明证券研究所"], true);
-  return inviteMember(project, { id: `${project.id}-pending`, org: "衡平律师事务所", simulated: false, example: true });
-}
-
-function verticalInvitation(): Invitation {
+  const finished = runUntil(task, (item) => item.status === "completed", "2026-09-26T13:26:00+08:00");
   return {
-    id: "inv-antifraud",
-    from: "城南银行",
-    projectName: "信用卡反欺诈联合建模",
-    receivedAt: "2026-09-25T10:05:00+08:00",
-    plan: plan(applyScenario("vertical-training")),
-    role: "特征方",
-    others: [{ org: "城南银行", role: "标签方" }],
-    status: "pending",
+    ...finished,
+    rounds: finished.rounds.map((record) => ({
+      ...record,
+      correct: Object.fromEntries(Object.entries(PAPER_CORRECT).map(([id, values]) => [id, values[record.round - 1]])),
+    })),
   };
+}
+
+function runningTrialTask(): Task {
+  const task = createTask({
+    id: "task-trial-4",
+    name: "横向 · FoT · 4 方 · 试跑",
+    createdAt: "2026-09-28T15:30:00+08:00",
+    config: seedConfig({ mode: "trial", trialCap: 5, rounds: 2, datasetIds: ["ds-aime24", "ds-amc", "ds-ccee", "ds-cnmo"] }),
+    datasets: BUILTIN_DATASETS,
+    participants: BUILTIN_PARTICIPANTS,
+  });
+  // 停在第 1 轮"反思"进行到一半，打开页面后会继续推进。
+  const solved = completeStage(task, "2026-09-28T15:31:00+08:00");
+  return tick(solved, "2026-09-28T15:31:30+08:00");
 }
 
 export function seedState(): State {
   return {
-    version: 4,
-    nodes: NODES.map((node) => ({ ...node })),
-    datasets: DATASETS.map((dataset) => ({ ...dataset })),
-    projects: [formingLoraProject(), deliveredStatsProject()],
-    invitations: [verticalInvitation()],
-    draft: EMPTY_SELECTION,
+    version: 1,
+    participants: [...BUILTIN_PARTICIPANTS.map((item) => ({ ...item })), { ...LOCAL_EXAMPLE }],
+    datasets: BUILTIN_DATASETS.map((item) => ({ ...item })),
+    endpoints: DEFAULT_ENDPOINTS.map((item) => ({ ...item, models: [...item.models] })),
+    tasks: [runningTrialTask(), completedPaperTask()],
+    published: [
+      {
+        id: "lib-paper-math8",
+        taskId: "task-paper-math8",
+        builtAfterRound: 3,
+        name: "数学推理洞见库 · 8 方",
+        publishedAt: "2026-09-26T14:05:00+08:00",
+      },
+    ],
+    draft: { ...DEFAULT_DRAFT },
   };
 }

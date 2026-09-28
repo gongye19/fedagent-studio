@@ -1,296 +1,235 @@
 # 系统架构
 
-最后复核：2026-09-28（T31：Agent 框架与适用范围）
+最后复核：2026-09-28（T33）
+状态：目标架构。前端原型已完成；后端、FoT 引擎、模型网关和参与方客户端尚未实现。
 
-## 架构原则
+![整体架构](./agent-platform-design.png)
 
-Federation Studio 采用"统一控制面 + 可替换执行后端"。平台不把所有联邦方法抽象成同一种算法，而是把它们的共同特征整理成 7 个配置维度，并统一它们共同拥有的生命周期：配置、组队、准入、运行、评测和交付。场景之间的差别落在执行模式和 runner adapter 上。
+图由 [agent-platform-design.gen.py](./agent-platform-design.gen.py) 生成：`python3 docs/agent-platform-design.gen.py docs/agent-platform-design.svg`，再用 `rsvg-convert -w 3200` 转 PNG。
 
-![平台整体架构](./platform-architecture.png)
-
-（图的源文件：`platform-architecture.svg`，由 `platform-architecture.gen.py` 生成。）
-
-- **接入层**：Web 控制台、CLI（`fedctl`）、MCP Server、SDK 都是同一套 OpenAPI 的客户端，人和 Agent 走同一条路径、同一套权限和审计。
-- **控制面**：项目与组队、配置引擎（7 个维度）、策略引擎（硬规则与审批闸门）、工作流编排、节点注册中心、身份与权限。
-- **Agent 层**：Agent 运行时只通过 MCP / CLI 调用平台，与外部 Agent 没有特权差别。
-- **执行面（平台侧）**：沙箱调度、Runner 适配器（Flower、隐语、统计服务、记忆合并服务）、独立评测环境，每次运行按需创建。
-- **参与方侧**：各机构只装一个节点程序 `fs-node`，主动出站连接平台，拉起对应的联邦运行时；原始数据只读挂载，不出域。
-- **数据与基础设施**：PostgreSQL、对象存储、产物与模型登记、审计日志、可观测性、证书与密钥、事件总线。
-
-## 分层
-
-### L1 展示与交互层
-
-位置：`app/src/App.tsx`、`app/src/ui/`、`app/src/styles.css`
-
-- 四个页面：工作台、新建项目、项目详情、邀请详情；hash 路由（`state/route.ts`）。
-- 新建项目：7 个维度从上到下全部展开，子项分可选（选项卡 / 参数选项）和锁定（显示固定值）两种；右侧订单摘要固定在视口内，手机端改为底部订单操作栏。
-- 项目详情：左侧当前步骤，右侧七步时间轴和项目概况；未手动切换时自动停在当前进度；手机端顶部显示步骤进度，操作栏吸底。
-- 组件只渲染领域层给出的候选、状态和推导结果，不复制规则。界面文案统一中文。
-
-状态：已实现前端原型。
-
-### L2 注册表
-
-位置：`app/src/domain/taxonomy.ts`、`app/src/domain/dimensions.ts`
-
-- `taxonomy.ts`：4 个场景（接入方式、执行模式、执行框架）、5 档算力规格（vCPU、内存、单卡显存）、部署位置、6 种数据类型、12 个模型（数据类型、算力要求、LoRA / QLoRA 显存）。
-- `dimensions.ts`：7 个维度的 22 个子项。每个子项按当前选择给出候选（`null` 表示不适用；只有一个候选表示锁定），以及推荐默认值。
-- 只收录最通用的方法和大模型 / Agent 相关方法；安全机制只列框架实际提供的。
-
-状态：已实现静态注册表。后续应从版本化服务端 schema 加载，能力由 runner manifest 声明。
-
-### L3 配置引擎
-
-位置：`app/src/domain/selection.ts`、`app/src/domain/plan.ts`、`app/src/domain/inputs.ts`
-
-- `normalize` 按子项顺序从上到下校验：不适用的清空，失效或未选的补上推荐值；选完场景即得到完整配置。
-- `choose` 只接受可用候选；再点一次当前场景即取消场景。
-- `buildRunPlan` 生成不可变的 `FrontendRunPlan`：配置清单、执行框架与模式、交换对象、参与要求（最少方数、节点规格、数据类型、网络）、安全机制清单、评测、交付物与交付范围、执行位置、资源与耗时预估、注意事项。
-- `inputs.ts`：每种数据类型的数据要求；文件类的 `checkUpload` 在浏览器本地抽样检查；`nodeDelivery` 给出节点交付方式。
-- 后端阶段由 policy service 重新校验，前端结果只是请求，不是能力证明。
-
-状态：前端已实现；服务端 policy service 未实现。
-
-### L4 项目、组队与运行编排
-
-位置：`app/src/domain/project.ts`、`app/src/domain/run.ts`、`app/src/domain/simulator.ts`、`app/src/state/`
-
-- 项目：发起方配置并创建；成员分本机构、本机构其他节点（组织内部联邦）、受邀机构三类；受邀机构的状态顺序固定；`readiness` 给出开始条件和阻塞原因；`projectFromInvitation` 生成本机构作为参与方的项目。
-- 工作区：本机构的节点（位置、规格、在线状态）和登记的数据（只登记描述）；节点可以按项目配置交付。
-- Run 状态机：`preflight → provision → execute → evaluate` 自动推进，`publish`（交付）需要发起方确认；准入不通过不能创建环境，评测未通过不能交付，运行开始后参与方冻结。
-- 模拟器按执行模式生成每个阶段的内容；`state/simulation.ts` 从状态推导待发生的事件（节点交付、示例机构推进、阶段推进、受邀项目的启动与交付），只负责计时和派发；`state/persistence.ts` 把演示数据保存在浏览器本地。
-
-状态：前端已实现；服务端编排、身份与邀请未实现。
-
-### L5 Runner adapter 层
-
-目标实现：`runners/` 独立服务或 worker 包。
-
-- 将 RunSpec 翻译为镜像、命令、资源、挂载、网络策略和超时。
-- 横向训练照 Flower 的方式：平台运行 SuperLink + ServerApp（聚合算法、SecAgg+、DP 包装），各方节点运行 SuperNode + ClientApp（模型、LoRA / QLoRA、本地训练轮数）。
-- 纵向训练用隐语 SecretFlow：SecureBoost（HEU，Paillier / OU）或 SS-LR（SPU 秘密分享），隐私求交用 PSI v2（ECDH / RR22）。
-- 统计汇总和记忆合并由平台服务在隔离沙箱中执行。
-- 各参与方只安装平台的节点程序（一个镜像，带 Flower 和隐语运行时），平台按项目启动对应运行时；runner 使用短期凭据，只读挂载输入，只写指定输出位置。
-
-状态：未实现。
-
-### L6 基础设施与持久化层
-
-目标组件：API、关系数据库、对象存储、任务队列、容器调度、日志和密钥服务。
-
-- 保存机构、用户、节点、数据登记、项目、成员、配置版本、Run、报告和产物谱系。
-- 启动短生命周期容器或微虚拟机，默认禁止外网。
-- 节点证书签发、邀请与授权记录、隐私预算账本。
-
-状态：未实现。
-
-## 接入方式：人和 Agent 用同一套接口
-
-平台 API 优先：先定义 OpenAPI，Web 控制台、CLI、MCP Server 和 SDK 都由它派生，任何能在界面上做的事都能用命令或工具完成，反之亦然。
-
-### CLI：`fedctl`
-
-配置是声明式的（和 7 个维度一一对应），先 `plan` 再 `apply`，与 Terraform / kubectl 的用法一致；所有命令支持 `--json` 输出和非交互参数，便于脚本和 Agent 调用。
-
-```yaml
-# project.yaml
-apiVersion: federation.studio/v1
-kind: Project
-metadata:
-  name: 客服大模型联合微调
-spec:
-  scenario: horizontal-training
-  parties:  { scale: "3-5", deployment: aliyun, compute: gpu-24, network: public }
-  data:     { type: instruction }
-  model:    { name: qwen2.5-1.5b, sharing: lora }
-  training: { aggregation: fedavg, rounds: 10, sampling: all, localEpochs: 1 }
-  security: { secagg: off, dp: off }
-  delivery: { evaluation: local, scope: all }
-  invite:   [启明证券研究所, 衡平律师事务所]
-```
+## 1. 分层
 
 ```text
-fedctl plan -f project.yaml          校验配置，输出订单摘要（资源、耗时、注意事项），不产生任何变更
-fedctl apply -f project.yaml         创建项目并发出邀请
-fedctl node join --token <项目令牌>   在参与方机器上注册并启动 fs-node
-fedctl project status <id> --json    组队进度与开始条件
-fedctl run start <id>                开始运行（需要发起方确认）
-fedctl run logs <run> --follow       阶段日志（已脱敏）
-fedctl deliver <run>                 确认交付
+使用者（发起人、参与方、管理员、外部 Agent）
+  └─ 界面 / 命令行 fedagent / 参与方客户端 fedagent-client
+       └─ 后端 REST API（同一套接口，权限与审计一致）
+            └─ 核心服务：注册表 · 任务调度 · 算法运行时（插件）· 评测与指标 · 洞见库服务
+                 ├─ 参与方步骤：平台托管的 Agent，或参与方本地的客户端（只上传 trace）
+                 ├─ 服务端步骤：汇总、关系分析、生成洞见库
+                 └─ 基础设施：模型网关（OpenAI 兼容）· 存储（SQLite + 每个任务一个运行目录）
 ```
 
-### MCP Server
+## 2. 核心对象
 
-把同一组能力暴露为 MCP 工具（`plan_project`、`create_project`、`invite_member`、`get_project_status`、`start_run`、`get_run_logs`、`list_nodes`、`diagnose_run` 等），外部 AI Agent（例如各机构自己的助手或编程 Agent）用机构授予的短期令牌直接操作平台。每个工具标注风险等级，由策略引擎决定能否直接执行。
-
-## Agent 层
-
-| Agent | 做什么 | 能做到哪一步 |
+| 对象 | 主要字段 | 说明 |
 |---|---|---|
-| 配置助手 | 把自然语言需求转成 `project.yaml` 草案，并调用 `plan` 给出订单摘要 | 只生成草案，创建项目仍需用户确认 |
-| 准入解释 | 把策略引擎的结构化结果翻译成说明和修复建议 | 只读，不能覆盖拒绝 |
-| 运维 Agent | 巡检节点版本与镜像漏洞、在沙箱中做回归验证、诊断失败的阶段 | 提出升级或重试计划；升级节点、重试运行需人工审批 |
-| 评测报告 | 把评测指标整理成报告 | 只读 |
-| 记忆合并 Agent | 在 Agent 记忆联邦中审阅互相矛盾的记忆 | 只在记忆合并沙箱内处理已脱敏的条目 |
+| 场景 Scenario | id、名称、说明、需要的数据、状态 | 横向、纵向、迁移；状态为可用或规划中 |
+| 算法 Algorithm | id、所属场景、参与方步骤、服务端步骤、适用任务类型、参数定义与默认值、产出物、来源 | 每个算法只属于一个场景 |
+| 参与方 Participant | id、名称、机构、简介、运行位置（平台托管 / 参与方本地）、状态 | 本地参与方连上客户端之前是"等待连接" |
+| 数据集 Dataset | id、名称、持有方、任务类型、题数、带答案的题数、来源、样例题 | 每份只属于一个参与方；平台只保存描述，题目内容由后端或参与方本地保存 |
+| 模型接口 Endpoint | id、名称、接口地址、模型列表、并发上限、单价 | 密钥只存服务端 |
+| 任务 Task | id、名称、冻结的配置、参与方快照、状态、当前轮次与步骤、每轮结果 | 创建后配置不变，要改就复制为新任务 |
+| 每轮结果 RoundRecord | 每方答对题数、每方上传的 trace 数、token、这一轮生成的洞见库 | 后端从运行目录的检查点读取 |
+| 洞见库版本 LibraryVersion | 生成于第几轮、洞见列表、关系分析的类别（每类来自哪些参与方）、trace 数、关系数 | 每轮一版，供下一轮使用 |
+| 已发布的洞见库 Published | 任务、版本、名称、发布时间 | 可以试用、导出和通过 API 调用 |
+| 用户 User | 账号、角色 | 发起人、管理员；接入后端后实现 |
 
-- **模型**：使用我方提供的大模型 API，不依赖任何外部模型厂商。Agent 通过一个模型网关调用它（OpenAI 兼容的 Chat Completions 接口，如 vLLM / SGLang 的服务端或 LiteLLM 网关）；以后换模型只改网关配置，不改 Agent 代码。
-- **对模型的要求**：稳定的工具调用（function calling）和 JSON 结构化输出；上下文建议 ≥ 32K（读运行日志、配置和评测结果）。
-- **候选模型服务**：OpenRouter 或 GLM，二者都是 OpenAI 兼容接口，在模型网关里只需配置地址、密钥和模型名。用 OpenRouter 时只选支持工具调用的模型；面向国内机构的部署优先 GLM（国内服务，或私有化部署开源权重）。无论用哪个，Agent 发给模型的都只有描述信息、指标和脱敏日志；平台服务器需要能出站访问所选的模型服务。
-- **框架**：不自己写底层循环，也不直接用通用 Agent 产品。
-  - 底层用 Pydantic AI：模型无关（接 OpenAI 兼容接口）、原生 MCP 客户端、结构化输出。长流程借助它的 Temporal 集成做持久执行，和平台已有的工作流编排共用一套 Temporal，不再单独引入 LangGraph。
-  - 上层自己写一个薄的平台 Agent 层：每个 Agent 的角色、可用工具白名单、输出格式、权限等级与审批、上下文拼装（只放描述信息和脱敏日志）、审计，以及 Agent 的回归测试集。这部分和平台规则绑定，是平台自己的核心能力。
-  - Codex SDK 这类编程 Agent 暂不引入。以后如果需要"写代码"的子任务（例如为自定义模型生成 Flower 客户端适配代码），再评估放在 microVM 工作沙箱里用。它只支持 Responses 接口，接 GLM 这类只提供 Chat Completions 的服务需要网关转换，有兼容风险。
-  - Hermes Agent 这类个人助手型 Agent（自带几十种工具、自己写技能和记忆）不适合做平台内部 Agent：行为会随使用演化，难以审计和保持最小权限。它更适合作为外部 Agent，通过平台的 MCP Server 操作平台；它的记忆和技能文件也可以作为"Agent 记忆联邦"的输入格式。
-- **运行方式**：Agent 全部部署在平台内部，在隔离的工作沙箱中执行，使用短期、最小权限令牌；模型调用也不出平台网络。
-- **权限分级**：只读查询自动执行；可逆操作自动执行并审计；启动运行、交付、邀请外部机构、升级节点需要人工审批。Agent 只看描述信息、指标和脱敏日志，不接触原始数据。
+## 3. 场景与算法插件
 
-### 哪里用 Agent，哪里不用
+场景沿用联邦学习的三分法，落到 Agent 上：
 
-原则：Agent 负责理解、解释、起草和诊断；判定、计算和执行由确定性的代码和人完成。Agent 的输出一律再经过确定性校验（配置草案要过 `plan`，操作要过策略引擎）。
+- **横向**：各方做同一类任务，题目不同；
+- **纵向**：同一批问题，各方掌握不同方面的信息；
+- **迁移**：各方的任务和数据都不同，把已有经验迁移到新领域。
 
-| 适合用 Agent | 怎么用 |
-|---|---|
-| 配置助手 | 自然语言需求 → `project.yaml` 草案 → `plan` 校验，由配置引擎决定能否运行 |
-| 准入解释 | 把规则结果翻译成说明和修复建议 |
-| 数据问题说明 | 检查由解析器完成；Agent 解释不通过的原因，给出转换建议或转换脚本（在参与方本地执行） |
-| 运行诊断 | 读脱敏日志和指标定位失败原因，建议重试或从检查点恢复（执行需审批） |
-| 运维巡检 | 版本、漏洞、容量趋势，生成升级计划，编排镜像验证 |
-| 评测报告 | 把指标写成报告，对比基线并指出风险 |
-| 记忆合并 | Agent 记忆联邦中的语义去重和冲突仲裁（这个场景本身需要理解语义） |
-| 平台问答、邀请说明起草 | 解答使用问题；起草给合作方的说明，发送前由人确认 |
+每个算法以插件登记，包含：
 
-| 不用 Agent | 原因 | 由谁负责 |
-|---|---|---|
-| 准入与合规的最终判定 | 必须一致、可解释、可复现 | 策略引擎（OPA） |
-| 联邦计算本身：聚合、加密、隐私求交、差分隐私加噪、评测指标计算 | 必须是可验证的确定性算法 | Flower、隐语与平台服务 |
-| 训练过程中的实时决策（每轮选哪些节点、调参） | 延迟和不确定性不可接受 | 配置里的确定性策略 |
-| 权限、审批、交付的最终决定 | 责任主体必须是人 | 发起方与各参与方 |
-| 任何接触原始数据的环节 | 原始数据不出参与方节点 | 参与方本地的节点程序 |
-| 数据格式校验本身 | 需要确定性结果 | 解析器（Agent 只解释） |
-| 常规调度：沙箱生命周期、资源分配、证书签发 | 已有成熟的确定性控制器 | K8s 控制器、Agent Sandbox、step-ca |
-| 审计日志、计费与配额 | 必须准确 | 平台服务 |
-| 安全事件处置 | 误判代价高 | Agent 只告警和建议，高风险操作由人执行 |
+- 参与方步骤（在参与方执行）
+- 服务端步骤（在服务端执行）
+- 适用的任务类型和评分方式
+- 参数定义与默认值
+- 产出物类型和指标
 
-## 沙箱与运行环境维护
+页面和任务调度只按注册表工作，接入新算法不用改页面。后端的插件接口（草案）：
 
-### 平台里的沙箱
+```python
+class AlgorithmPlugin(Protocol):
+    id: str
+    scenario: Literal["horizontal", "vertical", "transfer"]
+    accepts: list[TaskType]
+    params: ParamSchema
 
-| 沙箱 | 里面跑什么 | 代码与输入的可信度 | 需要 GPU | 隔离运行时 |
-|---|---|---|---|---|
-| 协调 / 聚合沙箱 | Flower ServerApp、隐语调度 | 平台代码 | 否 | microVM |
-| 统计 / 记忆合并沙箱 | 汇总表重算、记忆脱敏与合并 | 平台代码 + 外部数据 | 否 | microVM |
-| 上传检查沙箱 | 解析各方上传的文件 | 不可信输入 | 否 | microVM |
-| Agent 工作沙箱 | Agent 执行命令和脚本 | 不可信（模型生成） | 否 | microVM |
-| 镜像验证沙箱 | 运维 Agent 用小任务回归验证新运行时镜像 | 待验证镜像 | 视镜像而定 | microVM；需要 GPU 的验证用 gVisor |
-| 评测沙箱 | 用测试集评估交付物 | 外部产物 | 大模型评测需要 | gVisor（nvproxy 访问 GPU） |
+    def participant_round(self, ctx: RoundContext, items: list[Item], artifact: Artifact | None) -> Upload: ...
+    def server_round(self, ctx: RoundContext, uploads: list[Upload], previous: Artifact | None) -> Artifact: ...
+    def metrics(self, ctx: TaskContext) -> Metrics: ...
+```
 
-microVM 指 Kata Containers + Firecracker：每个沙箱一台极简虚拟机，有独立内核。
+它对应上游 FoT 的两个抽象接口 `LocalReasoningClient`（`local_step_1/2/3`）和 `GlobalReasoningServer`（`global_step_1/2/3`）。
 
-参与方侧不在平台沙箱里：`fs-node` 在各机构自己的机器上以容器拉起联邦运行时，数据只读挂载，由机构自己掌控。
+第一版只有横向的 FoT。纵向和迁移的算法尚未确定，前端显示为"规划中"。
 
-### 隔离技术与选择
+## 4. FoT 引擎
 
-| 技术 | 原理 | 隔离强度 | GPU | 主要使用者 |
-|---|---|---|---|---|
-| 普通容器（Docker / runc） | 共享宿主内核，namespace + cgroup | 弱，不适合跑不可信代码 | 支持 | 通用 |
-| gVisor | 用户态内核拦截系统调用 | 中强，不需要 KVM | 支持（nvproxy，CUDA） | Modal、GKE Sandbox |
-| Kata Containers | 每个 Pod 一个轻量虚拟机，可选 QEMU / Cloud Hypervisor / Firecracker | 强（虚拟机级），需要 KVM | QEMU 下可直通 | 云厂商的安全容器 |
-| Firecracker | 极简 microVM，约 125ms 启动 | 强（虚拟机级），需要 KVM | 稳定版尚不支持直通 | E2B、AWS Lambda、Vercel、Fly.io |
-| 进程级沙箱（bubblewrap、seccomp、Landlock） | 限制单个进程的文件与网络访问 | 较弱 | — | 本地编程 Agent |
-| WebAssembly / V8 isolate | 语言级隔离 | 强，但只能跑特定运行时 | 否 | Cloudflare |
+来源是已审计的论文复现器 `run_paper_reproduction.py`（8 个客户端、300 题、Prompt 1–5、JSONL 检查点、哈希审计），拆成以下模块：提示词、参与方三步、服务端三步、判分、指标、检查点。行为保持不变，只改三处：
 
-方案是 **microVM 优先，gVisor 兜底**：
-- **microVM（Kata + Firecracker）做默认**：虚拟机级隔离，逃逸需要攻破虚拟机监控器，而不是一个系统调用实现；它是目前 Agent 沙箱最主流的隔离方式（E2B、AWS Lambda、Vercel 都用 Firecracker），在读写频繁的负载上也没有 gVisor 的 10–30% 开销。代价是需要 KVM，且稳定版不支持 GPU。
-- **gVisor 只用在两处**：需要 GPU 的评测沙箱（通过 nvproxy 共用宿主机显卡驱动，一张卡可以被多个沙箱轮流使用），以及服务器不支持 KVM 时的整体兜底。
-- **部署时自动判断**：节点有 `/dev/kvm` 就启用 microVM 运行时，没有就全部回落到 gVisor。架构和代码不变，只是 SandboxTemplate 里的 RuntimeClass 不同；之后换到支持 KVM 的机器，改配置即可切回 microVM。
+1. 数据集从固定的 8 个改为任务里选中的那些；
+2. `answer` 可以缺省（这一方不计准确率）；
+3. 进度和结果通过回调交给任务调度，而不只打印到终端。
 
-### 统一管理：Kubernetes Agent Sandbox
+复现器的命令行入口和 `test_reproduction.py` 保留，作为回归测试。
 
-所有沙箱统一用 Kubernetes 官方子项目 Agent Sandbox（`kubernetes-sigs/agent-sandbox`）管理：每类沙箱一个 SandboxTemplate（镜像、资源、隔离运行时、网络策略），运行时按需 SandboxClaim，常用模板配 SandboxWarmPool 预热，冷启动降到 1 秒以内；隔离运行时通过 RuntimeClass 在 gVisor 与 Kata（Firecracker）之间切换。
+每轮 6 步：
 
-### 运行环境维护
-
-- **每次运行按需创建**：默认拒绝网络，只放行项目通道，运行结束即销毁。
-- **只用签名镜像**：Flower、隐语和平台服务的运行时镜像统一构建、签名并附带 SBOM，节点和沙箱只拉取签名镜像。
-- **节点程序 `fs-node`**：一个镜像同时带 Flower 与隐语运行时；主动出站 mTLS 连接平台，上报资源（GPU 型号与显存、CPU、内存、磁盘），在本地做数据检查，按平台指令拉起运行时，并支持平台下发的升级。
-- **Agent 参与维护**：运维 Agent 发现新版本或漏洞后，先在镜像验证沙箱里跑一个小规模联邦任务，再提交升级计划，经审批后灰度升级；运行失败时读取脱敏日志定位原因，提出重试或从检查点恢复。
-
-## 资源需求
-
-平台本身不需要显卡。显卡只在训练发生的地方需要：正式运行时在各参与方的节点上，由参与方按项目的"节点算力规格"自备。
-
-| 用途 | 运行位置 | 需要 GPU | 建议配置 |
+| 步骤 | 位置 | 输入 | 输出 |
 |---|---|---|---|
-| 控制面（API、数据库、对象存储、编排、Flower SuperLink、隐语调度） | 平台服务器 | 否 | 8 vCPU · 32 GB 内存 · 500 GB SSD |
-| 平台沙箱（统计、记忆合并、准入检查、Agent 工作沙箱） | 平台服务器 | 否 | 可与控制面同机，或另加 8 vCPU · 16 GB |
-| Agent | 平台服务器 | 否 | 调用我方大模型 API；若该模型也部署在这台服务器上，需要按模型大小另配 GPU |
-| 后端 demo：横向大模型 LoRA，在一台机器上模拟 3 方 | 平台服务器 | 是 | 1 张 24 GB 显卡（A10 / L4 / RTX 4090 / 3090）· 16 vCPU · 64 GB 内存；16 GB 显卡可用 QLoRA |
-| 后端 demo：表格模型、ResNet-18、纵向、统计、记忆 | 平台服务器 | 否 | CPU 即可；SecureBoost 同态加密建议 16 核以上 |
-| 正式运行 | 各参与方节点 | 由参与方自备 | 按项目配置 |
+| ① 解题 | 参与方 | 题目 + 当前洞见库（第 1 轮没有） | 解答 |
+| ② 反思 | 参与方 | 题目 + 本方解答 | 反思 |
+| ③ 提取 trace | 参与方 | 题目 + 解答 + 反思 | `insight_*` 文本（可复用的做法与适用条件） |
+| ④ 汇总 | 服务端 | 本轮所有参与方的 trace | trace 集合 |
+| ⑤ 关系分析 | 服务端 | trace 集合 | 类别（每条 trace 恰好归入一类）+ 关系（前置、互补、替代等） |
+| ⑥ 生成洞见库 | 服务端 | trace 集合 + 类别 + 上一版洞见库 | 下一轮的洞见库 |
 
-网络：平台需要一个可被节点访问的域名和 TLS 证书（节点只做出站连接）；实验室内部演示可以直接用内网地址。
+标准答案只用于评分，不进入以上任何一步。服务端每轮一次读完所有 trace，所以服务端模型需要长上下文。
 
-## 技术选型建议
+平台参数与复现器参数一一对应：
+
+| 平台参数 | 复现器参数 | 平台默认 | 说明 |
+|---|---|---|---|
+| 轮次 | `--rounds` | 3 | 至少 2 轮 |
+| 试跑每份前 N 题 | `--cap` | 5（试跑） | 正式运行不设 |
+| 参与方模型、分别指定 | `--client-model`、`--client-model-secondary` | 统一一个 | 平台扩展为每个参与方都可单独指定 |
+| 服务端模型 | `--server-model` | — | 需长上下文 |
+| 洞见库条数 | `--insight-target` | paper-auto | 另有 author-formula、11、37 |
+| trace 密度 | `--trace-density-mode` | native | 另有 paper-gemini |
+| 每题最多 trace 数 | `--max-traces-per-item` | 不限 | |
+| 汇总重试上限 | `--aggregation-max-attempts` | 5 | 复现器默认 0（一直重试到合法），平台改为有限次，超过后暂停任务 |
+| 随机种子、并发数 | `--seed`、`--workers` | 0、8 | 并发数是所有参与方共用的线程池 |
+
+运行目录 `runs/<task_id>/` 沿用复现器的格式：
+
+- `config.json`：配置，以及提示词、数据、上游代码的哈希
+- `solve_r{n}.jsonl`、`reflection_r{n}.jsonl`、`trace_r{n}.jsonl`：参与方三步的结果
+- `aggregation_r{n}_profile.json`、`aggregation_r{n}.json`：服务端的关系分析和汇总
+- `library_r{n+1}.json`：这一轮生成、下一轮使用的洞见库
+- `metrics.json`：指标
+
+## 5. 任务调度
+
+- **创建**：校验草稿，冻结配置和参与方快照（名称、运行位置、题数、带答案的题数、模型）。
+- **运行**：每个任务在独立的后台进程里运行引擎，按轮执行 6 步；界面通过 API 读检查点显示进度。
+- **暂停 / 继续**：暂停就是停掉进程；继续就是按原配置重启。检查点会校验提示词哈希和模型，已完成的调用不重复。
+- **取消**：停在当前步骤，不能再继续。
+- **失败**：
+  - 单次调用失败按重试上限重试（复现器 `--max-retries` 默认 8）。
+  - 服务端结果不合法，重试到"汇总重试上限"后暂停任务，并提示原因。
+- **并发**：同时运行的任务数默认 1，因为瓶颈在模型接口的限流。
+
+## 6. 参与方的两种运行位置
+
+| | 平台托管 | 参与方本地 |
+|---|---|---|
+| 谁执行参与方三步 | 平台 worker | 参与方环境里的 `fedagent-client` |
+| 题库 | 存在平台 | 留在本地，只登记描述 |
+| 模型调用 | 经过平台的模型网关 | 用参与方自己的密钥，不经过网关 |
+| 离开参与方的内容 | 平台能看到题库；服务端步骤仍然只用 trace | 只有 trace 和本方的判分汇总 |
+| 适合 | 公开数据、演示、算法验证 | 真实的跨机构联邦 |
+
+本地客户端协议（草案）：
+
+1. **连接**：参与方用平台签发、按任务授权、可吊销的令牌连接，登记题库描述（名称、任务类型、题数、带答案的题数），不上传题目。
+2. **每轮**：
+   - 拉取当前洞见库：`GET /v1/tasks/{id}/rounds/{r}/library`；
+   - 在本地执行解题、反思、提取；
+   - 可选 `--review`，上传前逐条确认；
+   - 上传：`POST /v1/tasks/{id}/rounds/{r}/uploads`，内容是 trace 和本方判分汇总（答对数 / 带答案的题数，不含题目）。
+3. **收齐**：服务端收齐所有参与方的上传后执行 ④⑤⑥，进入下一轮。某一方超时或掉线怎么处理（等待还是跳过这一方）待定。
+
+## 7. 洞见库服务
+
+- 每轮生成一版；任意一版都可以发布，同一版只发布一次。
+- **试用**：带库时按 FoT 的解题提示词（Prompt 1）把整份洞见库放进上下文，不带库时只给题目，两种回答并排对比；题目带答案时自动判分。
+- **导出**：JSON 格式与 `library_r{n}.json` 相同（洞见名 → 描述）。
+- **API**：`POST /v1/libraries/{id}/apply`，可以批量调用、同时对比。
+- **来源**：洞见由服务端按类别提炼，与单条 trace 没有一一对应关系。所以"来自哪些参与方"只能精确到关系分析的类别层面；要精确到每条洞见，需要另加一步归因。
+
+## 8. 评测与指标
+
+- **判分**：数学答案，抽取 `\boxed{}` 里的答案，规范化后与标准答案比较，分论文兼容和严格两套口径。以后加选择题等评分方式。
+- **指标**：
+  - 每方每轮的准确率；
+  - 宏平均（每方权重相同，与论文一致）；
+  - 相对第 1 轮的变化；
+  - 负迁移（最新一轮低于本方第 1 轮的参与方数）；
+  - trace 数、洞见库条数、token 与费用。
+- **基线**：第 1 轮没有洞见库，就是各方单独作答的本地基线，不需要另跑对照组。
+
+## 9. 模型网关
+
+- 统一的 OpenAI 兼容客户端（httpx），第一批接 OpenRouter 和智谱 GLM。
+- 每个接口配置地址、密钥（服务端加密保存）、模型列表、并发上限、重试和单价；每次调用都记录模型、token、耗时和错误。
+- 参与方和服务端可以用不同的接口和模型；本地参与方不经过网关。
+
+## 10. API 草案
+
+```text
+GET  /v1/scenarios                     GET  /v1/algorithms?scenario=
+GET  /v1/participants                  POST /v1/participants
+GET  /v1/datasets?algorithm=           POST /v1/datasets（上传或登记描述）
+GET  /v1/endpoints                     POST /v1/endpoints          POST /v1/endpoints/{id}/test
+POST /v1/tasks/estimate                POST /v1/tasks              GET  /v1/tasks?status=
+GET  /v1/tasks/{id}                    POST /v1/tasks/{id}/pause | resume | cancel
+GET  /v1/tasks/{id}/rounds             GET  /v1/tasks/{id}/libraries
+GET  /v1/tasks/{id}/uploads?round=&participant=
+POST /v1/libraries                     GET  /v1/libraries/{id}     GET  /v1/libraries/{id}/export
+POST /v1/libraries/{id}/apply
+GET  /v1/tasks/{id}/rounds/{r}/library   POST /v1/tasks/{id}/rounds/{r}/uploads   （参与方客户端）
+```
+
+命令行 `fedagent`（如 `fedagent run -f task.yaml`、`fedagent status <task>`、`fedagent apply --library <id>`）调用同一套接口。
+
+## 11. 前端
+
+- **技术**：React 19 + TypeScript + Vite；图表用 ECharts，按需加载，不进首屏包。
+- **结构**：
+  - `domain/`：注册表、参与方与数据、配置与预估、任务状态机、示例数据、题库检查。
+  - `state/`：页面状态、初始数据、模拟推进、本地保存、路由。
+  - `ui/`：各页面。
+- **接入后端时**：
+  - `state/` 的数据来源改为 API，用 TanStack Query 轮询运行中的任务；
+  - 删掉 `domain/sample.ts` 和 `tick` 模拟，进度与结果改读后端返回；
+  - 页面、任务状态机和配置校验不变。
+
+## 12. 部署与资源
+
+- **平台**：
+  - 一台普通 CPU 服务器即可（4 核 8 GB 起），用 Docker Compose 部署 API、worker 和前端静态文件；
+  - 服务器要能访问 OpenRouter、GLM 等模型接口。
+- **后端开发环境**：Python 3.11+，用 uv 在项目目录内建虚拟环境（`server/.venv`）。
+- **参与方客户端**：Python 包，`pip install fedagent-client`。
+- **不需要**：GPU（模型调用都走外部接口）、K8s、沙箱、KVM（FoT 不执行生成的代码）。以后加入编程题时，只有判分需要隔离环境。
+- **成本**：主要是模型调用费。完整复现一次约 2,700 次参与方调用，每轮另有至少 2 次服务端调用，token 估计在千万量级。
+
+## 13. 安全与隐私
+
+- **平台托管**：平台能看到题库，只用于公开数据和演示；真实的跨机构联邦用参与方本地模式。
+- **trace**：trace 是自然语言，可能带出题目细节。本地客户端支持上传前审查（规则过滤 + 逐条确认）；服务端只保存 trace，不接收题目和答案。
+- **密钥**：模型密钥只存服务端；本地参与方的密钥留在本地。
+- **审计**：每个任务记录配置快照与哈希、提示词哈希、数据哈希、上游代码版本（dixiyao/FoT @ b02753c），以及每次调用的模型、token、重试与错误。
+- **许可**：上游 FoT 快照没有 LICENSE 文件，公开或商用前要先向原作者确认授权。
+
+## 14. 技术选型
 
 | 部分 | 选型 | 理由 |
 |---|---|---|
-| API 与服务 | Python（FastAPI + Pydantic）→ OpenAPI | 与 Flower、隐语同一语言生态；CLI、SDK、MCP 从同一份定义生成 |
-| 工作流编排 | Temporal | 多轮训练是长时间任务，需要持久化状态、重试和断点恢复 |
-| 策略引擎 | OPA（Rego） | 硬规则独立于代码和 Agent，可审计、可测试 |
-| 数据与存储 | PostgreSQL · MinIO（S3 兼容） | 通用、可私有化部署 |
-| 沙箱 | Kubernetes Agent Sandbox（k3s 单机起步）+ microVM（Kata + Firecracker）为默认，gVisor 用于 GPU 与无 KVM 兜底 | 统一的沙箱模板与预热池；虚拟机级隔离为主，GPU 场景用 gVisor |
-| 身份与证书 | Keycloak（OIDC）· step-ca（节点证书）· Vault | 机构登录、节点 mTLS 和密钥分开管理 |
-| 可观测性 | OpenTelemetry · Prometheus · Loki · Grafana | 运行、节点和 Agent 操作统一追踪 |
-| 事件 | NATS · Webhook | 运行进度、邀请和交付事件推送 |
-| Agent | 自研平台 Agent 层 + Pydantic AI（持久执行复用 Temporal）+ 平台 MCP Server | 模型无关，接我方大模型 API；工具面就是平台 API，权限、审批与审计由平台 Agent 层统一管理 |
-| 模型网关 | OpenAI 兼容接口（vLLM / SGLang / LiteLLM） | 换模型只改配置；统一限流、计量和日志 |
+| 前端 | React 19 + TypeScript + Vite，ECharts | 沿用现有工具链；ECharts 是最常用的图表库之一 |
+| 后端 | Python 3.11 + FastAPI + httpx | FoT 引擎和复现器都是 Python，复现器唯一依赖就是 httpx |
+| 任务执行 | 每个任务一个后台进程 | 与复现器的命令行运行方式一致，暂停和续跑依赖检查点 |
+| 存储 | SQLite + 运行目录 | 单机够用；运行目录与复现器格式一致，便于核对 |
+| 参与方客户端 | Python 包 | 与引擎共用参与方三步的代码 |
 
-起步阶段全部部署在一台服务器上（k3s 单节点）；需要时再把控制面、沙箱池和 GPU 节点拆开。
+## 15. 待定
 
-## 执行位置
-
-| 执行模式 | 协调方 | 参与方侧 |
-|---|---|---|
-| 多轮联邦 | 平台上的 Flower SuperLink + ServerApp | 各参与方节点上的 SuperNode，本地运行 ClientApp 训练 |
-| 纵向协议 | 平台上的隐语调度服务 | 各参与方节点上的隐语运行时（标签方 + 特征方） |
-| 单轮汇总 | 平台隔离沙箱中的统计服务 | 不需要常驻节点，各方上传汇总表 |
-| 单轮合并 | 平台隔离沙箱中的记忆合并服务 | 不需要常驻节点，各方上传记忆文件 |
-
-控制面始终是 Federation Studio 本身；评测在独立评测环境中完成。
-
-## 核心数据契约
-
-前端 `FrontendRunPlan`（`schemaVersion: frontend.run-plan/v2`）是后端 RunSpec 的前身。后端 RunSpec 在此基础上补充参与方、输入摘要和资源：
-
-```ts
-type RunSpec = {
-  schemaVersion: string;
-  project: { id: string; initiator: string };
-  selection: Record<string, string>;   // 7 个维度 22 个子项的取值
-  pattern: string;                     // 执行模式
-  runner: { adapter: "flower" | "secretflow" | "stats" | "memory"; version: string };
-  participants: Array<{ org: string; role: string; node?: { id: string; spec: string }; input: { digest: string; manifest: unknown } }>;
-  security: { mechanisms: string[]; privacyBudget?: number };
-  evaluation: { method: string; gates: unknown[] };
-  delivery: { deliverable: string; recipients: string[] };
-};
-```
-
-RunSpec 必须版本化、不可变、可重放。密钥、原始数据和长期凭据不能写入 RunSpec。
-
-## 安全边界
-
-- 平台不向项目之外展示任何机构的数据；同一项目的参与方只看到彼此授权的描述信息（节点规格、数据摘要），看不到原始数据。
-- 配置由发起方决定，每个参与方必须明确确认方案；运行开始后参与方冻结。
-- 上传内容先进入隔离 staging，解析器不能获得调度权限。
-- 硬规则先于 Agent；Agent 不能覆盖拒绝结果，不直接执行上传内容。
-- runner 使用短期、最小权限凭据，默认无外网。
-- 日志过滤密钥、原始样本、完整模型参数和敏感提示词。
-- 沙箱结束后销毁计算环境，只持久化配置、摘要、日志索引、报告和允许发布的产物。
-
-## 已退役
-
-| 编号 | 原含义 | 退役日期 | 说明 |
-|---|---|---|---|
-| — | "两套领域模型并存"（产品配置模型 + 旧 LoRA mock 执行模型） | 2026-09-24 | T15 删除旧 LoRA mock，统一为 L2/L3/L4 一套模型 |
+- 纵向和迁移采用哪些算法。
+- 本地参与方超时或掉线时，等待还是跳过这一方。
+- 默认模型：网关里有哪些模型，参与方和服务端各用哪个。论文结果来自 DeepSeek 和 Gemini；gpt-5.4-mini 的三个种子没有复现提升。
+- FoT 的授权。

@@ -1,58 +1,120 @@
 import type { ReactNode } from "react";
+import { hrefOf, type Route } from "../state/route";
 
-export type Tone = "complete" | "running" | "failed" | "ready";
+export type Tone = "neutral" | "info" | "success" | "warning" | "danger";
 
-export function StepFrame({
-  title, status, statusTone, children,
+export function StatusPill({ tone = "neutral", children, live = false }: { tone?: Tone; children: ReactNode; live?: boolean }) {
+  return (
+    <span className={`status status--${tone}`}>
+      {live ? <span className="status-dot" aria-hidden="true" /> : null}
+      {children}
+    </span>
+  );
+}
+
+export function Badge({ children, tone = "neutral", title }: { children: ReactNode; tone?: "neutral" | "sample" | "accent"; title?: string }) {
+  return <span className={`badge badge--${tone}`} title={title}>{children}</span>;
+}
+
+export function PageHead({
+  title, crumbs, status, meta, actions,
 }: {
   title: string;
-  status: string;
-  statusTone?: Tone;
-  children: ReactNode;
+  crumbs?: readonly { label: string; route: Route }[];
+  status?: ReactNode;
+  meta?: ReactNode;
+  actions?: ReactNode;
 }) {
   return (
-    <section className="step-content" aria-labelledby="step-title">
-      <header className="step-header">
-        <h2 id="step-title">{title}</h2>
-        <span className={`status${statusTone ? ` status--${statusTone}` : ""}`}>{status}</span>
-      </header>
-      <div className="step-body">{children}</div>
+    <header className="page-head">
+      <div className="page-title">
+        {crumbs?.length ? (
+          <nav className="crumbs" aria-label="位置">
+            {crumbs.map((crumb) => <a key={crumb.label} href={hrefOf(crumb.route)}>{crumb.label}</a>)}
+          </nav>
+        ) : null}
+        <div className="page-title-row">
+          <h1>{title}</h1>
+          {status}
+        </div>
+        {meta ? <p className="page-meta">{meta}</p> : null}
+      </div>
+      {actions ? <div className="page-actions">{actions}</div> : null}
+    </header>
+  );
+}
+
+export function Panel({
+  title, extra, children, className, id, flush = false,
+}: {
+  title?: ReactNode;
+  extra?: ReactNode;
+  children: ReactNode;
+  className?: string;
+  id?: string;
+  flush?: boolean;
+}) {
+  const headingId = id ? `${id}-title` : undefined;
+  return (
+    <section className={`panel${className ? ` ${className}` : ""}`} id={id} aria-labelledby={title ? headingId : undefined}>
+      {title ? (
+        <header className="panel-head">
+          <h2 id={headingId}>{title}</h2>
+          {extra ? <div className="panel-extra">{extra}</div> : null}
+        </header>
+      ) : null}
+      <div className={flush ? "panel-flush" : "panel-body"}>{children}</div>
     </section>
   );
 }
 
-export function StepActions({
-  onBack, onNext, onReset, nextLabel, nextDisabled = false,
-}: {
-  onBack?: () => void;
-  onNext?: () => void;
-  onReset?: () => void;
-  nextLabel?: string;
-  nextDisabled?: boolean;
-}) {
+export function SampleNote({ children }: { children?: ReactNode }) {
   return (
-    <footer className="step-actions">
-      <div>{onBack ? <button type="button" className="button button--secondary" onClick={onBack}>上一步</button> : null}</div>
-      <div className="step-actions-end">
-        {onReset ? <button type="button" className="button button--secondary" onClick={onReset}>新建运行</button> : null}
-        {onNext ? <button type="button" className="button button--primary" disabled={nextDisabled} onClick={onNext}>{nextLabel ?? "下一步"}</button> : null}
-      </div>
-    </footer>
+    <p className="sample-note" role="note">
+      <Badge tone="sample">示例数据</Badge>
+      <span>{children ?? "前端原型模拟运行生成，不代表真实运行结果。"}</span>
+    </p>
   );
 }
 
-export function StageMessage({ text, running = false, tone }: { text: string; running?: boolean; tone?: "failed" }) {
+export function Note({ children }: { children: ReactNode }) {
+  return <p className="note">{children}</p>;
+}
+
+export function EmptyState({ title, children, action }: { title: string; children?: ReactNode; action?: ReactNode }) {
   return (
-    <div className={`stage-message${running ? " stage-message--running" : ""}${tone ? ` stage-message--${tone}` : ""}`} aria-live="polite">
-      {running ? <span aria-hidden="true" /> : null}
-      <p>{text}</p>
+    <div className="empty">
+      <strong>{title}</strong>
+      {children ? <p>{children}</p> : null}
+      {action}
+    </div>
+  );
+}
+
+export function ProgressBar({ value, label, tone = "info" }: { value: number; label: string; tone?: "info" | "success" | "warning" | "neutral" }) {
+  const percent = Math.round(Math.min(1, Math.max(0, value)) * 100);
+  return (
+    <div className={`progress progress--${tone}`} role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
+      <span style={{ width: `${percent}%` }} />
+    </div>
+  );
+}
+
+export function Kpi({ label, value, sub, tone }: { label: string; value: ReactNode; sub?: ReactNode; tone?: "up" | "down" }) {
+  return (
+    <div className={`kpi${tone ? ` kpi--${tone}` : ""}`}>
+      <dt>{label}</dt>
+      <dd>
+        <strong>{value}</strong>
+        {sub ? <small>{sub}</small> : null}
+      </dd>
     </div>
   );
 }
 
 export function Facts({ items }: { items: readonly (readonly [string, ReactNode])[] }) {
   return (
-    <dl className="stage-facts">
+    <dl className="facts">
       {items.map(([label, value]) => (
         <div key={label}>
           <dt>{label}</dt>
@@ -63,11 +125,62 @@ export function Facts({ items }: { items: readonly (readonly [string, ReactNode]
   );
 }
 
-export function LogList({ logs, label }: { logs: readonly string[]; label: string }) {
-  if (!logs.length) return null;
+/** 链接式标签页：每个标签是一个地址，刷新后停在同一页。 */
+export function TabLinks<T extends string>({
+  tabs, active, routeOf, label,
+}: {
+  tabs: readonly { id: T; label: ReactNode }[];
+  active: T;
+  routeOf: (id: T) => Route;
+  label: string;
+}) {
   return (
-    <ol className="log-list" aria-label={label}>
-      {logs.map((line, index) => <li key={`${index}-${line}`}>{line}</li>)}
-    </ol>
+    <nav className="tabs" aria-label={label}>
+      {tabs.map((tab) => (
+        <a
+          key={tab.id}
+          className={`tab${tab.id === active ? " tab--active" : ""}`}
+          href={hrefOf(routeOf(tab.id))}
+          aria-current={tab.id === active ? "page" : undefined}
+        >
+          {tab.label}
+        </a>
+      ))}
+    </nav>
+  );
+}
+
+export function Segmented<T extends string>({
+  options, value, onChange, label,
+}: {
+  options: readonly { id: T; label: ReactNode; count?: number }[];
+  value: T;
+  onChange: (value: T) => void;
+  label: string;
+}) {
+  return (
+    <div className="segmented" role="radiogroup" aria-label={label}>
+      {options.map((option) => (
+        <button
+          key={option.id}
+          type="button"
+          role="radio"
+          aria-checked={option.id === value}
+          className={`segment${option.id === value ? " segment--active" : ""}`}
+          onClick={() => onChange(option.id)}
+        >
+          {option.label}
+          {option.count !== undefined ? <span className="segment-count">{option.count}</span> : null}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function NotFound({ kind, back }: { kind: string; back: Route }) {
+  return (
+    <EmptyState title={`没有找到这个${kind}`} action={<a className="button button--secondary" href={hrefOf(back)}>返回</a>}>
+      可能已被删除，或者演示数据已重置。
+    </EmptyState>
   );
 }

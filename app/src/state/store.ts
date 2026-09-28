@@ -1,229 +1,182 @@
-// 页面状态：本机构的节点与数据、项目、收到的邀请，以及新建项目的配置草稿。
-// 项目创建后配置冻结；运行开始后参与方冻结。所有规则在 domain/，这里只负责组合和查找。
+// 页面状态：参与方与数据、模型接口、联邦任务、已发布的洞见库，以及新建任务的草稿。
+// 规则都在 domain/，这里只负责组合和查找。
 
-import {
-  addOwnNode,
-  addUploads,
-  advanceMember,
-  bindSelf,
-  createProject,
-  deliverProject,
-  inviteMember,
-  markNodeOnline,
-  projectFromInvitation,
-  removeMember,
-  removeUpload,
-  simulateMember,
-  startProjectRun,
-  uploadChecked,
-  type Dataset,
-  type Invitation,
-  type Project,
-  type WorkspaceNode,
-} from "../domain/project";
-import type { UploadCheck } from "../domain/inputs";
-import { buildRunPlan } from "../domain/plan";
-import { finishStage, startStage, type StageId, type StageResult } from "../domain/run";
-import { EMPTY_SELECTION, choose, type ItemId, type Selection } from "../domain/selection";
-import { deploymentOf, meetsSpec, type ComputeId, type DeploymentId } from "../domain/taxonomy";
+import { chooseAlgorithm, chooseScenario, DEFAULT_DRAFT, defaultTaskName, draftIssues, toConfig, toggleDataset, withDefaults, type Draft } from "../domain/config";
+import type { AlgorithmId, ScenarioId } from "../domain/catalog";
+import type { Dataset, Endpoint, Participant } from "../domain/resources";
+import { cancel, createTask, pause, resume, tick, type Task } from "../domain/task";
 import { seedState } from "./seed";
 
-export const STATE_VERSION = 4;
+export const STATE_VERSION = 1;
+
+export type Published = {
+  id: string;
+  taskId: string;
+  builtAfterRound: number;
+  name: string;
+  publishedAt: string;
+};
 
 export type State = {
   version: typeof STATE_VERSION;
-  nodes: WorkspaceNode[];
+  participants: Participant[];
   datasets: Dataset[];
-  projects: Project[];
-  invitations: Invitation[];
-  /** 新建项目页的配置草稿。 */
-  draft: Selection;
+  endpoints: Endpoint[];
+  tasks: Task[];
+  published: Published[];
+  /** 新建任务页的草稿；"复制为新任务"会预先填好。 */
+  draft: Draft;
 };
 
-/** 绑定节点时选"new"表示按配置交付一个新节点。 */
-export type NodeChoice = string;
-export const NEW_NODE = "new";
-
 export type Action =
-  | { type: "choose"; item: ItemId; value: string }
-  | { type: "resetDraft" }
-  | { type: "createProject"; id: string; name: string; createdAt: string }
-  | { type: "bindSelf"; projectId: string; memberId: string; node: NodeChoice; datasetId: string; newNodeId: string }
-  | { type: "addOwnNode"; projectId: string; memberId: string; node: NodeChoice; datasetId: string; newNodeId: string }
-  | { type: "invite"; projectId: string; memberId: string; org: string; simulated: boolean; example?: boolean }
-  | { type: "advanceMember"; projectId: string; memberId: string }
-  | { type: "simulateMember"; projectId: string; memberId: string }
-  | { type: "removeMember"; projectId: string; memberId: string }
-  | { type: "nodeOnline"; nodeId: string }
-  | { type: "addUploads"; projectId: string; files: { id: string; name: string; size: number }[] }
-  | { type: "uploadChecked"; projectId: string; id: string; check: UploadCheck }
-  | { type: "removeUpload"; projectId: string; id: string }
-  | { type: "startRun"; projectId: string; runId: string; createdAt: string }
-  | { type: "stageStart"; projectId: string; stage: StageId }
-  | { type: "stageFinish"; projectId: string; stage: StageId; result: StageResult }
-  | { type: "deliver"; projectId: string; recipients: string[] }
-  | { type: "acceptInvitation"; invitationId: string; projectId: string; node: NodeChoice; datasetId: string; newNodeId: string; createdAt: string }
-  | { type: "declineInvitation"; invitationId: string }
+  | { type: "chooseScenario"; scenario: ScenarioId }
+  | { type: "chooseAlgorithm"; algorithm: AlgorithmId }
+  | { type: "toggleDataset"; datasetId: string }
+  | { type: "setDatasets"; datasetIds: string[] }
+  | { type: "updateDraft"; patch: Partial<Draft> }
+  | { type: "resetDraft"; draft?: Partial<Draft> }
+  | { type: "createTask"; id: string; createdAt: string }
+  | { type: "tick"; now: string }
+  | { type: "pauseTask"; id: string }
+  | { type: "resumeTask"; id: string }
+  | { type: "cancelTask"; id: string; now: string }
+  | { type: "publish"; id: string; taskId: string; builtAfterRound: number; name: string; publishedAt: string }
+  | { type: "addParticipant"; participant: Participant; dataset?: Dataset }
+  | { type: "addDataset"; dataset: Dataset }
+  | { type: "removeParticipant"; id: string }
+  | { type: "addEndpoint"; endpoint: Endpoint }
+  | { type: "updateEndpoint"; id: string; patch: Partial<Pick<Endpoint, "concurrency" | "price">> }
   | { type: "resetDemo" };
 
-export const initialState: State = seedState();
-
-export function projectOf(state: State, id: string): Project | undefined {
-  return state.projects.find((project) => project.id === id);
+export function taskOf(state: State, id: string): Task | undefined {
+  return state.tasks.find((task) => task.id === id);
 }
 
-function updateProject(state: State, id: string, change: (project: Project) => Project): State {
+export function participantOf(state: State, id: string): Participant | undefined {
+  return state.participants.find((participant) => participant.id === id);
+}
+
+export function datasetsOf(state: State, participantId: string): Dataset[] {
+  return state.datasets.filter((dataset) => dataset.participantId === participantId);
+}
+
+export function publishedOf(state: State, taskId: string, builtAfterRound: number): Published | undefined {
+  return state.published.find((item) => item.taskId === taskId && item.builtAfterRound === builtAfterRound);
+}
+
+/** 参加过的任务数（按任务快照里的参与方统计）。 */
+export function taskCountOf(state: State, participantId: string): number {
+  return state.tasks.filter((task) => task.members.some((member) => member.participantId === participantId)).length;
+}
+
+function updateTask(state: State, id: string, change: (task: Task) => Task): State {
   let changed = false;
-  const projects = state.projects.map((project) => {
-    if (project.id !== id) return project;
-    const next = change(project);
-    changed = next !== project;
+  const tasks = state.tasks.map((task) => {
+    if (task.id !== id) return task;
+    const next = change(task);
+    changed ||= next !== task;
     return next;
   });
-  return changed ? { ...state, projects } : state;
-}
-
-/** 可以绑定到项目的本机构节点：在线且满足最低算力，且没有被本项目的其他成员占用。 */
-export function eligibleNodes(state: State, project: Pick<Project, "plan" | "members">, excludeMemberId?: string): WorkspaceNode[] {
-  const used = new Set(project.members.filter((member) => member.id !== excludeMemberId).map((member) => member.node?.id));
-  return state.nodes.filter((node) => (
-    node.status === "online" && !used.has(node.id) && meetsSpec(node.spec, project.plan.requirements.compute?.id)
-  ));
-}
-
-/** 数据类型相符的本机构数据；纵向时按角色把更合适的表排在前面。 */
-export function eligibleDatasets(state: State, plan: Project["plan"], role?: string): Dataset[] {
-  const matching = state.datasets.filter((dataset) => dataset.type === plan.requirements.dataType.id);
-  if (role !== "标签方" && role !== "特征方") return matching;
-  const wantsLabel = role === "标签方";
-  return [...matching].sort((a, b) => Number(Boolean(b.hasLabel) === wantsLabel) - Number(Boolean(a.hasLabel) === wantsLabel));
-}
-
-/** 按计划交付一个新节点（公有云创建实例 / 私有机房安装包），初始状态为交付中。 */
-function deliverNode(state: State, id: string, spec: ComputeId, location: DeploymentId): { state: State; node: WorkspaceNode } {
-  const label = deploymentOf(location)?.label ?? "节点";
-  const index = state.nodes.filter((node) => node.location === location).length + 1;
-  const node: WorkspaceNode = { id, name: `${label}-${String(index).padStart(2, "0")}`, location, spec, status: "provisioning" };
-  return { state: { ...state, nodes: [...state.nodes, node] }, node };
-}
-
-function resolveNode(state: State, choice: NodeChoice, newNodeId: string, spec: ComputeId, location: DeploymentId) {
-  if (choice === NEW_NODE) return deliverNode(state, newNodeId, spec, location);
-  const node = state.nodes.find((item) => item.id === choice);
-  return node && node.status === "online" && meetsSpec(node.spec, spec) ? { state, node } : null;
-}
-
-function withNode(
-  state: State,
-  projectId: string,
-  action: { node: NodeChoice; datasetId: string; newNodeId: string },
-  apply: (project: Project, node: WorkspaceNode, dataset: Dataset) => Project,
-): State {
-  const project = projectOf(state, projectId);
-  const dataset = state.datasets.find((item) => item.id === action.datasetId);
-  if (!project || project.run || !dataset) return state;
-  const spec = (project.plan.requirements.compute?.id ?? "cpu-general") as ComputeId;
-  const location = (project.plan.selection.deployment ?? "aliyun") as DeploymentId;
-  const resolved = resolveNode(state, action.node, action.newNodeId, spec, location);
-  if (!resolved) return state;
-  return updateProject(resolved.state, projectId, (current) => apply(current, resolved.node, dataset));
+  return changed ? { ...state, tasks } : state;
 }
 
 export function reducer(state: State, action: Action): State {
   switch (action.type) {
-    case "choose":
-      return { ...state, draft: choose(state.draft, action.item, action.value) };
+    case "chooseScenario":
+      return { ...state, draft: chooseScenario(state.draft, action.scenario, state.datasets, state.participants) };
+
+    case "chooseAlgorithm":
+      return { ...state, draft: chooseAlgorithm(state.draft, action.algorithm, state.datasets, state.participants) };
+
+    case "toggleDataset":
+      return { ...state, draft: toggleDataset(state.draft, action.datasetId) };
+
+    case "setDatasets":
+      return { ...state, draft: { ...state.draft, datasetIds: [...action.datasetIds] } };
+
+    case "updateDraft":
+      return { ...state, draft: { ...state.draft, ...action.patch } };
 
     case "resetDraft":
-      return { ...state, draft: EMPTY_SELECTION };
+      return { ...state, draft: withDefaults(action.draft ?? {}) };
 
-    case "createProject": {
-      const plan = buildRunPlan(state.draft);
-      if (!plan) return state;
-      const project = createProject({ id: action.id, name: action.name.trim() || plan.scenario.label, plan, createdAt: action.createdAt });
-      return { ...state, projects: [project, ...state.projects], draft: EMPTY_SELECTION };
+    case "createTask": {
+      const config = toConfig(state.draft);
+      if (!config || draftIssues(state.draft, state.datasets, state.participants, state.endpoints).length) return state;
+      const task = createTask({
+        id: action.id,
+        name: state.draft.name.trim() || defaultTaskName(state.draft),
+        createdAt: action.createdAt,
+        config,
+        datasets: state.datasets,
+        participants: state.participants,
+      });
+      return { ...state, tasks: [task, ...state.tasks], draft: DEFAULT_DRAFT };
     }
 
-    case "bindSelf":
-      return withNode(state, action.projectId, action, (project, node, dataset) => bindSelf(project, action.memberId, node, dataset));
+    case "tick": {
+      if (!state.tasks.some((task) => task.status === "running")) return state;
+      return { ...state, tasks: state.tasks.map((task) => tick(task, action.now)) };
+    }
 
-    case "addOwnNode":
-      return withNode(state, action.projectId, action, (project, node, dataset) => addOwnNode(project, action.memberId, node, dataset));
+    case "pauseTask":
+      return updateTask(state, action.id, pause);
 
-    case "invite":
-      return updateProject(state, action.projectId, (project) => inviteMember(project, {
-        id: action.memberId,
-        org: action.org,
-        simulated: action.simulated,
-        example: action.example,
-      }));
+    case "resumeTask":
+      return updateTask(state, action.id, resume);
 
-    case "advanceMember":
-      return updateProject(state, action.projectId, (project) => advanceMember(project, action.memberId));
+    case "cancelTask":
+      return updateTask(state, action.id, (task) => cancel(task, action.now));
 
-    case "simulateMember":
-      return updateProject(state, action.projectId, (project) => simulateMember(project, action.memberId));
+    case "publish": {
+      const task = taskOf(state, action.taskId);
+      const exists = publishedOf(state, action.taskId, action.builtAfterRound);
+      const hasLibrary = task?.rounds.some((record) => record.round === action.builtAfterRound && record.library);
+      if (!task || exists || !hasLibrary) return state;
+      const item: Published = {
+        id: action.id,
+        taskId: action.taskId,
+        builtAfterRound: action.builtAfterRound,
+        name: action.name.trim() || task.name,
+        publishedAt: action.publishedAt,
+      };
+      return { ...state, published: [item, ...state.published] };
+    }
 
-    case "removeMember":
-      return updateProject(state, action.projectId, (project) => removeMember(project, action.memberId));
-
-    case "nodeOnline": {
-      if (!state.nodes.some((node) => node.id === action.nodeId && node.status === "provisioning")) return state;
+    case "addParticipant": {
+      if (state.participants.some((participant) => participant.id === action.participant.id)) return state;
       return {
         ...state,
-        nodes: state.nodes.map((node) => (node.id === action.nodeId ? { ...node, status: "online" } : node)),
-        projects: state.projects.map((project) => markNodeOnline(project, action.nodeId)),
+        participants: [...state.participants, action.participant],
+        datasets: action.dataset ? [...state.datasets, action.dataset] : state.datasets,
       };
     }
 
-    case "addUploads":
-      return updateProject(state, action.projectId, (project) => addUploads(project, action.files));
+    case "addDataset": {
+      if (!participantOf(state, action.dataset.participantId)) return state;
+      return { ...state, datasets: [...state.datasets, action.dataset] };
+    }
 
-    case "uploadChecked":
-      return updateProject(state, action.projectId, (project) => uploadChecked(project, action.id, action.check));
-
-    case "removeUpload":
-      return updateProject(state, action.projectId, (project) => removeUpload(project, action.id));
-
-    case "startRun":
-      return updateProject(state, action.projectId, (project) => startProjectRun(project, action.runId, action.createdAt));
-
-    case "stageStart":
-      return updateProject(state, action.projectId, (project) => (
-        project.run ? { ...project, run: startStage(project.run, action.stage) } : project
-      ));
-
-    case "stageFinish":
-      return updateProject(state, action.projectId, (project) => (
-        project.run ? { ...project, run: finishStage(project.run, action.stage, action.result) } : project
-      ));
-
-    case "deliver":
-      return updateProject(state, action.projectId, (project) => deliverProject(project, action.recipients));
-
-    case "acceptInvitation": {
-      const invitation = state.invitations.find((item) => item.id === action.invitationId);
-      const dataset = state.datasets.find((item) => item.id === action.datasetId);
-      if (!invitation || invitation.status !== "pending" || !dataset) return state;
-      const spec = (invitation.plan.requirements.compute?.id ?? "cpu-general") as ComputeId;
-      const resolved = resolveNode(state, action.node, action.newNodeId, spec, "aliyun");
-      if (!resolved) return state;
-      const project = projectFromInvitation(invitation, { id: action.projectId, node: resolved.node, dataset, createdAt: action.createdAt });
+    case "removeParticipant": {
+      const participant = participantOf(state, action.id);
+      if (!participant || participant.builtin) return state;
+      const removed = new Set(datasetsOf(state, action.id).map((dataset) => dataset.id));
       return {
-        ...resolved.state,
-        projects: [project, ...resolved.state.projects],
-        invitations: resolved.state.invitations.map((item) => (
-          item.id === invitation.id ? { ...item, status: "accepted", projectId: project.id } : item
-        )),
+        ...state,
+        participants: state.participants.filter((item) => item.id !== action.id),
+        datasets: state.datasets.filter((dataset) => !removed.has(dataset.id)),
+        draft: { ...state.draft, datasetIds: state.draft.datasetIds.filter((id) => !removed.has(id)) },
       };
     }
 
-    case "declineInvitation":
+    case "addEndpoint":
+      if (state.endpoints.some((endpoint) => endpoint.id === action.endpoint.id)) return state;
+      return { ...state, endpoints: [...state.endpoints, action.endpoint] };
+
+    case "updateEndpoint":
       return {
         ...state,
-        invitations: state.invitations.map((item) => (
-          item.id === action.invitationId && item.status === "pending" ? { ...item, status: "declined" } : item
-        )),
+        endpoints: state.endpoints.map((endpoint) => (endpoint.id === action.id ? { ...endpoint, ...action.patch } : endpoint)),
       };
 
     case "resetDemo":
