@@ -1,163 +1,152 @@
 import { describe, expect, it } from "vitest";
+import { DIMENSIONS, ITEMS } from "./dimensions";
 import {
   EMPTY_SELECTION,
-  applyTemplate,
-  builtinProtection,
-  canDeselect,
+  applyScenario,
   choose,
-  currentLayer,
-  displayOptions,
-  enhancementOptions,
-  exchangedFor,
-  isAutoSelected,
   isComplete,
-  layerApplies,
-  layerOptions,
-  toggle,
-  toggleEnhancement,
-  visibleLayers,
-  type LayerId,
+  itemState,
+  valueLabel,
+  visibleItems,
+  type ItemId,
   type Selection,
 } from "./selection";
-import { SCENARIOS, STRATEGIES } from "./taxonomy";
+import { SCENARIOS } from "./taxonomy";
 
-const availableIds = (selection: Selection, layer: LayerId) => layerOptions(layer, selection)
-  .filter((option) => option.available)
-  .map((option) => option.choice.id);
-const availableEnhancements = (selection: Selection) => enhancementOptions(selection)
-  .filter((item) => item.available)
-  .map((item) => item.enhancement.id);
+const available = (selection: Selection, id: ItemId) => itemState(id, selection).candidates
+  .filter((candidate) => candidate.available)
+  .map((candidate) => candidate.choice.id);
+const shown = (selection: Selection, id: ItemId) => itemState(id, selection).candidates.map((candidate) => candidate.choice.id);
+const mode = (selection: Selection, id: ItemId) => itemState(id, selection).mode;
+const pick = (selection: Selection, steps: [ItemId, string][]) => steps.reduce((current, [id, value]) => choose(current, id, value), selection);
 
-const horizontal = () => applyTemplate("horizontal-training");
+const horizontal = () => applyScenario("horizontal-training");
 
-describe("scenario-first selection", () => {
-  it("offers four scenarios, grouped by how they run", () => {
-    expect(SCENARIOS.map((scenario) => scenario.id)).toEqual(["horizontal-training", "vertical-training", "federated-analytics", "agent-memory"]);
-    expect(SCENARIOS.filter((scenario) => scenario.input.kind === "nodes").map((scenario) => scenario.id)).toEqual(["horizontal-training", "vertical-training"]);
-    expect(SCENARIOS.filter((scenario) => scenario.input.kind === "files").map((scenario) => scenario.id)).toEqual(["federated-analytics", "agent-memory"]);
+describe("seven configuration dimensions", () => {
+  it("orders the dimensions like a cloud order and gives every item a dimension", () => {
+    expect(DIMENSIONS.map((dimension) => dimension.title)).toEqual(["协作场景", "参与方与算力", "数据", "模型", "算法与训练", "安全与隐私", "评测与交付"]);
+    for (const item of ITEMS) expect(DIMENSIONS.some((dimension) => dimension.id === item.dimension), item.id).toBe(true);
   });
 
-  it("shows nothing selectable until a scenario is chosen", () => {
-    expect(visibleLayers(EMPTY_SELECTION)).toEqual([]);
-    expect(currentLayer(EMPTY_SELECTION)).toBeNull();
-    expect(displayOptions("modelClass", EMPTY_SELECTION).every((option) => !option.available)).toBe(true);
-    expect(toggle(EMPTY_SELECTION, "modelClass", "neural")).toBe(EMPTY_SELECTION);
+  it("shows only the scenario before a scenario is chosen", () => {
+    expect(isComplete(EMPTY_SELECTION)).toBe(false);
+    for (const dimension of DIMENSIONS.slice(1)) expect(visibleItems(dimension.id, EMPTY_SELECTION), `${dimension.id}`).toEqual([]);
   });
 
-  it("fills the horizontal training sub-items with defaults and leaves the strategy to the user", () => {
-    const selection = horizontal();
-    expect([selection.modelClass, selection.sharing]).toEqual(["neural", "full"]);
-    expect(selection.strategy).toBeNull();
-    expect(currentLayer(selection)).toBe("strategy");
-    expect(availableIds(selection, "strategy")).toEqual(["hfl-fedavg", "hfl-fedprox"]);
-  });
-
-  it("uses sub-items only for horizontal training", () => {
-    for (const id of ["vertical-training", "federated-analytics", "agent-memory"] as const) {
-      const selection = applyTemplate(id);
-      expect(layerApplies("modelClass", selection), id).toBe(false);
-      expect(layerApplies("sharing", selection), id).toBe(false);
-      expect(visibleLayers(selection).map((layer) => layer.id), id).toEqual(["strategy"]);
-    }
-  });
-
-  it("restricts LoRA to neural networks and gives tree models only XGBoost Bagging", () => {
-    const tree = choose(horizontal(), "modelClass", "tree");
-    expect(tree.sharing).toBe("full");
-    expect(availableIds(tree, "sharing")).toEqual(["full"]);
-    expect(tree.strategy).toBe("hfl-xgb-bagging");
-    expect(isAutoSelected("strategy", tree)).toBe(true);
-    expect(layerOptions("strategy", tree).find((option) => option.choice.id === "hfl-fedavg")?.available).toBe(false);
-  });
-
-  it("switches the exchanged object to LoRA when sharing LoRA", () => {
-    const lora = choose(choose(horizontal(), "sharing", "peft"), "strategy", "hfl-fedavg");
-    expect(exchangedFor(lora)).toBe("LoRA 增量");
-    expect(exchangedFor(choose(horizontal(), "strategy", "hfl-fedavg"))).toBe("模型参数增量");
-  });
-
-  it("clears downstream choices that become invalid when an upstream choice changes", () => {
-    const lora = choose(choose(horizontal(), "sharing", "peft"), "strategy", "hfl-fedprox");
-    expect(isComplete(lora)).toBe(true);
-    const tree = choose(lora, "modelClass", "tree");
-    expect(tree.sharing).toBe("full");
-    expect(tree.strategy).toBe("hfl-xgb-bagging");
-  });
-
-  it("auto-selects the only strategy of vertical training", () => {
-    const vertical = applyTemplate("vertical-training");
-    expect(vertical.strategy).toBe("vfl-secure-xgboost");
-    expect(isComplete(vertical)).toBe(true);
-  });
-
-  it("does not let sub-items be deselected, but lets strategies be deselected", () => {
-    const training = choose(horizontal(), "strategy", "hfl-fedprox");
-    expect(canDeselect(training, "modelClass")).toBe(false);
-    expect(toggle(training, "modelClass", "neural")).toBe(training);
-    expect(toggle(training, "strategy", "hfl-fedprox").strategy).toBeNull();
-  });
-
-  it("lists only the chosen scenario's strategies once a scenario is set", () => {
-    expect(displayOptions("strategy", EMPTY_SELECTION)).toHaveLength(STRATEGIES.length);
-    const memory = displayOptions("strategy", applyTemplate("agent-memory"));
-    expect(memory.map((option) => option.choice.id)).toEqual(["mem-dedup", "mem-arbitration"]);
-    expect(memory.every((option) => option.available)).toBe(true);
-  });
-
-  it("keeps run defaults internal to the scenario", () => {
-    expect(horizontal().params).toEqual({ rounds: "20", "local-epochs": "1" });
-    expect(applyTemplate("agent-memory").params).toEqual({});
-  });
-
-  it("gives every scenario at least one strategy and every strategy a runner and reference", () => {
+  it("fills a complete recommended configuration as soon as a scenario is chosen", () => {
     for (const scenario of SCENARIOS) {
-      expect(availableIds(applyTemplate(scenario.id), "strategy").length, scenario.id).toBeGreaterThan(0);
+      const selection = applyScenario(scenario.id);
+      expect(isComplete(selection), scenario.id).toBe(true);
     }
-    for (const strategy of STRATEGIES) {
-      expect(strategy.runner, strategy.id).toBeTruthy();
-      expect(strategy.references.length, strategy.id).toBeGreaterThan(0);
-    }
+    const training = horizontal();
+    expect([training.compute, training.dataType, training.model, training.sharing, training.aggregation, training.rounds])
+      .toEqual(["gpu-24", "instruction", "qwen2.5-1.5b", "lora", "fedavg", "10"]);
   });
 
-  it("follows Flower for horizontal training and NVFlare for vertical training", () => {
-    expect(new Set(STRATEGIES.filter((item) => item.scenario === "horizontal-training").map((item) => item.runner))).toEqual(new Set(["Flower"]));
-    expect(STRATEGIES.filter((item) => item.scenario === "vertical-training").map((item) => item.runner)).toEqual(["NVFlare"]);
+  it("clears the configuration when the chosen scenario is clicked again", () => {
+    expect(choose(horizontal(), "scenario", "horizontal-training")).toEqual(EMPTY_SELECTION);
+  });
+
+  it("keeps a single-choice item selected when it is clicked again", () => {
+    const training = horizontal();
+    expect(choose(training, "compute", "gpu-24")).toBe(training);
   });
 });
 
-describe("security and privacy", () => {
-  it("offers only the enhancements the strategy's runner actually provides", () => {
-    expect(availableEnhancements(choose(horizontal(), "strategy", "hfl-fedavg"))).toEqual(["secagg", "dp"]);
-    expect(availableEnhancements(choose(horizontal(), "modelClass", "tree"))).toEqual([]);
-    expect(availableEnhancements(applyTemplate("vertical-training"))).toEqual([]);
-    expect(availableEnhancements(choose(applyTemplate("federated-analytics"), "strategy", "fa-basic-stats"))).toEqual(["dp"]);
-    expect(availableEnhancements(choose(applyTemplate("agent-memory"), "strategy", "mem-dedup"))).toEqual([]);
+describe("dependencies between dimensions", () => {
+  it("greys out instruction data and large models on CPU-only nodes", () => {
+    const cpu = choose(horizontal(), "compute", "cpu-general");
+    expect(available(cpu, "dataType")).toEqual(["image", "table"]);
+    expect(cpu.dataType).toBe("image");
+    expect(cpu.model).toBe("resnet18");
   });
 
-  it("always includes the baseline protection and protocol built-ins", () => {
-    expect(builtinProtection(EMPTY_SELECTION)).toEqual(["mTLS", "隔离沙箱", "审计日志"]);
-    expect(builtinProtection(applyTemplate("vertical-training"))).toEqual(expect.arrayContaining(["ECDH PSI", "Paillier 同态加密"]));
-    const stats = choose(applyTemplate("federated-analytics"), "strategy", "fa-histogram");
-    expect(builtinProtection(stats)).toEqual(expect.arrayContaining(["最小分组阈值", "统一分箱"]));
-    expect(builtinProtection(choose(applyTemplate("agent-memory"), "strategy", "mem-dedup"))).toContain("敏感信息脱敏");
+  it("lists only the models that match the data type", () => {
+    const table = choose(horizontal(), "dataType", "table");
+    expect(shown(table, "model")).toEqual(["mlp", "xgboost", "logreg"]);
+    expect(shown(horizontal(), "model")).toEqual(["qwen2.5-1.5b", "qwen3-1.7b", "llama-3.2-3b"]);
   });
 
-  it("lets secure aggregation and differential privacy be combined and toggled", () => {
-    const fedavg = choose(horizontal(), "strategy", "hfl-fedavg");
-    const both = toggleEnhancement(toggleEnhancement(fedavg, "secagg"), "dp");
-    expect(both.enhancements).toEqual(["secagg", "dp"]);
-    expect(toggleEnhancement(both, "secagg").enhancements).toEqual(["dp"]);
+  it("needs 24 GB for Llama LoRA and falls back to QLoRA on 16 GB", () => {
+    const llama = choose(horizontal(), "model", "llama-3.2-3b");
+    expect(available(llama, "sharing")).toEqual(["lora", "qlora"]);
+    const small = choose(llama, "compute", "gpu-16");
+    expect(small.model).toBe("llama-3.2-3b");
+    expect(available(small, "sharing")).toEqual(["qlora"]);
+    expect(small.sharing).toBe("qlora");
   });
 
-  it("ignores enhancements the runner does not provide", () => {
-    const vertical = applyTemplate("vertical-training");
-    expect(toggleEnhancement(vertical, "secagg")).toBe(vertical);
+  it("locks XGBoost to Bagging and disables secure aggregation and differential privacy", () => {
+    const xgb = pick(horizontal(), [["dataType", "table"], ["model", "xgboost"]]);
+    expect(mode(xgb, "aggregation")).toBe("locked");
+    expect(xgb.aggregation).toBe("xgb-bagging");
+    expect(available(xgb, "secagg")).toEqual(["off"]);
+    expect(available(xgb, "dp")).toEqual(["off"]);
+    expect(itemState("localEpochs", xgb).title).toBe("每轮本地新增树");
   });
 
-  it("drops enhancements the new strategy does not support", () => {
-    const fedavg = toggleEnhancement(choose(horizontal(), "strategy", "hfl-fedavg"), "secagg");
-    expect(fedavg.enhancements).toEqual(["secagg"]);
-    expect(choose(fedavg, "modelClass", "tree").enhancements).toEqual([]);
-    expect(toggle(fedavg, "strategy", "hfl-fedavg").enhancements).toEqual([]);
+  it("offers secure aggregation and 50% sampling only with three or more parties", () => {
+    const two = choose(horizontal(), "partyScale", "2");
+    expect(available(two, "secagg")).toEqual(["off"]);
+    expect(available(two, "sampling")).toEqual(["all"]);
+    const group = choose(horizontal(), "partyScale", "3-5");
+    expect(available(group, "secagg")).toEqual(["off", "secagg-plus"]);
+  });
+
+  it("resets an invalid downstream choice to its recommended value", () => {
+    const secagg = pick(horizontal(), [["secagg", "secagg-plus"], ["sampling", "half"]]);
+    const two = choose(secagg, "partyScale", "2");
+    expect(two.secagg).toBe("off");
+    expect(two.sampling).toBe("all");
+  });
+
+  it("needs a compute-optimized node for SecureBoost", () => {
+    const vertical = applyScenario("vertical-training");
+    expect(vertical.model).toBe("secureboost");
+    const general = choose(vertical, "compute", "cpu-general");
+    expect(available(general, "model")).toEqual(["ss-lr"]);
+    expect(general.model).toBe("ss-lr");
+    expect(general.crypto).toBe("secret-sharing");
+    expect(mode(general, "crypto")).toBe("locked");
+  });
+
+  it("offers the SecretFlow PSI protocols and homomorphic schemes for vertical training", () => {
+    const vertical = applyScenario("vertical-training");
+    expect(shown(vertical, "alignment")).toEqual(["ecdh-psi", "rr22-psi"]);
+    expect(shown(vertical, "crypto")).toEqual(["ou", "paillier"]);
+    expect([vertical.partyScale, vertical.network, vertical.rounds]).toEqual(["2", "leased", "100"]);
+    expect(itemState("rounds", vertical).title).toBe("树数量");
+  });
+});
+
+describe("items per scenario", () => {
+  it("hides node resources for upload scenarios and runs them hosted", () => {
+    const stats = applyScenario("federated-analytics");
+    expect(mode(stats, "compute")).toBe("hidden");
+    expect(mode(stats, "network")).toBe("hidden");
+    expect(mode(stats, "deployment")).toBe("locked");
+    expect(valueLabel("deployment", stats)).toBe("平台托管");
+    expect(mode(stats, "rounds")).toBe("locked");
+  });
+
+  it("lets analytics choose the statistics, privacy noise and the minimum group size", () => {
+    const stats = applyScenario("federated-analytics");
+    expect(shown(stats, "model")).toEqual(["stats-basic", "stats-distribution"]);
+    expect(available(stats, "dp")).toEqual(["off", "8", "3", "1"]);
+    expect(stats.outputProtection).toBe("10");
+  });
+
+  it("fixes almost everything for Agent memory federation", () => {
+    const memory = applyScenario("agent-memory");
+    const choices = ITEMS.filter((item) => item.id !== "scenario" && mode(memory, item.id) === "choice").map((item) => item.id);
+    expect(choices).toEqual(["partyScale", "deliveryScope"]);
+    expect(valueLabel("aggregation", memory)).toBe("去重与冲突仲裁");
+    expect(valueLabel("outputProtection", memory)).toBe("敏感信息脱敏");
+  });
+
+  it("derives the deliverable from the model", () => {
+    expect(valueLabel("deliverable", horizontal())).toBe("LoRA Adapter");
+    expect(valueLabel("deliverable", choose(horizontal(), "dataType", "image"))).toBe("全局模型权重");
+    expect(valueLabel("deliverable", applyScenario("vertical-training"))).toBe("分片联合模型");
   });
 });

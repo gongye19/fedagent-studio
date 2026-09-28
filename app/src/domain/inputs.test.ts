@@ -1,41 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { defaultDatasetIds, matchedDatasets } from "./demo";
-import { NODE_SETUP, SAMPLE_BYTES, checkUpload, dataContract } from "./inputs";
-import { applyTemplate, choose } from "./selection";
-import { SCENARIOS, STRATEGIES } from "./taxonomy";
+import { SAMPLE_BYTES, checkUpload, dataContract, nodeDelivery } from "./inputs";
+import { DATA_TYPES } from "./taxonomy";
 
 const jsonl = (rows: object[]) => rows.map((row) => JSON.stringify(row)).join("\n");
 const file = (name: string, sample: string) => ({ name, size: sample.length, sample });
 
-const memory = dataContract({ scenario: "agent-memory" });
-const analytics = dataContract({ scenario: "federated-analytics" });
+const memory = dataContract("memory-jsonl");
+const analytics = dataContract("summary-table");
 
-describe("data contracts, nodes and upload checks", () => {
-  it("gives every scenario a contract and enough existing participants for its default path", () => {
-    for (const scenario of SCENARIOS) {
-      const selection = applyTemplate(scenario.id);
-      expect(dataContract({ ...selection, scenario: scenario.id }), scenario.id).toBeDefined();
-      expect(defaultDatasetIds(selection).length, scenario.id).toBeGreaterThanOrEqual(scenario.minParticipants);
-    }
-  });
-
-  it("only accepts uploads for file scenarios and gives node scenarios a start command", () => {
-    expect(dataContract({ scenario: "horizontal-training", modelClass: "neural", sharing: "full" }).accept).toEqual([]);
-    expect(dataContract({ scenario: "vertical-training" }).accept).toEqual([]);
+describe("data requirements and upload checks", () => {
+  it("gives every data type requirements, and only upload types accept files", () => {
+    for (const type of DATA_TYPES) expect(dataContract(type.id).requirements.length, type.id).toBeGreaterThan(0);
+    expect(dataContract("instruction").accept).toEqual([]);
+    expect(dataContract("vertical-table").accept).toEqual([]);
     expect(analytics.accept).toEqual([".csv"]);
     expect(memory.accept).toEqual([".jsonl"]);
-    for (const strategy of STRATEGIES.filter((item) => item.scenario === "horizontal-training" || item.scenario === "vertical-training")) {
-      expect(NODE_SETUP[strategy.runner]?.command, strategy.id).toBeTruthy();
-    }
   });
 
-  it("matches existing nodes to the chosen sub-items", () => {
-    const training = applyTemplate("horizontal-training");
-    expect(matchedDatasets(training).every((entry) => entry.provides === "影像分类数据")).toBe(true);
-    expect(matchedDatasets(choose(training, "sharing", "peft")).every((entry) => entry.provides === "指令数据 JSONL")).toBe(true);
-    expect(matchedDatasets(choose(training, "modelClass", "tree")).every((entry) => entry.provides === "理赔表")).toBe(true);
-    expect(dataContract({ scenario: "horizontal-training", modelClass: "neural", sharing: "peft" }).title).toBe("本地指令数据");
-    expect(matchedDatasets({ scenario: null })).toEqual([]);
+  it("delivers nodes by cloud instance or by an install command on premises", () => {
+    expect(nodeDelivery("aliyun").command).toBeUndefined();
+    expect(nodeDelivery("on-prem").command).toContain("docker run");
+    expect(nodeDelivery("hosted").method).toContain("无需部署节点");
   });
 
   it("passes a memory file with the required fields and enough records", () => {

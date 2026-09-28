@@ -1,125 +1,130 @@
 import { describe, expect, it } from "vitest";
-import { checkUpload, dataContract } from "../domain/inputs";
-import { buildRunPlan } from "../domain/plan";
-import { initialState, inputStatus, reducer, runParticipants, type Action, type State } from "./store";
+import { SELF_ORG, projectStatus, readiness } from "../domain/project";
+import { stageOf } from "../domain/run";
+import { EMPTY_SELECTION } from "../domain/selection";
+import { parseHash } from "./route";
+import { sanitize } from "./persistence";
+import { seedState } from "./seed";
+import { pendingEvents } from "./simulation";
+import { NEW_NODE, eligibleNodes, projectOf, reducer, type Action, type State } from "./store";
 
 const apply = (state: State, actions: Action[]) => actions.reduce(reducer, state);
 
-const memoryReady: Action[] = [
-  { type: "applyTemplate", scenario: "agent-memory" },
-  { type: "toggle", layer: "strategy", value: "mem-dedup" },
-];
-const trainingReady: Action[] = [
-  { type: "applyTemplate", scenario: "horizontal-training" },
-  { type: "toggle", layer: "strategy", value: "hfl-fedavg" },
-];
+/** 把所有模拟事件立即执行，直到没有新事件（上限防止死循环）。 */
+function settle(state: State, limit = 200): State {
+  let current = state;
+  for (let index = 0; index < limit; index += 1) {
+    const [event] = pendingEvents(current);
+    if (!event) return current;
+    current = reducer(current, event.action());
+  }
+  return current;
+}
 
-const memoryContract = dataContract({ scenario: "agent-memory" });
-const goodMemory = Array.from({ length: 6 }, (_, index) => JSON.stringify({ type: "experience", content: `经验 ${index}` })).join("\n");
+const created = (state: State) => state.projects[0];
 
-describe("page state", () => {
-  it("starts empty and pre-selects existing participants once a scenario is chosen", () => {
-    expect(initialState.datasetIds).toEqual([]);
-    const state = apply(initialState, [{ type: "applyTemplate", scenario: "vertical-training" }]);
-    expect(runParticipants(state).map((participant) => participant.role)).toEqual(["标签方", "特征方"]);
+describe("seeded demo", () => {
+  it("provides nodes, data, a forming project, a delivered project and an invitation", () => {
+    const state = seedState();
+    expect(state.nodes.map((node) => node.status)).toEqual(["online", "online", "offline"]);
+    expect(state.projects.map((project) => projectStatus(project))).toEqual(["forming", "delivered"]);
+    expect(readiness(state.projects[0])).toMatchObject({ confirmed: 2, min: 3 });
+    expect(state.invitations[0]).toMatchObject({ from: "城南银行", status: "pending", role: "特征方" });
+    expect(stageOf(state.projects[1].run!, "publish").status).toBe("done");
+  });
+});
+
+describe("creating and running a project", () => {
+  const configured = apply(seedState(), [
+    { type: "choose", item: "scenario", value: "horizontal-training" },
+    { type: "choose", item: "rounds", value: "20" },
+    { type: "createProject", id: "prj-new", name: "  ", createdAt: "2026-09-28T10:00:00+08:00" },
+  ]);
+
+  it("freezes the draft into a project and clears the draft", () => {
+    expect(created(configured)).toMatchObject({ id: "prj-new", name: "横向联邦训练", role: "initiator" });
+    expect(created(configured).plan.rounds.value).toBe(20);
+    expect(configured.draft).toEqual(EMPTY_SELECTION);
   });
 
-  it("re-matches nodes when a sub-item changes and keeps the user's picks otherwise", () => {
-    const training = apply(initialState, [...trainingReady, { type: "toggleDataset", id: "hfl-image-3" }]);
-    expect(runParticipants(training)).toHaveLength(2);
-
-    const sameCatalog = reducer(training, { type: "toggleEnhancement", id: "secagg" });
-    expect(runParticipants(sameCatalog)).toHaveLength(2);
-    expect(sameCatalog.selection.enhancements).toEqual(["secagg"]);
-
-    const tree = reducer(training, { type: "toggle", layer: "modelClass", value: "tree" });
-    expect(runParticipants(tree).every((participant) => participant.provides === "理赔表")).toBe(true);
+  it("only offers our online nodes that meet the required spec", () => {
+    expect(eligibleNodes(configured, created(configured)).map((node) => node.id)).toEqual(["node-sh-01"]);
   });
 
-  it("ignores participants that do not match the current selection", () => {
-    const memory = apply(initialState, memoryReady);
-    expect(reducer(memory, { type: "toggleDataset", id: "vfl-1" })).toBe(memory);
-  });
-
-  it("connects our own node only in node scenarios and counts it once online", () => {
-    const training = apply(initialState, trainingReady);
-    const plan = buildRunPlan(training.selection);
-    const connecting = reducer(training, { type: "connectNode" });
-    expect(inputStatus(connecting, plan)).toMatchObject({ checking: 1, ready: false });
-    const online = reducer(connecting, { type: "nodeOnline" });
-    expect(runParticipants(online).find((participant) => participant.source === "node")?.name).toBe("我方节点");
-    expect(inputStatus(online, plan).count).toBe(4);
-    expect(runParticipants(reducer(online, { type: "disconnectNode" }))).toHaveLength(3);
-
-    const memory = apply(initialState, memoryReady);
-    expect(reducer(memory, { type: "connectNode" })).toBe(memory);
-    expect(reducer(training, { type: "addUploads", files: [{ id: "u0", name: "x.jsonl", size: 1 }] })).toBe(training);
-  });
-
-  it("only counts an upload after the agent check passes", () => {
-    const memory = apply(initialState, [...memoryReady, { type: "addUploads", files: [{ id: "u1", name: "mine.jsonl", size: goodMemory.length }] }]);
-    const plan = buildRunPlan(memory.selection);
-    expect(inputStatus(memory, plan)).toMatchObject({ checking: 1, ready: false });
-
-    const passed = reducer(memory, { type: "uploadChecked", id: "u1", check: checkUpload(memoryContract, { name: "mine.jsonl", size: goodMemory.length, sample: goodMemory }) });
-    expect(inputStatus(passed, plan).ready).toBe(true);
-    expect(runParticipants(passed).find((participant) => participant.source === "upload")?.detail).toContain("6 条");
-  });
-
-  it("blocks the run while an upload has failed the check", () => {
-    const failed = apply(initialState, [
-      ...memoryReady,
-      { type: "addUploads", files: [{ id: "u2", name: "wrong.csv", size: 10 }] },
-      { type: "uploadChecked", id: "u2", check: checkUpload(memoryContract, { name: "wrong.csv", size: 10, sample: "a,b\n1,2" }) },
+  it("delivers a new node, confirms us once it is online, and runs after partners confirm", () => {
+    let state = apply(configured, [
+      { type: "bindSelf", projectId: "prj-new", memberId: "prj-new-self", node: NEW_NODE, datasetId: "ds-qa", newNodeId: "node-new" },
+      { type: "invite", projectId: "prj-new", memberId: "m1", org: "华东第一医院", simulated: true, example: true },
+      { type: "invite", projectId: "prj-new", memberId: "m2", org: "衡平律师事务所", simulated: false },
     ]);
-    const plan = buildRunPlan(failed.selection);
-    expect(inputStatus(failed, plan)).toMatchObject({ failed: 1, ready: false });
-    expect(reducer(failed, { type: "startRun", id: "run-1", createdAt: "now" }).run).toBeNull();
-    expect(inputStatus(reducer(failed, { type: "removeUpload", id: "u2" }), plan).ready).toBe(true);
+    expect(state.nodes.find((node) => node.id === "node-new")).toMatchObject({ name: "阿里云-02", spec: "gpu-24", status: "provisioning" });
+    expect(created(state).members[0].status).toBe("provisioning");
+
+    state = settle(state);
+    expect(created(state).members.map((member) => member.status)).toEqual(["confirmed", "confirmed", "invited"]);
+    expect(reducer(state, { type: "startRun", projectId: "prj-new", runId: "run-x", createdAt: "now" })).toBe(state);
+
+    state = settle(reducer(state, { type: "simulateMember", projectId: "prj-new", memberId: "m2" }));
+    expect(readiness(created(state)).ready).toBe(true);
+
+    state = settle(reducer(state, { type: "startRun", projectId: "prj-new", runId: "run-x", createdAt: "now" }));
+    expect(projectStatus(created(state))).toBe("awaiting-delivery");
+    state = reducer(state, { type: "deliver", projectId: "prj-new", recipients: [SELF_ORG, "华东第一医院"] });
+    expect(projectStatus(created(state))).toBe("delivered");
   });
 
-  it("clears uploads and our node when the data requirements change", () => {
-    const memory = apply(initialState, [...memoryReady, { type: "addUploads", files: [{ id: "u3", name: "mine.jsonl", size: 5 }] }]);
-    expect(reducer(memory, { type: "applyTemplate", scenario: "federated-analytics" }).uploads).toEqual([]);
-
-    const online = apply(initialState, [...trainingReady, { type: "connectNode" }, { type: "nodeOnline" }]);
-    expect(reducer(online, { type: "toggle", layer: "sharing", value: "peft" }).ownNode).toBe("none");
+  it("adds another own node for organization-internal federation", () => {
+    const state = settle(apply(configured, [
+      { type: "bindSelf", projectId: "prj-new", memberId: "prj-new-self", node: "node-sh-01", datasetId: "ds-qa", newNodeId: "unused" },
+      { type: "addOwnNode", projectId: "prj-new", memberId: "own", node: NEW_NODE, datasetId: "ds-aftersale", newNodeId: "node-own" },
+    ]));
+    expect(created(state).members.map((member) => [member.kind, member.status])).toEqual([["self", "confirmed"], ["own-node", "confirmed"]]);
   });
 
-  it("starts a run only with a complete plan and enough participants", () => {
-    const incomplete = apply(initialState, [{ type: "applyTemplate", scenario: "horizontal-training" }]);
-    expect(reducer(incomplete, { type: "startRun", id: "run-1", createdAt: "now" }).run).toBeNull();
+  it("refuses to bind an offline or under-spec node", () => {
+    expect(reducer(configured, { type: "bindSelf", projectId: "prj-new", memberId: "prj-new-self", node: "node-bj-02", datasetId: "ds-qa", newNodeId: "x" })).toBe(configured);
+    expect(reducer(configured, { type: "bindSelf", projectId: "prj-new", memberId: "prj-new-self", node: "node-hz-01", datasetId: "ds-qa", newNodeId: "x" })).toBe(configured);
+  });
+});
 
-    const tooFew = apply(initialState, [
-      ...memoryReady,
-      { type: "toggleDataset", id: "mem-1" },
-      { type: "toggleDataset", id: "mem-2" },
-    ]);
-    expect(reducer(tooFew, { type: "startRun", id: "run-1", createdAt: "now" }).run).toBeNull();
+describe("invitations", () => {
+  it("accepting creates a participant project that the initiator starts and delivers", () => {
+    let state = reducer(seedState(), {
+      type: "acceptInvitation",
+      invitationId: "inv-antifraud",
+      projectId: "prj-joined",
+      node: "node-bj-02",
+      datasetId: "ds-member",
+      newNodeId: "unused",
+      createdAt: "now",
+    });
+    expect(state.invitations[0]).toMatchObject({ status: "accepted", projectId: "prj-joined" });
+    expect(projectStatus(projectOf(state, "prj-joined")!)).toBe("waiting");
 
-    const ready = apply(initialState, [...trainingReady, { type: "startRun", id: "run-1", createdAt: "now" }]);
-    expect(ready.run?.plan.scenario.id).toBe("horizontal-training");
-    expect(ready.run?.participants).toHaveLength(3);
+    state = settle(state);
+    const joined = projectOf(state, "prj-joined")!;
+    expect(projectStatus(joined)).toBe("delivered");
+    expect(joined.run?.artifact?.recipients).toEqual(["城南银行", SELF_ORG]);
   });
 
-  it("locks configuration and data while a run exists", () => {
-    const running = apply(initialState, [...trainingReady, { type: "startRun", id: "run-1", createdAt: "now" }]);
-    expect(reducer(running, { type: "toggle", layer: "modelClass", value: "tree" })).toBe(running);
-    expect(reducer(running, { type: "toggleDataset", id: "hfl-image-1" })).toBe(running);
-    expect(reducer(running, { type: "connectNode" })).toBe(running);
-    expect(reducer(running, { type: "setPreset", preset: "standard" })).toBe(running);
+  it("can decline a pending invitation", () => {
+    const state = reducer(seedState(), { type: "declineInvitation", invitationId: "inv-antifraud" });
+    expect(state.invitations[0].status).toBe("declined");
+  });
+});
+
+describe("routing and persistence", () => {
+  it("parses hash routes", () => {
+    expect(parseHash("")).toEqual({ page: "workbench" });
+    expect(parseHash("#/new")).toEqual({ page: "new" });
+    expect(parseHash("#/projects/prj-lora")).toEqual({ page: "project", id: "prj-lora" });
+    expect(parseHash("#/invites/inv-antifraud")).toEqual({ page: "invitation", id: "inv-antifraud" });
   });
 
-  it("clears the scenario and its sub-items when the active scenario is clicked again", () => {
-    const training = apply(initialState, trainingReady);
-    const cleared = reducer(training, { type: "clearScenario" });
-    expect(cleared.selection.scenario).toBeNull();
-    expect(cleared.selection.modelClass).toBeNull();
-    expect(cleared.datasetIds).toEqual([]);
-  });
-
-  it("resets to an empty draft", () => {
-    const running = apply(initialState, [...trainingReady, { type: "startRun", id: "run-1", createdAt: "now" }]);
-    expect(reducer(running, { type: "reset" })).toEqual(initialState);
+  it("drops uploads that were still being checked when the page was closed", () => {
+    const state = seedState();
+    const project = { ...state.projects[1], uploads: [...state.projects[1].uploads, { id: "u", name: "x.csv", size: 1, status: "checking" as const, check: null }] };
+    const restored = sanitize({ ...state, projects: [state.projects[0], project] });
+    expect(restored.projects[1].uploads.map((upload) => upload.status)).toEqual(["passed"]);
   });
 });

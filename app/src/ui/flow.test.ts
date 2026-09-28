@@ -1,23 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { isRunStage, nextFlowStep, previousFlowStep } from "./flow";
+import { FLOW_STEPS, isRunStage, labelOf, nextFlowStep, previousFlowStep } from "./flow";
 
-describe("run flow navigation", () => {
-  it("moves through the wizard in order", () => {
-    expect(nextFlowStep("configure")).toBe("inputs");
-    expect(nextFlowStep("inputs")).toBe("preflight");
-    expect(nextFlowStep("provision")).toBe("execute");
-    expect(nextFlowStep("evaluate")).toBe("publish");
+describe("project flow navigation", () => {
+  it("goes from the locked configuration through participants to delivery", () => {
+    expect(FLOW_STEPS.map((step) => step.label)).toEqual(["配置", "参与方", "准入检查", "创建环境", "执行", "评测", "交付"]);
+    expect(nextFlowStep("configure")).toBe("participants");
+    expect(nextFlowStep("participants")).toBe("preflight");
     expect(nextFlowStep("publish")).toBeNull();
+    expect(labelOf("publish")).toBe("交付");
   });
 
   it("moves backward without leaving the first step", () => {
-    expect(previousFlowStep("preflight")).toBe("inputs");
+    expect(previousFlowStep("preflight")).toBe("participants");
     expect(previousFlowStep("configure")).toBeNull();
   });
 
   it("separates setup steps from run stages", () => {
     expect(isRunStage("configure")).toBe(false);
-    expect(isRunStage("inputs")).toBe(false);
+    expect(isRunStage("participants")).toBe(false);
     expect(isRunStage("preflight")).toBe(true);
   });
 });

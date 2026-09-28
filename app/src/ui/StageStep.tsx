@@ -6,10 +6,10 @@ import { Icon, type IconName } from "./icons";
 type RunStage = Exclude<StageId, "publish">;
 
 const IDLE_TEXT: Record<RunStage, string> = {
-  preflight: "在数据接入确认数据后开始。规则引擎先检查硬规则，Agent 只负责解释结果和给出修复建议，不能覆盖拒绝。",
-  provision: "准入通过后，平台冻结运行计划，按执行模式创建协调方沙箱。",
-  execute: "沙箱就绪后，按所选策略和执行模式运行。",
-  evaluate: "执行完成后，在独立评测沙箱中对比基线，未通过闸门的结果不能发布。",
+  preflight: "参与方确认后由发起方开始运行。规则引擎先检查硬规则，Agent 只负责解释结果和给出修复建议，不能覆盖拒绝。",
+  provision: "准入通过后，平台冻结运行计划，按执行模式创建协调方和各参与方的运行环境。",
+  execute: "运行环境就绪后，按所选算法和执行模式运行。",
+  evaluate: "执行完成后，在独立评测环境中对比基线，未通过闸门的结果不能交付。",
 };
 
 const CHECK_ICON: Record<"pass" | "warn" | "fail", IconName> = { pass: "check", warn: "alert", fail: "x" };
@@ -40,11 +40,11 @@ function runningText(stageId: RunStage, run: Run): string {
     case "preflight":
       return `正在检查 ${run.participants.length} 个参与方的输入契约`;
     case "provision":
-      return `正在创建 ${run.plan.runner} 沙箱`;
+      return `正在创建 ${run.plan.runner} 运行环境`;
     case "execute":
-      return `正在执行 ${run.plan.strategy.label}（${run.plan.patternLabel}）`;
+      return `正在执行 ${run.plan.model.label} · ${run.plan.aggregation}（${run.plan.patternLabel}）`;
     case "evaluate":
-      return `正在评测：${run.plan.evaluation}`;
+      return `正在评测：${run.plan.evaluation.label}`;
   }
 }
 
@@ -73,10 +73,10 @@ function body(stageId: RunStage, run: Run): ReactNode {
       return (
         <Facts
           items={[
-            ["Runner", plan.runner],
+            ["执行框架", plan.runner],
             ["协调方", plan.locations.coordinator],
             ["参与方侧", plan.locations.participantWorker],
-            ["网络", "默认拒绝"],
+            ["网络", `${plan.requirements.network ?? "平台内部"} · 默认拒绝，只放行项目通道`],
           ]}
         />
       );
@@ -84,10 +84,12 @@ function body(stageId: RunStage, run: Run): ReactNode {
       return (
         <Facts
           items={[
-            ["策略", plan.strategy.label],
-            ["联邦对象", plan.exchanged],
+            ["模型", plan.sharing ? `${plan.model.label} · ${plan.sharing}` : plan.model.label],
+            ["聚合", plan.aggregation],
+            [plan.rounds.title, plan.rounds.label],
+            ["交换对象", plan.exchanged],
             ["安全机制", plan.security.mechanisms.join(" · ")],
-            ["参与方", `${run.participants.length} 个`],
+            ["参与方", run.participants.map((participant) => participant.name).join("、")],
           ]}
         />
       );
@@ -96,7 +98,7 @@ function body(stageId: RunStage, run: Run): ReactNode {
         <div className="table-wrap">
           <table className="metrics-table">
             <thead>
-              <tr><th>指标</th><th>基线</th><th>结果</th><th>闸门</th><th>状态</th></tr>
+              <tr><th>指标</th><th>基线</th><th>结果</th><th>交付闸门</th><th>状态</th></tr>
             </thead>
             <tbody>
               {run.evaluation.metrics.map((metric) => (

@@ -1,76 +1,85 @@
 import { describe, expect, it } from "vitest";
-import { buildRunPlan, planPreview } from "./plan";
-import { EMPTY_SELECTION, applyTemplate, choose, layerOptions, toggleEnhancement, type Selection } from "./selection";
-import { SCENARIOS, type ScenarioId } from "./taxonomy";
-
-/** 从场景开始，策略选第一个可用项。 */
-function completed(scenarioId: ScenarioId, adjust: (selection: Selection) => Selection = (selection) => selection): Selection {
-  const selection = adjust(applyTemplate(scenarioId));
-  if (selection.strategy) return selection;
-  const first = layerOptions("strategy", selection).find((option) => option.available);
-  return first ? choose(selection, "strategy", first.choice.id) : selection;
-}
-
-const lora = (selection: Selection) => choose(selection, "sharing", "peft");
+import { buildRunPlan, configGroups, estimate, formatMinutes } from "./plan";
+import { EMPTY_SELECTION, applyScenario, choose } from "./selection";
+import { SCENARIOS } from "./taxonomy";
 
 describe("frontend run plan", () => {
-  it("is only produced once every applicable dimension is answered", () => {
+  it("is produced for every scenario once it is chosen", () => {
     expect(buildRunPlan(EMPTY_SELECTION)).toBeNull();
-    expect(buildRunPlan(applyTemplate("horizontal-training"))).toBeNull();
-    expect(buildRunPlan(completed("horizontal-training"))).not.toBeNull();
-    expect(buildRunPlan(applyTemplate("vertical-training"))).not.toBeNull();
-  });
-
-  it("can be derived for every scenario", () => {
     for (const scenario of SCENARIOS) {
-      const plan = buildRunPlan(completed(scenario.id));
+      const plan = buildRunPlan(applyScenario(scenario.id));
       expect(plan?.scenario.id, scenario.id).toBe(scenario.id);
-      expect(plan?.simulated).toBe(true);
+      expect(plan?.schemaVersion).toBe("frontend.run-plan/v2");
+      expect(plan?.groups.map((group) => group.dimension)).toEqual([1, 2, 3, 4, 5, 6, 7]);
     }
   });
 
-  it("derives execution pattern, input mode, exchanged object and runner instead of asking the user", () => {
-    const training = buildRunPlan(completed("horizontal-training", lora));
-    expect(training?.pattern).toBe("iterative");
-    expect(training?.input.kind).toBe("nodes");
-    expect(training?.exchanged).toBe("LoRA 增量");
-    expect(training?.output).toBe("全局 LoRA");
-    expect(training?.metricsKey).toBe("horizontal-training:peft");
-    expect(training?.runner).toBe("Flower");
-    expect(training?.locations.participantWorker).toContain("SuperNode");
+  it("uses one plan shape and derives runner, pattern and exchanged object", () => {
+    const lora = buildRunPlan(applyScenario("horizontal-training"));
+    expect([lora?.runner, lora?.pattern, lora?.exchanged, lora?.deliverable]).toEqual(["Flower", "iterative", "LoRA 增量", "LoRA Adapter"]);
+    expect(lora?.metricsKey).toBe("horizontal:llm");
+    expect(lora?.locations.participantWorker).toContain("SuperNode");
 
-    const vertical = buildRunPlan(completed("vertical-training"));
-    expect(vertical?.pattern).toBe("vertical-protocol");
-    expect(vertical?.runner).toBe("NVFlare");
+    const vertical = buildRunPlan(applyScenario("vertical-training"));
+    expect([vertical?.runner, vertical?.pattern, vertical?.exchanged]).toEqual(["隐语 SecretFlow", "vertical-protocol", "加密梯度与分裂统计"]);
 
-    const memory = buildRunPlan(completed("agent-memory"));
-    expect(memory?.pattern).toBe("merge-once");
-    expect(memory?.input.kind).toBe("files");
+    const memory = buildRunPlan(applyScenario("agent-memory"));
+    expect([memory?.pattern, memory?.scenario.inputKind]).toEqual(["merge-once", "files"]);
     expect(memory?.locations.participantWorker).toContain("不需要常驻节点");
   });
 
-  it("combines built-in protection with the selected enhancements", () => {
-    const vertical = buildRunPlan(completed("vertical-training"));
-    expect(vertical?.security.builtin).toEqual(expect.arrayContaining(["mTLS", "Paillier 同态加密", "ECDH PSI"]));
-    expect(vertical?.security.enhancements).toEqual([]);
-
-    const fedavg = choose(applyTemplate("horizontal-training"), "strategy", "hfl-fedavg");
-    const plan = buildRunPlan(toggleEnhancement(toggleEnhancement(fedavg, "secagg"), "dp"));
-    expect(plan?.security.enhancements.map((item) => item.id)).toEqual(["secagg", "dp"]);
-    expect(plan?.security.mechanisms).toEqual(expect.arrayContaining(["mTLS", "SecAgg+", "中心化差分隐私"]));
-    expect(plan?.warnings.some((warning) => warning.includes("差分隐私"))).toBe(true);
+  it("records requirements that participants must meet", () => {
+    const plan = buildRunPlan(choose(applyScenario("horizontal-training"), "partyScale", "6-10"));
+    expect(plan?.requirements.minParties).toBe(6);
+    expect(plan?.requirements.compute?.id).toBe("gpu-24");
+    expect(plan?.requirements.dataType.id).toBe("instruction");
+    expect(buildRunPlan(applyScenario("federated-analytics"))?.requirements.compute).toBeNull();
   });
 
-  it("records internally whether the plan uses a large-model / agent method", () => {
-    expect(buildRunPlan(completed("agent-memory"))?.adoption).toBe("frontier");
-    expect(buildRunPlan(completed("horizontal-training", lora))?.adoption).toBe("frontier");
-    expect(buildRunPlan(completed("horizontal-training"))?.adoption).toBe("mainstream");
+  it("lists the protection mechanisms that will actually run", () => {
+    const vertical = buildRunPlan(applyScenario("vertical-training"));
+    expect(vertical?.security.mechanisms).toEqual(["mTLS", "隔离沙箱", "审计日志", "ECDH-PSI", "OU 同态加密"]);
+
+    const protectedRun = buildRunPlan(choose(choose(applyScenario("horizontal-training"), "secagg", "secagg-plus"), "dp", "3"));
+    expect(protectedRun?.security.mechanisms).toEqual(expect.arrayContaining(["SecAgg+", "差分隐私 ε = 3"]));
+    expect(protectedRun?.warnings.some((warning) => warning.includes("差分隐私"))).toBe(true);
   });
 
-  it("previews derived values while the user is still choosing", () => {
-    const preview = planPreview(applyTemplate("federated-analytics"));
-    expect(preview.scenario).toBe("联邦统计分析");
-    expect(preview.pattern).toBe("单轮汇总");
-    expect(preview.runner).toBeUndefined();
+  it("warns about vertical training over the public internet and QLoRA precision", () => {
+    const publicVertical = buildRunPlan(choose(applyScenario("vertical-training"), "network", "public"));
+    expect(publicVertical?.warnings.some((warning) => warning.includes("专线"))).toBe(true);
+    const qlora = buildRunPlan(choose(applyScenario("horizontal-training"), "sharing", "qlora"));
+    expect(qlora?.warnings.some((warning) => warning.includes("QLoRA"))).toBe(true);
+  });
+
+  it("marks plans that use large-model or agent methods", () => {
+    expect(buildRunPlan(applyScenario("horizontal-training"))?.adoption).toBe("frontier");
+    expect(buildRunPlan(choose(applyScenario("horizontal-training"), "dataType", "table"))?.adoption).toBe("mainstream");
+    expect(buildRunPlan(applyScenario("agent-memory"))?.adoption).toBe("frontier");
+  });
+
+  it("builds the configuration list shown in the order summary", () => {
+    const groups = configGroups(applyScenario("vertical-training"));
+    const security = groups.find((group) => group.dimension === 6);
+    expect(security?.rows.map((row) => row.title)).toEqual(["基础安全", "加密计算"]);
+    expect(security?.rows[0].locked).toBe(true);
+  });
+});
+
+describe("resource and duration estimate", () => {
+  it("scales with rounds and protection", () => {
+    const base = applyScenario("horizontal-training");
+    const longer = choose(base, "rounds", "50");
+    const [baseLow] = [estimate(base).duration];
+    expect(estimate(longer).duration).not.toBe(baseLow);
+    expect(estimate(base).resources).toBe("每方 1 个节点 · GPU 24 GB");
+    expect(estimate(base).consumption).toContain("GPU·时");
+    expect(estimate(applyScenario("vertical-training")).consumption).toContain("CPU 节点·时");
+    expect(estimate(applyScenario("agent-memory")).resources).toBe("平台托管");
+  });
+
+  it("formats minutes and hours", () => {
+    expect(formatMinutes([12, 40])).toBe("约 12–40 分钟");
+    expect(formatMinutes([90, 180])).toBe("约 1.5–3 小时");
   });
 });

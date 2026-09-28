@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { defaultDatasetIds, matchedDatasets, type Participant } from "./demo";
 import { buildRunPlan, type FrontendRunPlan } from "./plan";
 import {
   canPublish,
@@ -13,32 +12,33 @@ import {
   publishRun,
   stageOf,
   startStage,
+  type Participant,
   type Run,
   type StageId,
 } from "./run";
-import { applyTemplate } from "./selection";
+import { applyScenario } from "./selection";
 import { artifactFor, stageWork } from "./simulator";
 
 function planFor(): FrontendRunPlan {
-  const selection = applyTemplate("vertical-training");
-  const plan = buildRunPlan(selection);
+  const plan = buildRunPlan(applyScenario("vertical-training"));
   if (!plan) throw new Error("plan expected");
   return plan;
 }
 
 function advance(run: Run, stage: Exclude<StageId, "publish">): Run {
   const started = startStage(run, stage);
-  return finishStage(started, stage, stageWork(stage, started.plan, started.participants, started.preset));
+  return finishStage(started, stage, stageWork(stage, started.plan, started.participants));
 }
 
 function verticalParticipants(): Participant[] {
-  const selection = applyTemplate("vertical-training");
-  const ids = defaultDatasetIds(selection);
-  return matchedDatasets(selection).filter((entry) => ids.includes(entry.id));
+  return [
+    { id: "a", name: "城南银行", org: "城南银行", role: "标签方", provides: "特征表", detail: "", source: "partner", spec: "cpu-compute" },
+    { id: "b", name: "本机构", org: "本机构", role: "特征方", provides: "特征表", detail: "", source: "self", spec: "cpu-compute" },
+  ];
 }
 
 function newRun(): Run {
-  return createRun("run-1", planFor(), verticalParticipants(), "quick", "2026-09-24T00:00:00Z");
+  return createRun("run-1", planFor(), verticalParticipants(), "2026-09-24T00:00:00Z");
 }
 
 describe("run lifecycle", () => {
@@ -56,7 +56,7 @@ describe("run lifecycle", () => {
     expect(canPublish(run)).toBe(true);
     expect(isFinished(run)).toBe(false);
 
-    const published = publishRun(run, artifactFor(run.plan, run.participants, run.id, "participants"));
+    const published = publishRun(run, artifactFor(run.plan, run.participants, run.id, ["城南银行", "本机构"]));
     expect(stageOf(published, "publish").status).toBe("done");
     expect(published.artifact?.lineage).toHaveLength(2);
     expect(isFinished(published)).toBe(true);
@@ -77,7 +77,7 @@ describe("run lifecycle", () => {
   });
 
   it("stops the run when preflight rejects the inputs", () => {
-    const run = createRun("run-2", planFor(), verticalParticipants().slice(0, 1), "quick", "2026-09-24T00:00:00Z");
+    const run = createRun("run-2", planFor(), verticalParticipants().slice(0, 1), "2026-09-24T00:00:00Z");
     const checked = advance(run, "preflight");
     expect(checked.preflight?.passed).toBe(false);
     expect(stageOf(checked, "preflight").status).toBe("failed");
@@ -95,9 +95,9 @@ describe("run lifecycle", () => {
       logs: [],
       evaluation: { passed: false, metrics: [] },
     });
-    expect(failed.error).toContain("发布闸门");
+    expect(failed.error).toContain("交付闸门");
     expect(canPublish(failed)).toBe(false);
-    expect(publishRun(failed, artifactFor(failed.plan, failed.participants, failed.id, "owner"))).toBe(failed);
+    expect(publishRun(failed, artifactFor(failed.plan, failed.participants, failed.id, ["城南银行"]))).toBe(failed);
   });
 
   it("keeps the state machine free of scenario-specific branches", () => {

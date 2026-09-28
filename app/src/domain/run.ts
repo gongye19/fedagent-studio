@@ -1,35 +1,35 @@
 /**
  * Run 生命周期状态机。
  *
- * 所有场景共用同一条生命周期：preflight → provision → execute → evaluate → publish。
- * 差异只在模拟器（simulator.ts）按执行模式给出的内容里，这个文件不按场景分支。
- * 规则：准入不通过不能创建沙箱；评测未通过不能发布；发布必须由用户手动确认。
+ * 所有场景共用同一条生命周期：preflight（准入检查）→ provision（创建环境）→ execute（执行）
+ * → evaluate（评测）→ publish（交付）。差异只在模拟器（simulator.ts）按执行模式给出的内容里，
+ * 这个文件不按场景分支。规则：准入不通过不能创建环境；评测未通过不能交付；交付必须由发起方确认。
  */
-import type { Participant } from "./demo";
+import type { ComputeId } from "./taxonomy";
 import type { FrontendRunPlan } from "./plan";
+
+/** 参加本次运行的一方（运行开始时冻结）。 */
+export type Participant = {
+  id: string;
+  /** 显示名：组织内部多节点或多份文件时为"本机构 · 节点名 / 文件名"。 */
+  name: string;
+  /** 所属机构，交付按机构去重。 */
+  org: string;
+  role: string;
+  provides: string;
+  detail: string;
+  source: "self" | "own-node" | "partner" | "upload";
+  /** 节点类场景的节点规格。 */
+  spec?: ComputeId;
+};
 
 export type StageId = "preflight" | "provision" | "execute" | "evaluate" | "publish";
 export type StageStatus = "pending" | "running" | "done" | "failed";
 
 export const STAGE_ORDER: readonly StageId[] = ["preflight", "provision", "execute", "evaluate", "publish"];
 
-/** 自动推进的阶段；publish 需要用户确认发布范围后手动触发。 */
+/** 自动推进的阶段；publish（交付）需要发起方确认后手动触发。 */
 const AUTO_STAGES: readonly StageId[] = ["preflight", "provision", "execute", "evaluate"];
-
-export type ExecutionPreset = "quick" | "standard";
-
-export const PRESET_LABEL: Record<ExecutionPreset, string> = {
-  quick: "快速验证",
-  standard: "标准运行",
-};
-
-export type Visibility = "owner" | "participants" | "selected";
-
-export const VISIBILITY_LABEL: Record<Visibility, string> = {
-  owner: "仅任务创建者",
-  participants: "全部参与方",
-  selected: "指定参与方",
-};
 
 export type CheckStatus = "pass" | "warn" | "fail";
 
@@ -54,7 +54,8 @@ export type PublishedArtifact = {
   name: string;
   type: string;
   lineage: string[];
-  visibility: Visibility;
+  /** 收到交付物的参与方。 */
+  recipients: string[];
 };
 
 export type Stage = {
@@ -71,7 +72,6 @@ export type Run = {
   /** 冻结的计划和参与方：Run 开始后修改配置必须创建新 Run。 */
   plan: FrontendRunPlan;
   participants: Participant[];
-  preset: ExecutionPreset;
   stages: Stage[];
   preflight: PreflightReport | null;
   evaluation: EvaluationReport | null;
@@ -91,7 +91,6 @@ export function createRun(
   id: string,
   plan: FrontendRunPlan,
   participants: Participant[],
-  preset: ExecutionPreset,
   createdAt: string,
 ): Run {
   return {
@@ -99,7 +98,6 @@ export function createRun(
     createdAt,
     plan,
     participants: participants.map((participant) => ({ ...participant })),
-    preset,
     stages: STAGE_ORDER.map((stageId) => ({ id: stageId, status: "pending", detail: "", realCost: "", logs: [] })),
     preflight: null,
     evaluation: null,
@@ -147,7 +145,7 @@ export function finishStage(run: Run, id: StageId, result: StageResult): Run {
     return failStage(next, id, "准入检查未通过，不能创建沙箱");
   }
   if (id === "evaluate" && result.evaluation && !result.evaluation.passed) {
-    return failStage(next, id, "评测未通过发布闸门，产物不能发布");
+    return failStage(next, id, "评测未通过交付闸门，产物不能交付");
   }
   return next;
 }
@@ -168,9 +166,9 @@ export function publishRun(run: Run, artifact: PublishedArtifact): Run {
   return {
     ...patch(run, "publish", {
       status: "done",
-      detail: `已发布给${VISIBILITY_LABEL[artifact.visibility]}（前端模拟）`,
+      detail: `已交付给 ${artifact.recipients.join("、")}（前端模拟）`,
       realCost: "秒级",
-      logs: [`登记产物 ${artifact.name}`, `记录谱系：${artifact.lineage.join("、")}`, `访问范围：${VISIBILITY_LABEL[artifact.visibility]}`],
+      logs: [`登记产物 ${artifact.name}`, `记录谱系：${artifact.lineage.join("、")}`, `交付对象：${artifact.recipients.join("、")}`],
     }),
     artifact,
   };

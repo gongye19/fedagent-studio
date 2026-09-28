@@ -1,6 +1,6 @@
 # 后端 demo 候选：PEFT / LoRA
 
-> 2026-09-24（T15）：状态改为**候选**。当前先用前端验证维度分层，分层确认后再选两个结构差异大的场景做后端 demo（见 [PROGRESS.md](./PROGRESS.md) M2）。本文保留 LoRA 候选的契约草案。2026-09-25（T26）起对应"横向联邦训练 · 共享方式 = LoRA"（Flower，连接节点、多轮联邦），不再是独立场景。"模型与 Adapter 聚合"场景已在 T24 删除，下文的一轮加权聚合仅作为多轮训练前的验证步骤。
+> 2026-09-24（T15）：状态改为**候选**。当前先用前端验证维度分层，分层确认后再选两个结构差异大的场景做后端 demo（见 [PROGRESS.md](./PROGRESS.md) M2）。本文保留 LoRA 候选的契约草案。2026-09-25（T26）起对应"横向联邦训练 · 共享方式 = LoRA"（Flower，连接节点、多轮联邦），不再是独立场景。2026-09-28（T27）起对应 7 个维度中的默认横向配置：GPU 24 GB · 文本指令 · Qwen2.5-1.5B-Instruct · LoRA · FedAvg · 10 轮。"模型与 Adapter 聚合"场景已在 T24 删除，下文的一轮加权聚合仅作为多轮训练前的验证步骤。
 
 前端已经覆盖多个场景模板，但后端不应一次实现全部。LoRA 候选是：**跨机构、同一基础模型上的 LoRA / Adapter 聚合，再扩展为多轮联邦微调**。
 
@@ -15,11 +15,12 @@
 
 | 维度 | 值 |
 |---|---|
-| 场景 | 横向联邦训练 |
-| 模型类别 / 共享方式 | 神经网络 · LoRA |
-| 运行方式 | 平台运行 Flower SuperLink + ServerApp；各参与方运行 SuperNode + ClientApp |
-| 协作策略 | FedAvg |
-| 基础模型 | 固定一个小型、许可清晰的模型 |
+| 协作场景 | 横向联邦训练 |
+| 参与方与算力 | 3 方起 · 每方 GPU 24 GB · 公网 TLS |
+| 数据 | 文本指令 JSONL · 结构一致性校验 |
+| 模型 | Qwen2.5-1.5B-Instruct · LoRA（显存不足时 QLoRA） |
+| 运行方式 | 平台运行 Flower SuperLink + ServerApp；各参与方节点运行 SuperNode + ClientApp |
+| 聚合算法 | FedAvg，10 轮，每轮 1 个 epoch |
 | Adapter | LoRA，统一 target modules 和 rank |
 | 保护 | 第一阶段 mTLS + 隔离沙箱；SecAgg 后续接入 |
 | 评测 | 任务质量、基线回归和产物完整性 |
@@ -73,7 +74,7 @@ runner 不访问业务数据库，不持有长期凭据，只读取本次 Run �
 1. 以前端 FrontendRunPlan 为基础定义 RunSpec（旧 LoRA mock 已在 T15 删除）。
 2. 实现真实上传、manifest extractor 和规则校验。
 3. 用本机 Docker Job 跑通加权聚合并回传日志。
-4. 增加独立评测 runner 和发布闸门。
+4. 增加独立评测 runner 和交付闸门。
 5. 接对象存储、数据库与队列。
 6. 再实现多轮本地训练、SecAgg 和故障恢复。
 

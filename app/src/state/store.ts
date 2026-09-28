@@ -1,226 +1,233 @@
-// 页面状态：维度选择、数据接入（勾选平台上已有的参与方 + 我方节点或我方上传的文件）、执行预设和当前 Run。
-// Run 开始后冻结计划和参与方；此后配置类动作一律忽略，修改配置必须新建 Run。
+// 页面状态：本机构的节点与数据、项目、收到的邀请，以及新建项目的配置草稿。
+// 项目创建后配置冻结；运行开始后参与方冻结。所有规则在 domain/，这里只负责组合和查找。
 
-import { defaultDatasetIds, matchedDatasets, type Participant } from "../domain/demo";
-import { dataContract, type UploadCheck } from "../domain/inputs";
-import { buildRunPlan, type FrontendRunPlan } from "../domain/plan";
 import {
-  EMPTY_SELECTION,
-  applyTemplate,
-  toggle,
-  toggleEnhancement,
-  type LayerId,
-  type Selection,
-} from "../domain/selection";
-import { artifactFor } from "../domain/simulator";
-import {
-  createRun,
-  failStage,
-  finishStage,
-  publishRun,
-  startStage,
-  type ExecutionPreset,
-  type Run,
-  type StageId,
-  type StageResult,
-  type Visibility,
-} from "../domain/run";
-import { scenarioOf, type EnhancementId, type ScenarioId } from "../domain/taxonomy";
+  addOwnNode,
+  addUploads,
+  advanceMember,
+  bindSelf,
+  createProject,
+  deliverProject,
+  inviteMember,
+  markNodeOnline,
+  projectFromInvitation,
+  removeMember,
+  removeUpload,
+  simulateMember,
+  startProjectRun,
+  uploadChecked,
+  type Dataset,
+  type Invitation,
+  type Project,
+  type WorkspaceNode,
+} from "../domain/project";
+import type { UploadCheck } from "../domain/inputs";
+import { buildRunPlan } from "../domain/plan";
+import { finishStage, startStage, type StageId, type StageResult } from "../domain/run";
+import { EMPTY_SELECTION, choose, type ItemId, type Selection } from "../domain/selection";
+import { deploymentOf, meetsSpec, type ComputeId, type DeploymentId } from "../domain/taxonomy";
+import { seedState } from "./seed";
 
-export type Upload = {
-  id: string;
-  name: string;
-  size: number;
-  status: "checking" | "passed" | "failed";
-  check: UploadCheck | null;
-};
-
-/** 我方节点（节点类场景）：启动后连接平台，在线后参与运行。 */
-export type OwnNode = "none" | "connecting" | "online";
+export const STATE_VERSION = 3;
 
 export type State = {
-  selection: Selection;
-  /** 勾选的平台已有参与方（已连接的节点或已提交的文件）。 */
-  datasetIds: string[];
-  /** 我方上传的文件（文件类场景），Agent 检查通过后才参与运行。 */
-  uploads: Upload[];
-  ownNode: OwnNode;
-  preset: ExecutionPreset;
-  run: Run | null;
+  version: typeof STATE_VERSION;
+  nodes: WorkspaceNode[];
+  datasets: Dataset[];
+  projects: Project[];
+  invitations: Invitation[];
+  /** 新建项目页的配置草稿。 */
+  draft: Selection;
 };
 
-export const initialState: State = {
-  selection: EMPTY_SELECTION,
-  datasetIds: [],
-  uploads: [],
-  ownNode: "none",
-  preset: "quick",
-  run: null,
-};
+/** 绑定节点时选"new"表示按配置交付一个新节点。 */
+export type NodeChoice = string;
+export const NEW_NODE = "new";
 
 export type Action =
-  | { type: "toggle"; layer: LayerId; value: string }
-  | { type: "toggleEnhancement"; id: EnhancementId }
-  | { type: "clearScenario" }
-  | { type: "applyTemplate"; scenario: ScenarioId }
-  | { type: "toggleDataset"; id: string }
-  | { type: "addUploads"; files: { id: string; name: string; size: number }[] }
-  | { type: "uploadChecked"; id: string; check: UploadCheck }
-  | { type: "removeUpload"; id: string }
-  | { type: "connectNode" }
-  | { type: "nodeOnline" }
-  | { type: "disconnectNode" }
-  | { type: "setPreset"; preset: ExecutionPreset }
-  | { type: "startRun"; id: string; createdAt: string }
-  | { type: "stageStart"; stage: StageId }
-  | { type: "stageFinish"; stage: StageId; result: StageResult }
-  | { type: "stageFail"; stage: StageId; error: string }
-  | { type: "publish"; visibility: Visibility }
-  | { type: "reset" };
+  | { type: "choose"; item: ItemId; value: string }
+  | { type: "resetDraft" }
+  | { type: "createProject"; id: string; name: string; createdAt: string }
+  | { type: "bindSelf"; projectId: string; memberId: string; node: NodeChoice; datasetId: string; newNodeId: string }
+  | { type: "addOwnNode"; projectId: string; memberId: string; node: NodeChoice; datasetId: string; newNodeId: string }
+  | { type: "invite"; projectId: string; memberId: string; org: string; simulated: boolean; example?: boolean }
+  | { type: "advanceMember"; projectId: string; memberId: string }
+  | { type: "simulateMember"; projectId: string; memberId: string }
+  | { type: "removeMember"; projectId: string; memberId: string }
+  | { type: "nodeOnline"; nodeId: string }
+  | { type: "addUploads"; projectId: string; files: { id: string; name: string; size: number }[] }
+  | { type: "uploadChecked"; projectId: string; id: string; check: UploadCheck }
+  | { type: "removeUpload"; projectId: string; id: string }
+  | { type: "startRun"; projectId: string; runId: string; createdAt: string }
+  | { type: "stageStart"; projectId: string; stage: StageId }
+  | { type: "stageFinish"; projectId: string; stage: StageId; result: StageResult }
+  | { type: "deliver"; projectId: string; recipients: string[] }
+  | { type: "acceptInvitation"; invitationId: string; projectId: string; node: NodeChoice; datasetId: string; newNodeId: string; createdAt: string }
+  | { type: "declineInvitation"; invitationId: string }
+  | { type: "resetDemo" };
 
-const catalogKey = (selection: Selection) => matchedDatasets(selection).map((entry) => entry.id).join(",");
+export const initialState: State = seedState();
 
-const contractOf = (selection: Selection) => (selection.scenario ? dataContract({ ...selection, scenario: selection.scenario }) : null);
-
-const usesNodes = (selection: Selection) => scenarioOf(selection.scenario)?.input.kind === "nodes";
-
-/**
- * 选择变化后：匹配到的参与方变了就换成新的默认勾选；
- * 数据要求变了（场景或子项变化），清空已上传的文件并断开我方节点。
- */
-function withSelection(state: State, selection: Selection): State {
-  const sameCatalog = catalogKey(state.selection) === catalogKey(selection);
-  const sameContract = contractOf(state.selection) === contractOf(selection);
-  return {
-    ...state,
-    selection,
-    datasetIds: sameCatalog ? state.datasetIds : defaultDatasetIds(selection),
-    uploads: sameContract ? state.uploads : [],
-    ownNode: sameContract ? state.ownNode : "none",
-  };
+export function projectOf(state: State, id: string): Project | undefined {
+  return state.projects.find((project) => project.id === id);
 }
 
-/** 本次运行的参与方：勾选的平台已有参与方 + 在线的我方节点 + 检查通过的我方上传。 */
-export function runParticipants(state: State): Participant[] {
-  if (state.run) return state.run.participants;
-  const datasets = matchedDatasets(state.selection).filter((entry) => state.datasetIds.includes(entry.id));
-  const contract = contractOf(state.selection);
-  const node: Participant[] = state.ownNode === "online" && usesNodes(state.selection)
-    ? [{
-      id: "own-node",
-      name: "我方节点",
-      role: state.selection.scenario === "vertical-training" ? "特征方" : "参与方节点",
-      provides: contract?.title ?? "本地数据",
-      detail: "在线 · 数据留在本地",
-      source: "node",
-    }]
-    : [];
-  const uploads = state.uploads
-    .filter((upload) => upload.status === "passed")
-    .map((upload): Participant => ({
-      id: upload.id,
-      name: upload.name,
-      role: "我方上传",
-      provides: contract?.title ?? "上传数据",
-      detail: upload.check?.records !== null && upload.check?.records !== undefined ? `${upload.check.records} 条 · Agent 检查通过` : "Agent 检查通过",
-      source: "upload",
-    }));
-  return [
-    ...datasets.map(({ id, name, role, provides, detail, source }): Participant => ({ id, name, role, provides, detail, source })),
-    ...node,
-    ...uploads,
-  ];
+function updateProject(state: State, id: string, change: (project: Project) => Project): State {
+  let changed = false;
+  const projects = state.projects.map((project) => {
+    if (project.id !== id) return project;
+    const next = change(project);
+    changed = next !== project;
+    return next;
+  });
+  return changed ? { ...state, projects } : state;
 }
 
-export type InputStatus = { count: number; min: number; checking: number; failed: number; ready: boolean };
+/** 可以绑定到项目的本机构节点：在线且满足最低算力，且没有被本项目的其他成员占用。 */
+export function eligibleNodes(state: State, project: Pick<Project, "plan" | "members">, excludeMemberId?: string): WorkspaceNode[] {
+  const used = new Set(project.members.filter((member) => member.id !== excludeMemberId).map((member) => member.node?.id));
+  return state.nodes.filter((node) => (
+    node.status === "online" && !used.has(node.id) && meetsSpec(node.spec, project.plan.requirements.compute?.id)
+  ));
+}
 
-/** 能否开始：参与方够数，我方节点不在连接中，且所有上传都已检查通过（未通过的需要修改或移除）。 */
-export function inputStatus(state: State, plan: FrontendRunPlan | null): InputStatus {
-  const count = runParticipants(state).length;
-  const checking = state.uploads.filter((upload) => upload.status === "checking").length + (state.ownNode === "connecting" ? 1 : 0);
-  const failed = state.uploads.filter((upload) => upload.status === "failed").length;
-  const min = plan?.minParticipants ?? 0;
-  return { count, min, checking, failed, ready: Boolean(plan) && count >= min && checking === 0 && failed === 0 };
+/** 数据类型相符的本机构数据；纵向时按角色把更合适的表排在前面。 */
+export function eligibleDatasets(state: State, plan: Project["plan"], role?: string): Dataset[] {
+  const matching = state.datasets.filter((dataset) => dataset.type === plan.requirements.dataType.id);
+  if (role !== "标签方" && role !== "特征方") return matching;
+  const wantsLabel = role === "标签方";
+  return [...matching].sort((a, b) => Number(Boolean(b.hasLabel) === wantsLabel) - Number(Boolean(a.hasLabel) === wantsLabel));
+}
+
+/** 按计划交付一个新节点（公有云创建实例 / 私有机房安装包），初始状态为交付中。 */
+function deliverNode(state: State, id: string, spec: ComputeId, location: DeploymentId): { state: State; node: WorkspaceNode } {
+  const label = deploymentOf(location)?.label ?? "节点";
+  const index = state.nodes.filter((node) => node.location === location).length + 1;
+  const node: WorkspaceNode = { id, name: `${label}-${String(index).padStart(2, "0")}`, location, spec, status: "provisioning" };
+  return { state: { ...state, nodes: [...state.nodes, node] }, node };
+}
+
+function resolveNode(state: State, choice: NodeChoice, newNodeId: string, spec: ComputeId, location: DeploymentId) {
+  if (choice === NEW_NODE) return deliverNode(state, newNodeId, spec, location);
+  const node = state.nodes.find((item) => item.id === choice);
+  return node && node.status === "online" && meetsSpec(node.spec, spec) ? { state, node } : null;
+}
+
+function withNode(
+  state: State,
+  projectId: string,
+  action: { node: NodeChoice; datasetId: string; newNodeId: string },
+  apply: (project: Project, node: WorkspaceNode, dataset: Dataset) => Project,
+): State {
+  const project = projectOf(state, projectId);
+  const dataset = state.datasets.find((item) => item.id === action.datasetId);
+  if (!project || project.run || !dataset) return state;
+  const spec = (project.plan.requirements.compute?.id ?? "cpu-general") as ComputeId;
+  const location = (project.plan.selection.deployment ?? "aliyun") as DeploymentId;
+  const resolved = resolveNode(state, action.node, action.newNodeId, spec, location);
+  if (!resolved) return state;
+  return updateProject(resolved.state, projectId, (current) => apply(current, resolved.node, dataset));
 }
 
 export function reducer(state: State, action: Action): State {
-  const locked = Boolean(state.run);
-
   switch (action.type) {
-    case "toggle":
-      return locked ? state : withSelection(state, toggle(state.selection, action.layer, action.value));
+    case "choose":
+      return { ...state, draft: choose(state.draft, action.item, action.value) };
 
-    case "toggleEnhancement":
-      return locked ? state : { ...state, selection: toggleEnhancement(state.selection, action.id) };
+    case "resetDraft":
+      return { ...state, draft: EMPTY_SELECTION };
 
-    case "clearScenario":
-      // 取消场景：维度 1 及其下游全部清空，重新开始选择。
-      return locked ? state : withSelection(state, EMPTY_SELECTION);
-
-    case "applyTemplate":
-      return locked ? state : withSelection(state, applyTemplate(action.scenario));
-
-    case "toggleDataset": {
-      if (locked || !matchedDatasets(state.selection).some((entry) => entry.id === action.id)) return state;
-      const has = state.datasetIds.includes(action.id);
-      return { ...state, datasetIds: has ? state.datasetIds.filter((id) => id !== action.id) : [...state.datasetIds, action.id] };
+    case "createProject": {
+      const plan = buildRunPlan(state.draft);
+      if (!plan) return state;
+      const project = createProject({ id: action.id, name: action.name.trim() || plan.scenario.label, plan, createdAt: action.createdAt });
+      return { ...state, projects: [project, ...state.projects], draft: EMPTY_SELECTION };
     }
 
-    case "addUploads": {
-      if (locked || !state.selection.scenario || usesNodes(state.selection)) return state;
-      const fresh = action.files
-        .filter((file) => !state.uploads.some((upload) => upload.id === file.id))
-        .map((file): Upload => ({ ...file, status: "checking", check: null }));
-      return { ...state, uploads: [...state.uploads, ...fresh] };
-    }
+    case "bindSelf":
+      return withNode(state, action.projectId, action, (project, node, dataset) => bindSelf(project, action.memberId, node, dataset));
 
-    case "uploadChecked":
+    case "addOwnNode":
+      return withNode(state, action.projectId, action, (project, node, dataset) => addOwnNode(project, action.memberId, node, dataset));
+
+    case "invite":
+      return updateProject(state, action.projectId, (project) => inviteMember(project, {
+        id: action.memberId,
+        org: action.org,
+        simulated: action.simulated,
+        example: action.example,
+      }));
+
+    case "advanceMember":
+      return updateProject(state, action.projectId, (project) => advanceMember(project, action.memberId));
+
+    case "simulateMember":
+      return updateProject(state, action.projectId, (project) => simulateMember(project, action.memberId));
+
+    case "removeMember":
+      return updateProject(state, action.projectId, (project) => removeMember(project, action.memberId));
+
+    case "nodeOnline": {
+      if (!state.nodes.some((node) => node.id === action.nodeId && node.status === "provisioning")) return state;
       return {
         ...state,
-        uploads: state.uploads.map((upload) => (
-          upload.id === action.id ? { ...upload, status: action.check.passed ? "passed" : "failed", check: action.check } : upload
+        nodes: state.nodes.map((node) => (node.id === action.nodeId ? { ...node, status: "online" } : node)),
+        projects: state.projects.map((project) => markNodeOnline(project, action.nodeId)),
+      };
+    }
+
+    case "addUploads":
+      return updateProject(state, action.projectId, (project) => addUploads(project, action.files));
+
+    case "uploadChecked":
+      return updateProject(state, action.projectId, (project) => uploadChecked(project, action.id, action.check));
+
+    case "removeUpload":
+      return updateProject(state, action.projectId, (project) => removeUpload(project, action.id));
+
+    case "startRun":
+      return updateProject(state, action.projectId, (project) => startProjectRun(project, action.runId, action.createdAt));
+
+    case "stageStart":
+      return updateProject(state, action.projectId, (project) => (
+        project.run ? { ...project, run: startStage(project.run, action.stage) } : project
+      ));
+
+    case "stageFinish":
+      return updateProject(state, action.projectId, (project) => (
+        project.run ? { ...project, run: finishStage(project.run, action.stage, action.result) } : project
+      ));
+
+    case "deliver":
+      return updateProject(state, action.projectId, (project) => deliverProject(project, action.recipients));
+
+    case "acceptInvitation": {
+      const invitation = state.invitations.find((item) => item.id === action.invitationId);
+      const dataset = state.datasets.find((item) => item.id === action.datasetId);
+      if (!invitation || invitation.status !== "pending" || !dataset) return state;
+      const spec = (invitation.plan.requirements.compute?.id ?? "cpu-general") as ComputeId;
+      const resolved = resolveNode(state, action.node, action.newNodeId, spec, "aliyun");
+      if (!resolved) return state;
+      const project = projectFromInvitation(invitation, { id: action.projectId, node: resolved.node, dataset, createdAt: action.createdAt });
+      return {
+        ...resolved.state,
+        projects: [project, ...resolved.state.projects],
+        invitations: resolved.state.invitations.map((item) => (
+          item.id === invitation.id ? { ...item, status: "accepted", projectId: project.id } : item
+        )),
+      };
+    }
+
+    case "declineInvitation":
+      return {
+        ...state,
+        invitations: state.invitations.map((item) => (
+          item.id === action.invitationId && item.status === "pending" ? { ...item, status: "declined" } : item
         )),
       };
 
-    case "removeUpload":
-      return locked ? state : { ...state, uploads: state.uploads.filter((upload) => upload.id !== action.id) };
-
-    case "connectNode":
-      return locked || !usesNodes(state.selection) || state.ownNode !== "none" ? state : { ...state, ownNode: "connecting" };
-
-    case "nodeOnline":
-      return state.ownNode === "connecting" ? { ...state, ownNode: "online" } : state;
-
-    case "disconnectNode":
-      return locked ? state : { ...state, ownNode: "none" };
-
-    case "setPreset":
-      return locked ? state : { ...state, preset: action.preset };
-
-    case "startRun": {
-      if (locked) return state;
-      const plan = buildRunPlan(state.selection);
-      if (!plan || !inputStatus(state, plan).ready) return state;
-      return { ...state, run: createRun(action.id, plan, runParticipants(state), state.preset, action.createdAt) };
-    }
-
-    case "stageStart":
-      return state.run ? { ...state, run: startStage(state.run, action.stage) } : state;
-
-    case "stageFinish":
-      return state.run ? { ...state, run: finishStage(state.run, action.stage, action.result) } : state;
-
-    case "stageFail":
-      return state.run ? { ...state, run: failStage(state.run, action.stage, action.error) } : state;
-
-    case "publish": {
-      if (!state.run) return state;
-      const artifact = artifactFor(state.run.plan, state.run.participants, state.run.id, action.visibility);
-      return { ...state, run: publishRun(state.run, artifact) };
-    }
-
-    case "reset":
-      return initialState;
+    case "resetDemo":
+      return seedState();
 
     default:
       return state;

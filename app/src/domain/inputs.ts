@@ -1,18 +1,18 @@
 /**
- * 数据契约与上传检查。
+ * 数据要求与上传检查。
  *
- * 每个场景声明需要什么样的数据：格式、必需字段、最少条数。
- * 节点类场景的数据留在节点本地，这里只展示要求；文件类场景的上传文件在浏览器本地抽样检查
- * （只读前 256KB，不上传、不保存），结果由 Agent 转成通过 / 不通过的说明和修改建议。
+ * 每种数据类型声明格式、必需字段和最少条数。节点类场景的数据留在节点本地，这里只给出要求；
+ * 文件类场景的上传文件在浏览器本地抽样检查（只读前 256KB，不上传、不保存），
+ * 结果由 Agent 转成通过 / 不通过的说明和修改建议。
  */
-import type { ScenarioId } from "./taxonomy";
+import type { DataTypeId, DeploymentId } from "./taxonomy";
 
 type TextFormat = "jsonl" | "json" | "csv";
 
 export type DataContract = {
   title: string;
   requirements: string[];
-  /** 允许的扩展名。 */
+  /** 允许上传的扩展名；节点类数据为空。 */
   accept: string[];
   /** 文本格式的结构要求：满足任意一组字段即可。 */
   text?: { formats: TextFormat[]; fieldsAnyOf: string[][]; fieldHint: string };
@@ -21,42 +21,40 @@ export type DataContract = {
 
 export const SAMPLE_BYTES = 256 * 1024;
 
-type ContractKey = { scenario: ScenarioId; modelClass?: string | null; sharing?: string | null };
-
-const CONTRACTS: Record<string, DataContract> = {
-  "horizontal-training:neural": {
-    title: "本地训练数据",
-    requirements: ["各方字段 / 输入格式一致（如同尺寸图像或同一张表结构）", "每条样本带 label", "数据留在节点本地，只在本地训练时读取"],
+const CONTRACTS: Record<DataTypeId, DataContract> = {
+  image: {
+    title: "本地图像数据",
+    requirements: ["各方图像尺寸、类别定义一致", "每张图像带类别标签", "数据留在节点本地，只在本地训练时读取"],
     accept: [],
   },
-  "horizontal-training:peft": {
-    title: "本地指令数据",
-    requirements: ["JSONL，每行一条 JSON", "每条包含 messages，或 instruction + output，或 prompt + completion", "各方使用同一个基础模型"],
-    accept: [],
-  },
-  "horizontal-training:table": {
+  table: {
     title: "本地表格数据",
-    requirements: ["CSV 或 Parquet，各方列名和列顺序一致", "必须包含 label 列", "数据留在节点本地，只在本地训练时读取"],
+    requirements: ["CSV 或 Parquet，各方列名和列顺序一致", "包含 label 列", "数据留在节点本地，只在本地训练时读取"],
     accept: [],
   },
-  "vertical-training": {
+  instruction: {
+    title: "本地指令数据",
+    requirements: ["JSONL，每行一条 JSON", "每条包含 messages，或 instruction + output，或 prompt + completion", "基座模型由平台统一分发，各方一致"],
+    accept: [],
+  },
+  "vertical-table": {
     title: "本地特征表",
     requirements: ["CSV，包含对齐主键列 id 或 user_id", "标签方另含 label 列", "主键只在隐私求交时使用，不会以明文发给其他方"],
     accept: [],
   },
-  "federated-analytics": {
+  "summary-table": {
     title: "统计汇总表",
     requirements: [
       "CSV，第一行为表头，每行一个分组",
       "分组列（如 地区、年龄段）+ count 列",
-      "算均值 / 方差时再加 sum、sum_sq 列；直方图用 bin + count",
+      "算均值 / 方差时再加 sum、sum_sq 列；分布用 bin + count",
       "只上传汇总后的数字，不要上传个人明细",
     ],
     accept: [".csv"],
     text: { formats: ["csv"], fieldsAnyOf: [["count"]], fieldHint: "表头需要包含 count 列" },
     minRecords: 1,
   },
-  "agent-memory": {
+  "memory-jsonl": {
     title: "Agent 记忆文件",
     requirements: [
       "JSONL，每行一条记忆",
@@ -70,25 +68,24 @@ const CONTRACTS: Record<string, DataContract> = {
   },
 };
 
-export function dataContract({ scenario, modelClass, sharing }: ContractKey): DataContract {
-  if (scenario === "horizontal-training") {
-    if (sharing === "peft") return CONTRACTS["horizontal-training:peft"];
-    return CONTRACTS[modelClass === "neural" ? "horizontal-training:neural" : "horizontal-training:table"];
-  }
-  return CONTRACTS[scenario];
+export function dataContract(dataType: DataTypeId): DataContract {
+  return CONTRACTS[dataType];
 }
 
-/** 节点类场景：各参与方启动节点的方式（示例命令，平台地址和证书由平台签发）。 */
-export const NODE_SETUP: Record<string, { steps: string[]; command: string }> = {
-  Flower: {
-    steps: ["安装 Flower：pip install flwr", "用平台签发的证书启动 SuperNode，节点主动连接平台，不需要开放端口"],
-    command: "flower-supernode --superlink studio.example.com:9092 --root-certificates ca.crt --node-config \"data-path='/data/local'\"",
-  },
-  NVFlare: {
-    steps: ["从平台下载本参与方的启动包（含证书和配置）", "解压后运行启动脚本，节点主动连接平台"],
-    command: "./startup/start.sh",
-  },
-};
+/**
+ * 节点交付方式。各参与方只安装平台的节点程序（一个镜像），里面同时带 Flower 和隐语的运行时，
+ * 平台按项目决定启动哪一个。公有云由平台在授权的云账号中创建实例，私有机房用一条命令启动。
+ */
+export function nodeDelivery(deployment: DeploymentId | string | null): { method: string; command?: string } {
+  if (deployment === "on-prem") {
+    return {
+      method: "在机房服务器上运行节点程序，节点主动连接平台，无需开放入站端口",
+      command: "docker run -d --name fs-node --gpus all -v /data:/data studio.example.com/node-agent:latest --join <项目令牌>",
+    };
+  }
+  if (deployment === "hosted") return { method: "由平台隔离沙箱执行，无需部署节点" };
+  return { method: "平台在你授权的云账号中按所选规格创建实例，并自动安装节点程序" };
+}
 
 export type UploadCheckItem = { label: string; ok: boolean; detail: string };
 
