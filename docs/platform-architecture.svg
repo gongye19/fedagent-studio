@@ -87,8 +87,8 @@
 <text x="665.0" y="501.5" font-size="11.5" font-weight="400" fill="#4b5563" text-anchor="middle">准入 → 执行 → 交付 · 可重试</text>
 <text x="56" y="546" font-size="12" font-weight="400" fill="#6b7280" text-anchor="start">配置由发起方决定 · 各方确认后生成不可变的 RunSpec · 硬规则先于 Agent，Agent 不能覆盖拒绝</text>
 <rect x="840" y="344" width="400" height="52" rx="8" ry="8" fill="#f3e8ff" stroke="#c4b5fd" stroke-width="1.2"/>
-<text x="1040.0" y="366.8" font-size="14" font-weight="600" fill="#111827" text-anchor="middle">Agent 运行时（Pydantic AI / LangGraph）</text>
-<text x="1040.0" y="383.2" font-size="11.5" font-weight="400" fill="#4b5563" text-anchor="middle">工具 = 平台 MCP / CLI · 在隔离工作沙箱中执行 · 全程审计</text>
+<text x="1040.0" y="366.8" font-size="14" font-weight="600" fill="#111827" text-anchor="middle">平台 Agent 层（自研）+ Pydantic AI</text>
+<text x="1040.0" y="383.2" font-size="11.5" font-weight="400" fill="#4b5563" text-anchor="middle">工具 = 平台 MCP / CLI · 权限与审批 · 在隔离工作沙箱中执行 · 审计</text>
 <rect x="840" y="408" width="194" height="42" rx="8" ry="8" fill="#ffffff" stroke="#c4b5fd" stroke-width="1.2"/>
 <text x="937.0" y="425.5" font-size="13" font-weight="600" fill="#111827" text-anchor="middle">配置助手</text>
 <text x="937.0" y="441.5" font-size="11" font-weight="400" fill="#4b5563" text-anchor="middle">需求描述 → 配置草案</text>

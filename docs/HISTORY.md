@@ -269,3 +269,13 @@
 - 用户要求：由我选择最合适的沙箱方案；服务器暂时连不上，确认是否需要等服务器确定。
 - 结论：不需要等服务器。5 类不需要 GPU 的沙箱默认用 microVM（Kata + Firecracker），GPU 评测和无 KVM 的宿主机用 gVisor；服务器检查只决定部署时启用哪种 RuntimeClass。
 
+## T31：平台内部 Agent 的框架选择与适用范围
+
+- 类型：Design（架构决策，未改代码）
+- 时间：2026-09-28
+- 状态：完成
+- 相关：D26；影响 ARCHITECTURE（Agent 层、技术选型）、架构图
+- 用户要求：平台内部 Agent 是自己写框架还是用通用的（如 Codex SDK、Hermes Agent）；平台哪些地方适合用 Agent，哪些不适合。
+- 调研：Codex SDK 封装 Codex CLI、自 2026 年 2 月起只支持 Responses 接口；Hermes Agent（Nous Research，2026 年 2 月开源）以自我演化的记忆和技能为核心，自带 60 多种工具；Pydantic AI 的 Temporal 持久执行集成。
+- 结论：自研薄的平台 Agent 层 + Pydantic AI；Codex SDK 暂不引入，Hermes Agent 定位为外部 Agent；列出适合与不适合用 Agent 的环节。
+
