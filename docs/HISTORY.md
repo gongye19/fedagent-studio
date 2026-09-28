@@ -279,3 +279,25 @@
 - 调研：Codex SDK 封装 Codex CLI、自 2026 年 2 月起只支持 Responses 接口；Hermes Agent（Nous Research，2026 年 2 月开源）以自我演化的记忆和技能为核心，自带 60 多种工具；Pydantic AI 的 Temporal 持久执行集成。
 - 结论：自研薄的平台 Agent 层 + Pydantic AI；Codex SDK 暂不引入，Hermes Agent 定位为外部 Agent；列出适合与不适合用 Agent 的环节。
 
+
+## T32：改版方案：只做联邦 Agent，第一个算法是 FoT
+
+- 类型：Design（改版方案，待确认，未改代码）
+- 时间：2026-09-28
+- 状态：方案已交付，等待确认
+- 相关：[PROPOSAL.md](./PROPOSAL.md)；确认后将取代 D19–D26 及 7 个维度、组队流程和旧目标架构
+- 用户要求：平台包含的框架太大，改为只做联邦 Agent。先选场景（横向、纵向、联邦迁移），选中后出现可用的算法和对应数据；本地已有 FoT 算法（代码包 `FoT_code_bundle_20260925.zip`），不考虑 pFoT；参考老平台 demo 视频；之前的许多内容需要去掉。
+- 调研：
+  - FoT 代码包：上游快照和已审计的数学复现器（8 个客户端、300 题、Prompt 1–5、检查点续跑、哈希审计）。
+  - 上游快照缺 `src/fotclaw` 编排层，也没有 LICENSE。
+  - 反思和提取 trace 都不用标准答案。
+  - 服务端每轮一次读完所有 trace。
+  - gpt-5.4-mini 三个种子没有复现论文的提升。
+  - 老 demo（TrustFLAIR，基于 FATE 1.11）：首页、任务（本地 vs 联邦、每轮曲线、得分表）、应用（单次预测）、基础管理（参与方）；后台靠手动命令行提交任务。
+- 产出：`docs/PROPOSAL.md`；`docs/agent-platform-design.svg/png`（由 `agent-platform-design.gen.py` 生成）。
+- 方案要点：
+  - 场景：横向 FoT 可运行，迁移（FoT 源 → 目标）开发中，纵向规划中。
+  - 页面：首页、新建任务、任务详情、应用、基础管理。
+  - 后端：FastAPI，FoT 引擎由复现器拆分而来，SQLite 加每个任务一个运行目录，模型网关对接 OpenRouter / GLM。
+  - 不需要 GPU、K8s 和沙箱。
+  - 列出了去掉 / 保留清单、分阶段计划和风险。

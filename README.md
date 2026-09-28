@@ -72,6 +72,7 @@ npm run check
 
 ## 文档导航
 
+- [改版方案：联邦 Agent 平台（待确认）](./docs/PROPOSAL.md)
 - [项目目标](./docs/GOAL.md)
 - [配置维度设计](./docs/DIMENSIONS.md)
 - [运行流程](./docs/FLOW.md)
