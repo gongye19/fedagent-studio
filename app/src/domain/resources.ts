@@ -26,6 +26,8 @@ export type Dataset = {
   name: string;
   participantId: string;
   description: string;
+  /** 题目来源，例如 LiveMathBench 202412；上传的题库可以没有。 */
+  origin?: string;
   taskType: TaskType;
   /** 题目数。 */
   count: number;
@@ -57,21 +59,21 @@ export const PARTICIPANT_STATUS: Record<ParticipantStatus, string> = {
 };
 
 const BUILTIN = [
-  { key: "aime24", name: "AIME24", description: "美国数学邀请赛 AIME 2024", count: 30,
+  { key: "aime24", name: "AIME24", description: "美国数学邀请赛", origin: "AIME 2024", count: 30,
     sample: { question: "Find the largest possible real part of \\[(75+117i)z+\\frac{96+144i}{z}\\]where $z$ is a complex number with $|z|=4$.", answer: "540" } },
-  { key: "aime25", name: "AIME25", description: "美国数学邀请赛 AIME 2025", count: 30,
+  { key: "aime25", name: "AIME25", description: "美国数学邀请赛", origin: "AIME 2025", count: 30,
     sample: { question: "Find the sum of all integer bases $b>9$ for which $17_b$ is a divisor of $97_b.$", answer: "70" } },
-  { key: "amc", name: "AMC", description: "美国数学竞赛 AMC（LiveMathBench 202412）", count: 46,
+  { key: "amc", name: "AMC", description: "美国数学竞赛", origin: "LiveMathBench 202412", count: 46,
     sample: { question: "What is $10! - 7! \\cdot 6!$", answer: "0" } },
-  { key: "ccee", name: "CCEE", description: "中国高考数学（LiveMathBench 202412）", count: 44,
+  { key: "ccee", name: "CCEE", description: "中国高考数学", origin: "LiveMathBench 202412", count: 44,
     sample: { question: "The mode of the data $2,3,5,5,4$ is ?", answer: "5" } },
-  { key: "cnmo", name: "CNMO", description: "中国数学奥林匹克（LiveMathBench 202412）", count: 18,
+  { key: "cnmo", name: "CNMO", description: "中国数学奥林匹克", origin: "LiveMathBench 202412", count: 18,
     sample: { question: "What is the minimum value of $y=\\frac{4^x+1}{2^x+1}$?", answer: "2\\sqrt{2}-2" } },
-  { key: "wlpmc", name: "WLPMC", description: "WLPMC 竞赛题（LiveMathBench 202412）", count: 11,
+  { key: "wlpmc", name: "WLPMC", description: "WLPMC 竞赛题", origin: "LiveMathBench 202412", count: 11,
     sample: { question: "For a positive integer $n$, let $f_n(x) = \\cos(x) \\cos(2x) \\cos(3x) \\cdots \\cos(nx)$. Find the smallest $n$ such that $|f_n''(0)| > 2023$.", answer: "n=18" } },
-  { key: "v202412hard", name: "V202412Hard", description: "LiveMathBench 202412 难题", count: 21,
+  { key: "v202412hard", name: "V202412Hard", description: "竞赛难题", origin: "LiveMathBench 202412", count: 21,
     sample: { question: "Given the data 5, 6, $x$, $x$, 8, 9 with an average of 7, then the 40% percentile of this data set is?", answer: "7" } },
-  { key: "v202505hard", name: "V202505Hard", description: "LiveMathBench 202505 难题", count: 100,
+  { key: "v202505hard", name: "V202505Hard", description: "竞赛难题", origin: "LiveMathBench 202505", count: 100,
     sample: { question: "For two numbers $a > b$ from the list $3, 9, 15, 21, 27$, what can you say for certain?" } },
 ] as const;
 
@@ -79,7 +81,7 @@ export const BUILTIN_PARTICIPANTS: readonly Participant[] = BUILTIN.map((item) =
   id: `p-${item.key}`,
   name: item.name,
   org: "内置示例",
-  intro: `持有 ${item.description} 题库的示例参与方，由平台托管运行。`,
+  intro: `持有${item.description}题库（${item.origin}）的示例参与方，由平台托管运行。`,
   hosting: "platform",
   status: "online",
   builtin: true,
@@ -90,6 +92,7 @@ export const BUILTIN_DATASETS: readonly Dataset[] = BUILTIN.map((item) => ({
   name: item.name,
   participantId: `p-${item.key}`,
   description: item.description,
+  origin: item.origin,
   taskType: "math-reasoning",
   count: item.count,
   answered: item.count,

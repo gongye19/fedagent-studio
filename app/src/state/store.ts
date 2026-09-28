@@ -7,7 +7,7 @@ import type { Dataset, Endpoint, Participant } from "../domain/resources";
 import { cancel, createTask, pause, resume, tick, type Task } from "../domain/task";
 import { seedState } from "./seed";
 
-export const STATE_VERSION = 2;
+export const STATE_VERSION = 3;
 
 export type Published = {
   id: string;

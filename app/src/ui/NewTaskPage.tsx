@@ -8,7 +8,6 @@ import {
   estimate,
   ESTIMATE_BASIS,
   INSIGHT_TARGETS,
-  problemsOf,
   toConfig,
   TRACE_DENSITIES,
   type Draft,
@@ -17,9 +16,10 @@ import {
 import { HOSTING_LABELS, modelLabel, modelOptions, usable, type Dataset, type Participant } from "../domain/resources";
 import { hrefOf, navigate } from "../state/route";
 import { participantOf, type Action, type State } from "../state/store";
-import { PageHead, Section, Segmented } from "./common";
+import { PageHead, Section } from "./common";
 import { formatDuration, formatNumber, formatTokens, formatYuan } from "./format";
 import { Icon } from "./icons";
+import { OptionCard } from "./OptionCard";
 
 type Props = { state: State; dispatch: Dispatch<Action>; scenario?: ScenarioId };
 
@@ -75,18 +75,24 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
       <PageHead title="新建联邦任务" crumbs={[{ label: "联邦任务", route: { page: "tasks" } }]} />
       <div className="order-layout">
         <div className="order-main">
-          <Section title="场景与算法" id="scenario">
-            <ScenarioAndAlgorithm draft={draft} dispatch={dispatch} />
+          <Section title="场景" id="scenario">
+            <ScenarioCards draft={draft} dispatch={dispatch} />
           </Section>
+
+          {draft.scenario && algorithmsFor(draft.scenario).length ? (
+            <Section title="算法" id="algorithm">
+              <AlgorithmCards draft={draft} dispatch={dispatch} />
+            </Section>
+          ) : null}
 
           {algorithm ? (
             <Section
               title="数据"
               id="data"
-              meta={<DataSummary draft={draft} selected={selected} />}
+              meta={dataMeta(candidates, state)}
               actions={<DataActions dispatch={dispatch} candidates={candidates} selected={selected} participants={state.participants} />}
             >
-              <DataList state={state} dispatch={dispatch} candidates={candidates} selected={selected} />
+              <DataCards state={state} dispatch={dispatch} candidates={candidates} selected={selected} />
             </Section>
           ) : null}
 
@@ -152,58 +158,66 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
   );
 }
 
-function ScenarioAndAlgorithm({ draft, dispatch }: { draft: Draft; dispatch: Dispatch<Action> }) {
-  const current = draft.scenario ? scenarioOf(draft.scenario) : null;
-  const algorithms = current ? algorithmsFor(current.id) : [];
-  const chosen = draft.algorithm ? algorithmOf(draft.algorithm) : null;
-
+function ScenarioCards({ draft, dispatch }: { draft: Draft; dispatch: Dispatch<Action> }) {
   return (
-    <div className="choice-stack">
-      <div className="choice-field">
-        <span className="setting-label" id="scenario-label">场景</span>
-        <div className="choice-row" role="radiogroup" aria-labelledby="scenario-label">
-          {SCENARIOS.map((item) => {
-            const planned = item.status === "planned";
-            const checked = draft.scenario === item.id;
-            return (
-              <label key={item.id} className={`choice${checked ? " choice--checked" : ""}${planned ? " choice--disabled" : ""}`}>
-                <input type="radio" name="scenario" checked={checked} disabled={planned} onChange={() => dispatch({ type: "chooseScenario", scenario: item.id })} />
-                {checked ? <Icon name="check" /> : null}
-                <span>{item.name}</span>
-                {planned ? <span className="choice-tag">规划中</span> : null}
-              </label>
-            );
-          })}
-        </div>
-        {current ? <p className="choice-desc">{current.summary}</p> : null}
-      </div>
+    <div className="option-grid" role="radiogroup" aria-labelledby="scenario-title">
+      {SCENARIOS.map((item) => {
+        const planned = item.status === "planned";
+        const algorithms = algorithmsFor(item.id);
+        return (
+          <OptionCard
+            key={item.id}
+            type="radio"
+            name="scenario"
+            checked={draft.scenario === item.id}
+            disabled={planned}
+            onChange={() => dispatch({ type: "chooseScenario", scenario: item.id })}
+            title={item.name}
+            aside={planned ? <span className="option-tag">规划中</span> : undefined}
+            foot={algorithms.length ? `算法：${algorithms.map((algorithm) => algorithm.name).join("、")}` : "算法待接入"}
+          >
+            {item.summary}
+          </OptionCard>
+        );
+      })}
+    </div>
+  );
+}
 
-      {current && algorithms.length ? (
-        <div className="choice-field">
-          <span className="setting-label" id="algorithm-label">算法</span>
-          <div className="choice-row" role="radiogroup" aria-labelledby="algorithm-label">
-            {algorithms.map((item) => {
-              const checked = draft.algorithm === item.id;
-              return (
-                <label key={item.id} className={`choice${checked ? " choice--checked" : ""}`}>
-                  <input type="radio" name="algorithm" checked={checked} onChange={() => dispatch({ type: "chooseAlgorithm", algorithm: item.id })} />
-                  {checked ? <Icon name="check" /> : null}
-                  <span>{item.name}</span>
-                  <span className="choice-sub">{item.fullName}</span>
-                </label>
-              );
-            })}
+function AlgorithmCards({ draft, dispatch }: { draft: Draft; dispatch: Dispatch<Action> }) {
+  if (!draft.scenario) return null;
+  const algorithms = algorithmsFor(draft.scenario);
+  const chosen = draft.algorithm ? algorithmOf(draft.algorithm) : null;
+  return (
+    <div className="stack">
+      <div className="option-grid option-grid--two" role="radiogroup" aria-labelledby="algorithm-title">
+        {algorithms.map((item) => (
+          <OptionCard
+            key={item.id}
+            type="radio"
+            name="algorithm"
+            checked={draft.algorithm === item.id}
+            onChange={() => dispatch({ type: "chooseAlgorithm", algorithm: item.id })}
+            title={<>{item.name}<small>{item.fullName}</small></>}
+            foot={item.highlights.join(" · ")}
+          >
+            {item.summary}
+          </OptionCard>
+        ))}
+      </div>
+      {chosen ? (
+        <details className="module">
+          <summary>
+            <span className="module-title">
+              <strong>{chosen.name} 每一轮怎么运行</strong>
+              <small>参与方 3 步，只上传 trace；服务端 3 步，生成下一轮的洞见库</small>
+            </span>
+            <Icon name="chevron" />
+          </summary>
+          <div className="module-body">
+            <AlgorithmFlow algorithm={chosen} />
           </div>
-          {chosen ? (
-            <>
-              <p className="choice-desc">{chosen.summary}</p>
-              <details className="disclosure">
-                <summary>每一轮怎么运行</summary>
-                <AlgorithmFlow algorithm={chosen} />
-              </details>
-            </>
-          ) : null}
-        </div>
+        </details>
       ) : null}
     </div>
   );
@@ -249,15 +263,19 @@ function AlgorithmFlow({ algorithm }: { algorithm: Algorithm }) {
   );
 }
 
-function DataSummary({ draft, selected }: { draft: Draft; selected: Dataset[] }) {
-  const total = selected.reduce((sum, dataset) => sum + dataset.count, 0);
-  const used = selected.reduce((sum, dataset) => sum + problemsOf(draft, dataset), 0);
-  return (
-    <>
-      一份数据代表一个参与方，至少选 2 份。已选 <strong>{selected.length}</strong> 份 · {formatNumber(total)} 题
-      {draft.mode === "trial" && selected.length ? `，试跑用其中 ${formatNumber(used)} 题` : ""}
-    </>
-  );
+/** 每张数据卡片只标例外：参与方本地、离线、没有答案或只有部分答案。 */
+function exceptions(dataset: Dataset, owner: Participant | undefined): string[] {
+  const tags: string[] = [];
+  if (owner && owner.hosting !== "platform") tags.push(HOSTING_LABELS[owner.hosting]);
+  if (owner && owner.status !== "online") tags.push(owner.status === "waiting" ? "等待连接" : "离线");
+  if (dataset.answered === 0) tags.push("无答案");
+  else if (dataset.answered < dataset.count) tags.push(`${dataset.answered} 题带答案`);
+  return tags;
+}
+
+function dataMeta(candidates: Dataset[], state: State): string {
+  const plain = candidates.every((dataset) => exceptions(dataset, participantOf(state, dataset.participantId)).length === 0);
+  return `一份数据代表一个参与方，至少选 2 份${plain ? "；都由平台托管，都带标准答案" : ""}。`;
 }
 
 function DataActions({
@@ -269,25 +287,17 @@ function DataActions({
   participants: readonly Participant[];
 }) {
   const usableIds = candidates.filter((dataset) => usable(dataset, participants)).map((dataset) => dataset.id);
+  const total = selected.reduce((sum, dataset) => sum + dataset.count, 0);
   return (
     <>
+      <span className="section-count">已选 {selected.length} 份 · {formatNumber(total)} 题</span>
       <button type="button" className="button button--ghost button--compact" onClick={() => dispatch({ type: "setDatasets", datasetIds: usableIds })} disabled={selected.length === usableIds.length}>全选</button>
       <button type="button" className="button button--ghost button--compact" onClick={() => dispatch({ type: "setDatasets", datasetIds: [] })} disabled={!selected.length}>清空</button>
     </>
   );
 }
 
-/** 每一行只标例外：参与方本地、离线、没有答案或只有部分答案。 */
-function exceptions(dataset: Dataset, owner: Participant | undefined): string[] {
-  const tags: string[] = [];
-  if (owner && owner.hosting !== "platform") tags.push(HOSTING_LABELS[owner.hosting]);
-  if (owner && owner.status !== "online") tags.push(owner.status === "waiting" ? "等待连接" : "离线");
-  if (dataset.answered === 0) tags.push("无答案，只参与联邦");
-  else if (dataset.answered < dataset.count) tags.push(`${dataset.answered} 题带答案`);
-  return tags;
-}
-
-function DataList({
+function DataCards({
   state, dispatch, candidates, selected,
 }: {
   state: State;
@@ -296,40 +306,42 @@ function DataList({
   selected: Dataset[];
 }) {
   const waiting = state.participants.filter((participant) => participant.status !== "online" && !state.datasets.some((dataset) => dataset.participantId === participant.id));
-  const allPlain = candidates.every((dataset) => exceptions(dataset, participantOf(state, dataset.participantId)).length === 0);
-
   return (
-    <>
-      <ul className="data-list">
-        {candidates.map((dataset) => {
-          const owner = participantOf(state, dataset.participantId);
-          const enabled = usable(dataset, state.participants);
-          const checked = enabled && selected.some((item) => item.id === dataset.id);
-          const tags = exceptions(dataset, owner);
-          return (
-            <li key={dataset.id}>
-              <label className={`data-row${checked ? " data-row--checked" : ""}${enabled ? "" : " data-row--disabled"}`}>
-                <input type="checkbox" checked={checked} disabled={!enabled} onChange={() => dispatch({ type: "toggleDataset", datasetId: dataset.id })} />
-                <span className="data-name">
-                  <strong>{dataset.name}</strong>
-                  {owner && owner.name !== dataset.name ? <small>{owner.name}</small> : null}
-                </span>
-                <span className="data-desc">
-                  {dataset.description}
-                  {tags.map((tag) => <span key={tag} className="data-tag">{tag}</span>)}
-                </span>
-                <span className="data-count">{formatNumber(dataset.count)} 题</span>
-              </label>
-            </li>
-          );
-        })}
-      </ul>
-      <p className="data-foot">
-        {allPlain ? <span>以上题库都由平台托管，都带标准答案。</span> : null}
-        {waiting.length ? <span>{waiting.map((participant) => participant.name).join("、")}还在等待连接，连上后才能选择。</span> : null}
-        <a className="text-link" href={hrefOf({ page: "participants" })}>新增参与方或上传题库</a>
-      </p>
-    </>
+    <div className="option-grid option-grid--dense">
+      {candidates.map((dataset) => {
+        const owner = participantOf(state, dataset.participantId);
+        const enabled = usable(dataset, state.participants);
+        const tags = exceptions(dataset, owner);
+        return (
+          <OptionCard
+            key={dataset.id}
+            type="checkbox"
+            name="datasets"
+            compact
+            checked={enabled && selected.some((item) => item.id === dataset.id)}
+            disabled={!enabled}
+            onChange={() => dispatch({ type: "toggleDataset", datasetId: dataset.id })}
+            title={dataset.name}
+            foot={<>{formatNumber(dataset.count)} 题{dataset.origin ? ` · ${dataset.origin}` : ""}{tags.map((tag) => <span key={tag} className="option-flag">{tag}</span>)}</>}
+          >
+            {owner && owner.name !== dataset.name ? `${owner.name} · ${dataset.description}` : dataset.description}
+          </OptionCard>
+        );
+      })}
+      {waiting.map((participant) => (
+        <div key={participant.id} className="option-card option-card--compact option-card--disabled" aria-disabled="true">
+          <span className="option-head">
+            <span className="option-title">{participant.name}</span>
+            <span className="option-tag">等待连接</span>
+          </span>
+          <span className="option-desc">{HOSTING_LABELS[participant.hosting]}，连上客户端后可选</span>
+        </div>
+      ))}
+      <a className="option-card option-card--compact option-card--add" href={hrefOf({ page: "participants" })}>
+        <Icon name="plus" />
+        <span>新增参与方或上传题库</span>
+      </a>
+    </div>
   );
 }
 
@@ -347,54 +359,49 @@ function RunSettings({
 
   return (
     <div className="settings">
-      <div className="setting-row">
-        <span className="setting-label">运行方式</span>
-        <div className="setting-control">
-          <Segmented
-            label="运行方式"
-            options={[{ id: "trial", label: "试跑" }, { id: "full", label: "正式运行" }]}
-            value={draft.mode}
-            onChange={(mode) => update({ mode })}
-          />
-          {draft.mode === "trial" ? (
-            <label className="inline-field">
-              每份前
-              <input type="number" min={1} max={50} value={draft.trialCap} onChange={(event) => update({ trialCap: clampInt(event.target.value, 1, 50, draft.trialCap) })} />
-              题
-            </label>
-          ) : <span className="setting-hint">使用全部题目</span>}
-        </div>
+      <div className="option-grid option-grid--pair" role="radiogroup" aria-label="运行方式">
+        <OptionCard type="radio" name="mode" compact checked={draft.mode === "trial"} onChange={() => update({ mode: "trial" })} title="试跑">
+          每份只取前几题，先确认流程和费用
+        </OptionCard>
+        <OptionCard type="radio" name="mode" compact checked={draft.mode === "full"} onChange={() => update({ mode: "full" })} title="正式运行">
+          使用全部题目，调用量大
+        </OptionCard>
       </div>
 
-      <div className="setting-row">
-        <span className="setting-label" id="rounds-label">轮次</span>
-        <div className="setting-control">
+      <div className="setting-fields">
+        {draft.mode === "trial" ? (
+          <label className="field">
+            <span>试跑题数（每份）</span>
+            <input type="number" min={1} max={50} value={draft.trialCap} onChange={(event) => update({ trialCap: clampInt(event.target.value, 1, 50, draft.trialCap) })} />
+          </label>
+        ) : null}
+        <div className="field">
+          <span id="rounds-label">轮次</span>
           <NumberStepper labelledBy="rounds-label" value={draft.rounds} min={algorithm.minRounds} max={algorithm.maxRounds} unit="轮" onChange={(rounds) => update({ rounds })} />
         </div>
+        <label className="field">
+          <span>参与方模型</span>
+          <select value={draft.clientModel} onChange={(event) => update({ clientModel: event.target.value })}>
+            {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
+          </select>
+        </label>
+        <label className="field">
+          <span>服务端模型（需长上下文）</span>
+          <select value={draft.serverModel} onChange={(event) => update({ serverModel: event.target.value })}>
+            {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
+          </select>
+        </label>
       </div>
 
-      <div className="setting-row">
-        <span className="setting-label">模型</span>
-        <div className="setting-control setting-control--grid">
-          <label className="field">
-            <span>参与方</span>
-            <select value={draft.clientModel} onChange={(event) => update({ clientModel: event.target.value })}>
-              {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
-            </select>
-          </label>
-          <label className="field">
-            <span>服务端（需长上下文）</span>
-            <select value={draft.serverModel} onChange={(event) => update({ serverModel: event.target.value })}>
-              {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
-            </select>
-          </label>
-          <p className="setting-hint">默认走预留的 LLM 接口，服务和模型之后再配置；本地参与方用自己的模型。</p>
-        </div>
-      </div>
-
-      <details className="disclosure">
-        <summary>高级设置</summary>
-        <div className="advanced-body">
+      <details className="module">
+        <summary>
+          <span className="module-title">
+            <strong>高级设置</strong>
+            <small>为参与方分别指定模型、洞见库条数、trace 密度、重试与并发</small>
+          </span>
+          <Icon name="chevron" />
+        </summary>
+        <div className="module-body advanced-body">
           <fieldset className="setting-group">
             <legend>为参与方分别指定模型</legend>
             <ul className="override-list">
@@ -421,24 +428,22 @@ function RunSettings({
 
           <fieldset className="setting-group">
             <legend>洞见库条数</legend>
-            <div className="radio-list">
+            <div className="option-grid option-grid--two">
               {INSIGHT_TARGETS.map((target) => (
-                <label key={target.id} className="radio-line">
-                  <input type="radio" name="insight-target" checked={draft.insightTarget === target.id} onChange={() => update({ insightTarget: target.id })} />
-                  <span><strong>{target.label}</strong><small>{target.hint}</small></span>
-                </label>
+                <OptionCard key={target.id} type="radio" name="insight-target" compact checked={draft.insightTarget === target.id} onChange={() => update({ insightTarget: target.id })} title={target.label}>
+                  {target.hint}
+                </OptionCard>
               ))}
             </div>
           </fieldset>
 
           <fieldset className="setting-group">
             <legend>trace 密度</legend>
-            <div className="radio-list">
+            <div className="option-grid option-grid--two">
               {TRACE_DENSITIES.map((density) => (
-                <label key={density.id} className="radio-line">
-                  <input type="radio" name="trace-density" checked={draft.traceDensity === density.id} onChange={() => update({ traceDensity: density.id })} />
-                  <span><strong>{density.label}</strong><small>{density.hint}</small></span>
-                </label>
+                <OptionCard key={density.id} type="radio" name="trace-density" compact checked={draft.traceDensity === density.id} onChange={() => update({ traceDensity: density.id })} title={density.label}>
+                  {density.hint}
+                </OptionCard>
               ))}
             </div>
           </fieldset>

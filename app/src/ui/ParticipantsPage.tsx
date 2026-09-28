@@ -6,6 +6,7 @@ import { datasetsOf, taskCountOf, type Action, type State } from "../state/store
 import { PageHead, StatusPill } from "./common";
 import { formatNumber } from "./format";
 import { Icon } from "./icons";
+import { OptionCard } from "./OptionCard";
 
 type Props = { state: State; dispatch: Dispatch<Action>; selectedId?: string };
 
@@ -109,7 +110,7 @@ function ParticipantDetail({ participant, datasets, dispatch }: { participant: P
       {participant.hosting === "local" ? <LocalConnect /> : null}
       {datasets.map((dataset) => (
         <div key={dataset.id} className="dataset-info">
-          <h3>{dataset.name}<span>{dataset.description}</span></h3>
+          <h3>{dataset.name}<span>{dataset.description}{dataset.origin ? `（${dataset.origin}）` : ""}</span></h3>
           <dl className="facts facts--row">
             <div><dt>题目</dt><dd>{formatNumber(dataset.count)}</dd></div>
             <div><dt>带答案</dt><dd>{formatNumber(dataset.answered)}</dd></div>
@@ -200,12 +201,11 @@ function NewParticipant({ dispatch, onDone }: { dispatch: Dispatch<Action>; onDo
         </label>
         <fieldset className="field field--wide">
           <legend>运行位置</legend>
-          <div className="radio-row">
+          <div className="option-grid option-grid--two">
             {(["platform", "local"] as const).map((option) => (
-              <label key={option} className={`radio-card${hosting === option ? " radio-card--checked" : ""}`}>
-                <input type="radio" name="hosting" checked={hosting === option} onChange={() => setHosting(option)} />
-                <span><strong>{HOSTING_LABELS[option]}</strong><small>{HOSTING_DETAIL[option]}</small></span>
-              </label>
+              <OptionCard key={option} type="radio" name="hosting" compact checked={hosting === option} onChange={() => setHosting(option)} title={HOSTING_LABELS[option]}>
+                {HOSTING_DETAIL[option]}
+              </OptionCard>
             ))}
           </div>
         </fieldset>

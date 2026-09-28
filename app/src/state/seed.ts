@@ -77,7 +77,7 @@ function runningTrialTask(): Task {
 
 export function seedState(): State {
   return {
-    version: 2,
+    version: 3,
     participants: [...BUILTIN_PARTICIPANTS.map((item) => ({ ...item })), { ...LOCAL_EXAMPLE }],
     datasets: BUILTIN_DATASETS.map((item) => ({ ...item })),
     endpoints: DEFAULT_ENDPOINTS.map((item) => ({ ...item, models: [...item.models] })),

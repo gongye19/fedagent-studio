@@ -18,7 +18,9 @@
  * 设计规范（T35 收敛）
  * - 字号 6 档：12 / 13 / 14 / 16 / 20 / 24；最小 12px。字重 3 档：400 / 500 / 600。
  * - 间距以 4 为基数：区块之间 32–40，区块内 12–16，同组元素 4–8。
- * - 分隔靠留白和标题；边框只用于表格、表单、配置清单这类"对象"，不给每个区块套盒子。
+ * - 分隔靠留白和标题；边框只用于表格、表单、选项卡片、配置清单这类"对象"，不给每个区块套盒子。
+ * - 让用户挑选的内容一律做成选项卡片（OptionCard）：名称、说明、要点都在卡片里，整张可点击；
+ *   单选选中是蓝框加勾，多选选中是浅蓝边加勾，不可选的置灰虚线；不在正文里夹单选圆点或胶囊。
  * - 颜色：黑色只给主按钮；蓝色表示选中与进行中；绿色只表示变好；黄色只表示"示例数据"或需要处理。
  * - 状态文字与背景对比度 ≥ 4.5:1。
  */
@@ -294,8 +296,6 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 .form-actions { display: flex; justify-content: flex-end; gap: var(--space-2); }
 .form-card { padding: var(--space-5); display: grid; gap: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius); }
 .form-card > h2 { font-size: var(--text-lg); }
-.inline-field { display: inline-flex; gap: var(--space-2); align-items: center; color: var(--secondary); font-size: var(--text-sm); }
-.inline-field input { width: 64px; }
 
 .segmented { width: fit-content; max-width: 100%; display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; background: var(--surface-hover); border-radius: var(--radius); }
 .segment { min-height: 28px; padding: 0 12px; display: inline-flex; gap: 6px; align-items: center; color: var(--secondary); background: transparent; border: 0; border-radius: var(--radius-sm); font-size: var(--text-sm); }
@@ -309,11 +309,6 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 .stepper button:disabled { color: var(--faint); cursor: not-allowed; }
 .stepper output { min-width: 60px; padding: 0 8px; text-align: center; border-inline: 1px solid var(--border); font-size: var(--text-sm); font-weight: var(--weight-medium); line-height: 32px; font-variant-numeric: tabular-nums; }
 
-.disclosure > summary { width: fit-content; display: flex; gap: 6px; align-items: center; color: var(--secondary); font-size: var(--text-sm); font-weight: var(--weight-medium); cursor: pointer; list-style: none; }
-.disclosure > summary::-webkit-details-marker { display: none; }
-.disclosure > summary::before { content: ""; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform .15s ease; }
-.disclosure[open] > summary::before { transform: rotate(45deg); }
-.disclosure > summary:hover { color: var(--foreground); }
 
 /* ——— 进度条与指标 ——— */
 .progress { height: 6px; background: var(--surface-hover); border-radius: 999px; overflow: hidden; }
@@ -385,34 +380,69 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 .order-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: var(--space-10); align-items: start; }
 .order-main { display: grid; gap: var(--space-10); min-width: 0; }
 
-.choice-stack { display: grid; gap: var(--space-5); }
-.choice-field { display: grid; gap: var(--space-2); }
-.choice-row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-.choice {
+/* 可点击的选项卡片：名称、说明、要点都在卡片里，整张卡片是点击区域 */
+.option-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+.option-grid--dense { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); }
+.option-grid--two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.option-grid--pair { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 560px; }
+.option-card {
   position: relative;
-  min-height: 36px;
-  padding: 0 14px;
-  display: inline-flex;
-  gap: 6px;
-  align-items: center;
+  min-height: 112px;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
   color: var(--foreground);
   background: var(--background);
   border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  font-size: var(--text-sm);
+  border-radius: 10px;
   cursor: pointer;
-  transition: border-color .15s ease, background-color .15s ease;
+  text-decoration: none;
+  transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
 }
-.choice input { position: absolute; opacity: 0; pointer-events: none; }
-.choice:hover { border-color: var(--border-hover); }
-.choice:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
-.choice--checked { color: var(--accent-strong); background: var(--accent-soft); border-color: var(--accent); font-weight: var(--weight-medium); }
-.choice--disabled { color: var(--muted); background: var(--surface); border-style: dashed; cursor: not-allowed; }
-.choice--disabled:hover { border-color: var(--border-strong); }
-.choice-tag { color: var(--muted); font-size: var(--text-xs); }
-.choice-sub { color: var(--muted); font-weight: var(--weight-regular); }
-.choice--checked .choice-sub { color: var(--accent-strong); }
-.choice-desc { max-width: 680px; color: var(--secondary); font-size: var(--text-sm); }
+.option-card:hover { border-color: var(--border-hover); box-shadow: 0 1px 2px rgb(0 0 0 / 5%), 0 4px 12px rgb(0 0 0 / 5%); }
+.option-card:has(.option-input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.option-card--checked, .option-card--checked:hover { background: #f8fbff; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+/* 多选卡片选中时只换浅蓝边和勾，全选时不至于满屏粗框 */
+.option-card--multi.option-card--checked, .option-card--multi.option-card--checked:hover { background: var(--background); border-color: var(--accent-border); box-shadow: none; }
+.option-card--multi.option-card--checked:hover { border-color: var(--accent); }
+.option-card--disabled, .option-card--disabled:hover { color: var(--muted); background: var(--surface); border-style: dashed; border-color: var(--border-strong); box-shadow: none; cursor: not-allowed; }
+.option-card--compact { min-height: 0; padding: var(--space-3) var(--space-4); gap: var(--space-1); }
+.option-card--add { flex-direction: row; gap: var(--space-2); align-items: center; justify-content: center; color: var(--secondary); border-style: dashed; font-size: var(--text-sm); }
+.option-card--add:hover { color: var(--foreground); }
+.option-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.option-head { display: flex; gap: var(--space-2); align-items: flex-start; justify-content: space-between; }
+.option-title { display: grid; font-size: var(--text-md); font-weight: var(--weight-semibold); line-height: 1.4; }
+.option-title small { color: var(--muted); font-size: var(--text-xs); font-weight: var(--weight-regular); }
+.option-desc { color: var(--secondary); font-size: var(--text-sm); line-height: 1.5; }
+.option-card--disabled .option-desc { color: var(--muted); }
+.option-foot { margin-top: auto; padding-top: var(--space-1); display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-2); align-items: center; color: var(--muted); font-size: var(--text-xs); font-variant-numeric: tabular-nums; }
+.option-flag { padding: 0 6px; color: var(--warning-text); background: var(--warning-soft); border-radius: 4px; }
+.option-tag { flex: none; padding: 1px 8px; color: var(--muted); background: var(--surface-hover); border-radius: 999px; font-size: var(--text-xs); font-weight: var(--weight-medium); }
+.option-mark { flex: none; width: 18px; height: 18px; margin-top: 1px; display: grid; place-items: center; color: #ffffff; background: var(--background); border: 1.5px solid var(--border-strong); }
+.option-mark--radio { border-radius: 50%; }
+.option-mark--checkbox { border-radius: 5px; }
+.option-mark .icon { width: 12px; height: 12px; }
+.option-card--checked .option-mark { background: var(--accent); border-color: var(--accent); }
+.section-count { color: var(--secondary); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+
+/* 可展开的模块：流程说明、高级设置 */
+.module { background: var(--background); border: 1px solid var(--border); border-radius: 10px; }
+.module > summary { padding: var(--space-3) var(--space-4); display: flex; gap: var(--space-3); align-items: center; justify-content: space-between; border-radius: 10px; cursor: pointer; list-style: none; }
+.module > summary::-webkit-details-marker { display: none; }
+.module > summary:hover { background: var(--surface); }
+.module > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.module > summary .icon { color: var(--muted); transition: transform .15s ease; }
+.module[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.module[open] > summary .icon { transform: rotate(90deg); }
+.module-title { display: grid; gap: 2px; }
+.module-title strong { font-size: var(--text-sm); }
+.module-title small { color: var(--muted); }
+.module-body { padding: var(--space-4); border-top: 1px solid var(--border); }
+.module .algorithm-flow { margin: 0; padding: 0; background: none; }
+
+.setting-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4) var(--space-5); max-width: 760px; }
+
 
 .algorithm-flow { margin-top: var(--space-3); padding: var(--space-4); display: grid; gap: var(--space-4); background: var(--surface); border-radius: var(--radius); }
 .flow-columns { display: grid; grid-template-columns: minmax(0, 1fr) 96px minmax(0, 1fr); gap: var(--space-3); }
@@ -426,44 +456,15 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 .flow-foot { color: var(--secondary); font-size: var(--text-xs); }
 .flow-arrow { display: grid; gap: var(--space-1); align-content: center; justify-items: center; color: var(--success-text); font-size: var(--text-xs); font-weight: var(--weight-medium); text-align: center; }
 
-.data-list { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-.data-list li + li { border-top: 1px solid var(--border); }
-.data-row { padding: 10px var(--space-4); display: grid; grid-template-columns: 16px minmax(96px, 150px) minmax(0, 1fr) auto; gap: var(--space-4); align-items: baseline; font-size: var(--text-sm); cursor: pointer; transition: background-color .15s ease; }
-.data-row input { align-self: center; }
-.data-row:hover { background: var(--surface); }
-.data-row--disabled { cursor: not-allowed; opacity: .55; }
-.data-name strong { font-weight: var(--weight-medium); }
-.data-name small { display: block; color: var(--muted); }
-.data-desc { color: var(--secondary); }
-.data-tag { margin-left: var(--space-2); padding: 0 6px; color: var(--warning-text); background: var(--warning-soft); border-radius: 4px; font-size: var(--text-xs); white-space: nowrap; }
-.data-count { color: var(--secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.data-foot { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); color: var(--muted); font-size: var(--text-xs); }
 
 .settings { display: grid; gap: var(--space-5); }
-.setting-row { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: var(--space-4); align-items: start; }
-.setting-row > .setting-label { padding-top: 8px; font-size: var(--text-sm); }
-.setting-control { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); align-items: center; min-height: 36px; }
-.setting-control--grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3) var(--space-4); align-items: start; }
-.setting-control--grid .setting-hint { grid-column: 1 / -1; }
 .setting-hint { color: var(--muted); font-size: var(--text-xs); }
-.advanced-body { padding-top: var(--space-4); display: grid; gap: var(--space-5); }
+.advanced-body { display: grid; gap: var(--space-5); }
 .setting-group { display: grid; gap: var(--space-2); }
 .setting-group > legend { margin-bottom: var(--space-2); color: var(--foreground); font-size: var(--text-sm); font-weight: var(--weight-medium); }
 .setting-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3) var(--space-4); }
-.radio-list { display: grid; gap: var(--space-2); }
-.radio-line { display: flex; gap: var(--space-2); align-items: flex-start; cursor: pointer; font-size: var(--text-sm); }
-.radio-line input { margin-top: 3px; }
-.radio-line strong { font-weight: var(--weight-medium); }
-.radio-line small { margin-left: var(--space-2); color: var(--muted); }
 .override-list { display: grid; gap: var(--space-2); max-width: 560px; }
 .override-list li { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: var(--space-3); align-items: center; font-size: var(--text-sm); }
-.radio-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
-.radio-card { padding: 10px 12px; display: flex; gap: var(--space-2); align-items: flex-start; border: 1px solid var(--border-strong); border-radius: var(--radius); cursor: pointer; }
-.radio-card input { margin-top: 3px; }
-.radio-card strong { display: block; font-size: var(--text-sm); font-weight: var(--weight-medium); }
-.radio-card small { display: block; color: var(--secondary); }
-.radio-card--checked { border-color: var(--accent); background: var(--accent-soft); }
-.radio-card:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .order-summary { position: sticky; top: var(--space-6); }
 .summary-card { padding: var(--space-5); display: grid; gap: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius); }
@@ -641,13 +642,14 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 }
 
 @media (max-width: 720px) {
-  .form-grid, .radio-row, .compare-grid, .setting-control--grid { grid-template-columns: minmax(0, 1fr); }
-  .setting-row { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
-  .setting-row > .setting-label { padding-top: 0; }
+  .form-grid, .compare-grid { grid-template-columns: minmax(0, 1fr); }
   .flow-columns { grid-template-columns: minmax(0, 1fr); }
+  .option-grid { grid-template-columns: minmax(0, 1fr); }
+  .option-grid--two { grid-template-columns: minmax(0, 1fr); }
+  .option-grid--dense, .option-grid--pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .option-card { min-height: 0; }
+  .setting-fields { grid-template-columns: minmax(0, 1fr); }
   .flow-arrow .icon { transform: rotate(90deg); }
-  .data-row { grid-template-columns: 16px minmax(0, 1fr) auto; row-gap: 2px; }
-  .data-desc { grid-column: 2 / -1; grid-row: 2; font-size: var(--text-xs); }
   .step-line { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
   .step-group ol { grid-template-columns: minmax(0, 1fr); }
   .round > details > .step-line, .round--current > .step-line, .round--current .member-progress { padding-left: 0; }
@@ -685,7 +687,7 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 
 /* 触屏：点击目标至少 44px */
 @media (pointer: coarse) {
-  .button, .nav-link, .segment, .tab, .menu-button, .choice { min-height: 44px; }
+  .button, .nav-link, .segment, .tab, .menu-button { min-height: 44px; }
   .button--compact { min-height: 40px; }
   .stepper button { width: 44px; height: 44px; }
   .stepper output { line-height: 44px; }

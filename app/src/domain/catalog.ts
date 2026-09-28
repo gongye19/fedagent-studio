@@ -16,6 +16,7 @@ export type GraderId = "math-answer";
 export type Scenario = {
   id: ScenarioId;
   name: string;
+  /** 选项卡片上的一两行说明。 */
   summary: string;
   example: string;
   /** 每个参与方需要带来的数据。 */
@@ -27,7 +28,7 @@ export const SCENARIOS: readonly Scenario[] = [
   {
     id: "horizontal",
     name: "横向联邦 Agent",
-    summary: "各方的 Agent 做同一类任务，但题目各不相同。各方只上传解题中提炼的经验，服务端汇成洞见库，下一轮大家一起用。",
+    summary: "各方做同一类任务、题目不同，只共享解题经验，一起提升。",
     example: "8 个数学竞赛题库，各由一个参与方持有",
     dataNeeds: "每方一份同类型的题库",
     status: "available",
@@ -35,7 +36,7 @@ export const SCENARIOS: readonly Scenario[] = [
   {
     id: "vertical",
     name: "纵向联邦 Agent",
-    summary: "面对同一批问题，各方掌握不同方面的信息，要结合起来才能回答，但各方的原始信息不能交出。",
+    summary: "同一批问题，信息分散在各方，要结合起来才能回答。",
     example: "银行有交易记录、电商有消费记录，共同回答同一批用户的问题",
     dataNeeds: "各方关于同一批对象的不同信息",
     status: "planned",
@@ -43,7 +44,7 @@ export const SCENARIOS: readonly Scenario[] = [
   {
     id: "transfer",
     name: "联邦迁移 Agent",
-    summary: "各方的任务和数据都不相同。把已有参与方的经验迁移给新领域的 Agent，帮它在题目很少时起步。",
+    summary: "把已有参与方的经验迁移给新领域的 Agent，帮它起步。",
     example: "把数学推理的经验迁移到物理题",
     dataNeeds: "源领域的经验和目标领域的少量题目",
     status: "planned",
@@ -74,7 +75,10 @@ export type Algorithm = {
   scenario: ScenarioId;
   name: string;
   fullName: string;
+  /** 选项卡片上的一两行说明。 */
   summary: string;
+  /** 卡片底部的要点。 */
+  highlights: readonly string[];
   /** 参与方上传给服务端的内容。 */
   uploads: string;
   /** 始终留在参与方的内容。 */
@@ -96,7 +100,8 @@ export const ALGORITHMS: readonly Algorithm[] = [
     scenario: "horizontal",
     name: "FoT",
     fullName: "Federation over Text",
-    summary: "各方把解题中提炼的推理经验（trace）上传，服务端归类、合并成洞见库，下一轮下发给所有参与方。不传模型参数，不需要梯度或标注。",
+    summary: "各方上传解题中提炼的推理经验（trace），服务端合并成洞见库，下一轮下发给所有参与方。",
+    highlights: ["只上传 trace", "不传模型参数", "不需要标注"],
     uploads: "每道题提炼出的 trace：可复用的做法与适用条件",
     keeps: "题目、标准答案、解答全文、模型与密钥",
     stages: FOT_STAGES,
