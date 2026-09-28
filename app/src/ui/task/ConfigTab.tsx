@@ -1,99 +1,74 @@
-import { algorithmOf, scenarioOf } from "../../domain/catalog";
-import { INSIGHT_TARGETS, TRACE_DENSITIES } from "../../domain/config";
+import { paramText, scenarioOf, TASK_TYPES } from "../../domain/catalog";
 import { HOSTING_LABELS, modelLabel } from "../../domain/resources";
 import { totalProblems, type Member, type Task } from "../../domain/task";
 import type { State } from "../../state/store";
-import { Facts, Section } from "../common";
+import { Facts } from "../common";
+import { Panel } from "../console";
 import { formatDate, formatNumber } from "../format";
-import { inline } from "../labels";
+import { algorithmOfTask } from "../labels";
 
-/** 所有参与方取值相同的属性合成一句，只列出不同的。 */
+/** 所有参与方取值相同的属性合成一列就够了，不同时才单列。 */
 function uniform<T>(members: readonly Member[], pick: (member: Member) => T): T | undefined {
   const first = members[0] ? pick(members[0]) : undefined;
   return members.every((member) => pick(member) === first) ? first : undefined;
 }
 
-/** 参与方名称后面的说明：题库名（和参与方不同名时）加题库说明。 */
-function noteOf(state: State, member: Member): string {
-  const description = state.datasets.find((dataset) => dataset.id === member.datasetId)?.description;
-  return [member.dataset !== member.participant ? member.dataset : null, description].filter(Boolean).join(" · ");
-}
-
+/** 创建时冻结的配置。要修改请"复制为新任务"。 */
 export function ConfigTab({ task, state }: { task: Task; state: State }) {
   const config = task.config;
-  const algorithm = algorithmOf(config.algorithm);
-  const problems = totalProblems(task);
-  const hosting = uniform(task.members, (member) => member.hosting);
+  const algorithm = algorithmOfTask(task);
   const model = uniform(task.members, (member) => member.model);
-  const allAnswered = task.members.every((member) => member.answered === member.problems);
-
-  const common = [
-    hosting ? `都由${HOSTING_LABELS[hosting]}` : null,
-    model ? `都用${inline(modelLabel(model, state.endpoints, { withStatus: false }))}` : null,
-    allAnswered ? "题目都带标准答案" : null,
-  ].filter(Boolean).join("，");
+  const label = (ref: string) => modelLabel(ref, state.endpoints, { withStatus: false });
 
   return (
-    <div className="stack stack--loose">
-      <Section title="运行" id="config-run" meta="创建时冻结；要修改请“复制为新任务”。">
-        <Facts items={[
-          ["场景与算法", `${scenarioOf(config.scenario).name} · ${algorithm.name}（${algorithm.fullName}）`],
-          ["运行方式", config.mode === "trial" ? `试跑，每份前 ${config.trialCap} 题` : "正式运行，全部题目"],
+    <div className="panel-stack">
+      <Panel title="任务配置" extra="创建时冻结；要修改请“复制为新任务”">
+        <Facts className="facts--columns" items={[
+          ["场景", scenarioOf(config.scenario).name],
+          ["算法", `${algorithm.name}（${algorithm.fullName}）`],
+          ["任务类型", TASK_TYPES[algorithm.accepts[0]].label],
+          ["运行方式", config.mode === "trial" ? `试跑，每个数据集前 ${config.trialCap} 条` : "正式运行，全部样本"],
           ["轮次", `${config.rounds} 轮`],
-          ["调用量", `参与方 ${formatNumber(problems * 3 * config.rounds)} 次，服务端至少 ${config.rounds * 2} 次`],
-          ["服务端模型", modelLabel(config.serverModel, state.endpoints, { withStatus: false })],
-          ["时间", `创建于 ${formatDate(task.createdAt)}${task.finishedAt ? `，${task.status === "canceled" ? "取消于" : "完成于"} ${formatDate(task.finishedAt)}` : ""}`],
+          ["样本", `${formatNumber(totalProblems(task))} 条`],
+          ["参与方模型", model ? label(model) : "各参与方不同，见下表"],
+          ["服务端模型", label(config.serverModel)],
+          ["并发数", String(config.workers)],
+          ["随机种子", String(config.seed)],
+          ["创建时间", formatDate(task.createdAt)],
+          [task.status === "canceled" ? "取消时间" : "完成时间", task.finishedAt ? formatDate(task.finishedAt) : "—"],
         ]} />
-      </Section>
+      </Panel>
 
-      <Section title={`参与方 · ${task.members.length} 方`} id="config-members" meta={common ? `${common}。` : undefined}>
+      <Panel title={`${algorithm.name} 算法参数`}>
+        <Facts className="facts--columns" items={algorithm.params.map((def) => [def.label, paramText(def, config)] as const)} />
+      </Panel>
+
+      <Panel title="参与方" extra={`${task.members.length} 个`} flush>
         <div className="table-shell">
           <table className="table table--numbers">
             <thead>
               <tr>
                 <th scope="col">参与方</th>
-                {hosting ? null : <th scope="col">运行位置</th>}
+                <th scope="col" className="col-optional">数据集</th>
+                <th scope="col" className="col-optional">运行位置</th>
                 {model ? null : <th scope="col">模型</th>}
-                <th scope="col" className="numeric">本次题数</th>
-                {allAnswered ? null : <th scope="col" className="numeric">带答案</th>}
+                <th scope="col" className="numeric">本次样本</th>
               </tr>
             </thead>
             <tbody>
               {task.members.map((member) => (
                 <tr key={member.datasetId}>
-                  <th scope="row">
-                    <span className="cell-title">
-                      {member.participant}
-                      <span className="cell-note">{noteOf(state, member)}</span>
-                    </span>
-                  </th>
-                  {hosting ? null : <td>{HOSTING_LABELS[member.hosting]}</td>}
-                  {model ? null : <td>{modelLabel(member.model, state.endpoints, { withStatus: false })}</td>}
+                  <th scope="row">{member.participant}</th>
+                  <td className="col-optional">{state.datasets.find((dataset) => dataset.id === member.datasetId)?.description ?? member.dataset}</td>
+                  <td className="col-optional">{HOSTING_LABELS[member.hosting]}</td>
+                  {model ? null : <td>{label(member.model)}</td>}
                   <td className="numeric">{member.problems}</td>
-                  {allAnswered ? null : <td className="numeric">{member.answered}</td>}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </Section>
-
-      <Section title="复现参数" id="config-params">
-        <Facts items={[
-          ["洞见库条数", INSIGHT_TARGETS.find((item) => item.id === config.insightTarget)?.label ?? config.insightTarget],
-          ["trace 密度", TRACE_DENSITIES.find((item) => item.id === config.traceDensity)?.label ?? config.traceDensity],
-          ["每题最多 trace 数", config.maxTracesPerItem === null ? "不限" : `${config.maxTracesPerItem} 条`],
-          ["汇总重试上限", `${config.aggregationRetries} 次`],
-          ["随机种子", String(config.seed)],
-          ["并发数", String(config.workers)],
-        ]} />
-      </Section>
-
-      <Section title="审计记录" id="config-audit">
-        <p className="section-text">
-          接入后端后记录配置、Prompt 1–5、每份数据和上游代码（dixiyao/FoT @ b02753c）的哈希，以及每次调用的模型、token、重试与错误。
-        </p>
-      </Section>
+      </Panel>
     </div>
   );
 }

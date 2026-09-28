@@ -1,6 +1,6 @@
-/** 任务相关的展示文字：状态色、当前步骤、摘要、轮次和洞见库版本的叫法，以及列表排序。 */
-import { algorithmOf, stageOf } from "../domain/catalog";
-import { totalProblems, type LibraryVersion, type Task } from "../domain/task";
+/** 任务相关的展示文字：状态色、当前步骤、摘要、指标名、轮次和产出版本的叫法，以及列表排序。 */
+import { algorithmOf, scenarioOf, TASK_TYPES, type Algorithm } from "../domain/catalog";
+import type { LibraryVersion, Task } from "../domain/task";
 import type { Tone } from "./common";
 
 export function statusTone(task: Task): Tone {
@@ -14,16 +14,27 @@ export function statusTone(task: Task): Tone {
   }
 }
 
-/** 当前停在哪一轮哪一步；完成的任务返回 null。 */
-export function stageText(task: Task): string | null {
-  if (!task.cursor) return null;
-  return `第 ${task.cursor.round} / ${task.config.rounds} 轮 · ${stageOf(task.cursor.stage).label}`;
+export function algorithmOfTask(task: Task): Algorithm {
+  return algorithmOf(task.config.algorithm);
 }
 
-/** 列表和详情页标题下的一行摘要。场景由算法决定（FoT 只属于横向），不再重复。 */
+/** 任务的主要指标，由任务类型决定（数学推理是准确率）。 */
+export function metricOf(task: Task): string {
+  return TASK_TYPES[algorithmOfTask(task).accepts[0]].metric;
+}
+
+/** 当前停在哪一轮哪一步；完成的任务返回 null。步骤名由算法定义。 */
+export function stageText(task: Task): string | null {
+  if (!task.cursor) return null;
+  const cursor = task.cursor;
+  const stage = algorithmOfTask(task).stages.find((item) => item.id === cursor.stage);
+  return `第 ${cursor.round} / ${task.config.rounds} 轮 · ${stage?.label ?? ""}`;
+}
+
+/** 列表和详情页标题下的一行摘要：场景 · 算法 · 参与方数 · 运行方式。 */
 export function taskSummary(task: Task): string {
   const mode = task.config.mode === "trial" ? "试跑" : "正式运行";
-  return `${algorithmOf(task.config.algorithm).name} · ${task.members.length} 方 · ${totalProblems(task)} 题 · ${mode}`;
+  return `${scenarioOf(task.config.scenario).short} · ${algorithmOfTask(task).name} · ${task.members.length} 个参与方 · ${mode}`;
 }
 
 /** 运行中、暂停的任务排在前面，其余按创建时间从新到旧。 */
@@ -45,10 +56,6 @@ export function deltaClass(value: number | null): string {
   return value < 0 ? "delta delta--down" : "delta delta--up";
 }
 
-export function roundLabel(round: number): string {
-  return round === 1 ? "第 1 轮（本地）" : `第 ${round} 轮`;
-}
-
 /** 表头用的短写法：第 1 轮标"（本地）"，最后一轮标"（联邦）"；窄屏时括号里的说明收起。 */
 export function roundHeader(round: number, last = false): { main: string; note?: string } {
   if (round === 1) return { main: "第 1 轮", note: "（本地）" };
@@ -57,5 +64,5 @@ export function roundHeader(round: number, last = false): { main: string; note?:
 
 export function versionLabel(task: Task, version: LibraryVersion): string {
   const final = task.status === "completed" && version.builtAfterRound === task.config.rounds;
-  return final ? `第 ${version.builtAfterRound} 轮后 · 最终` : `第 ${version.builtAfterRound} 轮后`;
+  return final ? `第 ${version.builtAfterRound} 轮后（最终）` : `第 ${version.builtAfterRound} 轮后`;
 }

@@ -62,23 +62,26 @@ describe("store", () => {
 describe("route", () => {
   it("round-trips every page", () => {
     const routes: Route[] = [
+      { page: "home" },
       { page: "tasks" },
       { page: "newTask" },
       { page: "newTask", scenario: "horizontal" },
       { page: "task", id: "task-1" },
-      { page: "task", id: "task-1", tab: "library" },
-      { page: "libraries" },
-      { page: "library", id: "lib-1", tab: "try" },
+      { page: "task", id: "task-1", tab: "output" },
+      { page: "apps" },
+      { page: "app", id: "lib-1", tab: "try" },
       { page: "participants" },
       { page: "participants", id: "p-amc" },
+      { page: "algorithms" },
       { page: "models" },
     ];
     for (const route of routes) expect(parseHash(hrefOf(route))).toEqual(route);
   });
 
   it("falls back for unknown pages and tabs", () => {
-    expect(parseHash("#/nowhere")).toEqual({ page: "tasks" });
+    expect(parseHash("#/nowhere")).toEqual({ page: "home" });
     expect(parseHash("#/tasks")).toEqual({ page: "tasks" });
+    expect(parseHash("#/libraries/lib-1")).toEqual({ page: "app", id: "lib-1", tab: undefined });
     expect(parseHash("#/tasks/t1/uploads")).toEqual({ page: "task", id: "t1", tab: undefined });
     expect(parseHash("#/tasks/t1/unknown")).toEqual({ page: "task", id: "t1", tab: undefined });
   });

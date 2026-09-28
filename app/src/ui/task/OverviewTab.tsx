@@ -8,13 +8,13 @@ import {
   negativeTransfer,
   roundOf,
   scoredRounds,
-  totalTokens,
   type Task,
 } from "../../domain/task";
 import type { ChartOption } from "../Chart";
-import { EmptyState, Section, Stat } from "../common";
-import { formatDelta, formatPercent, formatTokens } from "../format";
-import { deltaClass, roundHeader } from "../labels";
+import { EmptyState, Stat } from "../common";
+import { Panel } from "../console";
+import { formatDelta, formatPercent } from "../format";
+import { algorithmOfTask, deltaClass, metricOf, roundHeader } from "../labels";
 
 // 图表库较大，按需加载，不拖慢首屏。
 const EChart = lazy(() => import("../Chart"));
@@ -23,10 +23,12 @@ const FONT = "Geist Sans, PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-s
 // 点只分"第 1 轮 / 最新一轮"两种颜色，和图例一致；涨跌只看连线：绿色表示变好，红色表示变差。
 const COLORS = { base: "#a1a1aa", latest: "#18181b", flat: "#71717a", upLine: "#4ade80", downLine: "#f87171" };
 
-export function ResultsTab({ task }: { task: Task }) {
+export function OverviewTab({ task }: { task: Task }) {
   const rounds = scoredRounds(task);
+  const metric = metricOf(task);
+  const output = algorithmOfTask(task).output;
   if (!rounds.length) {
-    return <EmptyState title="还没有结果"><p>第 1 轮解题完成后，这里会显示各参与方的准确率。</p></EmptyState>;
+    return <EmptyState title="还没有结果"><p>第 1 轮完成后，这里显示各参与方的{metric}。</p></EmptyState>;
   }
   const latest = rounds[rounds.length - 1];
   const first = averageAccuracy(task, 1);
@@ -36,27 +38,27 @@ export function ResultsTab({ task }: { task: Task }) {
   const library = libraries(task).at(-1);
 
   return (
-    <div className="stack stack--loose">
-      <dl className="stats">
-        <Stat
-          label="平均准确率"
-          value={formatPercent(last)}
-          sub={latest > 1
-            ? <><span className={deltaClass(delta)}>{formatDelta(delta)}</span>，第 1 轮为 {formatPercent(first)}</>
-            : "第 1 轮，各方单独作答"}
-        />
-        <Stat label="负迁移" value={ntr ? `${ntr.count} / ${ntr.total} 方` : "—"} sub={ntr ? "低于本方第 1 轮" : "第 2 轮完成后统计"} tone={ntr && ntr.count > 0 ? "down" : undefined} />
-        <Stat label="洞见库" value={library ? `${library.insights.length} 条` : "—"} sub={library ? `第 ${library.builtAfterRound} 轮后生成` : "第 1 轮结束后生成"} />
-        <Stat label="token 用量" value={totalTokens(task) ? formatTokens(totalTokens(task)) : "—"} sub={totalTokens(task) ? "已完成的轮次" : "第 1 轮完成后统计"} />
-      </dl>
+    <div className="panel-stack">
+      <Panel title={`${metric}：本地 vs 联邦`}>
+        <dl className="stats">
+          <Stat label="本地（第 1 轮）" value={formatPercent(first)} sub="各方单独作答" />
+          <Stat
+            label={latest > 1 ? `联邦（第 ${latest} 轮）` : "联邦"}
+            value={latest > 1 ? formatPercent(last) : "—"}
+            sub={latest > 1 ? <span className={deltaClass(delta)}>{formatDelta(delta)}</span> : "第 2 轮完成后统计"}
+          />
+          <Stat label="负迁移" value={ntr ? `${ntr.count} / ${ntr.total} 方` : "—"} sub={ntr ? "低于本方第 1 轮" : "第 2 轮完成后统计"} tone={ntr && ntr.count > 0 ? "down" : undefined} />
+          <Stat label="产出" value={library ? `${library.insights.length} 条` : "—"} sub={library ? `${output.name} · 第 ${library.builtAfterRound} 轮后` : output.name} />
+        </dl>
+      </Panel>
 
-      <Section title={latest > 1 ? `各参与方：第 1 轮 → 第 ${latest} 轮` : "各参与方：第 1 轮"} id="accuracy">
+      <Panel title={latest > 1 ? `各参与方：第 1 轮 → 第 ${latest} 轮` : "各参与方：第 1 轮"} id="accuracy">
         <DumbbellChart task={task} latest={latest} />
-      </Section>
+      </Panel>
 
-      <Section title="本地 vs 联邦" id="comparison">
+      <Panel title="明细" id="comparison" flush>
         <ComparisonTable task={task} />
-      </Section>
+      </Panel>
     </div>
   );
 }
@@ -174,7 +176,7 @@ function ComparisonTable({ task }: { task: Task }) {
         <thead>
           <tr>
             <th scope="col">参与方</th>
-            <th scope="col" className="numeric col-optional">题数</th>
+            <th scope="col" className="numeric col-optional">样本</th>
             {rounds.map((round) => {
               const header = roundHeader(round, round === rounds.length);
               return (
@@ -201,7 +203,7 @@ function ComparisonTable({ task }: { task: Task }) {
                   const correct = roundOf(task, round)?.correct?.[member.datasetId];
                   return (
                     <td key={round} className={`numeric${middle(round) ? " col-optional" : ""}`}>
-                      {member.answered === 0 ? <span className="muted">无答案</span> : formatPercent(value)}
+                      {member.answered === 0 ? <span className="muted">无标注</span> : formatPercent(value)}
                       {correct !== undefined ? <small>{correct} / {member.answered}</small> : null}
                     </td>
                   );

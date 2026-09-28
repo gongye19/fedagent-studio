@@ -1,5 +1,4 @@
 import type { Dispatch } from "react";
-import { stageOf } from "../domain/catalog";
 import { toDraft } from "../domain/config";
 import { progressOf, scoredRounds, type Task } from "../domain/task";
 import { navigate, type TaskTab } from "../state/route";
@@ -7,22 +6,22 @@ import type { Action, State } from "../state/store";
 import { Meta, PageHead, ProgressBar, TabLinks } from "./common";
 import { formatDate } from "./format";
 import { Icon } from "./icons";
-import { stageText, taskSummary } from "./labels";
+import { algorithmOfTask, stageText, taskSummary } from "./labels";
 import { ConfigTab } from "./task/ConfigTab";
-import { LibraryTab } from "./task/LibraryTab";
+import { OutputTab } from "./task/OutputTab";
+import { OverviewTab } from "./task/OverviewTab";
 import { ProgressTab } from "./task/ProgressTab";
-import { ResultsTab } from "./task/ResultsTab";
 import { TaskStatus } from "./TaskTable";
 
 type Props = { task: Task; state: State; dispatch: Dispatch<Action>; tab?: TaskTab };
 
 export default function TaskPage({ task, state, dispatch, tab }: Props) {
-  // 有结果就先看结果；还没有结果时看进度。
-  const active: TaskTab = tab ?? (scoredRounds(task).length ? "results" : "progress");
+  // 有结果就先看概览；还没有结果时看进度。
+  const active: TaskTab = tab ?? (scoredRounds(task).length ? "overview" : "progress");
   const tabs: { id: TaskTab; label: string }[] = [
-    { id: "results", label: "结果" },
+    { id: "overview", label: "概览" },
     { id: "progress", label: "进度" },
-    { id: "library", label: "洞见库" },
+    { id: "output", label: "产出" },
     { id: "config", label: "配置" },
   ];
 
@@ -62,34 +61,30 @@ export default function TaskPage({ task, state, dispatch, tab }: Props) {
         ]} />}
         actions={actions}
       />
-      <TabLinks
-        label="任务详情"
-        tabs={tabs}
-        active={active}
-        routeOf={(id) => ({ page: "task", id: task.id, tab: id })}
-      />
+      <TabLinks label="任务详情" tabs={tabs} active={active} routeOf={(id) => ({ page: "task", id: task.id, tab: id })} />
       {task.cursor && task.status !== "canceled" ? <LiveBanner task={task} /> : null}
       <div className="tab-panel">
-        {active === "results" ? <ResultsTab task={task} /> : null}
+        {active === "overview" ? <OverviewTab task={task} /> : null}
         {active === "progress" ? <ProgressTab key={task.id} task={task} /> : null}
-        {active === "library" ? <LibraryTab key={task.id} task={task} state={state} dispatch={dispatch} /> : null}
+        {active === "output" ? <OutputTab key={task.id} task={task} state={state} dispatch={dispatch} /> : null}
         {active === "config" ? <ConfigTab task={task} state={state} /> : null}
       </div>
     </>
   );
 }
 
-/** 运行中或暂停的任务在标签上方显示总进度；读屏只播报步骤变化，不播报百分比。 */
+/** 运行中或暂停的任务在标签下方显示总进度；读屏只播报步骤变化，不播报百分比。 */
 function LiveBanner({ task }: { task: Task }) {
   const cursor = task.cursor;
   if (!cursor) return null;
   const progress = progressOf(task);
   const stage = stageText(task);
+  const detail = algorithmOfTask(task).stages.find((item) => item.id === cursor.stage)?.detail ?? "";
   return (
     <div className={`live-banner live-banner--${task.status}`}>
       <div className="live-copy">
         <strong>{stage}</strong>
-        <small>{task.status === "paused" ? "已暂停，点“继续”从这一步接着运行" : stageOf(cursor.stage).detail}</small>
+        <small>{task.status === "paused" ? "已暂停，点“继续”从这一步接着运行" : detail}</small>
       </div>
       <ProgressBar value={progress} label="整体进度" tone={task.status === "running" ? "info" : "warning"} />
       <span className="live-percent" aria-hidden="true">{Math.round(progress * 100)}%</span>

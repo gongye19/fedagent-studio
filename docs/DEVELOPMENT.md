@@ -31,7 +31,7 @@ npm run check
 ```text
 app/src/
 ├── domain/
-│   ├── catalog.ts      场景与算法注册表、FoT 的 6 步、任务类型与评分方式
+│   ├── catalog.ts      场景、任务类型与算法注册表：每个算法的交换内容、产出、参数定义、每轮步骤
 │   ├── resources.ts    参与方（两种运行位置）、数据集、模型接口，内置的 8 个题库
 │   ├── config.ts       任务配置：默认值、草稿校验、选场景 / 算法 / 数据、调用量与费用预估
 │   ├── task.ts         任务状态机：创建、按轮推进 6 步、暂停 / 继续 / 取消、指标
@@ -44,17 +44,19 @@ app/src/
 │   ├── persistence.ts  浏览器本地保存与恢复
 │   └── route.ts        hash 路由
 ├── ui/
-│   ├── TasksPage.tsx        联邦任务（首页；没有任务时显示使用流程）
-│   ├── NewTaskPage.tsx      新建联邦任务（选项卡片 + 右侧配置清单 + 手机端操作栏）
-│   ├── TaskPage.tsx         任务详情（task/ 下是结果、进度、洞见库、配置四个标签）
-│   ├── LibrariesPage.tsx    已发布的洞见库
-│   ├── LibraryPage.tsx      洞见库详情：洞见、试用、接入方式
-│   ├── ParticipantsPage.tsx 参与方与数据、题库上传
+│   ├── HomePage.tsx         首页：场景入口、资源数量、最近任务
+│   ├── TasksPage.tsx        联邦任务列表（名称搜索、状态筛选）
+│   ├── NewTaskPage.tsx      新建联邦任务（控制台风格的配置面板 + 右侧配置摘要 + 窄屏吸底操作栏）
+│   ├── TaskPage.tsx         任务详情（task/ 下是概览、进度、产出、配置四个标签）
+│   ├── AppsPage.tsx         应用列表（任务产出发布后的成果）
+│   ├── AppPage.tsx          应用详情：试用、内容、接入
+│   ├── ParticipantsPage.tsx 参与方与数据、数据集上传
+│   ├── AlgorithmsPage.tsx   算法（注册表）
 │   ├── ModelsPage.tsx       模型接口
-│   ├── Chart.tsx            ECharts 封装（按需加载，结果页的哑铃图）
-│   ├── InsightGroups.tsx    按类别列出洞见（任务详情和洞见库页共用）
-│   ├── OptionCard.tsx       选项卡片：只用于 2–3 个带说明的关键单选（场景、运行方式、运行位置）
-│   ├── common.tsx           共用组件：Tag（唯一的标签）、Collapsible（唯一的折叠）、CodeBlock（带复制）、Notice（顶部提示）、FormActions（表单按钮 + 缺项说明）、Meta、Section 等
+│   ├── Chart.tsx            ECharts 封装（按需加载，概览页的哑铃图）
+│   ├── InsightGroups.tsx    按类别列出产出内容（任务产出和应用内容共用）
+│   ├── console.tsx          控制台风格的表单组件：Panel（配置面板）、FormRow（左标签表单行）、Choices（选项按钮组）
+│   ├── common.tsx           共用组件：Tag（唯一的标签）、Collapsible（折叠）、CodeBlock（带复制）、Notice、FormActions、Meta、PageHead、Stat、Facts 等
 │   ├── TaskTable.tsx / labels.ts / format.ts / icons.tsx
 ├── App.tsx             外框与侧栏导航
 ├── main.tsx
@@ -65,12 +67,12 @@ app/src/
 
 入口是注册表：
 
-1. 在 `catalog.ts` 的 `ALGORITHMS` 里登记算法：所属场景、参与方步骤和服务端步骤、适用的任务类型、是否需要标准答案、最少参与方和轮次、来源。
+1. 在 `catalog.ts` 的 `ALGORITHMS` 里登记算法：所属场景、适用的任务类型、交换内容（`exchange`）、产出（`output`）、参数定义（`params`）、每轮步骤（`stages`）、是否需要标注、最少参与方和轮次、来源。新建任务的算法表格、高级配置、进度页、产出页和算法页都按这些字段生成，不用改页面。
 2. 场景从"规划中"改为"可用"（`SCENARIOS` 的 `status`）。
-3. 新的任务类型或评分方式，在 `TASK_TYPES`、`GRADERS` 里补充；数据集的 `taskType` 与之匹配后，就会出现在新建任务的数据列表里。
-4. 算法参数有差异时，扩展 `config.ts` 的配置类型和默认值，并在"运行设置"里加对应的控件。
-5. 目前 `task.ts` 按 FoT 的 6 步推进。第二个算法接入时，把步骤列表改为从算法定义读取，再补状态机测试。
-6. 验证桌面和手机端，以及从创建到完成的全过程。
+3. 新的任务类型或评分方式，在 `TASK_TYPES`、`GRADERS` 里补充（任务类型决定数据格式和评估指标）；数据集的 `taskType` 与之匹配后，就会出现在新建任务的参与方表格里。
+4. 新参数的取值要存进任务配置：扩展 `config.ts` 的配置类型和默认值，`params` 里的 `key` 对应这个字段。
+5. 目前 `task.ts` 的状态机按 FoT 的步骤推进。第二个算法接入时，把状态机的步骤列表也改为从算法定义读取，再补状态机测试。
+6. 验证桌面、768 和手机三种宽度，以及从创建到完成的全过程。
 
 ## 接入后端
 
@@ -89,12 +91,12 @@ app/src/
 - `state/*.test.ts`：reducer、初始数据和路由。
 - 示例数据要自洽：例如关系分析各类的 trace 数之和等于上传总数，后一版洞见库包含前一版。
 - 页面结构变化时，至少做一次桌面和手机端的浏览器验证。
-- 界面规范写在 `styles.css` 开头，新增界面前先看一遍：
-  - 容器只有一种：`.card` / `.option-card` / `.module` / `.table-shell` 同样的边框、圆角和内边距；
-  - 选择控件：2–3 个关键单选用 `OptionCard`，选项更多或次要设置用下拉，多选一组对象用分组的复选表格（参考新建任务的数据表），视图切换用分段控件或标签页；
-  - 标签一律用 `Tag`，折叠一律用 `Collapsible`（或同样的左侧箭头），代码块一律用 `CodeBlock`；
+- 界面规范写在 `styles.css` 开头，新增界面前先看一遍（T39 起按云控制台风格：面板 + 左标签表单行 + 选项按钮 + 带单选 / 复选的表格）：
+  - 配置区块一律用 `Panel`，表单行一律用 `FormRow`（左边字段名、右边控件、下方一句说明）；
+  - 互斥的少量选项用 `Choices`，选项多或次要设置用下拉，选对象（算法、参与方）用带单选 / 复选的表格；
+  - 标签一律用 `Tag`，折叠一律用 `Collapsible`，代码块一律用 `CodeBlock`；
   - 表单底部一律用 `FormActions`：保存按钮不可用时写明还缺什么，保存后用 `Notice` 提示；
-  - 选项卡片只写标题和一句区分点，适用场合、细节放到卡片组下方或折叠里；
+  - 页面上不铺开算法细节，只写一句说明；算法专属的参数放进"高级配置"；
   - 字号 6 档、字重 3 档、4 为基数的间距。
 
 ## 提交约定

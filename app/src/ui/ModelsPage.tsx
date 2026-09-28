@@ -2,6 +2,7 @@ import { useState, type Dispatch } from "react";
 import { DEFAULT_ENDPOINT_ID, endpointOf, isConfigured, type Endpoint } from "../domain/resources";
 import type { Action, State } from "../state/store";
 import { FormActions, Meta, Notice, PageHead, Tag } from "./common";
+import { FormRow, Panel } from "./console";
 import { Icon } from "./icons";
 
 type Props = { state: State; dispatch: Dispatch<Action> };
@@ -42,6 +43,7 @@ export default function ModelsPage({ state, dispatch }: Props) {
           }}
         />
       ) : null}
+      <Panel flush>
       <div className="table-shell">
         <table className="table table--stack">
           <thead>
@@ -84,6 +86,7 @@ export default function ModelsPage({ state, dispatch }: Props) {
           </tbody>
         </table>
       </div>
+      </Panel>
     </>
   );
 }
@@ -120,41 +123,34 @@ function EndpointForm({ state, dispatch, endpoint, onDone }: Props & { endpoint?
   }
 
   return (
-    <section className="card" aria-labelledby="endpoint-form-title">
-      <h2 id="endpoint-form-title">{endpoint ? `编辑“${endpoint.name}”` : "新增接口"}</h2>
-      <div className="form-grid">
-        <label className="field">
-          <span>名称</span>
-          <input name="endpoint-name" autoComplete="off" value={name} maxLength={30} onChange={(event) => setName(event.target.value)} placeholder="例如：实验室模型服务" />
-        </label>
-        <label className="field">
-          <span>接口地址（可不填）</span>
-          <input name="endpoint-url" type="url" inputMode="url" autoComplete="off" spellCheck={false} value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} placeholder="https://…/v1" aria-invalid={!validUrl} aria-describedby="endpoint-url-note" />
-          {validUrl
-            ? <small id="endpoint-url-note" className="field-hint">OpenAI 兼容接口的地址；留空则保持“待配置”</small>
-            : <small id="endpoint-url-note" className="field-error">地址要以 http:// 或 https:// 开头</small>}
-        </label>
-        <label className="field field--wide">
-          <span>模型（可不填）</span>
-          <textarea name="endpoint-models" autoComplete="off" spellCheck={false} rows={3} value={models} onChange={(event) => setModels(event.target.value)} placeholder="每行一个模型名，或用逗号分隔…" />
-        </label>
-        <label className="field">
-          <span>并发上限</span>
-          <input name="endpoint-concurrency" type="number" inputMode="numeric" autoComplete="off" min={1} max={256} value={concurrency} onChange={(event) => setConcurrency(Math.max(1, Math.min(256, Number.parseInt(event.target.value, 10) || 1)))} />
-        </label>
-        <label className="field">
-          <span>单价（元 / 百万 token，可不填）</span>
-          <input name="endpoint-price" type="number" inputMode="decimal" autoComplete="off" min={0} step="0.1" value={price} placeholder="未设置" aria-invalid={!validPrice} aria-describedby="endpoint-price-note" onChange={(event) => setPrice(event.target.value)} />
-          {validPrice
-            ? <small id="endpoint-price-note" className="field-hint">用于新建任务时的费用预估</small>
-            : <small id="endpoint-price-note" className="field-error">单价不能小于 0</small>}
-        </label>
-        <div className="field field--wide">
-          <span>API 密钥</span>
-          <p className="field-static">接入后端后在服务端填写，前端不保存密钥。</p>
-        </div>
-      </div>
+    <Panel title={endpoint ? `编辑“${endpoint.name}”` : "新增接口"}>
+      <FormRow label="名称" htmlFor="endpoint-name">
+        <input id="endpoint-name" name="endpoint-name" autoComplete="off" className="control-wide" value={name} maxLength={30} onChange={(event) => setName(event.target.value)} placeholder="例如：实验室模型服务" />
+      </FormRow>
+      <FormRow
+        label="接口地址"
+        htmlFor="endpoint-url"
+        hint={validUrl ? "OpenAI 兼容接口的地址；留空则保持“待配置”" : <span className="field-error">地址要以 http:// 或 https:// 开头</span>}
+      >
+        <input id="endpoint-url" name="endpoint-url" type="url" inputMode="url" autoComplete="off" spellCheck={false} className="control-wide" value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} placeholder="https://…/v1" aria-invalid={!validUrl} />
+      </FormRow>
+      <FormRow label="模型" htmlFor="endpoint-models" hint="可不填；每行一个，或用逗号分隔">
+        <textarea id="endpoint-models" name="endpoint-models" autoComplete="off" spellCheck={false} className="control-wide" rows={3} value={models} onChange={(event) => setModels(event.target.value)} placeholder="模型名称…" />
+      </FormRow>
+      <FormRow label="并发上限" htmlFor="endpoint-concurrency">
+        <input id="endpoint-concurrency" name="endpoint-concurrency" type="number" inputMode="numeric" autoComplete="off" min={1} max={256} value={concurrency} onChange={(event) => setConcurrency(Math.max(1, Math.min(256, Number.parseInt(event.target.value, 10) || 1)))} />
+      </FormRow>
+      <FormRow
+        label="单价"
+        htmlFor="endpoint-price"
+        hint={validPrice ? "元 / 百万 token，可不填；用于新建任务时的费用预估" : <span className="field-error">单价不能小于 0</span>}
+      >
+        <input id="endpoint-price" name="endpoint-price" type="number" inputMode="decimal" autoComplete="off" min={0} step="0.1" value={price} placeholder="未设置" aria-invalid={!validPrice} onChange={(event) => setPrice(event.target.value)} />
+      </FormRow>
+      <FormRow label="API 密钥">
+        <p className="field-static">接入后端后在服务端填写，前端不保存密钥。</p>
+      </FormRow>
       <FormActions missing={missing} saveLabel={endpoint ? "保存修改" : "保存接口"} onCancel={() => onDone()} onSave={save} />
-    </section>
+    </Panel>
   );
 }

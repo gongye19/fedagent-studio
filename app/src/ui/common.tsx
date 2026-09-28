@@ -1,4 +1,4 @@
-import { Fragment, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import { hrefOf, type Route } from "../state/route";
 import { Icon } from "./icons";
 
@@ -43,34 +43,6 @@ export function PageHead({
       </div>
       {actions ? <div className="page-actions">{actions}</div> : null}
     </header>
-  );
-}
-
-/** 页面里的一个区块：标题 + 内容，用间距分隔，不套边框。 */
-export function Section({
-  title, meta, actions, children, id, className,
-}: {
-  title?: ReactNode;
-  meta?: ReactNode;
-  actions?: ReactNode;
-  children: ReactNode;
-  id?: string;
-  className?: string;
-}) {
-  const headingId = id && title ? `${id}-title` : undefined;
-  return (
-    <section className={`section${className ? ` ${className}` : ""}`} id={id} aria-labelledby={headingId}>
-      {title || actions ? (
-        <header className="section-head">
-          <div className="section-heading">
-            {title ? <h2 id={headingId}>{title}</h2> : null}
-            {meta ? <p className="section-meta">{meta}</p> : null}
-          </div>
-          {actions ? <div className="section-actions">{actions}</div> : null}
-        </header>
-      ) : null}
-      {children}
-    </section>
   );
 }
 
@@ -245,49 +217,6 @@ export function TabLinks<T extends string>({
           </a>
         ))}
       </nav>
-    </div>
-  );
-}
-
-/** 单选分段控件：方向键在选项间移动，只有当前选项在 Tab 顺序里。 */
-export function Segmented<T extends string>({
-  options, value, onChange, label,
-}: {
-  options: readonly { id: T; label: ReactNode; count?: number }[];
-  value: T;
-  onChange: (value: T) => void;
-  label: string;
-}) {
-  const refs = useRef<(HTMLButtonElement | null)[]>([]);
-  const current = Math.max(0, options.findIndex((option) => option.id === value));
-
-  function onKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
-    const step = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 0;
-    if (!step) return;
-    event.preventDefault();
-    const next = (index + step + options.length) % options.length;
-    onChange(options[next].id);
-    refs.current[next]?.focus();
-  }
-
-  return (
-    <div className="segmented" role="radiogroup" aria-label={label}>
-      {options.map((option, index) => (
-        <button
-          key={option.id}
-          ref={(element) => { refs.current[index] = element; }}
-          type="button"
-          role="radio"
-          aria-checked={option.id === value}
-          tabIndex={index === current ? 0 : -1}
-          className={`segment${option.id === value ? " segment--active" : ""}`}
-          onClick={() => onChange(option.id)}
-          onKeyDown={(event) => onKeyDown(event, index)}
-        >
-          {option.label}
-          {option.count !== undefined ? <span className="segment-count">{option.count}</span> : null}
-        </button>
-      ))}
     </div>
   );
 }

@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { FOT_STAGES, type Stage } from "../../domain/catalog";
+import type { Stage } from "../../domain/catalog";
 import { sampleTraceTexts } from "../../domain/sample";
 import { averageAccuracy, roundOf, stageSeconds, stepState, type RoundRecord, type StepState, type Task } from "../../domain/task";
-import { ProgressBar, Section } from "../common";
-import { formatDuration, formatNumber, formatPercent, formatTokens } from "../format";
+import { ProgressBar } from "../common";
+import { Panel } from "../console";
+import { formatDuration, formatNumber, formatPercent } from "../format";
 import { Icon } from "../icons";
+import { algorithmOfTask, metricOf } from "../labels";
 
 const SHOWN = 3;
 
@@ -13,33 +15,34 @@ function sum(values: Record<string, number> | undefined): number {
 }
 
 function roundStateOf(task: Task, round: number): "done" | "current" | "pending" {
-  const states = FOT_STAGES.map((stage) => stepState(task, round, stage.id));
+  const states = algorithmOfTask(task).stages.map((stage) => stepState(task, round, stage.id));
   if (states.every((state) => state === "done")) return "done";
   if (states.every((state) => state === "pending")) return "pending";
   return "current";
 }
 
-/** 一轮完成后的一行摘要。 */
+/** 一轮完成后的一行摘要：指标、上传量、产出。 */
 function roundSummary(task: Task, record: RoundRecord | undefined): string {
   if (!record) return "";
-  const parts = [`平均准确率 ${formatPercent(averageAccuracy(task, record.round))}`, `上传 ${formatNumber(sum(record.traces))} 条 trace`];
-  if (record.library) parts.push(`洞见库 ${record.library.insights.length} 条`);
-  if (record.tokens) parts.push(`${formatTokens(record.tokens)} token`);
+  const output = algorithmOfTask(task).output;
+  const parts = [`${metricOf(task)} ${formatPercent(averageAccuracy(task, record.round))}`, `上传 ${formatNumber(sum(record.traces))} 条`];
+  if (record.library) parts.push(`${output.name} ${record.library.insights.length} 条`);
   return parts.join(" · ");
 }
 
 export function ProgressTab({ task }: { task: Task }) {
   const rounds = Array.from({ length: task.config.rounds }, (_, index) => index + 1);
+  const algorithm = algorithmOfTask(task);
   return (
-    <div className="stack stack--loose">
-      <Section title="各轮进度" id="rounds">
+    <div className="panel-stack">
+      <Panel title="各轮进度" id="rounds">
         <ol className="round-list">
           {rounds.map((round) => <RoundItem key={round} task={task} round={round} />)}
         </ol>
-      </Section>
-      <Section title="服务端收到的 trace" id="uploads" meta="题目、标准答案和解答全文都留在参与方，服务端只收到这些 trace。">
+      </Panel>
+      <Panel title="通信记录" id="uploads" extra={`各方每轮上传给服务端的${algorithm.exchange}；原始数据留在参与方`}>
         <Uploads task={task} />
-      </Section>
+      </Panel>
     </div>
   );
 }
@@ -47,7 +50,8 @@ export function ProgressTab({ task }: { task: Task }) {
 function RoundItem({ task, round }: { task: Task; round: number }) {
   const record = roundOf(task, round);
   const state = roundStateOf(task, round);
-  const base = round === 1 ? "没有洞见库" : `用第 ${round - 1} 轮后的洞见库`;
+  const output = algorithmOfTask(task).output.name;
+  const base = round === 1 ? `还没有${output}（本地基线）` : `用第 ${round - 1} 轮的${output}`;
 
   if (state === "done") {
     return (
@@ -68,7 +72,7 @@ function RoundItem({ task, round }: { task: Task; round: number }) {
   }
 
   if (state === "pending") {
-    const seconds = FOT_STAGES.reduce((total, stage) => total + stageSeconds(task, stage.id), 0);
+    const seconds = algorithmOfTask(task).stages.reduce((total, stage) => total + stageSeconds(task, stage.id), 0);
     return (
       <li className="round round--pending">
         <div className="round-head">
@@ -111,16 +115,16 @@ function stepNote(task: Task, record: RoundRecord | undefined, stage: Stage, sta
     if (!cursor) return "";
     if (stage.side === "participant") {
       const total = task.members.reduce((count, member) => count + member.problems, 0);
-      const done = `${formatNumber(sum(cursor.done))} / ${formatNumber(total)} 题`;
+      const done = `${formatNumber(sum(cursor.done))} / ${formatNumber(total)} 条`;
       return task.status === "running" ? done : `${stoppedText(task)} · ${done}`;
     }
     return stoppedText(task);
   }
   switch (stage.id) {
     case "solve":
-      return record ? `准确率 ${formatPercent(averageAccuracy(task, record.round))}` : "完成";
+      return record ? `${metricOf(task)} ${formatPercent(averageAccuracy(task, record.round))}` : "完成";
     case "extract":
-      return `${formatNumber(sum(record?.traces))} 条 trace`;
+      return `上传 ${formatNumber(sum(record?.traces))} 条`;
     case "collect":
       return `收到 ${formatNumber(sum(record?.traces))} 条`;
     case "profile":
@@ -135,10 +139,11 @@ function stepNote(task: Task, record: RoundRecord | undefined, stage: Stage, sta
 /** 一轮的 6 步：参与方 3 步、服务端 3 步分两组；参与方正在做题时，各方进度放在参与方这一组里。 */
 function StepLine({ task, round, record }: { task: Task; round: number; record: RoundRecord | undefined }) {
   const cursor = task.cursor;
-  const showMembers = cursor?.round === round && FOT_STAGES.find((stage) => stage.id === cursor.stage)?.side === "participant";
+  const stages = algorithmOfTask(task).stages;
+  const showMembers = cursor?.round === round && stages.find((stage) => stage.id === cursor.stage)?.side === "participant";
   const groups = [
-    { label: "参与方", side: "participant", stages: FOT_STAGES.filter((stage) => stage.side === "participant") },
-    { label: "服务端", side: "server", stages: FOT_STAGES.filter((stage) => stage.side === "server") },
+    { label: "参与方", side: "participant", stages: stages.filter((stage) => stage.side === "participant") },
+    { label: "服务端", side: "server", stages: stages.filter((stage) => stage.side === "server") },
   ];
   return (
     <div className="step-line">
@@ -149,7 +154,7 @@ function StepLine({ task, round, record }: { task: Task; round: number; record: 
             {group.stages.map((stage) => {
               const state = stepState(task, round, stage.id);
               const stopped = state === "current" && task.status !== "running";
-              const index = FOT_STAGES.indexOf(stage) + 1;
+              const index = stages.indexOf(stage) + 1;
               return (
                 <li key={stage.id} className={`step step--${state}${stopped ? " step--stopped" : ""}`}>
                   <span className="step-mark" aria-hidden="true">{state === "done" ? <Icon name="check" /> : index}</span>
@@ -185,7 +190,7 @@ function StepLine({ task, round, record }: { task: Task; round: number; record: 
 function Uploads({ task }: { task: Task }) {
   const rounds = task.rounds.filter((record) => record.traces).map((record) => record.round);
   const [cell, setCell] = useState<{ datasetId: string; round: number } | null>(null);
-  if (!rounds.length) return <p className="section-empty">第 1 轮的“提取 trace”完成后，这里列出每个参与方上传的内容。</p>;
+  if (!rounds.length) return <p className="section-empty">第 1 轮参与方步骤完成后，这里列出每个参与方上传的内容。</p>;
 
   const active = cell ?? { datasetId: task.members[0].datasetId, round: rounds[rounds.length - 1] };
   const member = task.members.find((item) => item.datasetId === active.datasetId) ?? task.members[0];
@@ -195,7 +200,7 @@ function Uploads({ task }: { task: Task }) {
     <div className="uploads">
       <div className="table-shell">
         <table className="table table--numbers">
-          <caption className="visually-hidden">每个参与方每轮上传的 trace 数，点数字查看内容</caption>
+          <caption className="visually-hidden">每个参与方每轮上传的条数，点数字查看内容</caption>
           <thead>
             <tr>
               <th scope="col">参与方</th>
@@ -215,7 +220,7 @@ function Uploads({ task }: { task: Task }) {
                         type="button"
                         className={`cell-button${selected ? " cell-button--active" : ""}`}
                         aria-pressed={selected}
-                        aria-label={`${item.participant} 第 ${round} 轮上传 ${value} 条 trace，查看内容`}
+                        aria-label={`${item.participant} 第 ${round} 轮上传 ${value} 条，查看内容`}
                         onClick={() => setCell({ datasetId: item.datasetId, round })}
                       >
                         {formatNumber(value)}

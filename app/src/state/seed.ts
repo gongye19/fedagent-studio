@@ -64,7 +64,7 @@ function completedPaperTask(): Task {
 function runningTrialTask(): Task {
   const task = createTask({
     id: "task-trial-4",
-    name: "快速试跑：4 个题库",
+    name: "快速试跑：4 个参与方",
     createdAt: "2026-09-28T15:30:00+08:00",
     config: seedConfig({ mode: "trial", trialCap: 5, rounds: 2, datasetIds: ["ds-aime24", "ds-amc", "ds-ccee", "ds-cnmo"] }),
     datasets: BUILTIN_DATASETS,
