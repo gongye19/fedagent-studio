@@ -171,7 +171,7 @@ demo 阶段不追求全覆盖，场景、子项和策略只保留最通用、最
 
 状态：采用（T29，2026-09-28，目标架构，尚未实现）
 
-- Agent 不使用外部模型厂商，改用我方提供的大模型 API，经模型网关以 OpenAI 兼容接口调用；Agent 框架与模型解耦（默认 Pydantic AI，长流程用 LangGraph），只把平台 MCP / CLI 当作工具。模型需要稳定的工具调用和 JSON 结构化输出。
+- Agent 不使用外部模型厂商，改用我方提供的大模型 API，经模型网关以 OpenAI 兼容接口调用；Agent 框架与模型解耦（默认 Pydantic AI，长流程用 LangGraph），只把平台 MCP / CLI 当作工具。模型需要稳定的工具调用和 JSON 结构化输出。候选模型服务为 OpenRouter 或 GLM（均为 OpenAI 兼容），面向国内机构优先 GLM。
 - 平台共有六类沙箱：协调 / 聚合、统计 / 记忆合并、评测、上传检查、Agent 工作、镜像验证。统一用 Kubernetes Agent Sandbox（SandboxTemplate / SandboxClaim / SandboxWarmPool）管理。
 - 默认隔离用 gVisor（不需要 KVM，可通过 nvproxy 用 GPU）；模型生成的代码和外部上传的文件用 Kata + Firecracker（虚拟机级隔离，Agent 沙箱最主流的隔离技术，但需要 KVM、暂不支持 GPU）。服务器不支持 KVM 时全部先用 gVisor。
 - 托管的 Agent 沙箱服务（E2B、Daytona、Modal 等）不采用：平台需要私有化部署，且沙箱要访问平台内部服务。
