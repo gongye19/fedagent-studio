@@ -28,7 +28,7 @@ import { EMPTY_SELECTION, choose, type ItemId, type Selection } from "../domain/
 import { deploymentOf, meetsSpec, type ComputeId, type DeploymentId } from "../domain/taxonomy";
 import { seedState } from "./seed";
 
-export const STATE_VERSION = 3;
+export const STATE_VERSION = 4;
 
 export type State = {
   version: typeof STATE_VERSION;

@@ -110,7 +110,7 @@ function verticalInvitation(): Invitation {
 
 export function seedState(): State {
   return {
-    version: 3,
+    version: 4,
     nodes: NODES.map((node) => ({ ...node })),
     datasets: DATASETS.map((dataset) => ({ ...dataset })),
     projects: [formingLoraProject(), deliveredStatsProject()],
