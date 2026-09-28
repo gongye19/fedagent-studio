@@ -20,7 +20,8 @@ import { deltaClass, roundHeader } from "../labels";
 const EChart = lazy(() => import("../Chart"));
 
 const FONT = "Geist Sans, PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif";
-const COLORS = { base: "#a1a1aa", up: "#15803d", down: "#b42318", flat: "#71717a", upLine: "#bbf7d0", downLine: "#fecaca" };
+// 点只分"第 1 轮 / 最新一轮"两种颜色，和图例一致；涨跌只看连线：绿色表示变好，红色表示变差。
+const COLORS = { base: "#a1a1aa", latest: "#18181b", flat: "#71717a", upLine: "#4ade80", downLine: "#f87171" };
 
 export function ResultsTab({ task }: { task: Task }) {
   const rounds = scoredRounds(task);
@@ -44,16 +45,20 @@ export function ResultsTab({ task }: { task: Task }) {
             ? <><span className={deltaClass(delta)}>{formatDelta(delta)}</span>，第 1 轮为 {formatPercent(first)}</>
             : "第 1 轮，各方单独作答"}
         />
-        <Stat label="负迁移" value={ntr ? `${ntr.count} / ${ntr.total} 方` : "—"} sub="低于本方第 1 轮" tone={ntr && ntr.count > 0 ? "down" : undefined} />
+        <Stat label="负迁移" value={ntr ? `${ntr.count} / ${ntr.total} 方` : "—"} sub={ntr ? "低于本方第 1 轮" : "第 2 轮完成后统计"} tone={ntr && ntr.count > 0 ? "down" : undefined} />
         <Stat label="洞见库" value={library ? `${library.insights.length} 条` : "—"} sub={library ? `第 ${library.builtAfterRound} 轮后生成` : "第 1 轮结束后生成"} />
-        <Stat label="token 用量" value={formatTokens(totalTokens(task))} sub="已完成的轮次" />
+        <Stat label="token 用量" value={totalTokens(task) ? formatTokens(totalTokens(task)) : "—"} sub={totalTokens(task) ? "已完成的轮次" : "第 1 轮完成后统计"} />
       </dl>
 
-      <Section title={latest > 1 ? `各参与方：第 1 轮 → 第 ${latest} 轮` : "各参与方：第 1 轮"} id="accuracy">
+      <Section
+        title={latest > 1 ? `各参与方：第 1 轮 → 第 ${latest} 轮` : "各参与方：第 1 轮"}
+        id="accuracy"
+        meta={latest > 1 ? "灰点是第 1 轮（本地），深色点是最新一轮（联邦）；连线绿色表示提升，红色表示下降。" : undefined}
+      >
         <DumbbellChart task={task} latest={latest} />
       </Section>
 
-      <Section title="本地 vs 联邦" id="comparison" meta="准确率与答对题数；变化以百分点计">
+      <Section title="本地 vs 联邦" id="comparison" meta="准确率与答对题数；变化以百分点计，和上图一样按变化从大到小排">
         <ComparisonTable task={task} />
       </Section>
     </div>
@@ -134,8 +139,8 @@ function DumbbellChart({ task, latest }: { task: Task; latest: number }) {
           name: `第 ${latest} 轮（联邦）`,
           type: "scatter",
           symbolSize: 11,
-          color: COLORS.up,
-          data: rows.map((row) => ({ value: [row.last, row.name], itemStyle: { color: COLORS[tone(row)] } })),
+          color: COLORS.latest,
+          data: rows.map((row) => [row.last, row.name]),
           z: 4,
         },
       ] : [
@@ -150,6 +155,11 @@ function DumbbellChart({ task, latest }: { task: Task; latest: number }) {
       <EChart option={option} height={height} label={latest > 1 ? `各参与方第 1 轮与第 ${latest} 轮的准确率对比` : "各参与方第 1 轮的准确率"} />
     </Suspense>
   );
+}
+
+/** 和哑铃图同一个顺序：变化从大到小，没有答案的参与方放最后。 */
+function byChange(task: Task) {
+  return [...task.members].sort((a, b) => (changeOf(task, b) ?? -Infinity) - (changeOf(task, a) ?? -Infinity));
 }
 
 function ComparisonTable({ task }: { task: Task }) {
@@ -180,7 +190,7 @@ function ComparisonTable({ task }: { task: Task }) {
           </tr>
         </thead>
         <tbody>
-          {task.members.map((member) => {
+          {byChange(task).map((member) => {
             const change = changeOf(task, member);
             return (
               <tr key={member.datasetId}>

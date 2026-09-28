@@ -45,7 +45,7 @@ export type Action =
   | { type: "addDataset"; dataset: Dataset }
   | { type: "removeParticipant"; id: string }
   | { type: "addEndpoint"; endpoint: Endpoint }
-  | { type: "updateEndpoint"; id: string; patch: Partial<Pick<Endpoint, "concurrency" | "price">> }
+  | { type: "updateEndpoint"; id: string; patch: Partial<Omit<Endpoint, "id">> }
   | { type: "resetDemo" };
 
 export function taskOf(state: State, id: string): Task | undefined {

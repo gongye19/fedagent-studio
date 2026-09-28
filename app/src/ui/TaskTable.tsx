@@ -1,13 +1,13 @@
 import { averageAccuracy, latestScoredRound, progressOf, TASK_STATUS, type Task } from "../domain/task";
 import { hrefOf } from "../state/route";
-import { ProgressBar, StatusPill } from "./common";
+import { ProgressBar, Tag } from "./common";
 import { formatDate, formatDelta, formatPercent } from "./format";
 import { deltaClass, stageText, statusTone, taskSummary } from "./labels";
 
-/** 运行中、暂停、取消用胶囊提醒；已完成是常态，用普通文字。 */
+/** 运行中、暂停、取消用标签提醒；已完成是常态，用普通文字。 */
 export function TaskStatus({ task }: { task: Task }) {
   if (task.status === "completed") return <span className="status-text">已完成</span>;
-  return <StatusPill tone={statusTone(task)} live={task.status === "running"}>{TASK_STATUS[task.status]}</StatusPill>;
+  return <Tag tone={statusTone(task)} live={task.status === "running"}>{TASK_STATUS[task.status]}</Tag>;
 }
 
 /** 平均准确率：第 1 轮（本地）→ 最新一轮（联邦）。 */
@@ -20,7 +20,7 @@ export function AccuracyChange({ task }: { task: Task }) {
   const delta = first !== null && last !== null ? last - first : null;
   return (
     <span>
-      {formatPercent(first)} → {formatPercent(last)}
+      <span className="nowrap">{formatPercent(first)} → {formatPercent(last)}</span>
       <small className={deltaClass(delta)}>{formatDelta(delta)}</small>
     </span>
   );

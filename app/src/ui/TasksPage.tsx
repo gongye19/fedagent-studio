@@ -32,7 +32,7 @@ export default function TasksPage({ state }: { state: State }) {
 
   return (
     <>
-      <PageHead title="联邦任务" actions={state.tasks.length ? create : null} />
+      <PageHead title="联邦任务" meta="多个参与方按轮协作解题，服务端把各方的经验汇成洞见库。" actions={state.tasks.length ? create : null} />
       {state.tasks.length ? (
         <Section actions={options.length > 2 ? <Segmented label="按状态筛选" options={options} value={active} onChange={setFilter} /> : null}>
           <TaskTable tasks={tasks} />

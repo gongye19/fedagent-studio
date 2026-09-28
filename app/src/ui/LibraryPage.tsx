@@ -3,7 +3,7 @@ import { modelLabel, modelOptions } from "../domain/resources";
 import { libraries, type LibraryVersion, type Task } from "../domain/task";
 import { hrefOf, type LibraryTab } from "../state/route";
 import type { Action, Published, State } from "../state/store";
-import { Badge, EmptyState, PageHead, Section, TabLinks } from "./common";
+import { CodeBlock, EmptyState, Meta, PageHead, Section, TabLinks } from "./common";
 import { formatDate, formatNumber } from "./format";
 import { Icon } from "./icons";
 import { InsightGroups } from "./InsightGroups";
@@ -49,7 +49,12 @@ export default function LibraryPage({ item, task, state, tab }: Props) {
       <PageHead
         crumbs={[{ label: "洞见库", route: { page: "libraries" } }]}
         title={item.name}
-        meta={<>{version.insights.length} 条洞见 · 来自 {task.members.length} 个参与方的 {formatNumber(version.traceCount)} 条 trace · 任务 <a className="text-link" href={hrefOf({ page: "task", id: task.id, tab: "library" })}>{task.name}</a> · 发布于 {formatDate(item.publishedAt)}</>}
+        meta={<Meta parts={[
+          `${version.insights.length} 条洞见`,
+          `来自 ${task.members.length} 个参与方的 ${formatNumber(version.traceCount)} 条 trace`,
+          <>任务 <a className="text-link" href={hrefOf({ page: "task", id: task.id, tab: "library" })}>{task.name}</a></>,
+          `发布于 ${formatDate(item.publishedAt)}`,
+        ]} />}
         actions={<button type="button" className="button button--secondary" onClick={() => exportLibrary(item, version)}><Icon name="download" />导出 JSON</button>}
       />
       <TabLinks
@@ -61,7 +66,6 @@ export default function LibraryPage({ item, task, state, tab }: Props) {
         ]}
         active={active}
         routeOf={(id) => ({ page: "library", id: item.id, tab: id })}
-        end={<Badge tone="sample">示例数据</Badge>}
       />
       <div className="tab-panel">
         {active === "insights" ? <InsightGroups insights={version.insights} /> : null}
@@ -83,25 +87,25 @@ function TryPanel({ version, state }: { version: LibraryVersion; state: State })
 
   return (
     <div className="stack stack--loose">
-      <div className="try-form">
-        <label className="field">
-          <span>题目</span>
-          <textarea rows={4} value={question} placeholder="输入一道数学题" onChange={(event) => setQuestion(event.target.value)} />
-        </label>
-        <div className="try-bar">
-          <label className="field field--inline">
+      <section className="card try-card" aria-label="试用洞见库">
+        <div className="form-grid">
+          <label className="field field--wide">
+            <span>题目</span>
+            <textarea rows={4} value={question} placeholder="输入一道数学题" onChange={(event) => setQuestion(event.target.value)} />
+          </label>
+          <label className="field">
             <span>模型</span>
             <select value={model} onChange={(event) => setModel(event.target.value)}>
               {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
             </select>
           </label>
-          <div className="try-actions">
-            {hasExample ? <button type="button" className="button button--ghost" onClick={() => setQuestion(EXAMPLE.question)}>填入示例题</button> : null}
-            <button type="button" className="button button--primary" disabled={!question.trim()} onClick={() => setRan(question)}>对比：不带库 / 带库</button>
-          </div>
         </div>
         <p className="section-meta">带库时，整份洞见库（{version.insights.length} 条，约 {formatNumber(contextTokens)} token）按 FoT 的解题提示词放进上下文；不带库时只给题目。</p>
-      </div>
+        <div className="form-actions">
+          {hasExample ? <button type="button" className="button button--secondary" onClick={() => setQuestion(EXAMPLE.question)}>填入示例题</button> : null}
+          <button type="button" className="button button--primary" disabled={!question.trim()} onClick={() => setRan(question)}>对比：不带库 / 带库</button>
+        </div>
+      </section>
 
       {ran !== null ? (
         isExample ? (
@@ -135,17 +139,15 @@ function IntegratePanel({ item, version }: { item: Published; version: LibraryVe
   const preview = JSON.stringify(Object.fromEntries(version.insights.slice(0, 2).map((insight) => [insight.key, insight.text])), null, 2);
   return (
     <div className="stack stack--loose">
-      <Section title="导出后放进自己 Agent 的提示词" id="integrate-export" meta={<>格式与 FoT 运行目录里的 <code>library_r{version.builtAfterRound + 1}.json</code> 相同：洞见名 → 描述。</>}>
-        <pre className="code-block code-block--wrap">{`${preview.slice(0, -2)},\n  …\n}`}</pre>
+      <Section title="导出后放进自己 Agent 的提示词" id="integrate-export" meta={<>点右上角"导出 JSON"。格式与 FoT 运行目录里的 <code>library_r{version.builtAfterRound + 1}.json</code> 相同：洞见名 → 描述。</>}>
+        <CodeBlock wrap code={`${preview.slice(0, -2)},\n  …\n}`} />
       </Section>
-      <Section title="通过 API 调用" id="integrate-api" meta="接入后端后提供，与界面共用一套接口和权限。">
-        <pre className="code-block">{`curl -X POST https://<平台地址>/api/v1/libraries/${item.id}/apply \\
+      <Section title="通过 API 或命令行调用" id="integrate-api" meta="接入后端后提供，和界面共用一套接口与权限。">
+        <CodeBlock code={`curl -X POST https://<平台地址>/api/v1/libraries/${item.id}/apply \\
   -H "Authorization: Bearer $FEDAGENT_TOKEN" \\
   -H "Content-Type: application/json" \\
-  -d '{"question": "…", "model": "default", "compare": true}'`}</pre>
-      </Section>
-      <Section title="命令行" id="integrate-cli" meta="接入后端后提供。">
-        <pre className="code-block">{`fedagent apply --library ${item.id} --file questions.jsonl --compare`}</pre>
+  -d '{"question": "…", "model": "default", "compare": true}'`} />
+        <CodeBlock code={`fedagent apply --library ${item.id} --file questions.jsonl --compare`} />
       </Section>
     </div>
   );

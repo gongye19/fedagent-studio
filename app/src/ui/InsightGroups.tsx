@@ -1,5 +1,5 @@
 import type { LibraryVersion } from "../domain/task";
-import { Badge } from "./common";
+import { Tag } from "./common";
 
 /** 按类别分组列出洞见：洞见正文在前，名称作为次要信息放在后面。任务详情和洞见库页共用。 */
 export function InsightGroups({ insights, isNew }: { insights: LibraryVersion["insights"]; isNew?: (key: string) => boolean }) {
@@ -17,7 +17,7 @@ export function InsightGroups({ insights, isNew }: { insights: LibraryVersion["i
                   <p lang="en">{insight.text}</p>
                   <div className="insight-meta">
                     <code>{insight.key}</code>
-                    {isNew?.(insight.key) ? <Badge tone="accent">新增</Badge> : null}
+                    {isNew?.(insight.key) ? <Tag tone="info">新增</Tag> : null}
                   </div>
                 </li>
               ))}

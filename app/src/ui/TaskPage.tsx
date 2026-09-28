@@ -4,7 +4,7 @@ import { toDraft } from "../domain/config";
 import { progressOf, scoredRounds, type Task } from "../domain/task";
 import { navigate, type TaskTab } from "../state/route";
 import type { Action, State } from "../state/store";
-import { Badge, PageHead, ProgressBar, TabLinks } from "./common";
+import { Meta, PageHead, ProgressBar, TabLinks } from "./common";
 import { formatDate } from "./format";
 import { Icon } from "./icons";
 import { stageText, taskSummary } from "./labels";
@@ -43,29 +43,32 @@ export default function TaskPage({ task, state, dispatch, tab }: Props) {
     <>
       {running ? <button type="button" className="button button--secondary" onClick={() => dispatch({ type: "pauseTask", id: task.id })}><Icon name="pause" />暂停</button> : null}
       {paused ? <button type="button" className="button button--secondary" onClick={() => dispatch({ type: "resumeTask", id: task.id })}><Icon name="play" />继续</button> : null}
-      {running || paused ? <button type="button" className="button button--ghost" onClick={cancel}>取消任务</button> : null}
+      {running || paused ? <button type="button" className="button button--secondary button--danger" onClick={cancel}>取消任务</button> : null}
       <button type="button" className="button button--secondary" onClick={copy}><Icon name="copy" />复制为新任务</button>
     </>
   );
 
-  const finished = task.finishedAt && task.status === "completed" ? ` · 完成于 ${formatDate(task.finishedAt)}` : "";
   return (
     <>
       <PageHead
         crumbs={[{ label: "联邦任务", route: { page: "tasks" } }]}
         title={task.name}
         status={<TaskStatus task={task} />}
-        meta={`${taskSummary(task)} · ${task.config.rounds} 轮 · 创建于 ${formatDate(task.createdAt)}${finished}`}
+        meta={<Meta parts={[
+          taskSummary(task),
+          `${task.config.rounds} 轮`,
+          `创建于 ${formatDate(task.createdAt)}`,
+          task.finishedAt && task.status === "completed" ? `完成于 ${formatDate(task.finishedAt)}` : null,
+        ]} />}
         actions={actions}
       />
-      {task.cursor && task.status !== "canceled" ? <LiveBanner task={task} /> : null}
       <TabLinks
         label="任务详情"
         tabs={tabs}
         active={active}
         routeOf={(id) => ({ page: "task", id: task.id, tab: id })}
-        end={<Badge tone="sample">示例数据</Badge>}
       />
+      {task.cursor && task.status !== "canceled" ? <LiveBanner task={task} /> : null}
       <div className="tab-panel">
         {active === "results" ? <ResultsTab task={task} /> : null}
         {active === "progress" ? <ProgressTab key={task.id} task={task} /> : null}

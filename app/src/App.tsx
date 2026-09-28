@@ -3,7 +3,7 @@ import { loadState, saveState } from "./state/persistence";
 import { hrefOf, useRoute, type Route } from "./state/route";
 import { useSimulation } from "./state/simulation";
 import { reducer, taskOf, type Action, type State } from "./state/store";
-import { NotFound } from "./ui/common";
+import { NotFound, Tag } from "./ui/common";
 import LibrariesPage from "./ui/LibrariesPage";
 import LibraryPage from "./ui/LibraryPage";
 import ModelsPage from "./ui/ModelsPage";
@@ -107,6 +107,7 @@ function Sidebar({ route, state, onReset }: { route: Route; state: State; onRese
           <strong>Federation Studio</strong>
           <small>联邦 Agent 平台</small>
         </a>
+        <span className="env-compact" title="任务运行、结果和洞见库都是示例数据，后端尚未接入"><Tag tone="warning">示例数据</Tag></span>
         <button type="button" className="menu-button" aria-expanded={open} aria-controls="main-nav" onClick={() => setOpen((value) => !value)}>
           {open ? "收起" : "菜单"}
         </button>
@@ -131,7 +132,7 @@ function Sidebar({ route, state, onReset }: { route: Route; state: State; onRese
         ))}
       </nav>
       <div className="sidebar-foot">
-        <span className="environment" title="任务运行、结果和洞见库都是示例数据，后端尚未接入">前端原型 · 示例数据</span>
+        <span title="任务运行、结果和洞见库都是示例数据，后端尚未接入"><Tag tone="warning">前端原型 · 示例数据</Tag></span>
         <button type="button" className="link-button" onClick={onReset}>重置演示数据</button>
       </div>
     </aside>

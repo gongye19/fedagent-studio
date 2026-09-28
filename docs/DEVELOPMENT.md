@@ -53,8 +53,9 @@ app/src/
 │   ├── ModelsPage.tsx       模型接口
 │   ├── Chart.tsx            ECharts 封装（按需加载，结果页的哑铃图）
 │   ├── InsightGroups.tsx    按类别列出洞见（任务详情和洞见库页共用）
-│   ├── OptionCard.tsx       可点击的选项卡片（新建任务、新增参与方共用）
-│   ├── TaskTable.tsx / common.tsx / labels.ts / format.ts / icons.tsx
+│   ├── OptionCard.tsx       选项卡片：只用于 2–3 个带说明的关键单选（场景、运行方式、运行位置）
+│   ├── common.tsx           共用组件：Tag（唯一的标签）、Collapsible（唯一的折叠）、CodeBlock（带复制）、Meta、Section 等
+│   ├── TaskTable.tsx / labels.ts / format.ts / icons.tsx
 ├── App.tsx             外框与侧栏导航
 ├── main.tsx
 └── styles.css
@@ -88,7 +89,11 @@ app/src/
 - `state/*.test.ts`：reducer、初始数据和路由。
 - 示例数据要自洽：例如关系分析各类的 trace 数之和等于上传总数，后一版洞见库包含前一版。
 - 页面结构变化时，至少做一次桌面和手机端的浏览器验证。
-- 界面规范写在 `styles.css` 开头：字号 6 档、字重 3 档、4 为基数的间距；区块之间靠留白，不给每块套边框；让用户挑选的内容一律用 `OptionCard` 选项卡片，不在正文里夹单选圆点或胶囊；状态胶囊只用于需要注意的状态。
+- 界面规范写在 `styles.css` 开头，新增界面前先看一遍：
+  - 容器只有一种：`.card` / `.option-card` / `.module` / `.table-shell` 同样的边框、圆角和内边距；
+  - 选择控件：2–3 个关键单选用 `OptionCard`，选项更多或次要设置用下拉，多选一组对象用分组的复选表格（参考新建任务的数据表），视图切换用分段控件或标签页；
+  - 标签一律用 `Tag`，折叠一律用 `Collapsible`（或同样的左侧箭头），代码块一律用 `CodeBlock`；
+  - 字号 6 档、字重 3 档、4 为基数的间距。
 
 ## 提交约定
 

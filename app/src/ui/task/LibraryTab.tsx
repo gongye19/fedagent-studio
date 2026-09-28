@@ -2,7 +2,7 @@ import { useState, type Dispatch } from "react";
 import { libraries, type Task } from "../../domain/task";
 import { hrefOf } from "../../state/route";
 import { publishedOf, type Action, type State } from "../../state/store";
-import { EmptyState, Section, Segmented } from "../common";
+import { EmptyState, Section, Tag } from "../common";
 import { formatNumber } from "../format";
 import { InsightGroups } from "../InsightGroups";
 import { versionLabel } from "../labels";
@@ -43,15 +43,18 @@ export function LibraryTab({ task, state, dispatch }: { task: Task; state: State
     <div className="stack stack--loose">
       <div className="toolbar">
         {versions.length > 1 ? (
-          <Segmented
-            label="洞见库版本"
-            options={versions.map((version) => ({ id: String(version.builtAfterRound), label: versionLabel(task, version) }))}
-            value={String(current.builtAfterRound)}
-            onChange={(value) => setChosen(Number(value))}
-          />
+          <label className="field toolbar-field">
+            <span>版本</span>
+            <select value={current.builtAfterRound} onChange={(event) => setChosen(Number(event.target.value))}>
+              {versions.map((version) => <option key={version.builtAfterRound} value={version.builtAfterRound}>{versionLabel(task, version)}</option>)}
+            </select>
+          </label>
         ) : <span />}
         {published ? (
-          <a className="button button--secondary" href={hrefOf({ page: "library", id: published.id })}>已发布，去查看</a>
+          <div className="toolbar-actions">
+            <Tag>已发布</Tag>
+            <a className="button button--secondary" href={hrefOf({ page: "library", id: published.id })}>查看洞见库</a>
+          </div>
         ) : (
           <button type="button" className="button button--primary" onClick={publish}>发布这一版</button>
         )}
@@ -84,7 +87,8 @@ export function LibraryTab({ task, state, dispatch }: { task: Task; state: State
                     <td className="numeric">{formatNumber(total)}</td>
                     <td>
                       <ul className="chips">
-                        {sources.map((source) => <li key={source.name}>{source.name}<span>{source.count}</span></li>)}
+                        {sources.slice(0, 3).map((source) => <li key={source.name}>{source.name}<span>{source.count}</span></li>)}
+                        {sources.length > 3 ? <li className="chips-more" title={sources.slice(3).map((source) => `${source.name} ${source.count}`).join("、")}>另 {sources.length - 3} 方</li> : null}
                       </ul>
                     </td>
                   </tr>

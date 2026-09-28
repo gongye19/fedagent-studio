@@ -54,6 +54,7 @@ function RoundItem({ task, round }: { task: Task; round: number }) {
       <li className="round round--done">
         <details>
           <summary>
+            <Icon name="chevron" />
             <span className="round-mark" aria-hidden="true"><Icon name="check" /></span>
             <h3>第 {round} 轮</h3>
             <span className="round-summary">{roundSummary(task, record)}</span>
@@ -69,6 +70,7 @@ function RoundItem({ task, round }: { task: Task; round: number }) {
     return (
       <li className="round round--pending">
         <div className="round-head">
+          <span className="round-spacer" aria-hidden="true" />
           <span className="round-mark" aria-hidden="true">{round}</span>
           <h3>第 {round} 轮</h3>
           <span className="round-summary">未开始 · {base} · 预计{formatDuration(seconds)}</span>
@@ -83,6 +85,7 @@ function RoundItem({ task, round }: { task: Task; round: number }) {
   return (
     <li className="round round--current">
       <div className="round-head">
+        <span className="round-spacer" aria-hidden="true" />
         <span className="round-mark" aria-hidden="true">{round}</span>
         <h3>第 {round} 轮</h3>
         <span className="round-summary">{stopped} · {base}</span>
@@ -215,7 +218,7 @@ function Uploads({ task }: { task: Task }) {
       </div>
       <div className="trace-panel" aria-live="polite">
         <h3>{member.participant} · 第 {active.round} 轮</h3>
-        <p className="section-meta">共 {formatNumber(count)} 条，展示前 {Math.min(SHOWN, count)} 条</p>
+        <p className="section-meta">共 {formatNumber(count)} 条，这里展示 {Math.min(SHOWN, count)} 条示例</p>
         <ol className="trace-list">
           {sampleTraceTexts(member.datasetId, active.round, Math.min(SHOWN, count)).map((trace) => (
             <li key={trace.key} lang="en">{trace.text}</li>

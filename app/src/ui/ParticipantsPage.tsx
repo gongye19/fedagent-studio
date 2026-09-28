@@ -1,9 +1,9 @@
 import { Fragment, useState, type Dispatch } from "react";
 import { HOSTING_LABELS, PARTICIPANT_STATUS, type Dataset, type Hosting, type Participant } from "../domain/resources";
 import { checkJsonl, MAX_FILE_BYTES, type JsonlCheck } from "../domain/validate";
-import { hrefOf, navigate } from "../state/route";
+import { navigate } from "../state/route";
 import { datasetsOf, taskCountOf, type Action, type State } from "../state/store";
-import { PageHead, StatusPill } from "./common";
+import { CodeBlock, Facts, PageHead, Tag } from "./common";
 import { formatNumber } from "./format";
 import { Icon } from "./icons";
 import { OptionCard } from "./OptionCard";
@@ -62,15 +62,22 @@ export default function ParticipantsPage({ state, dispatch, selectedId }: Props)
                 ].filter((flag): flag is string => Boolean(flag));
                 return (
                   <Fragment key={participant.id}>
-                    <tr className={open ? "row--open" : undefined}>
+                    <tr
+                      className={`row--toggle${open ? " row--open" : ""}`}
+                      onClick={(event) => {
+                        // 整行都能点开；点到行里的按钮时交给按钮自己处理。
+                        if ((event.target as HTMLElement).closest("button, a, input, label")) return;
+                        toggle(participant.id);
+                      }}
+                    >
                       <th scope="row">
                         <button type="button" className="row-button" aria-expanded={open} onClick={() => toggle(participant.id)}>
                           <Icon name="chevron" />
-                          <span className="row-title">
+                          <span className="cell-title">
                             {participant.name}
-                            {participant.org && !participant.builtin ? <small>{participant.org}</small> : null}
+                            {note(participant, datasets) ? <span className="cell-note">{note(participant, datasets)}</span> : null}
                           </span>
-                          {flags.map((flag) => <StatusPill key={flag} tone={flag === PARTICIPANT_STATUS.waiting ? "warning" : "neutral"}>{flag}</StatusPill>)}
+                          {flags.map((flag) => <Tag key={flag} tone={flag === PARTICIPANT_STATUS.waiting ? "warning" : "neutral"}>{flag}</Tag>)}
                         </button>
                       </th>
                       <td className="numeric" data-label="题目">{datasets.length ? formatNumber(datasets.reduce((sum, dataset) => sum + dataset.count, 0)) : <span className="muted">未登记</span>}</td>
@@ -94,6 +101,12 @@ export default function ParticipantsPage({ state, dispatch, selectedId }: Props)
   );
 }
 
+/** 名称后面的一句说明：内置示例写题库说明，添加的参与方写所属机构。 */
+function note(participant: Participant, datasets: Dataset[]): string {
+  if (participant.builtin) return datasets[0]?.description ?? "";
+  return participant.org;
+}
+
 function ParticipantDetail({ participant, datasets, dispatch }: { participant: Participant; datasets: Dataset[]; dispatch: Dispatch<Action> }) {
   const [uploading, setUploading] = useState(false);
 
@@ -106,20 +119,19 @@ function ParticipantDetail({ participant, datasets, dispatch }: { participant: P
 
   return (
     <div className="participant-detail">
-      <p className="detail-lede">{participant.intro || "没有简介。"}</p>
+      {participant.builtin ? null : <p className="detail-lede">{participant.intro || "没有简介。"}</p>}
       {participant.hosting === "local" ? <LocalConnect /> : null}
       {datasets.map((dataset) => (
         <div key={dataset.id} className="dataset-info">
-          <h3>{dataset.name}<span>{dataset.description}{dataset.origin ? `（${dataset.origin}）` : ""}</span></h3>
-          <dl className="facts facts--row">
-            <div><dt>题目</dt><dd>{formatNumber(dataset.count)}</dd></div>
-            <div><dt>带答案</dt><dd>{formatNumber(dataset.answered)}</dd></div>
-            <div><dt>字段</dt><dd><code>id</code> <code>question</code> <code>answer</code></dd></div>
-            <div><dt>来源</dt><dd>{dataset.source === "builtin" ? "FoT 复现包" : "上传"}</dd></div>
-          </dl>
+          <Facts items={[
+            ["题库", `${dataset.name} · ${dataset.description}`],
+            ["来源", dataset.source === "builtin" ? `${dataset.origin ? `${dataset.origin}，` : ""}随 FoT 复现包提供` : "上传"],
+            ["题目", `${formatNumber(dataset.count)} 题，其中 ${formatNumber(dataset.answered)} 题带答案`],
+            ["字段", <><code>id</code> <code>question</code> <code>answer</code></>],
+          ]} />
           {dataset.sample ? (
             <div className="sample-question">
-              <span>样例题</span>
+              <span>样例题（原文）</span>
               <p lang="en">{dataset.sample.question}</p>
               {dataset.sample.answer ? <p className="sample-answer" lang="en">答案：{dataset.sample.answer}</p> : null}
             </div>
@@ -138,7 +150,7 @@ function ParticipantDetail({ participant, datasets, dispatch }: { participant: P
           {participant.hosting === "platform" && !uploading ? (
             <button type="button" className="button button--secondary button--compact" onClick={() => setUploading(true)}><Icon name="upload" />上传题库</button>
           ) : null}
-          <button type="button" className="button button--ghost button--compact button--danger" onClick={remove}>删除参与方</button>
+          <button type="button" className="button button--secondary button--compact button--danger" onClick={remove}>删除参与方</button>
         </div>
       )}
     </div>
@@ -150,11 +162,11 @@ function LocalConnect() {
     <div className="connect-steps">
       <h3>在参与方的环境里连接</h3>
       <p className="detail-lede">安装客户端，登记题库并连接平台。客户端用参与方自己的模型解题，每轮只上传 trace；加 <code>--review</code> 可以在上传前逐条确认。</p>
-      <pre className="code-block code-block--wrap">{`pip install fedagent-client
+      <CodeBlock wrap code={`pip install fedagent-client
 fedagent-client connect \\
   --server https://<平台地址> \\
   --token <平台签发的令牌> \\
-  --data ./questions.jsonl --review`}</pre>
+  --data ./questions.jsonl --review`} />
       <p className="section-meta">客户端尚未发布。连上之前显示“等待连接”，不能加入任务。</p>
     </div>
   );
@@ -184,7 +196,7 @@ function NewParticipant({ dispatch, onDone }: { dispatch: Dispatch<Action>; onDo
   }
 
   return (
-    <section className="form-card" aria-labelledby="new-participant-title">
+    <section className="card" aria-labelledby="new-participant-title">
       <h2 id="new-participant-title">新增参与方</h2>
       <div className="form-grid">
         <label className="field">
@@ -201,9 +213,9 @@ function NewParticipant({ dispatch, onDone }: { dispatch: Dispatch<Action>; onDo
         </label>
         <fieldset className="field field--wide">
           <legend>运行位置</legend>
-          <div className="option-grid option-grid--two">
+          <div className="option-grid option-grid--form" role="radiogroup" aria-label="运行位置">
             {(["platform", "local"] as const).map((option) => (
-              <OptionCard key={option} type="radio" name="hosting" compact checked={hosting === option} onChange={() => setHosting(option)} title={HOSTING_LABELS[option]}>
+              <OptionCard key={option} name="hosting" checked={hosting === option} onChange={() => setHosting(option)} title={HOSTING_LABELS[option]}>
                 {HOSTING_DETAIL[option]}
               </OptionCard>
             ))}
@@ -278,7 +290,7 @@ function DatasetPicker({ onChange }: { onChange: (dataset: Omit<Dataset, "partic
         <input type="file" accept=".jsonl,.json,application/json" onChange={(event) => pick(event.target.files?.[0])} />
         <Icon name="upload" />
         <strong>{file ? file.name : "选择题库文件（JSONL）"}</strong>
-        <span>每行一道题：<code>{`{"id": "q1", "question": "…", "answer": "…"}`}</code>，answer 可以没有。文件只在浏览器里检查，不会上传。</span>
+        <span>每行一道题：<code>{`{"id": "q1", "question": "…", "answer": "…"}`}</code>，answer 可以没有。前端原型只在浏览器里检查文件，接入后端后才会上传到平台。</span>
       </label>
       {file ? (
         <div className={`check-result${file.check?.ok ? " check-result--ok" : " check-result--failed"}`} aria-live="polite">
@@ -310,7 +322,7 @@ function DatasetPicker({ onChange }: { onChange: (dataset: Omit<Dataset, "partic
           </label>
         </div>
       ) : null}
-      <p className="section-meta">第一版只支持数学推理题（按 <code>\boxed{}</code> 里的答案判分）。<a className="text-link" href={hrefOf({ page: "newTask", scenario: "horizontal" })}>保存后可在新建任务里选择</a></p>
+      <p className="section-meta">第一版只支持数学推理题（按 <code>\boxed{}</code> 里的答案判分）。保存后可以在新建任务里选择。</p>
     </div>
   );
 }

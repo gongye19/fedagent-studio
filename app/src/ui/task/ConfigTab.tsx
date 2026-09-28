@@ -13,6 +13,12 @@ function uniform<T>(members: readonly Member[], pick: (member: Member) => T): T 
   return members.every((member) => pick(member) === first) ? first : undefined;
 }
 
+/** 参与方名称后面的说明：题库名（和参与方不同名时）加题库说明。 */
+function noteOf(state: State, member: Member): string {
+  const description = state.datasets.find((dataset) => dataset.id === member.datasetId)?.description;
+  return [member.dataset !== member.participant ? member.dataset : null, description].filter(Boolean).join(" · ");
+}
+
 export function ConfigTab({ task, state }: { task: Task; state: State }) {
   const config = task.config;
   const algorithm = algorithmOf(config.algorithm);
@@ -55,7 +61,12 @@ export function ConfigTab({ task, state }: { task: Task; state: State }) {
             <tbody>
               {task.members.map((member) => (
                 <tr key={member.datasetId}>
-                  <th scope="row">{member.participant}{member.dataset !== member.participant ? <small>{member.dataset}</small> : null}</th>
+                  <th scope="row">
+                    <span className="cell-title">
+                      {member.participant}
+                      <span className="cell-note">{noteOf(state, member)}</span>
+                    </span>
+                  </th>
                   {hosting ? null : <td>{HOSTING_LABELS[member.hosting]}</td>}
                   {model ? null : <td>{modelLabel(member.model, state.endpoints)}</td>}
                   <td className="numeric">{member.problems}</td>

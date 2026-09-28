@@ -1,21 +1,21 @@
-import { useRef, type KeyboardEvent, type ReactNode } from "react";
+import { Fragment, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { hrefOf, type Route } from "../state/route";
+import { Icon } from "./icons";
 
 export type Tone = "neutral" | "info" | "success" | "warning" | "danger";
 
-/** 状态胶囊只用于需要注意的状态（运行中、已暂停、等待连接、待配置……），正常状态用普通文字。 */
-export function StatusPill({ tone = "neutral", children, live = false }: { tone?: Tone; children: ReactNode; live?: boolean }) {
+/**
+ * 全站唯一的标签样式（胶囊）。颜色只按含义选：
+ * warning 黄色 = 需要处理或示例数据（等待连接、待配置、已暂停、示例数据）；
+ * info 蓝色 = 进行中或新增；neutral 灰色 = 普通属性（参与方本地、规划中、无答案）。
+ */
+export function Tag({ tone = "neutral", children, live = false }: { tone?: Tone; children: ReactNode; live?: boolean }) {
   return (
-    <span className={`status status--${tone}`}>
-      {live ? <span className="status-dot" aria-hidden="true" /> : null}
+    <span className={`tag tag--${tone}`}>
+      {live ? <span className="tag-dot" aria-hidden="true" /> : null}
       {children}
     </span>
   );
-}
-
-/** sample 只用于"示例数据"，其他含义不要借用这个颜色。 */
-export function Badge({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "sample" | "accent" }) {
-  return <span className={`badge badge--${tone}`}>{children}</span>;
 }
 
 export function PageHead({
@@ -74,6 +74,70 @@ export function Section({
   );
 }
 
+/**
+ * 全站唯一的折叠样式：左侧箭头朝右，展开后朝下。
+ * card 为 true 时是带边框的模块（流程说明、高级设置），为 false 时是正文里的一行文字开关。
+ */
+export function Collapsible({
+  title, sub, children, card = true, className,
+}: {
+  title: ReactNode;
+  sub?: ReactNode;
+  children: ReactNode;
+  card?: boolean;
+  className?: string;
+}) {
+  return (
+    <details className={`${card ? "module" : "disclosure"}${className ? ` ${className}` : ""}`}>
+      <summary>
+        <Icon name="chevron" />
+        <span className="module-title">
+          <strong>{title}</strong>
+          {sub ? <small>{sub}</small> : null}
+        </span>
+      </summary>
+      <div className="module-body">{children}</div>
+    </details>
+  );
+}
+
+/** 一行元信息：各段之间用"·"分隔，只在段与段之间换行，不会把"完成于 9/26"拆成两行。 */
+export function Meta({ parts }: { parts: readonly ReactNode[] }) {
+  const shown = parts.filter((part) => part !== null && part !== undefined && part !== false && part !== "");
+  return (
+    <>
+      {shown.map((part, index) => (
+        <Fragment key={index}>
+          {index ? " · " : null}
+          <span className="meta-part">{part}</span>
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
+/** 代码块：右上角可以一键复制。 */
+export function CodeBlock({ code, wrap = false }: { code: string; wrap?: boolean }) {
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // 浏览器不允许写剪贴板时不做处理，用户仍可手动选中复制。
+    }
+  }
+  return (
+    <div className="code">
+      <pre className={`code-block${wrap ? " code-block--wrap" : ""}`}>{code}</pre>
+      <button type="button" className="button button--secondary button--compact code-copy" onClick={copy}>
+        {copied ? <><Icon name="check" />已复制</> : <><Icon name="copy" />复制</>}
+      </button>
+    </div>
+  );
+}
+
 export function EmptyState({ title, children, action }: { title: string; children?: ReactNode; action?: ReactNode }) {
   return (
     <div className="empty">
@@ -120,14 +184,12 @@ export function Facts({ items, className }: { items: readonly (readonly [string,
 
 /** 链接式标签页：每个标签是一个地址，刷新后停在同一页。 */
 export function TabLinks<T extends string>({
-  tabs, active, routeOf, label, end,
+  tabs, active, routeOf, label,
 }: {
   tabs: readonly { id: T; label: ReactNode }[];
   active: T;
   routeOf: (id: T) => Route;
   label: string;
-  /** 标签栏右侧的附加信息，例如"示例数据"。 */
-  end?: ReactNode;
 }) {
   return (
     <div className="tab-bar">
@@ -143,7 +205,6 @@ export function TabLinks<T extends string>({
           </a>
         ))}
       </nav>
-      {end ? <div className="tab-bar-end">{end}</div> : null}
     </div>
   );
 }

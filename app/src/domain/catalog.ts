@@ -19,7 +19,7 @@ export type Scenario = {
   /** 选项卡片上的一两行说明。 */
   summary: string;
   example: string;
-  /** 每个参与方需要带来的数据。 */
+  /** 每个参与方需要带来的数据，写在选项卡片底部。 */
   dataNeeds: string;
   status: "available" | "planned";
 };
@@ -28,9 +28,9 @@ export const SCENARIOS: readonly Scenario[] = [
   {
     id: "horizontal",
     name: "横向联邦 Agent",
-    summary: "各方做同一类任务、题目不同，只共享解题经验，一起提升。",
+    summary: "各方做同类任务、题目不同，只共享解题经验。",
     example: "8 个数学竞赛题库，各由一个参与方持有",
-    dataNeeds: "每方一份同类型的题库",
+    dataNeeds: "每方一份同类题库",
     status: "available",
   },
   {
@@ -38,7 +38,7 @@ export const SCENARIOS: readonly Scenario[] = [
     name: "纵向联邦 Agent",
     summary: "同一批问题，信息分散在各方，要结合起来才能回答。",
     example: "银行有交易记录、电商有消费记录，共同回答同一批用户的问题",
-    dataNeeds: "各方关于同一批对象的不同信息",
+    dataNeeds: "各方持有同一批对象的不同信息",
     status: "planned",
   },
   {
@@ -46,7 +46,7 @@ export const SCENARIOS: readonly Scenario[] = [
     name: "联邦迁移 Agent",
     summary: "把已有参与方的经验迁移给新领域的 Agent，帮它起步。",
     example: "把数学推理的经验迁移到物理题",
-    dataNeeds: "源领域的经验和目标领域的少量题目",
+    dataNeeds: "源领域经验和目标领域的少量题目",
     status: "planned",
   },
 ];
@@ -100,8 +100,8 @@ export const ALGORITHMS: readonly Algorithm[] = [
     scenario: "horizontal",
     name: "FoT",
     fullName: "Federation over Text",
-    summary: "各方上传解题中提炼的推理经验（trace），服务端合并成洞见库，下一轮下发给所有参与方。",
-    highlights: ["只上传 trace", "不传模型参数", "不需要标注"],
+    summary: "各方只上传推理经验（trace），服务端合并成洞见库，下一轮发给所有参与方。",
+    highlights: ["不传模型参数", "不需要标注"],
     uploads: "每道题提炼出的 trace：可复用的做法与适用条件",
     keeps: "题目、标准答案、解答全文、模型与密钥",
     stages: FOT_STAGES,
