@@ -14,7 +14,7 @@ describe("store", () => {
     const state = ready(seedState());
     const next = reducer(state, { type: "createTask", id: "task-new", createdAt: NOW });
     expect(next.tasks[0]).toMatchObject({ id: "task-new", status: "running" });
-    expect(next.tasks[0].name).toMatch(/^FoT 任务 · \d{2}-\d{2} \d{2}:\d{2}$/);
+    expect(next.tasks[0].name).toMatch(/^FoT 任务 \d{2}-\d{2} \d{2}:\d{2}$/);
     expect(next.tasks[0].members).toHaveLength(8);
     expect(next.draft.scenario).toBeNull();
   });

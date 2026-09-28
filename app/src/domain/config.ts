@@ -58,14 +58,14 @@ export const DEFAULT_DRAFT: Draft = {
 };
 
 export const INSIGHT_TARGETS: readonly { id: InsightTarget; label: string; hint: string }[] = [
-  { id: "paper-auto", label: "论文默认", hint: "由服务端模型按 Prompt 5 自行决定条数" },
+  { id: "paper-auto", label: "论文默认", hint: "由服务端模型自行决定条数" },
   { id: "author-formula", label: "上游代码公式", hint: "按 trace 数计算：int(log10(trace 数) × 10 + 1)" },
   { id: "fixed-11", label: "固定 11 条", hint: "消融实验：论文中 DeepSeek 第 3 轮的条数" },
   { id: "fixed-37", label: "固定 37 条", hint: "消融实验：论文中 Gemini 第 3 轮的条数" },
 ];
 
 export const TRACE_DENSITIES: readonly { id: TraceDensity; label: string; hint: string }[] = [
-  { id: "native", label: "原生", hint: "按 Prompt 3 提取全部可复用的 trace" },
+  { id: "native", label: "原生", hint: "提取全部可复用的 trace，和上游代码一致" },
   { id: "paper-gemini", label: "按论文密度校准", hint: "每题最多保留 1 条最有价值的 trace，接近论文 Gemini 的通信量" },
 ];
 
@@ -218,7 +218,8 @@ export function toDraft(config: TaskConfig, name = ""): Draft {
 export function defaultTaskName(draft: Pick<Draft, "algorithm">, now: Date = new Date()): string {
   const pad = (value: number) => String(value).padStart(2, "0");
   const stamp = `${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
-  return `${draft.algorithm ? `${algorithmOf(draft.algorithm).name} 任务` : "联邦任务"} · ${stamp}`;
+  // 名称里不用"·"：页面上"·"是元信息的分隔符。
+  return `${draft.algorithm ? `${algorithmOf(draft.algorithm).name} 任务` : "联邦任务"} ${stamp}`;
 }
 
 /** 算法能处理的数据（按任务类型匹配）。 */

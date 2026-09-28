@@ -16,7 +16,7 @@ export type GraderId = "math-answer";
 export type Scenario = {
   id: ScenarioId;
   name: string;
-  /** 选项卡片上的一两行说明。 */
+  /** 选项卡片上的一句区分点。 */
   summary: string;
   example: string;
   /** 每个参与方需要带来的数据，写在选项卡片底部。 */
@@ -28,7 +28,7 @@ export const SCENARIOS: readonly Scenario[] = [
   {
     id: "horizontal",
     name: "横向联邦 Agent",
-    summary: "各方做同类任务、题目不同，只共享解题经验。",
+    summary: "各方做同类题，只共享解题经验",
     example: "8 个数学竞赛题库，各由一个参与方持有",
     dataNeeds: "每方一份同类题库",
     status: "available",
@@ -36,7 +36,7 @@ export const SCENARIOS: readonly Scenario[] = [
   {
     id: "vertical",
     name: "纵向联邦 Agent",
-    summary: "同一批问题，信息分散在各方，要结合起来才能回答。",
+    summary: "同一批问题，各方各持部分信息",
     example: "银行有交易记录、电商有消费记录，共同回答同一批用户的问题",
     dataNeeds: "各方持有同一批对象的不同信息",
     status: "planned",
@@ -44,7 +44,7 @@ export const SCENARIOS: readonly Scenario[] = [
   {
     id: "transfer",
     name: "联邦迁移 Agent",
-    summary: "把已有参与方的经验迁移给新领域的 Agent，帮它起步。",
+    summary: "把已有经验迁移到新领域",
     example: "把数学推理的经验迁移到物理题",
     dataNeeds: "源领域经验和目标领域的少量题目",
     status: "planned",

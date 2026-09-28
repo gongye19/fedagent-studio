@@ -89,7 +89,7 @@ describe("draft", () => {
 
   it("names tasks by algorithm and time, without repeating the summary", () => {
     const at = new Date(2026, 8, 28, 16, 36);
-    expect(defaultTaskName(draft({ mode: "trial" }), at)).toBe("FoT 任务 · 09-28 16:36");
-    expect(defaultTaskName(withDefaults({}), at)).toBe("联邦任务 · 09-28 16:36");
+    expect(defaultTaskName(draft({ mode: "trial" }), at)).toBe("FoT 任务 09-28 16:36");
+    expect(defaultTaskName(withDefaults({}), at)).toBe("联邦任务 09-28 16:36");
   });
 });

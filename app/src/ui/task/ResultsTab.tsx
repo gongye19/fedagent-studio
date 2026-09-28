@@ -50,15 +50,11 @@ export function ResultsTab({ task }: { task: Task }) {
         <Stat label="token 用量" value={totalTokens(task) ? formatTokens(totalTokens(task)) : "—"} sub={totalTokens(task) ? "已完成的轮次" : "第 1 轮完成后统计"} />
       </dl>
 
-      <Section
-        title={latest > 1 ? `各参与方：第 1 轮 → 第 ${latest} 轮` : "各参与方：第 1 轮"}
-        id="accuracy"
-        meta={latest > 1 ? "灰点是第 1 轮（本地），深色点是最新一轮（联邦）；连线绿色表示提升，红色表示下降。" : undefined}
-      >
+      <Section title={latest > 1 ? `各参与方：第 1 轮 → 第 ${latest} 轮` : "各参与方：第 1 轮"} id="accuracy">
         <DumbbellChart task={task} latest={latest} />
       </Section>
 
-      <Section title="本地 vs 联邦" id="comparison" meta="准确率与答对题数；变化以百分点计，和上图一样按变化从大到小排">
+      <Section title="本地 vs 联邦" id="comparison">
         <ComparisonTable task={task} />
       </Section>
     </div>
@@ -89,7 +85,7 @@ function DumbbellChart({ task, latest }: { task: Task; latest: number }) {
     const compare = latest > 1;
     return {
       textStyle: { fontFamily: FONT },
-      grid: { left: 8, right: 24, top: 8, bottom: compare ? 44 : 24, containLabel: true },
+      grid: { left: 8, right: 24, top: compare ? 40 : 8, bottom: 24, containLabel: true },
       tooltip: {
         trigger: "axis",
         axisPointer: { type: "shadow", shadowStyle: { color: "rgba(24,24,27,0.04)" } },
@@ -104,7 +100,8 @@ function DumbbellChart({ task, latest }: { task: Task; latest: number }) {
         },
       },
       legend: compare ? {
-        bottom: 0,
+        top: 0,
+        left: 0,
         itemWidth: 10,
         itemHeight: 10,
         textStyle: { color: "#52525b", fontSize: 12 },
@@ -179,14 +176,14 @@ function ComparisonTable({ task }: { task: Task }) {
             <th scope="col">参与方</th>
             <th scope="col" className="numeric col-optional">题数</th>
             {rounds.map((round) => {
-              const header = roundHeader(round);
+              const header = roundHeader(round, round === rounds.length);
               return (
                 <th key={round} scope="col" className={`numeric${middle(round) ? " col-optional" : ""}`}>
                   {header.main}{header.note ? <span className="wide-only">{header.note}</span> : null}
                 </th>
               );
             })}
-            <th scope="col" className="numeric">变化</th>
+            <th scope="col" className="numeric">变化<span className="wide-only">（百分点）</span></th>
           </tr>
         </thead>
         <tbody>

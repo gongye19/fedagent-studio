@@ -27,7 +27,7 @@ export function LibraryTab({ task, state, dispatch }: { task: Task; state: State
       id: `lib-${task.id}-r${round}`,
       taskId: task.id,
       builtAfterRound: round,
-      name: final ? `${task.name} · 洞见库` : `${task.name} · 第 ${round} 轮后`,
+      name: final ? `${task.name} 洞见库` : `${task.name} 第 ${round} 轮后洞见库`,
       publishedAt: new Date().toISOString(),
     });
   }
@@ -35,9 +35,8 @@ export function LibraryTab({ task, state, dispatch }: { task: Task; state: State
   const summary = [
     `${current.insights.length} 条洞见${previous ? `（新增 ${added}）` : ""}`,
     `来自 ${formatNumber(current.traceCount)} 条 trace`,
-    `${current.clusters.length} 类 · ${formatNumber(current.relationships)} 条关系`,
-    final ? "最终版" : `供第 ${current.builtAfterRound + 1} 轮使用`,
-  ].join(" · ");
+    final ? null : `供第 ${current.builtAfterRound + 1} 轮使用`,
+  ].filter(Boolean).join(" · ");
 
   return (
     <div className="stack stack--loose">
@@ -45,7 +44,7 @@ export function LibraryTab({ task, state, dispatch }: { task: Task; state: State
         {versions.length > 1 ? (
           <label className="field toolbar-field">
             <span>版本</span>
-            <select value={current.builtAfterRound} onChange={(event) => setChosen(Number(event.target.value))}>
+            <select name="version" value={current.builtAfterRound} onChange={(event) => setChosen(Number(event.target.value))}>
               {versions.map((version) => <option key={version.builtAfterRound} value={version.builtAfterRound}>{versionLabel(task, version)}</option>)}
             </select>
           </label>
@@ -64,7 +63,7 @@ export function LibraryTab({ task, state, dispatch }: { task: Task; state: State
         <InsightGroups insights={current.insights} isNew={previous ? (key) => !previousKeys.has(key) : undefined} />
       </Section>
 
-      <Section title="关系分析" id="clusters" meta="每条 trace 只归入一类；洞见由服务端按类别提炼，不和单条 trace 一一对应。">
+      <Section title="关系分析" id="clusters" meta={`${current.clusters.length} 类、${formatNumber(current.relationships)} 条关系。每条 trace 只归入一类；洞见由服务端按类别提炼，不和单条 trace 一一对应。`}>
         <div className="table-shell">
           <table className="table">
             <thead>
@@ -86,10 +85,12 @@ export function LibraryTab({ task, state, dispatch }: { task: Task; state: State
                     <th scope="row" className="nowrap">{cluster.name}</th>
                     <td className="numeric">{formatNumber(total)}</td>
                     <td>
-                      <ul className="chips">
-                        {sources.slice(0, 3).map((source) => <li key={source.name}>{source.name}<span>{source.count}</span></li>)}
-                        {sources.length > 3 ? <li className="chips-more" title={sources.slice(3).map((source) => `${source.name} ${source.count}`).join("、")}>另 {sources.length - 3} 方</li> : null}
-                      </ul>
+                      <span className="source-list" title={sources.map((source) => `${source.name} ${source.count}`).join("、")}>
+                        {sources.slice(0, 3).map((source, index) => (
+                          <span key={source.name}>{index ? "、" : ""}{source.name} <span className="muted">{source.count}</span></span>
+                        ))}
+                        {sources.length > 3 ? <span className="muted">，另 {sources.length - 3} 方</span> : null}
+                      </span>
                     </td>
                   </tr>
                 );

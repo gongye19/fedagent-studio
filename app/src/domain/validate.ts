@@ -46,7 +46,7 @@ export function checkJsonl(text: string): JsonlCheck {
     try {
       row = JSON.parse(raw);
     } catch {
-      report(line, "不是合法的 JSON");
+      report(line, "不是合法的 JSON，检查引号和逗号");
       return;
     }
     if (typeof row !== "object" || row === null || Array.isArray(row)) {

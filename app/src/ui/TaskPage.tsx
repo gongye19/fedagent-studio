@@ -43,8 +43,8 @@ export default function TaskPage({ task, state, dispatch, tab }: Props) {
     <>
       {running ? <button type="button" className="button button--secondary" onClick={() => dispatch({ type: "pauseTask", id: task.id })}><Icon name="pause" />暂停</button> : null}
       {paused ? <button type="button" className="button button--secondary" onClick={() => dispatch({ type: "resumeTask", id: task.id })}><Icon name="play" />继续</button> : null}
-      {running || paused ? <button type="button" className="button button--secondary button--danger" onClick={cancel}>取消任务</button> : null}
       <button type="button" className="button button--secondary" onClick={copy}><Icon name="copy" />复制为新任务</button>
+      {running || paused ? <button type="button" className="button button--secondary button--danger" onClick={cancel}>取消任务</button> : null}
     </>
   );
 

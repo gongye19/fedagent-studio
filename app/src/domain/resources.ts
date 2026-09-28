@@ -116,9 +116,10 @@ export function isConfigured(endpoint: Endpoint): boolean {
   return endpoint.baseUrl.trim() !== "" && endpoint.models.length > 0;
 }
 
-function defaultModelLabel(endpoints: readonly Endpoint[]): string {
+function defaultModelLabel(endpoints: readonly Endpoint[], withStatus = true): string {
   const endpoint = endpoints.find((item) => item.id === DEFAULT_ENDPOINT_ID);
-  return endpoint && isConfigured(endpoint) ? `默认 LLM 接口 · ${endpoint.models[0]}` : "默认 LLM 接口（待配置）";
+  if (endpoint && isConfigured(endpoint)) return `默认 LLM 接口 · ${endpoint.models[0]}`;
+  return withStatus ? "默认 LLM 接口（待配置）" : "默认 LLM 接口";
 }
 
 /** 模型引用写成"接口 id:模型名"（或 DEFAULT_MODEL），任务里只保存引用。 */
@@ -142,8 +143,12 @@ export function modelOptions(endpoints: readonly Endpoint[]): { ref: string; lab
   ];
 }
 
-export function modelLabel(ref: string, endpoints: readonly Endpoint[]): string {
-  if (ref === DEFAULT_MODEL) return defaultModelLabel(endpoints);
+/**
+ * 模型的显示名。新建任务、试用这些"现在要用"的地方带上"（待配置）"；
+ * 已创建任务的配置快照传 withStatus: false，只写用的是哪个接口。
+ */
+export function modelLabel(ref: string, endpoints: readonly Endpoint[], { withStatus = true }: { withStatus?: boolean } = {}): string {
+  if (ref === DEFAULT_MODEL) return defaultModelLabel(endpoints, withStatus);
   const parsed = parseModelRef(ref);
   if (!parsed) return ref;
   const endpoint = endpoints.find((item) => item.id === parsed.endpointId);

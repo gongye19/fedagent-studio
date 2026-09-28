@@ -49,9 +49,10 @@ export function roundLabel(round: number): string {
   return round === 1 ? "第 1 轮（本地）" : `第 ${round} 轮`;
 }
 
-/** 表头用的短写法：窄屏时"（本地）"收起。 */
-export function roundHeader(round: number): { main: string; note?: string } {
-  return round === 1 ? { main: "第 1 轮", note: "（本地）" } : { main: `第 ${round} 轮` };
+/** 表头用的短写法：第 1 轮标"（本地）"，最后一轮标"（联邦）"；窄屏时括号里的说明收起。 */
+export function roundHeader(round: number, last = false): { main: string; note?: string } {
+  if (round === 1) return { main: "第 1 轮", note: "（本地）" };
+  return last ? { main: `第 ${round} 轮`, note: "（联邦）" } : { main: `第 ${round} 轮` };
 }
 
 export function versionLabel(task: Task, version: LibraryVersion): string {

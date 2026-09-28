@@ -54,7 +54,7 @@ app/src/
 │   ├── Chart.tsx            ECharts 封装（按需加载，结果页的哑铃图）
 │   ├── InsightGroups.tsx    按类别列出洞见（任务详情和洞见库页共用）
 │   ├── OptionCard.tsx       选项卡片：只用于 2–3 个带说明的关键单选（场景、运行方式、运行位置）
-│   ├── common.tsx           共用组件：Tag（唯一的标签）、Collapsible（唯一的折叠）、CodeBlock（带复制）、Meta、Section 等
+│   ├── common.tsx           共用组件：Tag（唯一的标签）、Collapsible（唯一的折叠）、CodeBlock（带复制）、Notice（顶部提示）、FormActions（表单按钮 + 缺项说明）、Meta、Section 等
 │   ├── TaskTable.tsx / labels.ts / format.ts / icons.tsx
 ├── App.tsx             外框与侧栏导航
 ├── main.tsx
@@ -93,6 +93,8 @@ app/src/
   - 容器只有一种：`.card` / `.option-card` / `.module` / `.table-shell` 同样的边框、圆角和内边距；
   - 选择控件：2–3 个关键单选用 `OptionCard`，选项更多或次要设置用下拉，多选一组对象用分组的复选表格（参考新建任务的数据表），视图切换用分段控件或标签页；
   - 标签一律用 `Tag`，折叠一律用 `Collapsible`（或同样的左侧箭头），代码块一律用 `CodeBlock`；
+  - 表单底部一律用 `FormActions`：保存按钮不可用时写明还缺什么，保存后用 `Notice` 提示；
+  - 选项卡片只写标题和一句区分点，适用场合、细节放到卡片组下方或折叠里；
   - 字号 6 档、字重 3 档、4 为基数的间距。
 
 ## 提交约定

@@ -116,12 +116,19 @@ export function Meta({ parts }: { parts: readonly ReactNode[] }) {
   );
 }
 
-/** 代码块：右上角可以一键复制。 */
-export function CodeBlock({ code, wrap = false }: { code: string; wrap?: boolean }) {
+/** 代码块：右上角可以一键复制；展示的是节选时，用 copyText 复制完整内容。 */
+export function CodeBlock({
+  code, copyText, copyLabel = "复制", wrap = false,
+}: {
+  code: string;
+  copyText?: string;
+  copyLabel?: string;
+  wrap?: boolean;
+}) {
   const [copied, setCopied] = useState(false);
   async function copy() {
     try {
-      await navigator.clipboard.writeText(code);
+      await navigator.clipboard.writeText(copyText ?? code);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
@@ -130,10 +137,43 @@ export function CodeBlock({ code, wrap = false }: { code: string; wrap?: boolean
   }
   return (
     <div className="code">
-      <pre className={`code-block${wrap ? " code-block--wrap" : ""}`}>{code}</pre>
+      <pre className={`code-block${wrap ? " code-block--wrap" : ""}`} translate="no">{code}</pre>
       <button type="button" className="button button--secondary button--compact code-copy" onClick={copy}>
-        {copied ? <><Icon name="check" />已复制</> : <><Icon name="copy" />复制</>}
+        {copied ? <><Icon name="check" />已复制</> : <><Icon name="copy" />{copyLabel}</>}
       </button>
+    </div>
+  );
+}
+
+/** 页面顶部的一行提示：已恢复草稿、已保存等。 */
+export function Notice({ children, action }: { children: ReactNode; action?: ReactNode }) {
+  return (
+    <div className="notice" role="status">
+      <span>{children}</span>
+      {action}
+    </div>
+  );
+}
+
+/**
+ * 表单底部的操作：保存按钮不可用时，在左侧写清还差什么，而不是只把按钮变灰。
+ */
+export function FormActions({
+  missing, onCancel, onSave, saveLabel = "保存", compact = false,
+}: {
+  missing: readonly string[];
+  onCancel: () => void;
+  onSave: () => void;
+  saveLabel?: string;
+  compact?: boolean;
+}) {
+  const size = compact ? " button--compact" : "";
+  return (
+    <div className="form-actions">
+      {/* 始终保留这个区域，读屏软件才能在缺项变化时播报 */}
+      <span className="form-status" aria-live="polite">{missing.length ? `还需填写：${missing.join("、")}` : ""}</span>
+      <button type="button" className={`button button--secondary${size}`} onClick={onCancel}>取消</button>
+      <button type="button" className={`button button--primary${size}`} disabled={missing.length > 0} onClick={onSave}>{saveLabel}</button>
     </div>
   );
 }
@@ -252,9 +292,9 @@ export function Segmented<T extends string>({
   );
 }
 
-export function NotFound({ kind, back }: { kind: string; back: Route }) {
+export function NotFound({ kind, back, backLabel }: { kind: string; back: Route; backLabel: string }) {
   return (
-    <EmptyState title={`没有找到这个${kind}`} action={<a className="button button--secondary" href={hrefOf(back)}>返回</a>}>
+    <EmptyState title={`没有找到这个${kind}`} action={<a className="button button--secondary" href={hrefOf(back)}>返回{backLabel}</a>}>
       <p>可能已被删除，或者演示数据已重置。</p>
     </EmptyState>
   );

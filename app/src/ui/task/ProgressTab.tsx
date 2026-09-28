@@ -53,11 +53,13 @@ function RoundItem({ task, round }: { task: Task; round: number }) {
     return (
       <li className="round round--done">
         <details>
-          <summary>
+          <summary className="round-head">
             <Icon name="chevron" />
             <span className="round-mark" aria-hidden="true"><Icon name="check" /></span>
-            <h3>第 {round} 轮</h3>
-            <span className="round-summary">{roundSummary(task, record)}</span>
+            <span className="round-title">
+              <h3>第 {round} 轮</h3>
+              <span className="round-summary">{roundSummary(task, record)}</span>
+            </span>
           </summary>
           <StepLine task={task} round={round} record={record} />
         </details>
@@ -72,53 +74,47 @@ function RoundItem({ task, round }: { task: Task; round: number }) {
         <div className="round-head">
           <span className="round-spacer" aria-hidden="true" />
           <span className="round-mark" aria-hidden="true">{round}</span>
-          <h3>第 {round} 轮</h3>
-          <span className="round-summary">未开始 · {base} · 预计{formatDuration(seconds)}</span>
+          <span className="round-title">
+            <h3>第 {round} 轮</h3>
+            <span className="round-summary">未开始 · {base} · {formatDuration(seconds)}</span>
+          </span>
         </div>
       </li>
     );
   }
 
-  const cursor = task.cursor;
   const stopped = task.status === "paused" ? "已暂停" : task.status === "canceled" ? "已取消" : "进行中";
-  const participantStage = cursor && FOT_STAGES.find((stage) => stage.id === cursor.stage)?.side === "participant";
   return (
-    <li className="round round--current">
+    <li className={`round round--current${task.status === "running" ? "" : " round--stopped"}`}>
       <div className="round-head">
         <span className="round-spacer" aria-hidden="true" />
         <span className="round-mark" aria-hidden="true">{round}</span>
-        <h3>第 {round} 轮</h3>
-        <span className="round-summary">{stopped} · {base}</span>
+        <span className="round-title">
+          <h3>第 {round} 轮</h3>
+          <span className="round-summary">{stopped} · {base}</span>
+        </span>
       </div>
       <StepLine task={task} round={round} record={record} />
-      {participantStage && cursor ? (
-        <ul className="member-progress" aria-label="各参与方进度">
-          {task.members.map((member) => {
-            const done = cursor.done[member.datasetId] ?? 0;
-            return (
-              <li key={member.datasetId}>
-                <span>{member.participant}</span>
-                <ProgressBar value={done / member.problems} label={`${member.participant} 的进度`} tone={task.status === "running" ? "info" : "neutral"} />
-                <span className="member-count">{done} / {member.problems}</span>
-              </li>
-            );
-          })}
-        </ul>
-      ) : null}
     </li>
   );
 }
 
+/** 停下来的步骤写明是暂停还是取消，和任务状态用同一个词。 */
+function stoppedText(task: Task): string {
+  return task.status === "paused" ? "已暂停" : task.status === "canceled" ? "已取消" : "进行中";
+}
+
 function stepNote(task: Task, record: RoundRecord | undefined, stage: Stage, state: StepState): string {
-  if (state === "pending") return `预计${formatDuration(stageSeconds(task, stage.id))}`;
+  if (state === "pending") return formatDuration(stageSeconds(task, stage.id));
   if (state === "current") {
     const cursor = task.cursor;
     if (!cursor) return "";
     if (stage.side === "participant") {
       const total = task.members.reduce((count, member) => count + member.problems, 0);
-      return `${formatNumber(sum(cursor.done))} / ${formatNumber(total)} 题`;
+      const done = `${formatNumber(sum(cursor.done))} / ${formatNumber(total)} 题`;
+      return task.status === "running" ? done : `${stoppedText(task)} · ${done}`;
     }
-    return task.status === "running" ? "进行中" : "已停止";
+    return stoppedText(task);
   }
   switch (stage.id) {
     case "solve":
@@ -136,11 +132,13 @@ function stepNote(task: Task, record: RoundRecord | undefined, stage: Stage, sta
   }
 }
 
-/** 一轮的 6 步：参与方 3 步、服务端 3 步分两组。 */
+/** 一轮的 6 步：参与方 3 步、服务端 3 步分两组；参与方正在做题时，各方进度放在参与方这一组里。 */
 function StepLine({ task, round, record }: { task: Task; round: number; record: RoundRecord | undefined }) {
+  const cursor = task.cursor;
+  const showMembers = cursor?.round === round && FOT_STAGES.find((stage) => stage.id === cursor.stage)?.side === "participant";
   const groups = [
-    { label: "参与方", stages: FOT_STAGES.filter((stage) => stage.side === "participant") },
-    { label: "服务端", stages: FOT_STAGES.filter((stage) => stage.side === "server") },
+    { label: "参与方", side: "participant", stages: FOT_STAGES.filter((stage) => stage.side === "participant") },
+    { label: "服务端", side: "server", stages: FOT_STAGES.filter((stage) => stage.side === "server") },
   ];
   return (
     <div className="step-line">
@@ -164,6 +162,20 @@ function StepLine({ task, round, record }: { task: Task; round: number; record: 
               );
             })}
           </ol>
+          {group.side === "participant" && showMembers && cursor ? (
+            <ul className="member-progress" aria-label="各参与方进度">
+              {task.members.map((member) => {
+                const done = cursor.done[member.datasetId] ?? 0;
+                return (
+                  <li key={member.datasetId}>
+                    <span>{member.participant}</span>
+                    <ProgressBar value={done / member.problems} label={`${member.participant} 的进度`} tone={task.status === "running" ? "info" : "neutral"} />
+                    <span className="member-count">{done} / {member.problems}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
         </div>
       ))}
     </div>

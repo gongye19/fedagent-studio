@@ -45,7 +45,7 @@ function runUntil(task: Task, stop: (task: Task) => boolean, now: string): Task 
 function completedPaperTask(): Task {
   const task = createTask({
     id: "task-paper-math8",
-    name: "论文复现 · 数学 8 方",
+    name: "论文复现：数学 8 方",
     createdAt: "2026-09-26T10:02:00+08:00",
     config: seedConfig({ mode: "full", rounds: 3, datasetIds: BUILTIN_DATASETS.map((dataset) => dataset.id) }),
     datasets: BUILTIN_DATASETS,
@@ -64,7 +64,7 @@ function completedPaperTask(): Task {
 function runningTrialTask(): Task {
   const task = createTask({
     id: "task-trial-4",
-    name: "快速试跑 · 4 个题库",
+    name: "快速试跑：4 个题库",
     createdAt: "2026-09-28T15:30:00+08:00",
     config: seedConfig({ mode: "trial", trialCap: 5, rounds: 2, datasetIds: ["ds-aime24", "ds-amc", "ds-ccee", "ds-cnmo"] }),
     datasets: BUILTIN_DATASETS,
@@ -77,7 +77,7 @@ function runningTrialTask(): Task {
 
 export function seedState(): State {
   return {
-    version: 3,
+    version: 4,
     participants: [...BUILTIN_PARTICIPANTS.map((item) => ({ ...item })), { ...LOCAL_EXAMPLE }],
     datasets: BUILTIN_DATASETS.map((item) => ({ ...item })),
     endpoints: DEFAULT_ENDPOINTS.map((item) => ({ ...item, models: [...item.models] })),
@@ -87,7 +87,7 @@ export function seedState(): State {
         id: "lib-paper-math8",
         taskId: "task-paper-math8",
         builtAfterRound: 3,
-        name: "数学推理洞见库 · 8 方",
+        name: "数学推理洞见库（8 方）",
         publishedAt: "2026-09-26T14:05:00+08:00",
       },
     ],

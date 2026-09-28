@@ -18,17 +18,21 @@ import {
 import { HOSTING_LABELS, modelLabel, modelOptions, PARTICIPANT_STATUS, usable, type Dataset, type Participant } from "../domain/resources";
 import { hrefOf, navigate } from "../state/route";
 import { participantOf, type Action, type State } from "../state/store";
-import { Collapsible, PageHead, Section, Tag } from "./common";
+import { Collapsible, Notice, PageHead, Section, Tag } from "./common";
 import { formatDuration, formatNumber, formatTokens, formatYuan } from "./format";
 import { Icon } from "./icons";
 import { OptionCard } from "./OptionCard";
 
 type Props = { state: State; dispatch: Dispatch<Action>; scenario?: ScenarioId };
 
+const NARROW = "(max-width: 1100px)";
+
 export default function NewTaskPage({ state, dispatch, scenario }: Props) {
   const draft = state.draft;
   const applied = useRef<ScenarioId | undefined>(undefined);
   const named = useRef(false);
+  const cardConfirm = useRef<HTMLButtonElement>(null);
+  const barConfirm = useRef<HTMLButtonElement>(null);
   const [confirming, setConfirming] = useState(false);
   // 打开页面时草稿里已经有内容：要么是上次没填完，要么是从任务"复制为新任务"带过来的。
   const [restored, setRestored] = useState<"copy" | "draft" | null>(() => (
@@ -43,11 +47,25 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
   }, [scenario, dispatch]);
 
   useEffect(() => {
+    // 只有一个场景可用时直接选上，不让用户做没有选择余地的选择。
+    if (scenario || draft.scenario) return;
+    const available = SCENARIOS.filter((item) => item.status === "available");
+    if (available.length === 1) dispatch({ type: "chooseScenario", scenario: available[0].id });
+  }, [scenario, draft.scenario, dispatch]);
+
+  useEffect(() => {
     // 选好算法后填一个默认名称，作为输入框的真实值；每次打开页面只填一次，用户清空后不再填回。
     if (!draft.algorithm || draft.name || named.current) return;
     named.current = true;
     dispatch({ type: "updateDraft", patch: { name: defaultTaskName({ algorithm: draft.algorithm }) } });
   }, [draft.algorithm, draft.name, dispatch]);
+
+  useEffect(() => {
+    // 确认框出现后把焦点交给"确认开始"：窄屏时它在吸底栏里，宽屏时在配置清单里。
+    if (!confirming) return;
+    const narrow = window.matchMedia(NARROW).matches;
+    (narrow ? barConfirm : cardConfirm).current?.focus();
+  }, [confirming]);
 
   const update = (patch: Partial<Draft>) => dispatch({ type: "updateDraft", patch });
   const algorithm = draft.algorithm ? algorithmOf(draft.algorithm) : null;
@@ -57,6 +75,10 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
   const config = toConfig(draft);
   const result = config && selected.length ? estimate(config, state.datasets, state.endpoints) : null;
   const full = draft.mode === "full";
+  const startLabel = full ? "开始正式运行" : "开始试跑";
+  const confirmText = result
+    ? `参与方调用 ${formatNumber(result.participantCalls)} 次、服务端至少 ${result.serverCalls} 次，token 约 ${formatTokens(result.participantTokens + result.serverTokens)}，${formatDuration(result.seconds)}；费用${result.cost === null ? "未知（没有设置单价）" : formatYuan(result.cost)}。`
+    : "";
 
   function create() {
     if (issues.length) return;
@@ -81,20 +103,21 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
     if (issues.length) return;
     if (full && !confirming) {
       setConfirming(true);
-      document.getElementById("task-summary")?.scrollIntoView({ block: "nearest" });
+      if (!window.matchMedia(NARROW).matches) document.getElementById("task-summary")?.scrollIntoView({ block: "nearest" });
       return;
     }
     create();
   }
 
+  const showConfirm = confirming && full && result !== null && !issues.length;
+
   return (
     <>
       <PageHead title="新建联邦任务" crumbs={[{ label: "联邦任务", route: { page: "tasks" } }]} />
       {restored && draft.scenario ? (
-        <div className="notice" role="status">
-          <span>{restored === "copy" ? "已带入原任务的配置，改好后再开始。" : "已恢复上次没填完的配置。"}</span>
-          <button type="button" className="button button--ghost button--compact" onClick={restart}>重新开始</button>
-        </div>
+        <Notice action={<button type="button" className="link-button" onClick={restart}>清空重填</button>}>
+          {restored === "copy" ? "已带入原任务的配置，改好后再开始。" : "已恢复上次没填完的配置。"}
+        </Notice>
       ) : null}
       <div className="order-layout">
         <div className="order-main">
@@ -124,7 +147,7 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
             </Section>
           ) : null}
 
-          {algorithm && selected.length ? (
+          {algorithm ? (
             <Section title="运行设置" id="settings">
               <RunSettings state={state} draft={draft} update={update} algorithm={algorithm} selected={selected} />
             </Section>
@@ -135,7 +158,7 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
           <div className="card summary-card">
             <label className="field">
               <span>任务名称</span>
-              <input value={draft.name} placeholder={defaultTaskName(draft)} maxLength={60} onChange={(event) => update({ name: event.target.value })} />
+              <input name="task-name" autoComplete="off" value={draft.name} placeholder={defaultTaskName(draft)} maxLength={60} onChange={(event) => update({ name: event.target.value })} />
             </label>
             <dl className="summary-list">
               <div><dt>场景与算法</dt><dd>{draft.scenario ? `${scenarioOf(draft.scenario).name.replace(" Agent", "")}${algorithm ? ` · ${algorithm.name}` : ""}` : "未选择"}</dd></div>
@@ -155,23 +178,19 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
             </dl>
             {result ? <EstimateBlock result={result} /> : null}
 
-            {confirming && full && result && !issues.length ? (
+            {showConfirm ? (
               <div className="summary-confirm" role="alertdialog" aria-labelledby="confirm-title" aria-describedby="confirm-text">
                 <strong id="confirm-title">开始正式运行？</strong>
-                <p id="confirm-text">
-                  {`将调用模型约 ${formatNumber(result.participantCalls + result.serverCalls)} 次，token 约 ${formatTokens(result.participantTokens + result.serverTokens)}，预计${formatDuration(result.seconds)}；费用${result.cost === null ? "未知（没有设置单价）" : formatYuan(result.cost)}。`}
-                </p>
+                <p id="confirm-text">{confirmText}</p>
                 <div className="summary-confirm-actions">
                   <button type="button" className="button button--secondary" onClick={() => setConfirming(false)}>取消</button>
-                  <button type="button" className="button button--primary" onClick={create}>确认开始</button>
+                  <button ref={cardConfirm} type="button" className="button button--primary" onClick={create}>确认开始</button>
                 </div>
               </div>
             ) : (
               <>
                 {full && result ? <p className="summary-warning">正式运行调用量大，建议先试跑。</p> : null}
-                <button type="button" className="button button--primary button--block" disabled={issues.length > 0} onClick={start}>
-                  {full ? "开始正式运行" : "开始试跑"}
-                </button>
+                <button type="button" className="button button--primary button--block" disabled={issues.length > 0} onClick={start}>{startLabel}</button>
               </>
             )}
             {issues.length ? <p className="summary-issues">还需要：{issues.map((issue) => issue.message).join("；")}</p> : null}
@@ -179,15 +198,26 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
         </aside>
       </div>
 
-      <div className="order-bar" aria-label="创建任务">
-        <div>
-          <strong>{selected.length ? `${selected.length} 方 · ${formatNumber(result?.participantCalls ?? 0)} 次调用` : "未选数据"}</strong>
-          <small>{issues[0]?.message ?? (result ? `预计${formatDuration(result.seconds)}` : "")}</small>
+      {showConfirm ? (
+        <div className="order-bar order-bar--confirm" role="alertdialog" aria-labelledby="bar-confirm-title" aria-describedby="bar-confirm-text">
+          <div>
+            <strong id="bar-confirm-title">开始正式运行？</strong>
+            <small id="bar-confirm-text">{result ? `参与方 ${formatNumber(result.participantCalls)} 次调用 · ${formatDuration(result.seconds)}` : ""}</small>
+          </div>
+          <div className="order-bar-actions">
+            <button type="button" className="button button--secondary" onClick={() => setConfirming(false)}>取消</button>
+            <button ref={barConfirm} type="button" className="button button--primary" onClick={create}>确认开始</button>
+          </div>
         </div>
-        <button type="button" className="button button--primary" disabled={issues.length > 0} onClick={start}>
-          {full ? "正式运行" : "开始试跑"}
-        </button>
-      </div>
+      ) : (
+        <div className="order-bar" aria-label="创建任务">
+          <div>
+            <strong>{issues.length ? `还需要：${issues[0].message}` : `${selected.length} 方 · ${formatNumber(result?.participantCalls ?? 0)} 次调用`}</strong>
+            {result && !issues.length ? <small>{formatDuration(result.seconds)}</small> : null}
+          </div>
+          <button type="button" className="button button--primary" disabled={issues.length > 0} onClick={start}>{startLabel}</button>
+        </div>
+      )}
     </>
   );
 }
@@ -206,7 +236,6 @@ function ScenarioCards({ draft, dispatch }: { draft: Draft; dispatch: Dispatch<A
             onChange={() => dispatch({ type: "chooseScenario", scenario: item.id })}
             title={item.name}
             aside={planned ? <Tag>规划中</Tag> : undefined}
-            foot={`数据：${item.dataNeeds}`}
           >
             {item.summary}
           </OptionCard>
@@ -245,7 +274,7 @@ function AlgorithmPicker({ draft, dispatch }: { draft: Draft; dispatch: Dispatch
       {chosen ? (
         <Collapsible
           title={`${chosen.name} · ${chosen.fullName}`}
-          sub={`${chosen.summary}${chosen.highlights.join("，")}。展开看每一轮的 ${chosen.stages.length} 步。`}
+          sub={`只上传 trace，${chosen.highlights.join("、")}；展开看每一轮的 ${chosen.stages.length} 步`}
         >
           <AlgorithmFlow algorithm={chosen} />
         </Collapsible>
@@ -437,7 +466,7 @@ function RunSettings({
   /** 两种运行方式各自的调用量和时长，直接写在卡片上，方便比较。 */
   function preview(mode: RunMode): string {
     const config = toConfig({ ...draft, mode });
-    if (!config) return "";
+    if (!config || !selected.length) return "选好数据后估算";
     const result = estimate(config, state.datasets, state.endpoints);
     return `约 ${formatNumber(result.participantCalls)} 次调用 · ${formatDuration(result.seconds)}`;
   }
@@ -447,7 +476,7 @@ function RunSettings({
       <div className="option-grid" role="radiogroup" aria-label="运行方式">
         {MODES.map((mode) => (
           <OptionCard key={mode.id} name="mode" checked={draft.mode === mode.id} onChange={() => update({ mode: mode.id })} title={mode.label} foot={preview(mode.id)}>
-            {mode.id === "trial" ? `每份只取前 ${draft.trialCap} 题，先确认流程和费用` : `使用全部 ${formatNumber(total)} 题`}
+            {mode.id === "trial" ? `每份只取前 ${draft.trialCap} 题` : total ? `全部 ${formatNumber(total)} 题` : "全部题目"}
           </OptionCard>
         ))}
       </div>
@@ -455,25 +484,25 @@ function RunSettings({
       <div className="form-grid">
         <label className="field">
           <span>轮次</span>
-          <select value={draft.rounds} onChange={(event) => update({ rounds: Number(event.target.value) })}>
+          <select name="rounds" value={draft.rounds} onChange={(event) => update({ rounds: Number(event.target.value) })}>
             {rounds.map((value) => <option key={value} value={value}>{value} 轮</option>)}
           </select>
         </label>
         {draft.mode === "trial" ? (
           <label className="field">
             <span>试跑题数（每份）</span>
-            <input type="number" min={1} max={50} value={draft.trialCap} onChange={(event) => update({ trialCap: clampInt(event.target.value, 1, 50, draft.trialCap) })} />
+            <input name="trial-cap" type="number" inputMode="numeric" autoComplete="off" min={1} max={50} value={draft.trialCap} onChange={(event) => update({ trialCap: clampInt(event.target.value, 1, 50, draft.trialCap) })} />
           </label>
         ) : null}
         <label className="field field--row-start">
           <span>参与方模型</span>
-          <select value={draft.clientModel} onChange={(event) => update({ clientModel: event.target.value })}>
+          <select name="client-model" value={draft.clientModel} onChange={(event) => update({ clientModel: event.target.value })}>
             {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
           </select>
         </label>
         <label className="field">
           <span>服务端模型（需长上下文）</span>
-          <select value={draft.serverModel} onChange={(event) => update({ serverModel: event.target.value })}>
+          <select name="server-model" value={draft.serverModel} onChange={(event) => update({ serverModel: event.target.value })}>
             {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
           </select>
         </label>
@@ -486,37 +515,37 @@ function RunSettings({
         <div className="form-grid">
           <label className="field">
             <span>洞见库条数</span>
-            <select value={draft.insightTarget} onChange={(event) => update({ insightTarget: event.target.value as Draft["insightTarget"] })}>
+            <select name="insight-target" value={draft.insightTarget} onChange={(event) => update({ insightTarget: event.target.value as Draft["insightTarget"] })}>
               {INSIGHT_TARGETS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
             </select>
             {insight ? <small className="field-hint">{insight.hint}</small> : null}
           </label>
           <label className="field">
             <span>trace 密度</span>
-            <select value={draft.traceDensity} onChange={(event) => update({ traceDensity: event.target.value as Draft["traceDensity"] })}>
+            <select name="trace-density" value={draft.traceDensity} onChange={(event) => update({ traceDensity: event.target.value as Draft["traceDensity"] })}>
               {TRACE_DENSITIES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
             </select>
             {density ? <small className="field-hint">{density.hint}</small> : null}
           </label>
           <label className="field">
             <span>每题最多 trace 数</span>
-            <select value={draft.maxTracesPerItem ?? ""} onChange={(event) => update({ maxTracesPerItem: event.target.value ? Number(event.target.value) : null })}>
-              <option value="">不限（论文设置）</option>
+            <select name="max-traces" value={draft.maxTracesPerItem ?? ""} onChange={(event) => update({ maxTracesPerItem: event.target.value ? Number(event.target.value) : null })}>
+              <option value="">不限（论文默认）</option>
               {[1, 2, 3].map((value) => <option key={value} value={value}>{value} 条</option>)}
             </select>
           </label>
           <label className="field">
             <span>汇总重试上限</span>
-            <input type="number" min={1} max={20} value={draft.aggregationRetries} onChange={(event) => update({ aggregationRetries: clampInt(event.target.value, 1, 20, draft.aggregationRetries) })} />
+            <input name="aggregation-retries" type="number" inputMode="numeric" autoComplete="off" min={1} max={20} value={draft.aggregationRetries} onChange={(event) => update({ aggregationRetries: clampInt(event.target.value, 1, 20, draft.aggregationRetries) })} />
             <small className="field-hint">超过后暂停任务，避免费用失控</small>
           </label>
           <label className="field">
             <span>随机种子</span>
-            <input type="number" min={0} value={draft.seed} onChange={(event) => update({ seed: clampInt(event.target.value, 0, 1_000_000, draft.seed) })} />
+            <input name="seed" type="number" inputMode="numeric" autoComplete="off" min={0} value={draft.seed} onChange={(event) => update({ seed: clampInt(event.target.value, 0, 1_000_000, draft.seed) })} />
           </label>
           <label className="field">
             <span>并发数</span>
-            <input type="number" min={1} max={64} value={draft.workers} onChange={(event) => update({ workers: clampInt(event.target.value, 1, 64, draft.workers) })} />
+            <input name="workers" type="number" inputMode="numeric" autoComplete="off" min={1} max={64} value={draft.workers} onChange={(event) => update({ workers: clampInt(event.target.value, 1, 64, draft.workers) })} />
             <small className="field-hint">所有参与方共用</small>
           </label>
           <ModelOverrides state={state} draft={draft} update={update} selected={selected} />
@@ -553,6 +582,7 @@ function ModelOverrides({
             return (
               <li key={datasetId}>
                 <select
+                  className="override-who"
                   aria-label="参与方"
                   value={datasetId}
                   onChange={(event) => {
@@ -563,20 +593,22 @@ function ModelOverrides({
                 >
                   {[dataset, ...free].map((item) => <option key={item.id} value={item.id}>{nameOf(item)}</option>)}
                 </select>
-                <select aria-label={`${nameOf(dataset)} 使用的模型`} value={ref} onChange={(event) => set({ ...overrides, [datasetId]: event.target.value })}>
-                  {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
-                </select>
-                <button
-                  type="button"
-                  className="button button--ghost button--compact"
-                  onClick={() => {
-                    const next = { ...overrides };
-                    delete next[datasetId];
-                    set(next);
-                  }}
-                >
-                  移除
-                </button>
+                <span className="override-model">
+                  <select aria-label={`${nameOf(dataset)} 使用的模型`} value={ref} onChange={(event) => set({ ...overrides, [datasetId]: event.target.value })}>
+                    {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
+                  </select>
+                  <button
+                    type="button"
+                    className="button button--ghost"
+                    onClick={() => {
+                      const next = { ...overrides };
+                      delete next[datasetId];
+                      set(next);
+                    }}
+                  >
+                    移除
+                  </button>
+                </span>
               </li>
             );
           })}
@@ -603,7 +635,7 @@ function advancedChanges(draft: Draft): number {
 /** 配置清单里列出前几个参与方的名称。 */
 function memberNames(selected: Dataset[], state: State): string {
   const names = selected.map((dataset) => participantOf(state, dataset.participantId)?.name ?? dataset.name);
-  return names.length > 3 ? `${names.slice(0, 3).join("、")} 等 ${names.length} 方` : names.join("、");
+  return names.length > 3 ? `${names.slice(0, 3).join("、")} 等` : names.join("、");
 }
 
 function clampInt(raw: string, min: number, max: number, fallback: number): number {

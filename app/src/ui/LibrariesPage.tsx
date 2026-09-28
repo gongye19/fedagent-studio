@@ -39,7 +39,9 @@ export default function LibrariesPage({ state }: { state: State }) {
           </table>
         </div>
       ) : (
-        <EmptyState title="还没有发布的洞见库"><p>任务完成后，在任务详情的“洞见库”里选一个版本发布。</p></EmptyState>
+        <EmptyState title="还没有发布的洞见库" action={<a className="button button--secondary" href={hrefOf({ page: "tasks" })}>查看联邦任务</a>}>
+          <p>任务完成后，在任务详情的“洞见库”里选一个版本发布。</p>
+        </EmptyState>
       )}
     </>
   );

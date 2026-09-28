@@ -75,7 +75,7 @@ function Page({ state, dispatch, route }: { state: State; dispatch: Dispatch<Act
       return <NewTaskPage state={state} dispatch={dispatch} scenario={route.scenario} />;
     case "task": {
       const task = taskOf(state, route.id);
-      return task ? <TaskPage key={task.id} task={task} state={state} dispatch={dispatch} tab={route.tab} /> : <NotFound kind="任务" back={{ page: "tasks" }} />;
+      return task ? <TaskPage key={task.id} task={task} state={state} dispatch={dispatch} tab={route.tab} /> : <NotFound kind="任务" back={{ page: "tasks" }} backLabel="联邦任务" />;
     }
     case "libraries":
       return <LibrariesPage state={state} />;
@@ -83,7 +83,7 @@ function Page({ state, dispatch, route }: { state: State; dispatch: Dispatch<Act
       const item = state.published.find((entry) => entry.id === route.id);
       return item
         ? <LibraryPage key={item.id} item={item} task={taskOf(state, item.taskId)} state={state} dispatch={dispatch} tab={route.tab} />
-        : <NotFound kind="洞见库" back={{ page: "libraries" }} />;
+        : <NotFound kind="洞见库" back={{ page: "libraries" }} backLabel="洞见库列表" />;
     }
     case "participants":
       return <ParticipantsPage state={state} dispatch={dispatch} selectedId={route.id} />;
@@ -103,11 +103,11 @@ function Sidebar({ route, state, onReset }: { route: Route; state: State; onRese
   return (
     <aside className={`sidebar${open ? " sidebar--open" : ""}`}>
       <div className="sidebar-top">
-        <a className="wordmark" href={hrefOf({ page: "tasks" })} onClick={close}>
-          <strong>Federation Studio</strong>
-          <small>联邦 Agent 平台</small>
-        </a>
-        <span className="env-compact" title="任务运行、结果和洞见库都是示例数据，后端尚未接入"><Tag tone="warning">示例数据</Tag></span>
+        <a className="wordmark" href={hrefOf({ page: "tasks" })} onClick={close} translate="no">Federation Studio</a>
+        {/* 品牌位置只放有用的状态：这是前端原型，数据都是示例。 */}
+        <span className="env" title="任务运行、结果和洞见库都是示例数据，后端尚未接入">
+          <Tag tone="warning"><span className="env-long">前端原型 · </span>示例数据</Tag>
+        </span>
         <button type="button" className="menu-button" aria-expanded={open} aria-controls="main-nav" onClick={() => setOpen((value) => !value)}>
           {open ? "收起" : "菜单"}
         </button>
@@ -132,7 +132,6 @@ function Sidebar({ route, state, onReset }: { route: Route; state: State; onRese
         ))}
       </nav>
       <div className="sidebar-foot">
-        <span title="任务运行、结果和洞见库都是示例数据，后端尚未接入"><Tag tone="warning">前端原型 · 示例数据</Tag></span>
         <button type="button" className="link-button" onClick={onReset}>重置演示数据</button>
       </div>
     </aside>

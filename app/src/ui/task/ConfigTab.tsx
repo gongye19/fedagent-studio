@@ -29,7 +29,7 @@ export function ConfigTab({ task, state }: { task: Task; state: State }) {
 
   const common = [
     hosting ? `都由${HOSTING_LABELS[hosting]}` : null,
-    model ? `都用${inline(modelLabel(model, state.endpoints))}` : null,
+    model ? `都用${inline(modelLabel(model, state.endpoints, { withStatus: false }))}` : null,
     allAnswered ? "题目都带标准答案" : null,
   ].filter(Boolean).join("，");
 
@@ -41,8 +41,8 @@ export function ConfigTab({ task, state }: { task: Task; state: State }) {
           ["运行方式", config.mode === "trial" ? `试跑，每份前 ${config.trialCap} 题` : "正式运行，全部题目"],
           ["轮次", `${config.rounds} 轮`],
           ["调用量", `参与方 ${formatNumber(problems * 3 * config.rounds)} 次，服务端至少 ${config.rounds * 2} 次`],
-          ["服务端模型", modelLabel(config.serverModel, state.endpoints)],
-          ["时间", `创建于 ${formatDate(task.createdAt)}${task.finishedAt ? `，结束于 ${formatDate(task.finishedAt)}` : ""}`],
+          ["服务端模型", modelLabel(config.serverModel, state.endpoints, { withStatus: false })],
+          ["时间", `创建于 ${formatDate(task.createdAt)}${task.finishedAt ? `，${task.status === "canceled" ? "取消于" : "完成于"} ${formatDate(task.finishedAt)}` : ""}`],
         ]} />
       </Section>
 
@@ -68,7 +68,7 @@ export function ConfigTab({ task, state }: { task: Task; state: State }) {
                     </span>
                   </th>
                   {hosting ? null : <td>{HOSTING_LABELS[member.hosting]}</td>}
-                  {model ? null : <td>{modelLabel(member.model, state.endpoints)}</td>}
+                  {model ? null : <td>{modelLabel(member.model, state.endpoints, { withStatus: false })}</td>}
                   <td className="numeric">{member.problems}</td>
                   {allAnswered ? null : <td className="numeric">{member.answered}</td>}
                 </tr>
@@ -84,13 +84,14 @@ export function ConfigTab({ task, state }: { task: Task; state: State }) {
           ["trace 密度", TRACE_DENSITIES.find((item) => item.id === config.traceDensity)?.label ?? config.traceDensity],
           ["每题最多 trace 数", config.maxTracesPerItem === null ? "不限" : `${config.maxTracesPerItem} 条`],
           ["汇总重试上限", `${config.aggregationRetries} 次`],
-          ["随机种子 · 并发数", `${config.seed} · ${config.workers}`],
+          ["随机种子", String(config.seed)],
+          ["并发数", String(config.workers)],
         ]} />
       </Section>
 
       <Section title="审计记录" id="config-audit">
         <p className="section-text">
-          接入后端后，每个任务都会记录：配置快照与哈希、Prompt 1–5 的哈希、每份数据的哈希、上游代码版本（dixiyao/FoT @ b02753c），以及每次调用的模型、token、重试与错误。
+          接入后端后记录配置、Prompt 1–5、每份数据和上游代码（dixiyao/FoT @ b02753c）的哈希，以及每次调用的模型、token、重试与错误。
         </p>
       </Section>
     </div>
