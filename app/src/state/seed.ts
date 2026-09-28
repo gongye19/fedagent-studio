@@ -1,6 +1,6 @@
 /**
  * 演示环境的初始数据：8 个内置示例参与方（各持一份数学题库）、一个等待连接的本地参与方示例、
- * 两个模型接口、一个已完成的示例任务（其最终洞见库已发布）和一个正在试跑的任务。
+ * 预留的默认 LLM 接口（待配置）、一个已完成的示例任务（其最终洞见库已发布）和一个正在试跑的任务。
  *
  * 任务都通过领域函数推进生成，与用户新建的任务走同一套规则。结果都是示例数据。
  */
@@ -77,7 +77,7 @@ function runningTrialTask(): Task {
 
 export function seedState(): State {
   return {
-    version: 1,
+    version: 2,
     participants: [...BUILTIN_PARTICIPANTS.map((item) => ({ ...item })), { ...LOCAL_EXAMPLE }],
     datasets: BUILTIN_DATASETS.map((item) => ({ ...item })),
     endpoints: DEFAULT_ENDPOINTS.map((item) => ({ ...item, models: [...item.models] })),

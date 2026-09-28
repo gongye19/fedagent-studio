@@ -5,7 +5,7 @@
  * 只有汇总重试上限的默认值不同：复现器默认 0（一直重试到结果合法），平台默认 5 次，超过后暂停任务，避免费用失控。
  */
 import { algorithmOf, algorithmsFor, scenarioOf, type AlgorithmId, type ScenarioId } from "./catalog";
-import { endpointOf, modelRef, usable, type Dataset, type Endpoint, type Participant } from "./resources";
+import { DEFAULT_MODEL, endpointOf, usable, type Dataset, type Endpoint, type Participant } from "./resources";
 
 export type RunMode = "trial" | "full";
 export type InsightTarget = "paper-auto" | "author-formula" | "fixed-11" | "fixed-37";
@@ -43,9 +43,9 @@ export const DEFAULT_DRAFT: Draft = {
   scenario: null,
   algorithm: null,
   datasetIds: [],
-  clientModel: modelRef("openrouter", "deepseek/deepseek-chat"),
+  clientModel: DEFAULT_MODEL,
   clientOverrides: {},
-  serverModel: modelRef("openrouter", "google/gemini-2.5-flash"),
+  serverModel: DEFAULT_MODEL,
   rounds: 3,
   mode: "trial",
   trialCap: 5,
@@ -169,7 +169,7 @@ export function draftIssues(
   }
   const refs = [draft.clientModel, draft.serverModel, ...Object.values(activeOverrides(draft))];
   if (refs.some((ref) => !endpointOf(ref, endpoints))) {
-    issues.push({ field: "models", message: "选择参与方和服务端使用的模型" });
+    issues.push({ field: "models", message: "所选的模型接口已不存在，请重新选择" });
   }
   if (draft.rounds < algorithm.minRounds || draft.rounds > algorithm.maxRounds) {
     issues.push({ field: "rounds", message: `轮次在 ${algorithm.minRounds}–${algorithm.maxRounds} 之间` });

@@ -354,7 +354,7 @@ function RunSettings({
           <select value={draft.clientModel} onChange={(event) => update({ clientModel: event.target.value })}>
             {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
           </select>
-          <small className="setting-hint">每个参与方用这个模型解题、反思和提取 trace；可在高级设置里分别指定。</small>
+          <small className="setting-hint">平台托管的参与方用它解题、反思和提取 trace；本地参与方用自己的模型。默认走预留的 LLM 接口，服务和模型之后再配置。</small>
         </label>
 
         <label className="setting">

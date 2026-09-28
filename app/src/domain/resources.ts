@@ -97,26 +97,28 @@ export const BUILTIN_DATASETS: readonly Dataset[] = BUILTIN.map((item) => ({
   sample: item.sample,
 }));
 
+/**
+ * 预留的默认 LLM 接口：OpenAI 兼容，具体服务和模型之后再配置。
+ * 任务默认用它（模型引用写作 DEFAULT_MODEL）；需要时可以另外登记接口，给某些参与方单独指定。
+ */
+export const DEFAULT_ENDPOINT_ID = "default";
+export const DEFAULT_MODEL = "default";
+
 export const DEFAULT_ENDPOINTS: readonly Endpoint[] = [
-  {
-    id: "openrouter",
-    name: "OpenRouter",
-    baseUrl: "https://openrouter.ai/api/v1",
-    models: ["deepseek/deepseek-chat", "google/gemini-2.5-flash"],
-    concurrency: 8,
-    price: null,
-  },
-  {
-    id: "glm",
-    name: "智谱 GLM",
-    baseUrl: "https://open.bigmodel.cn/api/paas/v4",
-    models: ["glm-5.1"],
-    concurrency: 8,
-    price: null,
-  },
+  { id: DEFAULT_ENDPOINT_ID, name: "默认 LLM 接口", baseUrl: "", models: [], concurrency: 8, price: null },
 ];
 
-/** 模型引用写成"接口 id:模型名"，任务里只保存引用。 */
+/** 填了地址和模型才算配置好；预留的默认接口在接入后端前是未配置状态。 */
+export function isConfigured(endpoint: Endpoint): boolean {
+  return endpoint.baseUrl.trim() !== "" && endpoint.models.length > 0;
+}
+
+function defaultModelLabel(endpoints: readonly Endpoint[]): string {
+  const endpoint = endpoints.find((item) => item.id === DEFAULT_ENDPOINT_ID);
+  return endpoint && isConfigured(endpoint) ? `默认 LLM 接口 · ${endpoint.models[0]}` : "默认 LLM 接口（待配置）";
+}
+
+/** 模型引用写成"接口 id:模型名"（或 DEFAULT_MODEL），任务里只保存引用。 */
 export function modelRef(endpointId: string, model: string): string {
   return `${endpointId}:${model}`;
 }
@@ -128,13 +130,17 @@ export function parseModelRef(ref: string): { endpointId: string; model: string 
 }
 
 export function modelOptions(endpoints: readonly Endpoint[]): { ref: string; label: string }[] {
-  return endpoints.flatMap((endpoint) => endpoint.models.map((model) => ({
-    ref: modelRef(endpoint.id, model),
-    label: `${model} · ${endpoint.name}`,
-  })));
+  return [
+    { ref: DEFAULT_MODEL, label: defaultModelLabel(endpoints) },
+    ...endpoints.flatMap((endpoint) => endpoint.models.map((model) => ({
+      ref: modelRef(endpoint.id, model),
+      label: `${model} · ${endpoint.name}`,
+    }))),
+  ];
 }
 
 export function modelLabel(ref: string, endpoints: readonly Endpoint[]): string {
+  if (ref === DEFAULT_MODEL) return defaultModelLabel(endpoints);
   const parsed = parseModelRef(ref);
   if (!parsed) return ref;
   const endpoint = endpoints.find((item) => item.id === parsed.endpointId);
@@ -142,6 +148,7 @@ export function modelLabel(ref: string, endpoints: readonly Endpoint[]): string 
 }
 
 export function endpointOf(ref: string, endpoints: readonly Endpoint[]): Endpoint | undefined {
+  if (ref === DEFAULT_MODEL) return endpoints.find((item) => item.id === DEFAULT_ENDPOINT_ID);
   const parsed = parseModelRef(ref);
   return parsed ? endpoints.find((item) => item.id === parsed.endpointId) : undefined;
 }

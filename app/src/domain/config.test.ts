@@ -13,6 +13,9 @@ import {
 } from "./config";
 import { BUILTIN_DATASETS, BUILTIN_PARTICIPANTS, DEFAULT_ENDPOINTS, type Endpoint } from "./resources";
 
+/** 另外登记的接口，用来测试"给某个参与方单独指定模型"。 */
+const LAB: Endpoint = { id: "lab", name: "实验室接口", baseUrl: "http://10.0.0.1/v1", models: ["m1"], concurrency: 4, price: null };
+
 const ALL = BUILTIN_DATASETS.map((dataset) => dataset.id);
 
 function draft(patch: Partial<Draft> = {}): Draft {
@@ -41,9 +44,9 @@ describe("estimate", () => {
     const config = toConfig(draft({ mode: "full" }))!;
     const result = estimate(config, BUILTIN_DATASETS, priced);
     expect(result.cost).toBeCloseTo(((result.participantTokens + result.serverTokens) * 2) / 1_000_000);
-    const partly = priced.map((endpoint) => (endpoint.id === "glm" ? { ...endpoint, price: null } : endpoint));
-    const withGlm = toConfig(draft({ clientOverrides: { "ds-amc": "glm:glm-5.1" } }))!;
-    expect(estimate(withGlm, BUILTIN_DATASETS, partly).cost).toBeNull();
+    const withLab = toConfig(draft({ clientOverrides: { "ds-amc": "lab:m1" } }))!;
+    expect(estimate(withLab, BUILTIN_DATASETS, [...priced, LAB]).cost).toBeNull();
+    expect(estimate(config, BUILTIN_DATASETS, DEFAULT_ENDPOINTS).cost).toBeNull();
   });
 });
 
@@ -56,6 +59,8 @@ describe("draft", () => {
     const one = draft({ datasetIds: ["ds-amc"], serverModel: "missing:model" });
     expect(draftIssues(one, BUILTIN_DATASETS, BUILTIN_PARTICIPANTS, DEFAULT_ENDPOINTS).map((issue) => issue.field)).toEqual(["datasets", "models"]);
     expect(draftIssues(draft(), BUILTIN_DATASETS, BUILTIN_PARTICIPANTS, DEFAULT_ENDPOINTS)).toEqual([]);
+    // 默认走预留的 LLM 接口，接口还没配置也能创建任务。
+    expect(draft().clientModel).toBe("default");
   });
 
   it("choosing horizontal selects FoT and every usable dataset; planned scenarios select nothing", () => {
@@ -76,7 +81,7 @@ describe("draft", () => {
   });
 
   it("drops per-participant models of deselected datasets", () => {
-    const withOverride = draft({ clientOverrides: { "ds-amc": "glm:glm-5.1" } });
+    const withOverride = draft({ clientOverrides: { "ds-amc": "lab:m1" } });
     const deselected = toggleDataset(withOverride, "ds-amc");
     expect(activeOverrides(deselected)).toEqual({});
     expect(toConfig(deselected)?.clientOverrides).toEqual({});

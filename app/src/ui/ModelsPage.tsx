@@ -1,5 +1,5 @@
 import { useState, type Dispatch } from "react";
-import { parseModelRef, type Endpoint } from "../domain/resources";
+import { DEFAULT_ENDPOINT_ID, endpointOf, isConfigured, type Endpoint } from "../domain/resources";
 import type { Action, State } from "../state/store";
 import { Badge, Note, PageHead, Panel } from "./common";
 import { Icon } from "./icons";
@@ -8,7 +8,7 @@ type Props = { state: State; dispatch: Dispatch<Action> };
 
 function usedBy(state: State, endpointId: string): number {
   return state.tasks.filter((task) => [task.config.serverModel, ...task.members.map((member) => member.model)]
-    .some((ref) => parseModelRef(ref)?.endpointId === endpointId)).length;
+    .some((ref) => endpointOf(ref, state.endpoints)?.id === endpointId)).length;
 }
 
 export default function ModelsPage({ state, dispatch }: Props) {
@@ -17,7 +17,7 @@ export default function ModelsPage({ state, dispatch }: Props) {
     <>
       <PageHead
         title="模型接口"
-        meta="参与方和服务端的所有模型调用都经过模型网关，使用这里配置的 OpenAI 兼容接口。"
+        meta="平台侧的模型调用都通过 OpenAI 兼容的 LLM API。现在只预留了默认接口，具体服务和模型之后再配置。"
         actions={adding ? null : <button type="button" className="button button--primary" onClick={() => setAdding(true)}><Icon name="plus" />新增接口</button>}
       />
       {adding ? <NewEndpoint state={state} dispatch={dispatch} onDone={() => setAdding(false)} /> : null}
@@ -32,20 +32,30 @@ export default function ModelsPage({ state, dispatch }: Props) {
 }
 
 function EndpointCard({ endpoint, used, dispatch }: { endpoint: Endpoint; used: number; dispatch: Dispatch<Action> }) {
+  const configured = isConfigured(endpoint);
+  const fallback = endpoint.id === DEFAULT_ENDPOINT_ID;
   return (
     <Panel
       title={endpoint.name}
       id={`endpoint-${endpoint.id}`}
-      extra={<Badge>未测试</Badge>}
+      extra={configured ? <Badge>未测试</Badge> : <Badge tone="sample">预留 · 待配置</Badge>}
     >
       <dl className="facts">
-        <div><dt>接口地址</dt><dd><code>{endpoint.baseUrl}</code></dd></div>
+        <div><dt>接口类型</dt><dd>OpenAI 兼容（chat/completions）</dd></div>
+        <div><dt>接口地址</dt><dd>{endpoint.baseUrl ? <code>{endpoint.baseUrl}</code> : <span className="muted">待配置</span>}</dd></div>
         <div>
           <dt>模型</dt>
-          <dd><ul className="chips">{endpoint.models.map((model) => <li key={model}><code>{model}</code></li>)}</ul></dd>
+          <dd>
+            {endpoint.models.length
+              ? <ul className="chips">{endpoint.models.map((model) => <li key={model}><code>{model}</code></li>)}</ul>
+              : <span className="muted">待配置</span>}
+          </dd>
         </div>
-        <div><dt>任务使用</dt><dd>{used ? `${used} 个任务` : "暂未使用"}</dd></div>
+        <div><dt>任务使用</dt><dd>{used ? `${used} 个任务${fallback ? "（未单独指定模型时都用它）" : ""}` : "暂未使用"}</dd></div>
       </dl>
+      {fallback && !configured ? (
+        <p className="panel-text">接入后端后在这里填写接口地址、模型和 API 密钥。没有单独指定模型的参与方和服务端调用都走这个接口。</p>
+      ) : null}
       <div className="form-grid form-grid--tight">
         <label className="setting">
           <span className="setting-label">并发上限</span>
@@ -105,7 +115,7 @@ function NewEndpoint({ state, dispatch, onDone }: Props & { onDone: () => void }
       <div className="form-grid">
         <label className="setting">
           <span className="setting-label">名称</span>
-          <input value={name} maxLength={30} onChange={(event) => setName(event.target.value)} placeholder="例如：实验室 vLLM" />
+          <input value={name} maxLength={30} onChange={(event) => setName(event.target.value)} placeholder="例如：实验室模型服务" />
         </label>
         <label className="setting">
           <span className="setting-label">接口地址</span>
@@ -114,7 +124,7 @@ function NewEndpoint({ state, dispatch, onDone }: Props & { onDone: () => void }
         </label>
         <label className="setting setting--wide">
           <span className="setting-label">模型（每行一个，或用逗号分隔）</span>
-          <textarea rows={3} value={models} onChange={(event) => setModels(event.target.value)} placeholder="deepseek/deepseek-chat" />
+          <textarea rows={3} value={models} onChange={(event) => setModels(event.target.value)} placeholder="模型名称，每行一个" />
         </label>
         <label className="setting">
           <span className="setting-label">并发上限</span>

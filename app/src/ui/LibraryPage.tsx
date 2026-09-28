@@ -120,7 +120,7 @@ function TryPanel({ version, state }: { version: LibraryVersion; state: State })
       {ran !== null ? (
         isExample ? (
           <>
-            <p className="sample-note" role="note"><Badge tone="sample">示意</Badge><span>以下回答是说明用的示例，不是 {modelLabel(model, state.endpoints)} 的真实输出。</span></p>
+            <p className="sample-note" role="note"><Badge tone="sample">示意</Badge><span>以下回答是说明用的示例，不是真实的模型输出；接入后端后由 {modelLabel(model, state.endpoints)} 实际作答。</span></p>
             <div className="compare-grid">
               <Panel title="不带洞见库" id="answer-without">
                 <pre className="answer" lang="en">{EXAMPLE.without}</pre>
@@ -152,7 +152,7 @@ function IntegratePanel({ item, version }: { item: Published; version: LibraryVe
         <pre className="code-block">{`curl -X POST https://<平台地址>/api/v1/libraries/${item.id}/apply \\
   -H "Authorization: Bearer $FEDAGENT_TOKEN" \\
   -H "Content-Type: application/json" \\
-  -d '{"question": "…", "model": "openrouter:deepseek/deepseek-chat", "compare": true}'`}</pre>
+  -d '{"question": "…", "model": "default", "compare": true}'`}</pre>
       </Panel>
       <Panel title="3 · 命令行" id="integrate-cli" extra={<Badge>接入后端后提供</Badge>}>
         <pre className="code-block">{`fedagent apply --library ${item.id} --file questions.jsonl --compare`}</pre>

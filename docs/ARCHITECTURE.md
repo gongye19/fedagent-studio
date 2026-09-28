@@ -165,9 +165,10 @@ class AlgorithmPlugin(Protocol):
 
 ## 9. 模型网关
 
-- 统一的 OpenAI 兼容客户端（httpx），第一批接 OpenRouter 和智谱 GLM。
-- 每个接口配置地址、密钥（服务端加密保存）、模型列表、并发上限、重试和单价；每次调用都记录模型、token、耗时和错误。
-- 参与方和服务端可以用不同的接口和模型；本地参与方不经过网关。
+- **接口**：统一的 OpenAI 兼容客户端（httpx），调用 LLM API。现在只预留"默认 LLM 接口"，具体服务和模型之后再配置（OpenRouter、GLM 或自建服务都可以接）。
+- **引用**：任务里的模型引用默认是 `default`，即默认接口；需要时可以登记其他接口，给某些参与方单独指定。
+- **配置与记录**：每个接口配置地址、密钥（服务端加密保存）、模型列表、并发上限、重试和单价；每次调用都记录模型、token、耗时和错误。
+- **本地参与方**：用自己的模型，不经过网关。
 
 ## 10. API 草案
 
@@ -203,7 +204,8 @@ GET  /v1/tasks/{id}/rounds/{r}/library   POST /v1/tasks/{id}/rounds/{r}/uploads 
 
 - **平台**：
   - 一台普通 CPU 服务器即可（4 核 8 GB 起），用 Docker Compose 部署 API、worker 和前端静态文件；
-  - 服务器要能访问 OpenRouter、GLM 等模型接口。
+  - 服务器要能访问所配置的 LLM API。
+  - 实验室服务器已加入 Tailscale（`zhiqikou-ic4078375cc`，SSH 端口 10022），可以作为部署目标。
 - **后端开发环境**：Python 3.11+，用 uv 在项目目录内建虚拟环境（`server/.venv`）。
 - **参与方客户端**：Python 包，`pip install fedagent-client`。
 - **不需要**：GPU（模型调用都走外部接口）、K8s、沙箱、KVM（FoT 不执行生成的代码）。以后加入编程题时，只有判分需要隔离环境。
@@ -215,7 +217,6 @@ GET  /v1/tasks/{id}/rounds/{r}/library   POST /v1/tasks/{id}/rounds/{r}/uploads 
 - **trace**：trace 是自然语言，可能带出题目细节。本地客户端支持上传前审查（规则过滤 + 逐条确认）；服务端只保存 trace，不接收题目和答案。
 - **密钥**：模型密钥只存服务端；本地参与方的密钥留在本地。
 - **审计**：每个任务记录配置快照与哈希、提示词哈希、数据哈希、上游代码版本（dixiyao/FoT @ b02753c），以及每次调用的模型、token、重试与错误。
-- **许可**：上游 FoT 快照没有 LICENSE 文件，公开或商用前要先向原作者确认授权。
 
 ## 14. 技术选型
 
@@ -229,7 +230,6 @@ GET  /v1/tasks/{id}/rounds/{r}/library   POST /v1/tasks/{id}/rounds/{r}/uploads 
 
 ## 15. 待定
 
-- 纵向和迁移采用哪些算法。
+- 纵向和迁移采用哪些算法（暂不定）。
 - 本地参与方超时或掉线时，等待还是跳过这一方。
-- 默认模型：网关里有哪些模型，参与方和服务端各用哪个。论文结果来自 DeepSeek 和 Gemini；gpt-5.4-mini 的三个种子没有复现提升。
-- FoT 的授权。
+- 用哪个 LLM 服务和模型：先预留接口，之后再配。参考信息：论文结果来自 DeepSeek 和 Gemini；gpt-5.4-mini 的三个种子没有复现提升。

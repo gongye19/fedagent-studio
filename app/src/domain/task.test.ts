@@ -39,11 +39,11 @@ function runToEnd(task: Task): Task {
 
 describe("task", () => {
   it("freezes members with trial caps and their models", () => {
-    const task = newTask({ mode: "trial", trialCap: 5, clientOverrides: { "ds-amc": "glm:glm-5.1" } });
+    const task = newTask({ mode: "trial", trialCap: 5, clientOverrides: { "ds-amc": "lab:m1" } });
     expect(task.members.map((member) => [member.dataset, member.problems, member.model])).toEqual([
-      ["AIME24", 5, "openrouter:deepseek/deepseek-chat"],
-      ["AMC", 5, "glm:glm-5.1"],
-      ["CCEE", 5, "openrouter:deepseek/deepseek-chat"],
+      ["AIME24", 5, "default"],
+      ["AMC", 5, "lab:m1"],
+      ["CCEE", 5, "default"],
     ]);
     expect(task.cursor).toEqual({ round: 1, stage: "solve", done: {}, ticks: 0 });
   });
