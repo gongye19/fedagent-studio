@@ -250,3 +250,13 @@
 - 用户要求：分析平台需要哪些资源、是否需要显卡；按当前主流的平台架构设计，提供 CLI 让 Agent 直接操作，内部启动沙箱、维护运行环境也可以有 Agent 参与；画一张整体设计图。
 - 产出：`docs/platform-architecture.svg/png`（由 `platform-architecture.gen.py` 生成）；ARCHITECTURE 补充 `fedctl` 命令与 `project.yaml` 示例、MCP 工具、五类 Agent 及权限分级、沙箱与签名镜像、`fs-node` 节点程序、资源需求表和技术选型；DECISIONS 新增 D23。
 
+## T29：Agent 改用我方大模型 API；明确沙箱种类与隔离技术
+
+- 类型：Design（架构调整，未改代码）
+- 时间：2026-09-28
+- 状态：完成
+- 相关：D23（部分取代）→ D24；影响 ARCHITECTURE（Agent 层、沙箱与运行环境维护、资源需求、技术选型）、架构图
+- 用户要求：Agent 用我方提供的大模型 API，不用 Claude；说明沙箱一共有哪些、为什么选 gVisor 和 Firecracker、目前 Agent 用的沙箱最主流的是哪个。
+- 调研：E2B（Firecracker，采用最广）、Daytona（容器）、Modal（gVisor，唯一支持 GPU）等托管沙箱的对比；Kubernetes Agent Sandbox（SIG Apps 子项目，SandboxTemplate / WarmPool，支持 gVisor 与 Kata）；gVisor nvproxy 支持 CUDA；Firecracker 的 GPU 直通仍在开发分支；模型无关的 Agent 框架（Pydantic AI、LangGraph）对 OpenAI 兼容接口和 MCP 的支持。
+- 产出：架构图 Agent 层改为"模型与框架解耦 · 自有大模型 API"，沙箱调度改为 K8s Agent Sandbox + gVisor / Kata-Firecracker；ARCHITECTURE 新增沙箱清单与隔离技术对比；DECISIONS 新增 D24。
+

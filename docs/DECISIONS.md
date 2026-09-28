@@ -159,11 +159,20 @@ demo 阶段不追求全覆盖，场景、子项和策略只保留最通用、最
 
 ## D23：API 优先，人和 Agent 用同一套接口；平台本身不需要 GPU
 
-状态：采用（T28，2026-09-28，目标架构，尚未实现）
+状态：采用（T28，2026-09-28，目标架构，尚未实现）；Agent 模型与沙箱部分已被 D24 取代
 
 - 先定义 OpenAPI，Web 控制台、CLI（`fedctl`）、MCP Server 和 SDK 都由它派生；配置用与 7 个维度对应的声明式 `project.yaml`，先 `plan`（输出订单摘要）再 `apply`。
 - Agent 只通过 MCP / CLI 调用平台，没有旁路；使用短期、最小权限令牌，在隔离的工作沙箱中执行。策略引擎先于 Agent：只读自动、可逆操作自动并审计，启动运行、交付、邀请外部机构、升级节点需人工审批；Agent 不接触原始数据。
 - 平台内的 Agent 用自托管的 Claude Agent SDK，默认模型 Claude Opus 5，简单高频子任务用 Claude Haiku 4.5；不能调用外部 API 的客户可换私有化模型。
 - 每次运行按需创建沙箱（k3s + gVisor 起步），只拉取签名镜像；参与方只装一个节点程序 `fs-node`，主动出站 mTLS 连接。
 - 资源：控制面、编排、聚合、统计、记忆合并和 Agent 都不需要 GPU；GPU 只在训练发生的地方需要（正式运行在各参与方节点，由参与方自备；在单机上模拟多方的大模型 LoRA demo 需要 1 张 24 GB 显卡）。
+
+## D24：Agent 使用我方大模型 API；沙箱统一为 K8s Agent Sandbox，gVisor 与 Firecracker 分工
+
+状态：采用（T29，2026-09-28，目标架构，尚未实现）
+
+- Agent 不使用外部模型厂商，改用我方提供的大模型 API，经模型网关以 OpenAI 兼容接口调用；Agent 框架与模型解耦（默认 Pydantic AI，长流程用 LangGraph），只把平台 MCP / CLI 当作工具。模型需要稳定的工具调用和 JSON 结构化输出。
+- 平台共有六类沙箱：协调 / 聚合、统计 / 记忆合并、评测、上传检查、Agent 工作、镜像验证。统一用 Kubernetes Agent Sandbox（SandboxTemplate / SandboxClaim / SandboxWarmPool）管理。
+- 默认隔离用 gVisor（不需要 KVM，可通过 nvproxy 用 GPU）；模型生成的代码和外部上传的文件用 Kata + Firecracker（虚拟机级隔离，Agent 沙箱最主流的隔离技术，但需要 KVM、暂不支持 GPU）。服务器不支持 KVM 时全部先用 gVisor。
+- 托管的 Agent 沙箱服务（E2B、Daytona、Modal 等）不采用：平台需要私有化部署，且沙箱要访问平台内部服务。
 

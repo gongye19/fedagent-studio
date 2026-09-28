@@ -1,6 +1,6 @@
 # 系统架构
 
-最后复核：2026-09-28（T28 补充目标架构：CLI / MCP、Agent 层、沙箱与资源）
+最后复核：2026-09-28（T29：Agent 改用自有大模型 API；沙箱统一为 K8s Agent Sandbox + gVisor / Kata-Firecracker）
 
 ## 架构原则
 
@@ -122,7 +122,7 @@ fedctl deliver <run>                 确认交付
 
 ### MCP Server
 
-把同一组能力暴露为 MCP 工具（`plan_project`、`create_project`、`invite_member`、`get_project_status`、`start_run`、`get_run_logs`、`list_nodes`、`diagnose_run` 等），外部 AI Agent（例如 Claude Code）用机构授予的短期令牌直接操作平台。每个工具标注风险等级，由策略引擎决定能否直接执行。
+把同一组能力暴露为 MCP 工具（`plan_project`、`create_project`、`invite_member`、`get_project_status`、`start_run`、`get_run_logs`、`list_nodes`、`diagnose_run` 等），外部 AI Agent（例如各机构自己的助手或编程 Agent）用机构授予的短期令牌直接操作平台。每个工具标注风险等级，由策略引擎决定能否直接执行。
 
 ## Agent 层
 
@@ -134,16 +134,53 @@ fedctl deliver <run>                 确认交付
 | 评测报告 | 把评测指标整理成报告 | 只读 |
 | 记忆合并 Agent | 在 Agent 记忆联邦中审阅互相矛盾的记忆 | 只在记忆合并沙箱内处理已脱敏的条目 |
 
-- **运行方式**：自托管的 Claude Agent SDK。工具只有平台 MCP / CLI，在隔离的工作沙箱中执行，使用短期、最小权限令牌。之所以不用托管的 Agent 沙箱，是因为 Agent 需要访问平台内部集群，且各机构对数据位置有要求。
-- **模型**：默认 Claude Opus 5（`claude-opus-5`）；日志摘要、格式检查这类量大且简单的子任务用 Claude Haiku 4.5（`claude-haiku-4-5`）。如果客户不允许调用外部 API，可以换成私有化部署的模型，这时平台侧需要 GPU。
+- **模型**：使用我方提供的大模型 API，不依赖任何外部模型厂商。Agent 通过一个模型网关调用它（OpenAI 兼容的 Chat Completions 接口，如 vLLM / SGLang 的服务端或 LiteLLM 网关）；以后换模型只改网关配置，不改 Agent 代码。
+- **对模型的要求**：稳定的工具调用（function calling）和 JSON 结构化输出；上下文建议 ≥ 32K（读运行日志、配置和评测结果）。
+- **框架**：Pydantic AI（模型无关、原生 MCP 客户端、类型化工具）作为默认；有长流程、需要断点续跑的 Agent（如运维 Agent 的升级流程）用 LangGraph。两者都只把平台 MCP / CLI 当作工具。
+- **运行方式**：Agent 全部部署在平台内部，在隔离的工作沙箱中执行，使用短期、最小权限令牌；模型调用也不出平台网络。
 - **权限分级**：只读查询自动执行；可逆操作自动执行并审计；启动运行、交付、邀请外部机构、升级节点需要人工审批。Agent 只看描述信息、指标和脱敏日志，不接触原始数据。
 
 ## 沙箱与运行环境维护
 
-- **每次运行按需创建**：协调方、聚合、统计、记忆合并和评测都在短生命周期沙箱中运行（K8s / k3s + gVisor 或 Firecracker），默认拒绝网络，只放行项目通道，运行结束即销毁。
+### 平台里的沙箱
+
+| 沙箱 | 里面跑什么 | 代码与输入的可信度 | 需要 GPU | 隔离运行时 |
+|---|---|---|---|---|
+| 协调 / 聚合沙箱 | Flower ServerApp、隐语调度 | 平台代码 | 否 | gVisor |
+| 统计 / 记忆合并沙箱 | 汇总表重算、记忆脱敏与合并 | 平台代码 + 外部数据 | 否 | gVisor |
+| 评测沙箱 | 用测试集评估交付物 | 外部产物 | 大模型评测需要 | gVisor（nvproxy 访问 GPU） |
+| 上传检查沙箱 | 解析各方上传的文件 | 不可信输入 | 否 | Kata + Firecracker |
+| Agent 工作沙箱 | Agent 执行命令和脚本 | 不可信（模型生成） | 否 | Kata + Firecracker |
+| 镜像验证沙箱 | 运维 Agent 用小任务回归验证新运行时镜像 | 待验证镜像 | 视镜像而定 | gVisor |
+
+参与方侧不在平台沙箱里：`fs-node` 在各机构自己的机器上以容器拉起联邦运行时，数据只读挂载，由机构自己掌控。
+
+### 隔离技术与选择
+
+| 技术 | 原理 | 隔离强度 | GPU | 主要使用者 |
+|---|---|---|---|---|
+| 普通容器（Docker / runc） | 共享宿主内核，namespace + cgroup | 弱，不适合跑不可信代码 | 支持 | 通用 |
+| gVisor | 用户态内核拦截系统调用 | 中强，不需要 KVM | 支持（nvproxy，CUDA） | Modal、GKE Sandbox |
+| Kata Containers | 每个 Pod 一个轻量虚拟机，可选 QEMU / Cloud Hypervisor / Firecracker | 强（虚拟机级），需要 KVM | QEMU 下可直通 | 云厂商的安全容器 |
+| Firecracker | 极简 microVM，约 125ms 启动 | 强（虚拟机级），需要 KVM | 稳定版尚不支持直通 | E2B、AWS Lambda、Vercel、Fly.io |
+| 进程级沙箱（bubblewrap、seccomp、Landlock） | 限制单个进程的文件与网络访问 | 较弱 | — | 本地编程 Agent |
+| WebAssembly / V8 isolate | 语言级隔离 | 强，但只能跑特定运行时 | 否 | Cloudflare |
+
+选 gVisor 和 Firecracker 两种，是因为它们互补：
+- **gVisor 做默认**：在普通服务器和 K8s 上通过 RuntimeClass 即可使用，不需要硬件虚拟化，也能通过 nvproxy 使用 GPU，适合平台自己的服务和评测。
+- **Firecracker 管最高风险**：模型生成的代码和外部上传的文件用虚拟机级隔离，逃逸需要攻破虚拟机监控器而不是一个系统调用实现；它也是目前 Agent 沙箱最主流的隔离技术。代价是需要 KVM、不支持 GPU，所以只用在不需要 GPU 的两类沙箱上。
+- 如果服务器不支持 KVM（例如没有开启嵌套虚拟化的云主机），起步阶段全部用 gVisor，之后再给高风险沙箱换上 Firecracker。
+
+### 统一管理：Kubernetes Agent Sandbox
+
+所有沙箱统一用 Kubernetes 官方子项目 Agent Sandbox（`kubernetes-sigs/agent-sandbox`）管理：每类沙箱一个 SandboxTemplate（镜像、资源、隔离运行时、网络策略），运行时按需 SandboxClaim，常用模板配 SandboxWarmPool 预热，冷启动降到 1 秒以内；隔离运行时通过 RuntimeClass 在 gVisor 与 Kata（Firecracker）之间切换。
+
+### 运行环境维护
+
+- **每次运行按需创建**：默认拒绝网络，只放行项目通道，运行结束即销毁。
 - **只用签名镜像**：Flower、隐语和平台服务的运行时镜像统一构建、签名并附带 SBOM，节点和沙箱只拉取签名镜像。
 - **节点程序 `fs-node`**：一个镜像同时带 Flower 与隐语运行时；主动出站 mTLS 连接平台，上报资源（GPU 型号与显存、CPU、内存、磁盘），在本地做数据检查，按平台指令拉起运行时，并支持平台下发的升级。
-- **Agent 参与维护**：运维 Agent 发现新版本或漏洞后，先在沙箱里跑一个小规模联邦任务验证新镜像，再提交升级计划，经审批后灰度升级；运行失败时读取脱敏日志定位原因，提出重试或从检查点恢复。
+- **Agent 参与维护**：运维 Agent 发现新版本或漏洞后，先在镜像验证沙箱里跑一个小规模联邦任务，再提交升级计划，经审批后灰度升级；运行失败时读取脱敏日志定位原因，提出重试或从检查点恢复。
 
 ## 资源需求
 
@@ -153,7 +190,7 @@ fedctl deliver <run>                 确认交付
 |---|---|---|---|
 | 控制面（API、数据库、对象存储、编排、Flower SuperLink、隐语调度） | 平台服务器 | 否 | 8 vCPU · 32 GB 内存 · 500 GB SSD |
 | 平台沙箱（统计、记忆合并、准入检查、Agent 工作沙箱） | 平台服务器 | 否 | 可与控制面同机，或另加 8 vCPU · 16 GB |
-| Agent | 调用 Claude API | 否 | 需要能访问外网；私有化模型另需 GPU |
+| Agent | 平台服务器 | 否 | 调用我方大模型 API；若该模型也部署在这台服务器上，需要按模型大小另配 GPU |
 | 后端 demo：横向大模型 LoRA，在一台机器上模拟 3 方 | 平台服务器 | 是 | 1 张 24 GB 显卡（A10 / L4 / RTX 4090 / 3090）· 16 vCPU · 64 GB 内存；16 GB 显卡可用 QLoRA |
 | 后端 demo：表格模型、ResNet-18、纵向、统计、记忆 | 平台服务器 | 否 | CPU 即可；SecureBoost 同态加密建议 16 核以上 |
 | 正式运行 | 各参与方节点 | 由参与方自备 | 按项目配置 |
@@ -168,11 +205,12 @@ fedctl deliver <run>                 确认交付
 | 工作流编排 | Temporal | 多轮训练是长时间任务，需要持久化状态、重试和断点恢复 |
 | 策略引擎 | OPA（Rego） | 硬规则独立于代码和 Agent，可审计、可测试 |
 | 数据与存储 | PostgreSQL · MinIO（S3 兼容） | 通用、可私有化部署 |
-| 沙箱 | k3s + gVisor（单机起步），后续 Firecracker / Kata | 单台服务器即可起步，隔离强度可逐步提高 |
+| 沙箱 | Kubernetes Agent Sandbox（k3s 单机起步）+ gVisor / Kata-Firecracker | 统一的沙箱模板与预热池；GPU 与虚拟机级隔离各取所长 |
 | 身份与证书 | Keycloak（OIDC）· step-ca（节点证书）· Vault | 机构登录、节点 mTLS 和密钥分开管理 |
 | 可观测性 | OpenTelemetry · Prometheus · Loki · Grafana | 运行、节点和 Agent 操作统一追踪 |
 | 事件 | NATS · Webhook | 运行进度、邀请和交付事件推送 |
-| Agent | Claude Agent SDK（自托管）+ 平台 MCP Server | 工具面就是平台 API，权限与审计复用 |
+| Agent | Pydantic AI（默认）/ LangGraph（长流程）+ 平台 MCP Server | 模型无关，接我方大模型 API；工具面就是平台 API，权限与审计复用 |
+| 模型网关 | OpenAI 兼容接口（vLLM / SGLang / LiteLLM） | 换模型只改配置；统一限流、计量和日志 |
 
 起步阶段全部部署在一台服务器上（k3s 单节点）；需要时再把控制面、沙箱池和 GPU 节点拆开。
 
