@@ -1,27 +1,21 @@
 # 系统架构
 
-最后复核：2026-09-28（T27）
+最后复核：2026-09-28（T28 补充目标架构：CLI / MCP、Agent 层、沙箱与资源）
 
 ## 架构原则
 
 Federation Studio 采用"统一控制面 + 可替换执行后端"。平台不把所有联邦方法抽象成同一种算法，而是把它们的共同特征整理成 7 个配置维度，并统一它们共同拥有的生命周期：配置、组队、准入、运行、评测和交付。场景之间的差别落在执行模式和 runner adapter 上。
 
-```text
-机构用户
-  │ 新建项目：7 个维度 + 订单摘要        │ 收到邀请：确认方案
-  ▼                                    ▼
-L1 展示层（工作台 / 新建项目 / 项目详情 / 邀请）
-  │
-  ├─► L2 注册表（场景、算力、数据类型、模型、7 个维度的子项）
-  ├─► L3 配置引擎 ──► FrontendRunPlan（后端为 RunSpec）
-  └─► L4 项目与组队（发起 + 邀请、组织内部多节点）──► Run 状态机 + 按执行模式模拟
-                                                   │
-                                  Agent 准入 · 运行环境 · 独立评测
-                                                   │
-                                     L5 Runner adapter（Flower / 隐语 / 平台服务）
-                                                   │
-                                     L6 产物、谱系与审计存储
-```
+![平台整体架构](./platform-architecture.png)
+
+（图的源文件：`platform-architecture.svg`，由 `platform-architecture.gen.py` 生成。）
+
+- **接入层**：Web 控制台、CLI（`fedctl`）、MCP Server、SDK 都是同一套 OpenAPI 的客户端，人和 Agent 走同一条路径、同一套权限和审计。
+- **控制面**：项目与组队、配置引擎（7 个维度）、策略引擎（硬规则与审批闸门）、工作流编排、节点注册中心、身份与权限。
+- **Agent 层**：Agent 运行时只通过 MCP / CLI 调用平台，与外部 Agent 没有特权差别。
+- **执行面（平台侧）**：沙箱调度、Runner 适配器（Flower、隐语、统计服务、记忆合并服务）、独立评测环境，每次运行按需创建。
+- **参与方侧**：各机构只装一个节点程序 `fs-node`，主动出站连接平台，拉起对应的联邦运行时；原始数据只读挂载，不出域。
+- **数据与基础设施**：PostgreSQL、对象存储、产物与模型登记、审计日志、可观测性、证书与密钥、事件总线。
 
 ## 分层
 
@@ -90,6 +84,97 @@ L1 展示层（工作台 / 新建项目 / 项目详情 / 邀请）
 - 节点证书签发、邀请与授权记录、隐私预算账本。
 
 状态：未实现。
+
+## 接入方式：人和 Agent 用同一套接口
+
+平台 API 优先：先定义 OpenAPI，Web 控制台、CLI、MCP Server 和 SDK 都由它派生，任何能在界面上做的事都能用命令或工具完成，反之亦然。
+
+### CLI：`fedctl`
+
+配置是声明式的（和 7 个维度一一对应），先 `plan` 再 `apply`，与 Terraform / kubectl 的用法一致；所有命令支持 `--json` 输出和非交互参数，便于脚本和 Agent 调用。
+
+```yaml
+# project.yaml
+apiVersion: federation.studio/v1
+kind: Project
+metadata:
+  name: 客服大模型联合微调
+spec:
+  scenario: horizontal-training
+  parties:  { scale: "3-5", deployment: aliyun, compute: gpu-24, network: public }
+  data:     { type: instruction }
+  model:    { name: qwen2.5-1.5b, sharing: lora }
+  training: { aggregation: fedavg, rounds: 10, sampling: all, localEpochs: 1 }
+  security: { secagg: off, dp: off }
+  delivery: { evaluation: local, scope: all }
+  invite:   [启明证券研究所, 衡平律师事务所]
+```
+
+```text
+fedctl plan -f project.yaml          校验配置，输出订单摘要（资源、耗时、注意事项），不产生任何变更
+fedctl apply -f project.yaml         创建项目并发出邀请
+fedctl node join --token <项目令牌>   在参与方机器上注册并启动 fs-node
+fedctl project status <id> --json    组队进度与开始条件
+fedctl run start <id>                开始运行（需要发起方确认）
+fedctl run logs <run> --follow       阶段日志（已脱敏）
+fedctl deliver <run>                 确认交付
+```
+
+### MCP Server
+
+把同一组能力暴露为 MCP 工具（`plan_project`、`create_project`、`invite_member`、`get_project_status`、`start_run`、`get_run_logs`、`list_nodes`、`diagnose_run` 等），外部 AI Agent（例如 Claude Code）用机构授予的短期令牌直接操作平台。每个工具标注风险等级，由策略引擎决定能否直接执行。
+
+## Agent 层
+
+| Agent | 做什么 | 能做到哪一步 |
+|---|---|---|
+| 配置助手 | 把自然语言需求转成 `project.yaml` 草案，并调用 `plan` 给出订单摘要 | 只生成草案，创建项目仍需用户确认 |
+| 准入解释 | 把策略引擎的结构化结果翻译成说明和修复建议 | 只读，不能覆盖拒绝 |
+| 运维 Agent | 巡检节点版本与镜像漏洞、在沙箱中做回归验证、诊断失败的阶段 | 提出升级或重试计划；升级节点、重试运行需人工审批 |
+| 评测报告 | 把评测指标整理成报告 | 只读 |
+| 记忆合并 Agent | 在 Agent 记忆联邦中审阅互相矛盾的记忆 | 只在记忆合并沙箱内处理已脱敏的条目 |
+
+- **运行方式**：自托管的 Claude Agent SDK。工具只有平台 MCP / CLI，在隔离的工作沙箱中执行，使用短期、最小权限令牌。之所以不用托管的 Agent 沙箱，是因为 Agent 需要访问平台内部集群，且各机构对数据位置有要求。
+- **模型**：默认 Claude Opus 5（`claude-opus-5`）；日志摘要、格式检查这类量大且简单的子任务用 Claude Haiku 4.5（`claude-haiku-4-5`）。如果客户不允许调用外部 API，可以换成私有化部署的模型，这时平台侧需要 GPU。
+- **权限分级**：只读查询自动执行；可逆操作自动执行并审计；启动运行、交付、邀请外部机构、升级节点需要人工审批。Agent 只看描述信息、指标和脱敏日志，不接触原始数据。
+
+## 沙箱与运行环境维护
+
+- **每次运行按需创建**：协调方、聚合、统计、记忆合并和评测都在短生命周期沙箱中运行（K8s / k3s + gVisor 或 Firecracker），默认拒绝网络，只放行项目通道，运行结束即销毁。
+- **只用签名镜像**：Flower、隐语和平台服务的运行时镜像统一构建、签名并附带 SBOM，节点和沙箱只拉取签名镜像。
+- **节点程序 `fs-node`**：一个镜像同时带 Flower 与隐语运行时；主动出站 mTLS 连接平台，上报资源（GPU 型号与显存、CPU、内存、磁盘），在本地做数据检查，按平台指令拉起运行时，并支持平台下发的升级。
+- **Agent 参与维护**：运维 Agent 发现新版本或漏洞后，先在沙箱里跑一个小规模联邦任务验证新镜像，再提交升级计划，经审批后灰度升级；运行失败时读取脱敏日志定位原因，提出重试或从检查点恢复。
+
+## 资源需求
+
+平台本身不需要显卡。显卡只在训练发生的地方需要：正式运行时在各参与方的节点上，由参与方按项目的"节点算力规格"自备。
+
+| 用途 | 运行位置 | 需要 GPU | 建议配置 |
+|---|---|---|---|
+| 控制面（API、数据库、对象存储、编排、Flower SuperLink、隐语调度） | 平台服务器 | 否 | 8 vCPU · 32 GB 内存 · 500 GB SSD |
+| 平台沙箱（统计、记忆合并、准入检查、Agent 工作沙箱） | 平台服务器 | 否 | 可与控制面同机，或另加 8 vCPU · 16 GB |
+| Agent | 调用 Claude API | 否 | 需要能访问外网；私有化模型另需 GPU |
+| 后端 demo：横向大模型 LoRA，在一台机器上模拟 3 方 | 平台服务器 | 是 | 1 张 24 GB 显卡（A10 / L4 / RTX 4090 / 3090）· 16 vCPU · 64 GB 内存；16 GB 显卡可用 QLoRA |
+| 后端 demo：表格模型、ResNet-18、纵向、统计、记忆 | 平台服务器 | 否 | CPU 即可；SecureBoost 同态加密建议 16 核以上 |
+| 正式运行 | 各参与方节点 | 由参与方自备 | 按项目配置 |
+
+网络：平台需要一个可被节点访问的域名和 TLS 证书（节点只做出站连接）；实验室内部演示可以直接用内网地址。
+
+## 技术选型建议
+
+| 部分 | 选型 | 理由 |
+|---|---|---|
+| API 与服务 | Python（FastAPI + Pydantic）→ OpenAPI | 与 Flower、隐语同一语言生态；CLI、SDK、MCP 从同一份定义生成 |
+| 工作流编排 | Temporal | 多轮训练是长时间任务，需要持久化状态、重试和断点恢复 |
+| 策略引擎 | OPA（Rego） | 硬规则独立于代码和 Agent，可审计、可测试 |
+| 数据与存储 | PostgreSQL · MinIO（S3 兼容） | 通用、可私有化部署 |
+| 沙箱 | k3s + gVisor（单机起步），后续 Firecracker / Kata | 单台服务器即可起步，隔离强度可逐步提高 |
+| 身份与证书 | Keycloak（OIDC）· step-ca（节点证书）· Vault | 机构登录、节点 mTLS 和密钥分开管理 |
+| 可观测性 | OpenTelemetry · Prometheus · Loki · Grafana | 运行、节点和 Agent 操作统一追踪 |
+| 事件 | NATS · Webhook | 运行进度、邀请和交付事件推送 |
+| Agent | Claude Agent SDK（自托管）+ 平台 MCP Server | 工具面就是平台 API，权限与审计复用 |
+
+起步阶段全部部署在一台服务器上（k3s 单节点）；需要时再把控制面、沙箱池和 GPU 节点拆开。
 
 ## 执行位置
 

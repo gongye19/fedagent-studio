@@ -12,5 +12,5 @@
 8. [关键设计决策](./DECISIONS.md)：配置维度和技术边界背后的取舍。
 9. [任务记录](./HISTORY.md)：按时间顺序的 T 任务。
 
-`federation-platform-architecture.svg/png` 是早期控制面概念图，仍可用于讨论隔离 runner 和 Agent 边界；若与文字冲突，以 `ARCHITECTURE.md` 为准。
+`platform-architecture.svg/png` 是当前的平台整体架构图（由 `platform-architecture.gen.py` 生成）。`federation-platform-architecture.svg/png` 是早期概念图，已被取代；若与文字冲突，以 `ARCHITECTURE.md` 为准。
 

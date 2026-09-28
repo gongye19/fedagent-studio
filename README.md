@@ -34,6 +34,12 @@ Federation Studio 是面向跨机构隐私协作的联邦项目平台原型。�
 
 <img src="./docs/screenshots/new-project-mobile.png" alt="手机端：新建项目与底部订单栏" width="320">
 
+## 整体架构
+
+![平台整体架构](./docs/platform-architecture.png)
+
+Web 控制台、CLI（`fedctl`）、MCP Server 和 SDK 共用一套 OpenAPI，人和 Agent 走同一套权限与审计；每次运行按需创建隔离沙箱；参与方只装一个节点程序，原始数据不出域。详见 [ARCHITECTURE.md](./docs/ARCHITECTURE.md)（目标架构，后端尚未实现）。
+
 ## 本地运行
 
 需要 Node.js 20.19+ 或 22.12+。

@@ -241,3 +241,12 @@
   6. 文档：重写 DIMENSIONS、FLOW、ARCHITECTURE、README、PROGRESS，更新 GOAL、DEVELOPMENT、MVP_SCENARIO、DECISIONS（D20–D22），更新截图；版本升为 0.3.0。
   7. 验证：`npm run check` 通过；桌面 1280 与手机 390 截图检查工作台、新建项目（空白 / 横向 / 纵向）、组队中、运行中、已交付、邀请、接受邀请后的完整运行，无运行时错误。
 
+## T28：目标架构设计（CLI / MCP、Agent 层、沙箱、资源）
+
+- 类型：Design（架构设计，未改代码）
+- 时间：2026-09-28
+- 状态：完成
+- 相关：D23；影响 ARCHITECTURE（新增接入方式、Agent 层、沙箱与运行环境维护、资源需求、技术选型）
+- 用户要求：分析平台需要哪些资源、是否需要显卡；按当前主流的平台架构设计，提供 CLI 让 Agent 直接操作，内部启动沙箱、维护运行环境也可以有 Agent 参与；画一张整体设计图。
+- 产出：`docs/platform-architecture.svg/png`（由 `platform-architecture.gen.py` 生成）；ARCHITECTURE 补充 `fedctl` 命令与 `project.yaml` 示例、MCP 工具、五类 Agent 及权限分级、沙箱与签名镜像、`fs-node` 节点程序、资源需求表和技术选型；DECISIONS 新增 D23。
+
