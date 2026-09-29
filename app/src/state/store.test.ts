@@ -1,17 +1,33 @@
 import { describe, expect, it } from "vitest";
+import type { Dataset } from "../domain/resources";
 import { hrefOf, parseHash, type Route } from "./route";
 import { seedState } from "./seed";
 import { reducer, type State } from "./store";
 
 const NOW = "2026-09-28T16:00:00+08:00";
 
+/** 依次选好场景、任务类型、算法，再勾选全部在线的参与方（各出自己的第一份数据集）。 */
 function ready(state: State): State {
   const scenario = reducer(state, { type: "chooseScenario", scenario: "horizontal" });
   const typed = reducer(scenario, { type: "chooseTaskType", taskType: "math-reasoning" });
-  return reducer(typed, { type: "chooseAlgorithm", algorithm: "fot" });
+  const chosen = reducer(typed, { type: "chooseAlgorithm", algorithm: "fot" });
+  const online = chosen.participants.filter((participant) => participant.status === "online");
+  const participants = online.flatMap((participant) => {
+    const dataset = chosen.datasets.find((item) => item.participantId === participant.id);
+    return dataset ? [{ participantId: participant.id, datasetId: dataset.id }] : [];
+  });
+  return reducer(chosen, { type: "setParticipants", participants });
 }
 
+const UPLOAD: Dataset = { id: "ds-new", name: "新题库", participantId: "p-new", description: "", scenario: "horizontal", taskType: "math-reasoning", count: 3, answered: 3, source: "upload" };
+
 describe("store", () => {
+  it("selects no participants on the user's behalf", () => {
+    const state = seedState();
+    const typed = reducer(reducer(state, { type: "chooseScenario", scenario: "horizontal" }), { type: "chooseTaskType", taskType: "math-reasoning" });
+    expect(reducer(typed, { type: "chooseAlgorithm", algorithm: "fot" }).draft.participants).toEqual([]);
+  });
+
   it("creates a task from a complete draft and resets the draft", () => {
     const state = ready(seedState());
     const next = reducer(state, { type: "createTask", id: "task-new", createdAt: NOW });
@@ -36,7 +52,7 @@ describe("store", () => {
     expect(next.tasks.find((task) => task.id === "task-trial-4")).not.toBe(state.tasks.find((task) => task.id === "task-trial-4"));
   });
 
-  it("publishes a library version once", () => {
+  it("publishes an output version once", () => {
     const state = seedState();
     const action = { type: "publish", id: "lib-r2", taskId: "task-paper-math8", builtAfterRound: 2, name: "第 3 轮版本", publishedAt: NOW } as const;
     const once = reducer(state, action);
@@ -52,7 +68,9 @@ describe("store", () => {
     expect(auto.draft.touched).toBe(false);
     const edited = reducer(auto, { type: "updateDraft", patch: { rounds: 4 } });
     expect(edited.draft.touched).toBe(true);
-    expect(reducer(auto, { type: "toggleDataset", datasetId: "ds-amc" }).draft.touched).toBe(true);
+    expect(reducer(auto, { type: "pickDataset", participantId: "p-c", datasetId: "ds-amc" }).draft.touched).toBe(true);
+    // 只能选这个参与方自己的数据集。
+    expect(reducer(auto, { type: "pickDataset", participantId: "p-a", datasetId: "ds-amc" })).toBe(auto);
   });
 
   it("names the task with the name shown on the page when the user left it unchanged", () => {
@@ -82,15 +100,29 @@ describe("store", () => {
     state = reducer(state, {
       type: "addParticipant",
       participant: { id: "p-new", name: "新参与方", org: "", intro: "", hosting: "platform", status: "online" },
-      dataset: { id: "ds-new", name: "新题库", participantId: "p-new", description: "", taskType: "math-reasoning", count: 3, answered: 3, source: "upload" },
+      dataset: UPLOAD,
     });
     expect(state.participants[0].id).toBe("p-new");
     state = ready(state);
-    expect(state.draft.datasetIds).toContain("ds-new");
+    state = reducer(state, { type: "updateDraft", patch: { clientOverrides: { "p-new": "default" } } });
+    expect(state.draft.participants).toContainEqual({ participantId: "p-new", datasetId: "ds-new" });
     const removed = reducer(state, { type: "removeParticipant", id: "p-new" });
     expect(removed.datasets.some((dataset) => dataset.id === "ds-new")).toBe(false);
-    expect(removed.draft.datasetIds).not.toContain("ds-new");
-    expect(reducer(removed, { type: "removeParticipant", id: "p-amc" })).toBe(removed);
+    expect(removed.draft.participants.some((item) => item.participantId === "p-new")).toBe(false);
+    expect(removed.draft.clientOverrides).toEqual({});
+    expect(reducer(removed, { type: "removeParticipant", id: "p-c" })).toBe(removed);
+  });
+
+  it("adds datasets to existing participants and removes only the ones users added", () => {
+    const state = reducer(seedState(), { type: "addDataset", dataset: { ...UPLOAD, participantId: "p-c" } });
+    expect(state.datasets[0]).toMatchObject({ id: "ds-new", participantId: "p-c" });
+    expect(reducer(state, { type: "addDataset", dataset: { ...UPLOAD, id: "ds-x", participantId: "p-nobody" } })).toBe(state);
+    const picked = reducer(ready(state), { type: "pickDataset", participantId: "p-c", datasetId: "ds-new" });
+    expect(picked.draft.participants).toContainEqual({ participantId: "p-c", datasetId: "ds-new" });
+    const removed = reducer(picked, { type: "removeDataset", id: "ds-new" });
+    expect(removed.datasets.some((dataset) => dataset.id === "ds-new")).toBe(false);
+    expect(removed.draft.participants.some((item) => item.participantId === "p-c")).toBe(false);
+    expect(reducer(removed, { type: "removeDataset", id: "ds-amc" })).toBe(removed);
   });
 });
 
@@ -106,9 +138,15 @@ describe("route", () => {
       { page: "apps" },
       { page: "app", id: "lib-1", tab: "try" },
       { page: "participants" },
-      { page: "participants", id: "p-amc" },
+      { page: "participants", id: "p-c" },
       { page: "newParticipant" },
       { page: "newParticipant", from: "newTask" },
+      { page: "datasets" },
+      { page: "datasets", id: "ds-amc" },
+      { page: "newDataset" },
+      { page: "newDataset", participant: "p-c" },
+      { page: "newDataset", participant: "p-c", from: "newTask" },
+      { page: "newDataset", from: "newTask" },
       { page: "algorithms" },
       { page: "algorithms", id: "fot" },
       { page: "models" },

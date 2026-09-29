@@ -1,6 +1,5 @@
 import { Fragment } from "react";
-import { DEFAULT_DRAFT } from "../domain/config";
-import { ALGORITHMS, algorithmsFor, paramText, scenarioOf, SCENARIOS, TASK_TYPES, type Algorithm } from "../domain/catalog";
+import { ALGORITHMS, algorithmsFor, defaultParams, paramText, scenarioOf, SCENARIOS, TASK_TYPES, type Algorithm } from "../domain/catalog";
 import { navigate } from "../state/route";
 import { Facts, PageHead, Tag } from "./common";
 import { Panel } from "./console";
@@ -84,7 +83,7 @@ function AlgorithmDetail({ algorithm }: { algorithm: Algorithm }) {
         ["服务端每轮", side("server")],
         ["参与方", `至少 ${algorithm.minParticipants} 个`],
         ["轮次", `${algorithm.minRounds}–${algorithm.maxRounds} 轮，第 1 轮是本地基线`],
-        ...algorithm.params.map((def) => [def.label, `默认：${paramText(def, DEFAULT_DRAFT).replace(/（默认）$/, "")}`] as const),
+        ...algorithm.params.map((def) => [def.label, `默认：${paramText(def, defaultParams(algorithm)).replace(/（默认）$/, "")}`] as const),
         ["来源", <a key="paper" className="text-link" href={algorithm.source.paperUrl} target="_blank" rel="noreferrer">论文 {algorithm.source.paper}</a>],
       ]} />
     </div>

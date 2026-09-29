@@ -31,7 +31,7 @@ export function ConfigTab({ task, state }: { task: Task; state: State }) {
           ["轮次", `${config.rounds} 轮`],
           ["样本", `${formatNumber(totalProblems(task))} 条`],
           ["参与方模型", model ? label(model) : "各参与方不同，见下表"],
-          ["服务端模型", label(config.serverModel)],
+          ...(algorithm.stages.some((stage) => stage.side === "server" && stage.model) ? [["服务端模型", label(config.serverModel)] as const] : []),
           ["并发数", String(config.workers)],
           ["随机种子", String(config.seed)],
           ["创建时间", formatDate(task.createdAt)],
@@ -40,7 +40,7 @@ export function ConfigTab({ task, state }: { task: Task; state: State }) {
       </Panel>
 
       <Panel title={`${algorithm.name} 算法参数`}>
-        <Facts className="facts--columns" items={algorithm.params.map((def) => [def.label, paramText(def, config)] as const)} />
+        <Facts className="facts--columns" items={algorithm.params.map((def) => [def.label, paramText(def, config.params)] as const)} />
       </Panel>
 
       <Panel title="参与方" extra={`${task.members.length} 个`} flush>
@@ -57,9 +57,9 @@ export function ConfigTab({ task, state }: { task: Task; state: State }) {
             </thead>
             <tbody>
               {task.members.map((member) => (
-                <tr key={member.datasetId}>
+                <tr key={member.participantId}>
                   <th scope="row">{member.participant}</th>
-                  <td className="col-optional">{state.datasets.find((dataset) => dataset.id === member.datasetId)?.description ?? member.dataset}</td>
+                  <td className="col-optional">{member.dataset}</td>
                   <td className="col-optional">{HOSTING_LABELS[member.hosting]}</td>
                   {model ? null : <td>{label(member.model)}</td>}
                   <td className="numeric">{member.problems}</td>

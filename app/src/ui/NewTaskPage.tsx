@@ -1,5 +1,19 @@
 import { useEffect, useId, useRef, useState, type Dispatch, type MouseEvent } from "react";
-import { algorithmOf, algorithmsFor, SCENARIOS, scenarioOf, TASK_TYPES, taskTypesFor, type Algorithm, type ParamDef, type ScenarioId, type TaskType } from "../domain/catalog";
+import {
+  algorithmOf,
+  algorithmsFor,
+  paramValue,
+  SCENARIOS,
+  scenarioOf,
+  TASK_TYPES,
+  taskTypesFor,
+  type Algorithm,
+  type ParamDef,
+  type ParamValue,
+  type Params,
+  type ScenarioId,
+  type TaskType,
+} from "../domain/catalog";
 import {
   activeOverrides,
   compatibleDatasets,
@@ -7,25 +21,39 @@ import {
   defaultTaskName,
   draftIssues,
   estimate,
+  joinable,
   toConfig,
   type Draft,
   type Estimate,
   type RunMode,
 } from "../domain/config";
-import { DEFAULT_ENDPOINT_ID, DEFAULT_MODEL, endpointOf, HOSTING_LABELS, isConfigured, modelLabel, modelOptions, PARTICIPANT_STATUS, usable, type Dataset } from "../domain/resources";
+import {
+  DEFAULT_ENDPOINT_ID,
+  DEFAULT_MODEL,
+  endpointOf,
+  HOSTING_LABELS,
+  isConfigured,
+  modelLabel,
+  modelOptions,
+  PARTICIPANT_STATUS,
+  type Dataset,
+  type Participant,
+} from "../domain/resources";
 import { flashFor, showFlash } from "../state/flash";
 import { newId } from "../state/ids";
 import { hrefOf, navigate, type Route } from "../state/route";
-import { participantOf, type Action, type State } from "../state/store";
-import { Collapsible, Confirm, Meta, Notice, PageHead, Tag } from "./common";
+import { datasetsOf, participantOf, type Action, type State } from "../state/store";
+import { Collapsible, Confirm, Meta, Notice, PageHead, PanelEmpty, Tag } from "./common";
 import { Choices, Field, FieldGroup, Panel, UnitInput } from "./console";
 import { formatDuration, formatNumber, formatTokens, formatYuan } from "./format";
 import { Icon } from "./icons";
+import { usageText } from "./labels";
 
 type Props = { state: State; dispatch: Dispatch<Action>; scenario?: ScenarioId };
 
-/** 从新建任务出发去新增参与方、配置接口，保存后回到这里。 */
+/** 从新建任务出发去新增参与方、数据集，配置接口，保存后回到这里。 */
 const NEW_PARTICIPANT: Route = { page: "newParticipant", from: "newTask" };
+const NEW_DATASET: Route = { page: "newDataset", from: "newTask" };
 const endpointRoute = (id: string): Route => ({ page: "editEndpoint", id, from: "newTask" });
 
 type Restored = { kind: "copy"; source: string } | { kind: "draft" } | null;
@@ -65,11 +93,19 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
 
   const update = (patch: Partial<Draft>) => dispatch({ type: "updateDraft", patch });
   const algorithm = draft.algorithm ? algorithmOf(draft.algorithm) : null;
-  const candidates = algorithm && draft.taskType ? compatibleDatasets(draft.taskType, state.datasets) : [];
-  const selected = candidates.filter((dataset) => draft.datasetIds.includes(dataset.id) && usable(dataset, state.participants));
+  // 能参加的参与方：名下有登记在这个场景、这种任务类型下的数据集。
+  const scenarioId = draft.scenario;
+  const taskType = draft.taskType;
+  const candidates: Candidate[] = algorithm && scenarioId && taskType
+    ? state.participants.flatMap((participant) => {
+      const datasets = compatibleDatasets(scenarioId, taskType, datasetsOf(state, participant.id));
+      return datasets.length ? [{ participant, datasets }] : [];
+    })
+    : [];
+  const joined = joinable(draft, state.datasets, state.participants);
   const issues = draftIssues(draft, state.datasets, state.participants, state.endpoints);
-  const config = toConfig(draft);
-  const result = config && selected.length ? estimate(config, state.datasets, state.endpoints) : null;
+  const config = toConfig({ ...draft, participants: joined });
+  const result = config && joined.length ? estimate(config, state.datasets, state.endpoints) : null;
   const full = draft.mode === "full";
   const autoName = defaultTaskName(draft, openedAt);
   const overrideCount = Object.keys(activeOverrides(draft)).length;
@@ -117,7 +153,7 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
       title: "开始正式运行？",
       text: (
         <>
-          <Meta parts={[`${selected.length} 个参与方`, `${formatNumber(result.problems)} 条样本`, `${draft.rounds} 轮`]} />
+          <Meta parts={[`${joined.length} 个参与方`, `${formatNumber(result.problems)} 条样本`, `${draft.rounds} 轮`]} />
           <Meta parts={[formatDuration(result.seconds), cost]} />
           <span>创建后配置不能修改，运行中可以暂停或取消。</span>
         </>
@@ -184,15 +220,24 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
             </div>
           </Panel>
 
-          {algorithm ? (
+          {algorithm && scenarioId && taskType ? (
             <Panel
-              title="参与方与数据"
-              id="data"
-              extra={`已选 ${selected.length} 个`}
-              actions={<a className="button button--secondary button--compact" href={hrefOf(NEW_PARTICIPANT)}><Icon name="plus" />新增参与方</a>}
+              title="参与方"
+              id="participants"
+              extra={`已选 ${joined.length} 个`}
+              actions={(
+                <>
+                  <a className="button button--secondary button--compact" href={hrefOf(NEW_DATASET)}><Icon name="plus" />新增数据集</a>
+                  <a className="button button--secondary button--compact" href={hrefOf(NEW_PARTICIPANT)}><Icon name="plus" />新增参与方</a>
+                </>
+              )}
               flush
             >
-              <DataTable state={state} dispatch={dispatch} candidates={candidates} selected={selected} />
+              {candidates.length ? (
+                <ParticipantTable draft={draft} dispatch={dispatch} candidates={candidates} />
+              ) : (
+                <PanelEmpty>还没有参与方登记了“{usageText(scenarioId, taskType)}”的数据集。</PanelEmpty>
+              )}
             </Panel>
           ) : null}
 
@@ -202,7 +247,7 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
             </Panel>
           ) : null}
 
-          {algorithm ? <AdvancedPanel state={state} draft={draft} update={update} algorithm={algorithm} selected={selected} /> : null}
+          {algorithm ? <AdvancedPanel state={state} draft={draft} update={update} algorithm={algorithm} joined={joined.map((item) => item.participantId)} /> : null}
         </div>
 
         <aside className="order-summary" aria-label="配置摘要" id="task-summary">
@@ -211,12 +256,12 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
               <div><dt>场景</dt><dd>{draft.scenario ? scenarioOf(draft.scenario).short : "—"}</dd></div>
               <div><dt>任务类型</dt><dd>{draft.taskType ? TASK_TYPES[draft.taskType].label : "—"}</dd></div>
               <div><dt>算法</dt><dd>{algorithm ? algorithm.name : "—"}</dd></div>
-              <div><dt>参与方</dt><dd>{selected.length ? `${selected.length} 个` : "—"}</dd></div>
+              <div><dt>参与方</dt><dd>{joined.length ? `${joined.length} 个` : "—"}</dd></div>
               {algorithm ? (
                 <>
                   <div><dt>样本</dt><dd>{result ? `${formatNumber(result.problems)} 条${full ? "" : `（每份前 ${draft.trialCap} 条）`}` : "—"}</dd></div>
                   <div><dt>运行</dt><dd>{full ? "正式运行" : "试跑"} · {draft.rounds} 轮</dd></div>
-                  <div><dt>模型</dt><dd>{modelSummary(draft, state)}</dd></div>
+                  <div><dt>模型</dt><dd>{modelSummary(draft, state, algorithm)}</dd></div>
                   {overrideCount ? <div><dt>单独指定</dt><dd>{overrideCount} 个参与方</dd></div> : null}
                 </>
               ) : null}
@@ -244,7 +289,7 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
       ) : (
         <div className="order-bar" aria-label="创建任务">
           <div>
-            <strong className={issues.length ? "order-bar-issue" : undefined}>{issues.length ? `还需要：${issues[0].message}` : `${selected.length} 个参与方 · 约 ${formatNumber(result?.participantCalls ?? 0)} 次调用`}</strong>
+            <strong className={issues.length ? "order-bar-issue" : undefined}>{issues.length ? `还需要：${issues[0].message}` : `${joined.length} 个参与方 · 约 ${formatNumber(result?.participantCalls ?? 0)} 次调用`}</strong>
             {result && !issues.length ? <small>{formatDuration(result.seconds)}</small> : null}
           </div>
           <div className="order-bar-actions">
@@ -313,36 +358,40 @@ function AlgorithmTable({ algorithms, value, onChange }: { algorithms: readonly 
   );
 }
 
-/** 点行里任意位置都能选中；点到输入框和它的标签时交给浏览器处理，避免切换两次。 */
+/** 点行里任意位置都能选中；点到输入框、下拉框和标签时交给浏览器处理，避免切换两次。 */
 function rowToggle(enabled: boolean, toggle: () => void) {
   return (event: MouseEvent<HTMLTableRowElement>) => {
-    if (!enabled || (event.target as HTMLElement).closest("input, label, a, button")) return;
+    if (!enabled || (event.target as HTMLElement).closest("input, select, label, a, button")) return;
     toggle();
   };
 }
 
-/** 参与方与数据：带复选框的表格，表头可以全选；还不能参加的参与方写明状态，并能点进去查看。 */
-function DataTable({
-  state, dispatch, candidates, selected,
-}: {
-  state: State;
-  dispatch: Dispatch<Action>;
-  candidates: Dataset[];
-  selected: Dataset[];
-}) {
+type Candidate = { participant: Participant; datasets: Dataset[] };
+
+/**
+ * 参与方：带复选框的表格，一行一个参与方，表头可以全选。每个参与方出一份数据集，
+ * 名下有几份能用的数据集时在行里选用哪一份。还不能参加的（等待连接、离线）写明状态，并能点进去查看。
+ */
+function ParticipantTable({ draft, dispatch, candidates }: { draft: Draft; dispatch: Dispatch<Action>; candidates: readonly Candidate[] }) {
   const head = useRef<HTMLInputElement>(null);
-  const usableIds = candidates.filter((dataset) => usable(dataset, state.participants)).map((dataset) => dataset.id);
-  // 能选的排在前面，还不能参加的（等待连接、离线）放在后面。
-  const rows = [...candidates].sort((a, b) => Number(!usable(a, state.participants)) - Number(!usable(b, state.participants)));
-  const chosen = new Set(selected.map((dataset) => dataset.id));
-  const all = usableIds.length > 0 && usableIds.every((id) => chosen.has(id));
-  const some = !all && selected.length > 0;
+  const picks = new Map(draft.participants.map((item) => [item.participantId, item.datasetId]));
+  const online = candidates.filter((item) => item.participant.status === "online");
+  const chosen = online.filter((item) => picks.has(item.participant.id)).length;
+  const all = online.length > 0 && chosen === online.length;
+  const some = !all && chosen > 0;
+  // 能选的排在前面，还不能参加的放在后面。
+  const rows = [...candidates].sort((a, b) => Number(a.participant.status !== "online") - Number(b.participant.status !== "online"));
 
   useEffect(() => {
     if (head.current) head.current.indeterminate = some;
   }, [some]);
 
-  const waiting = state.participants.filter((participant) => participant.status !== "online" && !state.datasets.some((dataset) => dataset.participantId === participant.id));
+  function selectAll() {
+    dispatch({
+      type: "setParticipants",
+      participants: all ? [] : online.map(({ participant, datasets }) => ({ participantId: participant.id, datasetId: picks.get(participant.id) ?? datasets[0].id })),
+    });
+  }
 
   return (
     <div className="table-shell">
@@ -351,55 +400,56 @@ function DataTable({
         <thead>
           <tr>
             <th scope="col" className="select-cell">
-              <input ref={head} type="checkbox" aria-label="全选" checked={all} disabled={!usableIds.length} onChange={() => dispatch({ type: "setDatasets", datasetIds: all ? [] : usableIds })} />
+              <input ref={head} type="checkbox" aria-label="全选" checked={all} disabled={!online.length} onChange={selectAll} />
             </th>
             <th scope="col">参与方</th>
-            <th scope="col" className="col-optional">数据集</th>
-            <th scope="col" className="numeric">样本</th>
+            {/* 手机上也要看得到、选得了数据集，收起的是样本数和运行位置 */}
+            <th scope="col">数据集</th>
+            <th scope="col" className="numeric col-optional">样本</th>
             <th scope="col" className="col-optional">运行位置</th>
             <th scope="col">状态</th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((dataset) => {
-            const owner = participantOf(state, dataset.participantId);
-            const enabled = usable(dataset, state.participants);
-            const checked = enabled && chosen.has(dataset.id);
-            const toggle = () => dispatch({ type: "toggleDataset", datasetId: dataset.id });
-            const inputId = `pick-${dataset.id}`;
+          {rows.map(({ participant, datasets }) => {
+            const enabled = participant.status === "online";
+            const pickedId = picks.get(participant.id);
+            const checked = enabled && pickedId !== undefined;
+            const shown = datasets.find((dataset) => dataset.id === pickedId) ?? datasets[0];
+            const toggle = () => dispatch({ type: "pickDataset", participantId: participant.id, datasetId: checked ? null : shown.id });
+            const inputId = `pick-${participant.id}`;
             return (
-              <tr key={dataset.id} className={`select-row${checked ? " select-row--checked" : ""}${enabled ? "" : " select-row--disabled"}`} onClick={rowToggle(enabled, toggle)}>
+              <tr key={participant.id} className={`select-row${checked ? " select-row--checked" : ""}${enabled ? "" : " select-row--disabled"}`} onClick={rowToggle(enabled, toggle)}>
                 <td className="select-cell"><input id={inputId} type="checkbox" checked={checked} disabled={!enabled} onChange={toggle} /></td>
-                <th scope="row"><label htmlFor={inputId}>{owner?.name ?? dataset.name}</label></th>
-                <td className="col-optional">{dataset.description || dataset.name}</td>
-                <td className="numeric">{dataset.source === "local" ? "—" : formatNumber(dataset.count)}</td>
-                <td className="col-optional">{owner ? HOSTING_LABELS[owner.hosting] : "—"}</td>
+                <th scope="row"><label htmlFor={inputId}>{participant.name}</label></th>
                 <td>
-                  {owner && owner.status !== "online" ? (
+                  {datasets.length > 1 ? (
+                    <select
+                      className="cell-select"
+                      name={`dataset-${participant.id}`}
+                      aria-label={`${participant.name} 用的数据集`}
+                      value={shown.id}
+                      disabled={!enabled}
+                      // 选了数据集就是要让这个参与方参加。
+                      onChange={(event) => dispatch({ type: "pickDataset", participantId: participant.id, datasetId: event.target.value })}
+                    >
+                      {datasets.map((dataset) => <option key={dataset.id} value={dataset.id}>{dataset.name}</option>)}
+                    </select>
+                  ) : shown.name}
+                </td>
+                <td className="numeric col-optional">{shown.source === "local" ? "—" : formatNumber(shown.count)}</td>
+                <td className="col-optional">{HOSTING_LABELS[participant.hosting]}</td>
+                <td>
+                  {enabled ? <span className="status-text">可用</span> : (
                     <span className="cell-title">
-                      <Tag tone="warning">{PARTICIPANT_STATUS[owner.status]}</Tag>
-                      <a className="text-link" href={hrefOf({ page: "participants", id: owner.id })}>查看</a>
+                      <Tag tone="warning">{PARTICIPANT_STATUS[participant.status]}</Tag>
+                      <a className="text-link" href={hrefOf({ page: "participants", id: participant.id })}>查看</a>
                     </span>
-                  ) : <span className="status-text">可用</span>}
+                  )}
                 </td>
               </tr>
             );
           })}
-          {waiting.map((participant) => (
-            <tr key={participant.id} className="select-row select-row--disabled">
-              <td className="select-cell"><input type="checkbox" disabled aria-label={`${participant.name}（${PARTICIPANT_STATUS[participant.status]}，暂不能选）`} /></td>
-              <th scope="row">{participant.name}</th>
-              <td className="col-optional">—</td>
-              <td className="numeric">—</td>
-              <td className="col-optional">{HOSTING_LABELS[participant.hosting]}</td>
-              <td>
-                <span className="cell-title">
-                  <Tag tone="warning">{PARTICIPANT_STATUS[participant.status]}</Tag>
-                  <a className="text-link" href={hrefOf({ page: "participants", id: participant.id })}>查看</a>
-                </span>
-              </td>
-            </tr>
-          ))}
         </tbody>
       </table>
     </div>
@@ -410,6 +460,11 @@ const MODES: readonly { value: RunMode; label: string }[] = [
   { value: "trial", label: "试跑" },
   { value: "full", label: "正式运行" },
 ];
+
+/** 服务端有没有调用模型的步骤；没有的算法不用选服务端模型。 */
+function serverUsesModel(algorithm: Algorithm): boolean {
+  return algorithm.stages.some((stage) => stage.side === "server" && stage.model);
+}
 
 function RunSettings({
   state, draft, update, algorithm,
@@ -445,11 +500,13 @@ function RunSettings({
                 {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
               </select>
             </Field>
-            <Field label="服务端模型" htmlFor="server-model" info="服务端每轮要读完各方上传的内容，需要长上下文的模型。">
-              <select id="server-model" name="server-model" value={draft.serverModel} onChange={(event) => update({ serverModel: event.target.value })}>
-                {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
-              </select>
-            </Field>
+            {serverUsesModel(algorithm) ? (
+              <Field label="服务端模型" htmlFor="server-model" info="服务端每轮要读完各方上传的内容，需要长上下文的模型。">
+                <select id="server-model" name="server-model" value={draft.serverModel} onChange={(event) => update({ serverModel: event.target.value })}>
+                  {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
+                </select>
+              </Field>
+            ) : null}
           </>
         )}
       </FieldGroup>
@@ -470,19 +527,22 @@ function ModelField({ state }: { state: State }) {
   );
 }
 
-const ADVANCED_KEYS = ["insightTarget", "traceDensity", "maxTracesPerItem", "aggregationRetries", "seed", "workers"] as const;
+const GENERAL_KEYS = ["seed", "workers"] as const;
 
 /** 高级配置默认收起：算法参数按注册表生成，另有几项通用设置。 */
 function AdvancedPanel({
-  state, draft, update, algorithm, selected,
+  state, draft, update, algorithm, joined,
 }: {
   state: State;
   draft: Draft;
   update: (patch: Partial<Draft>) => void;
   algorithm: Algorithm;
-  selected: Dataset[];
+  /** 已选的参与方 id。 */
+  joined: readonly string[];
 }) {
-  const changed = ADVANCED_KEYS.filter((key) => draft[key] !== DEFAULT_DRAFT[key]).length + Object.keys(activeOverrides(draft)).length;
+  const changed = algorithm.params.filter((def) => paramValue(def, draft.params) !== def.default).length
+    + GENERAL_KEYS.filter((key) => draft[key] !== DEFAULT_DRAFT[key]).length
+    + Object.keys(activeOverrides(draft)).length;
   // 只有一个模型时没有可指定的，不显示这一项。
   const canOverride = modelOptions(state.endpoints).length > 1;
   return (
@@ -493,7 +553,9 @@ function AdvancedPanel({
     >
       <div className="form-body">
         <FieldGroup title={`${algorithm.name} 算法参数`}>
-          {algorithm.params.map((def) => <ParamField key={def.key} def={def} draft={draft} update={update} />)}
+          {algorithm.params.map((def) => (
+            <ParamField key={def.key} def={def} params={draft.params} onChange={(value) => update({ params: { ...draft.params, [def.key]: value } })} />
+          ))}
         </FieldGroup>
         <FieldGroup title="通用">
           <Field label="并发数" htmlFor="workers" info="同时发出的模型调用数，所有参与方共用。">
@@ -504,7 +566,7 @@ function AdvancedPanel({
           </Field>
           {canOverride ? (
             <Field label="单独指定模型" labelId="overrides-label" wide>
-              <ModelOverrides state={state} draft={draft} update={update} selected={selected} />
+              <ModelOverrides state={state} draft={draft} update={update} joined={joined} />
             </Field>
           ) : null}
         </FieldGroup>
@@ -514,21 +576,21 @@ function AdvancedPanel({
 }
 
 /** 按注册表里的参数定义生成一个字段：下拉或数字输入；解释来自注册表，点"说明"才展开。 */
-function ParamField({ def, draft, update }: { def: ParamDef; draft: Draft; update: (patch: Partial<Draft>) => void }) {
+function ParamField({ def, params, onChange }: { def: ParamDef; params: Params; onChange: (value: ParamValue) => void }) {
   const id = `param-${def.key}`;
+  const value = paramValue(def, params);
   if (def.kind === "number") {
-    const value = draft[def.key];
+    const current = typeof value === "number" ? value : def.default;
     return (
       <Field label={def.label} htmlFor={id} info={def.help}>
-        <UnitInput id={id} unit={def.unit} name={def.key} type="number" inputMode="numeric" autoComplete="off" min={def.min} max={def.max} value={value} onChange={(event) => update({ [def.key]: clampInt(event.target.value, def.min, def.max, value) })} />
+        <UnitInput id={id} unit={def.unit} name={def.key} type="number" inputMode="numeric" autoComplete="off" min={def.min} max={def.max} value={current} onChange={(event) => onChange(clampInt(event.target.value, def.min, def.max, current))} />
       </Field>
     );
   }
   if (def.kind === "select-number") {
-    const value = draft[def.key];
     return (
       <Field label={def.label} htmlFor={id} info={def.help}>
-        <select id={id} name={def.key} value={value ?? ""} onChange={(event) => update({ [def.key]: event.target.value ? Number(event.target.value) : null })}>
+        <select id={id} name={def.key} value={value ?? ""} onChange={(event) => onChange(event.target.value ? Number(event.target.value) : null)}>
           {def.options.map((option) => <option key={String(option.value)} value={option.value ?? ""}>{option.label}</option>)}
         </select>
       </Field>
@@ -536,7 +598,7 @@ function ParamField({ def, draft, update }: { def: ParamDef; draft: Draft; updat
   }
   return (
     <Field label={def.label} htmlFor={id} info={def.help}>
-      <select id={id} name={def.key} value={draft[def.key]} onChange={(event) => update({ [def.key]: event.target.value } as Partial<Draft>)}>
+      <select id={id} name={def.key} value={String(value ?? def.default)} onChange={(event) => onChange(event.target.value)}>
         {def.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
     </Field>
@@ -545,64 +607,60 @@ function ParamField({ def, draft, update }: { def: ParamDef; draft: Draft; updat
 
 /** 默认所有参与方用同一个模型；需要时逐条添加例外。每条一行：参与方、模型、移除。 */
 function ModelOverrides({
-  state, draft, update, selected,
+  state, draft, update, joined,
 }: {
   state: State;
   draft: Draft;
   update: (patch: Partial<Draft>) => void;
-  selected: Dataset[];
+  joined: readonly string[];
 }) {
   const options = modelOptions(state.endpoints);
   const overrides = activeOverrides(draft);
-  const entries = Object.entries(overrides);
-  const free = selected.filter((dataset) => !(dataset.id in overrides));
-  const nameOf = (dataset: Dataset) => participantOf(state, dataset.participantId)?.name ?? dataset.name;
+  const entries = Object.entries(overrides).filter(([id]) => joined.includes(id));
+  const free = joined.filter((id) => !(id in overrides));
+  const nameOf = (id: string) => participantOf(state, id)?.name ?? id;
   const set = (next: Record<string, string>) => update({ clientOverrides: next });
 
-  if (!selected.length) return <p className="field-static">先在“参与方与数据”里选择参与方</p>;
+  if (!joined.length) return <p className="field-static">先在“参与方”里选择参与方</p>;
   return (
     <div className="override-editor">
       {entries.length ? (
         <div className="override-list" role="group" aria-labelledby="overrides-label">
           <div className="override-row override-head" aria-hidden="true"><span>参与方</span><span>模型</span><span /></div>
-          {entries.map(([datasetId, ref]) => {
-            const dataset = selected.find((item) => item.id === datasetId);
-            if (!dataset) return null;
-            return (
-              <div key={datasetId} className="override-row">
-                <select
-                  aria-label="参与方"
-                  value={datasetId}
-                  onChange={(event) => {
-                    const next = { ...overrides };
-                    delete next[datasetId];
-                    set({ ...next, [event.target.value]: ref });
-                  }}
-                >
-                  {[dataset, ...free].map((item) => <option key={item.id} value={item.id}>{nameOf(item)}</option>)}
-                </select>
-                <select aria-label={`${nameOf(dataset)} 使用的模型`} value={ref} onChange={(event) => set({ ...overrides, [datasetId]: event.target.value })}>
-                  {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
-                </select>
-                <button
-                  type="button"
-                  className="button button--ghost"
-                  aria-label={`移除 ${nameOf(dataset)} 的单独设置`}
-                  onClick={() => {
-                    const next = { ...overrides };
-                    delete next[datasetId];
-                    set(next);
-                  }}
-                >
-                  移除
-                </button>
-              </div>
-            );
-          })}
+          {entries.map(([participantId, ref]) => (
+            <div key={participantId} className="override-row">
+              <select
+                aria-label="参与方"
+                value={participantId}
+                onChange={(event) => {
+                  const next = { ...overrides };
+                  delete next[participantId];
+                  set({ ...next, [event.target.value]: ref });
+                }}
+              >
+                {[participantId, ...free].map((id) => <option key={id} value={id}>{nameOf(id)}</option>)}
+              </select>
+              <select aria-label={`${nameOf(participantId)} 使用的模型`} value={ref} onChange={(event) => set({ ...overrides, [participantId]: event.target.value })}>
+                {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
+              </select>
+              <button
+                type="button"
+                className="button button--ghost"
+                aria-label={`移除 ${nameOf(participantId)} 的单独设置`}
+                onClick={() => {
+                  const next = { ...overrides };
+                  delete next[participantId];
+                  set(next);
+                }}
+              >
+                移除
+              </button>
+            </div>
+          ))}
         </div>
       ) : null}
       {free.length ? (
-        <button type="button" className="button button--secondary button--compact" onClick={() => set({ ...overrides, [free[0].id]: draft.clientModel })}>
+        <button type="button" className="button button--secondary button--compact" onClick={() => set({ ...overrides, [free[0]]: draft.clientModel })}>
           <Icon name="plus" />为某个参与方指定
         </button>
       ) : null}
@@ -615,8 +673,9 @@ function clampInt(raw: string, min: number, max: number, fallback: number): numb
   return Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
 }
 
-function modelSummary(draft: Draft, state: State): string {
+function modelSummary(draft: Draft, state: State, algorithm: Algorithm): string {
   const client = modelLabel(draft.clientModel, state.endpoints);
+  if (!serverUsesModel(algorithm)) return client;
   const server = modelLabel(draft.serverModel, state.endpoints);
   return client === server ? client : `参与方 ${client}；服务端 ${server}`;
 }

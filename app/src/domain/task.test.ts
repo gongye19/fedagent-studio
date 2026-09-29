@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { FOT_STAGES } from "./catalog";
-import { toConfig, withDefaults, type Draft } from "./config";
+import { toConfig, withDefaults, type Draft, type TaskParticipant } from "./config";
 import { BUILTIN_DATASETS, BUILTIN_PARTICIPANTS } from "./resources";
 import {
   averageAccuracy,
   cancel,
   changeOf,
   createTask,
-  libraries,
   negativeTransfer,
+  outputs,
   pause,
   progressOf,
   resume,
@@ -21,12 +21,18 @@ import { seedState } from "../state/seed";
 
 const NOW = "2026-09-28T10:00:00+08:00";
 
+/** 参与方 A、C、D 各出自己的数据集（AIME24、AMC、CCEE）。 */
+const PICKS: TaskParticipant[] = ["ds-aime24", "ds-amc", "ds-ccee"].map((id) => {
+  const dataset = BUILTIN_DATASETS.find((item) => item.id === id)!;
+  return { participantId: dataset.participantId, datasetId: dataset.id };
+});
+
 function newTask(patch: Partial<Draft> = {}): Task {
   const config = toConfig(withDefaults({
     scenario: "horizontal",
     taskType: "math-reasoning",
     algorithm: "fot",
-    datasetIds: ["ds-aime24", "ds-amc", "ds-ccee"],
+    participants: PICKS,
     ...patch,
   }))!;
   return createTask({ id: "t1", name: "测试", createdAt: NOW, config, datasets: BUILTIN_DATASETS, participants: BUILTIN_PARTICIPANTS });
@@ -39,14 +45,19 @@ function runToEnd(task: Task): Task {
 }
 
 describe("task", () => {
-  it("freezes members with trial caps and their models", () => {
-    const task = newTask({ mode: "trial", trialCap: 5, clientOverrides: { "ds-amc": "lab:m1" } });
-    expect(task.members.map((member) => [member.dataset, member.problems, member.model])).toEqual([
-      ["AIME24", 5, "default"],
-      ["AMC", 5, "lab:m1"],
-      ["CCEE", 5, "default"],
+  it("freezes each participant with its dataset, trial cap and model", () => {
+    const task = newTask({ mode: "trial", trialCap: 5, clientOverrides: { "p-c": "lab:m1" } });
+    expect(task.members.map((member) => [member.participant, member.dataset, member.problems, member.model])).toEqual([
+      ["参与方 A", "AIME24", 5, "default"],
+      ["参与方 C", "AMC", 5, "lab:m1"],
+      ["参与方 D", "CCEE", 5, "default"],
     ]);
     expect(task.cursor).toEqual({ round: 1, stage: "solve", done: {}, ticks: 0 });
+  });
+
+  it("skips picks whose dataset does not belong to the participant", () => {
+    const task = newTask({ participants: [...PICKS, { participantId: "p-b", datasetId: "ds-amc" }] });
+    expect(task.members.map((member) => member.participantId)).toEqual(["p-a", "p-c", "p-d"]);
   });
 
   it("runs every stage of every round and records results", () => {
@@ -55,18 +66,19 @@ describe("task", () => {
     expect(done.cursor).toBeNull();
     expect(done.rounds.map((record) => record.round)).toEqual([1, 2, 3]);
     for (const record of done.rounds) {
-      expect(Object.keys(record.correct ?? {})).toHaveLength(3);
-      expect(Object.keys(record.traces ?? {})).toHaveLength(3);
-      expect(record.library?.insights.length).toBeGreaterThan(0);
+      expect(Object.keys(record.correct ?? {})).toEqual(["p-a", "p-c", "p-d"]);
+      expect(Object.keys(record.uploads ?? {})).toHaveLength(3);
+      expect(record.groups?.length).toBeGreaterThan(0);
+      expect(record.output?.items.length).toBeGreaterThan(0);
       expect(record.tokens).toBeGreaterThan(0);
     }
     expect(progressOf(done)).toBe(1);
     expect(totalTokens(done)).toBeGreaterThan(0);
   });
 
-  it("keeps each library version inside the next one", () => {
+  it("keeps each output version inside the next one", () => {
     const done = runToEnd(newTask({ mode: "full", rounds: 3 }));
-    const versions = libraries(done).map((library) => library.insights.map((insight) => insight.key));
+    const versions = outputs(done).map((output) => output.items.map((item) => item.key));
     expect(versions).toHaveLength(3);
     versions.slice(1).forEach((keys, index) => {
       expect(keys.length).toBeGreaterThanOrEqual(versions[index].length);
@@ -105,7 +117,7 @@ describe("task", () => {
 describe("metrics on the seeded paper task", () => {
   const task = seedState().tasks.find((item) => item.id === "task-paper-math8")!;
 
-  it("reports round 1 as the local baseline and round 3 with the library", () => {
+  it("reports round 1 as the local baseline and round 3 with the shared output", () => {
     expect(averageAccuracy(task, 1)).toBeCloseTo(0.4069, 3);
     expect(averageAccuracy(task, 3)).toBeCloseTo(0.4648, 3);
   });
@@ -117,17 +129,17 @@ describe("metrics on the seeded paper task", () => {
   });
 });
 
-describe("sample clusters", () => {
-  it("assigns every uploaded trace to exactly one cluster", () => {
-    let task = newTask({ mode: "full", rounds: 2 });
-    for (let guard = 0; guard < 1000 && task.status === "running"; guard += 1) task = tick(task, NOW);
+describe("sample groups", () => {
+  it("assigns every upload to exactly one group", () => {
+    const task = runToEnd(newTask({ mode: "full", rounds: 2 }));
     for (const record of task.rounds) {
-      const clusters = record.library!.clusters;
+      const groups = record.groups!;
       for (const member of task.members) {
-        const assigned = clusters.reduce((sum, cluster) => sum + (cluster.traces[member.datasetId] ?? 0), 0);
-        expect(assigned).toBe(record.traces![member.datasetId]);
+        const assigned = groups.reduce((sum, group) => sum + (group.uploads[member.participantId] ?? 0), 0);
+        expect(assigned).toBe(record.uploads![member.participantId]);
       }
-      expect(clusters.reduce((sum, cluster) => sum + Object.values(cluster.traces).reduce((a, b) => a + b, 0), 0)).toBe(record.library!.traceCount);
+      const total = groups.reduce((sum, group) => sum + Object.values(group.uploads).reduce((a, b) => a + b, 0), 0);
+      expect(total).toBe(record.output!.uploadCount);
     }
   });
 });

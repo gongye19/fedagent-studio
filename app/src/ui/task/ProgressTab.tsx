@@ -1,6 +1,6 @@
 import { useRef, useState, type KeyboardEvent } from "react";
 import type { Stage } from "../../domain/catalog";
-import { sampleTraceTexts } from "../../domain/sample";
+import { DEMO_RUNS, sampleUploadTexts } from "../../domain/sample";
 import { averageAccuracy, roundOf, stageSeconds, stepState, type RoundRecord, type StepState, type Task } from "../../domain/task";
 import { ProgressBar } from "../common";
 import { Panel } from "../console";
@@ -30,8 +30,8 @@ function stopTone(task: Task): "" | "paused" | "canceled" {
 function roundSummary(task: Task, record: RoundRecord | undefined): string {
   if (!record) return "";
   const output = algorithmOfTask(task).output;
-  const parts = [`${metricOf(task)} ${formatPercent(averageAccuracy(task, record.round))}`, `上传 ${formatNumber(sum(record.traces))} 条`];
-  if (record.library) parts.push(`${output.name} ${record.library.insights.length} 条`);
+  const parts = [`${metricOf(task)} ${formatPercent(averageAccuracy(task, record.round))}`, `上传 ${formatNumber(sum(record.uploads))} 条`];
+  if (record.output) parts.push(`${output.name} ${record.output.items.length} 条`);
   return parts.join(" · ");
 }
 
@@ -133,13 +133,13 @@ function stepNote(task: Task, record: RoundRecord | undefined, stage: Stage, sta
     case "metric":
       return record ? `${metricOf(task)} ${formatPercent(averageAccuracy(task, record.round))}` : "完成";
     case "uploads":
-      return `上传 ${formatNumber(sum(record?.traces))} 条`;
+      return `上传 ${formatNumber(sum(record?.uploads))} 条`;
     case "received":
-      return `收到 ${formatNumber(sum(record?.traces))} 条`;
+      return `收到 ${formatNumber(sum(record?.uploads))} 条`;
     case "groups":
-      return record?.library ? `${record.library.clusters.length} 类` : "完成";
+      return record?.groups ? `${record.groups.length} 类` : "完成";
     case "output":
-      return record?.library ? `${record.library.insights.length} ${output.unit}` : "完成";
+      return record?.output ? `${record.output.items.length} ${output.unit}` : "完成";
     default:
       return "完成";
   }
@@ -180,9 +180,9 @@ function StepLine({ task, round, record }: { task: Task; round: number; record: 
           {group.side === "participant" && showMembers && cursor ? (
             <ul className="member-progress" aria-label="各参与方进度">
               {task.members.map((member) => {
-                const done = cursor.done[member.datasetId] ?? 0;
+                const done = cursor.done[member.participantId] ?? 0;
                 return (
-                  <li key={member.datasetId}>
+                  <li key={member.participantId}>
                     <span>{member.participant}</span>
                     <ProgressBar value={done / member.problems} label={`${member.participant} 的进度`} tone={tone === "paused" ? "warning" : tone === "canceled" ? "neutral" : "info"} />
                     <span className="member-count">{done} / {member.problems}</span>
@@ -202,14 +202,15 @@ function StepLine({ task, round, record }: { task: Task; round: number; record: 
  * 整张表只占一个 Tab 停靠点，用方向键在格子之间移动（和表格网格的键盘习惯一致）。
  */
 function Uploads({ task }: { task: Task }) {
-  const rounds = task.rounds.filter((record) => record.traces).map((record) => record.round);
-  const [cell, setCell] = useState<{ datasetId: string; round: number } | null>(null);
+  const rounds = task.rounds.filter((record) => record.uploads).map((record) => record.round);
+  const [cell, setCell] = useState<{ participantId: string; round: number } | null>(null);
   const grid = useRef<HTMLTableSectionElement>(null);
   if (!rounds.length) return <p className="section-empty">第 1 轮参与方步骤完成后，这里列出每个参与方上传的内容。</p>;
 
-  const active = cell ?? { datasetId: task.members[0].datasetId, round: rounds[rounds.length - 1] };
-  const member = task.members.find((item) => item.datasetId === active.datasetId) ?? task.members[0];
-  const count = task.rounds.find((record) => record.round === active.round)?.traces?.[member.datasetId] ?? 0;
+  const active = cell ?? { participantId: task.members[0].participantId, round: rounds[rounds.length - 1] };
+  const member = task.members.find((item) => item.participantId === active.participantId) ?? task.members[0];
+  const count = task.rounds.find((record) => record.round === active.round)?.uploads?.[member.participantId] ?? 0;
+  const pool = DEMO_RUNS[task.config.algorithm].pool;
   const allRounds = Array.from({ length: task.config.rounds }, (_, index) => index + 1).filter((round) => round <= Math.max(...rounds));
 
   function move(event: KeyboardEvent<HTMLButtonElement>, row: number, column: number) {
@@ -219,7 +220,7 @@ function Uploads({ task }: { task: Task }) {
     event.preventDefault();
     const nextRow = Math.min(task.members.length - 1, Math.max(0, row + step[0]));
     const nextColumn = Math.min(allRounds.length - 1, Math.max(0, column + step[1]));
-    setCell({ datasetId: task.members[nextRow].datasetId, round: allRounds[nextColumn] });
+    setCell({ participantId: task.members[nextRow].participantId, round: allRounds[nextColumn] });
     grid.current?.querySelector<HTMLButtonElement>(`[data-cell="${nextRow}-${nextColumn}"]`)?.focus();
   }
 
@@ -236,11 +237,11 @@ function Uploads({ task }: { task: Task }) {
           </thead>
           <tbody ref={grid}>
             {task.members.map((item, row) => (
-              <tr key={item.datasetId}>
+              <tr key={item.participantId}>
                 <th scope="row">{item.participant}</th>
                 {allRounds.map((round, column) => {
-                  const value = task.rounds.find((record) => record.round === round)?.traces?.[item.datasetId] ?? 0;
-                  const selected = active.datasetId === item.datasetId && active.round === round;
+                  const value = task.rounds.find((record) => record.round === round)?.uploads?.[item.participantId] ?? 0;
+                  const selected = active.participantId === item.participantId && active.round === round;
                   return (
                     <td key={round} className="numeric">
                       <button
@@ -250,7 +251,7 @@ function Uploads({ task }: { task: Task }) {
                         className={`cell-button${selected ? " cell-button--active" : ""}`}
                         aria-pressed={selected}
                         aria-label={`${item.participant} 第 ${round} 轮上传 ${value} 条，查看内容`}
-                        onClick={() => setCell({ datasetId: item.datasetId, round })}
+                        onClick={() => setCell({ participantId: item.participantId, round })}
                         onKeyDown={(event) => move(event, row, column)}
                       >
                         {formatNumber(value)}
@@ -267,8 +268,8 @@ function Uploads({ task }: { task: Task }) {
         <h3>{member.participant} · 第 {active.round} 轮</h3>
         <p className="section-meta">共 {formatNumber(count)} 条，这里展示 {Math.min(SHOWN, count)} 条示例</p>
         <ol className="trace-list">
-          {sampleTraceTexts(member.datasetId, active.round, Math.min(SHOWN, count)).map((trace) => (
-            <li key={trace.key} lang="en">{trace.text}</li>
+          {sampleUploadTexts(pool, member.datasetId, active.round, Math.min(SHOWN, count)).map((upload) => (
+            <li key={upload.key} lang="en">{upload.text}</li>
           ))}
         </ol>
       </div>

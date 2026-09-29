@@ -1,10 +1,11 @@
 /**
- * 演示环境的初始数据：8 个内置示例参与方（各持一份数学题库）、一个等待连接的本地参与方示例、
- * 预留的默认 LLM 接口（待配置）、一个已完成的示例任务（其最终经验库已发布为应用）和一个正在试跑的任务。
+ * 演示环境的初始数据：8 个内置示例参与方 A–H（各持一份数学题库，都登记在横向联邦 · 数学推理下）、
+ * 一个等待连接的本地参与方示例、预留的默认 LLM 接口（待配置）、
+ * 一个已完成的示例任务（其最终经验库已发布为应用）和一个正在试跑的任务。
  *
  * 任务都通过领域函数推进生成，与用户新建的任务走同一套规则。结果都是示例数据。
  */
-import { DEFAULT_DRAFT, toConfig, withDefaults, type Draft, type TaskConfig } from "../domain/config";
+import { DEFAULT_DRAFT, toConfig, withDefaults, type Draft, type TaskConfig, type TaskParticipant } from "../domain/config";
 import { BUILTIN_DATASETS, BUILTIN_PARTICIPANTS, DEFAULT_ENDPOINTS, type Dataset, type Participant } from "../domain/resources";
 import { completeStage, createTask, tick, type Task } from "../domain/task";
 import type { State } from "./store";
@@ -24,13 +25,14 @@ const LOCAL_EXAMPLE_DATASET: Dataset = {
   name: "合作方题库",
   participantId: LOCAL_EXAMPLE.id,
   description: "校内数学竞赛题",
+  scenario: "horizontal",
   taskType: "math-reasoning",
   count: 0,
   answered: 0,
   source: "local",
 };
 
-/** 已完成示例任务每份数据第 1–3 轮的答对题数。 */
+/** 已完成示例任务里每份数据集第 1–3 轮的答对题数。 */
 const PAPER_CORRECT: Record<string, readonly [number, number, number]> = {
   "ds-aime24": [9, 11, 12],
   "ds-aime25": [8, 9, 11],
@@ -41,6 +43,13 @@ const PAPER_CORRECT: Record<string, readonly [number, number, number]> = {
   "ds-v202412hard": [7, 8, 10],
   "ds-v202505hard": [31, 35, 38],
 };
+
+/** 内置示例参与方各出自己的那份数据集。 */
+function builtinPicks(datasetIds?: readonly string[]): TaskParticipant[] {
+  return BUILTIN_DATASETS
+    .filter((dataset) => !datasetIds || datasetIds.includes(dataset.id))
+    .map((dataset) => ({ participantId: dataset.participantId, datasetId: dataset.id }));
+}
 
 function seedConfig(patch: Partial<Draft>): TaskConfig {
   const config = toConfig(withDefaults({ scenario: "horizontal", taskType: "math-reasoning", algorithm: "fot", ...patch }));
@@ -59,7 +68,7 @@ function completedPaperTask(): Task {
     id: "task-paper-math8",
     name: "论文复现：数学 8 方",
     createdAt: "2026-09-26T10:02:00+08:00",
-    config: seedConfig({ mode: "full", rounds: 3, datasetIds: BUILTIN_DATASETS.map((dataset) => dataset.id) }),
+    config: seedConfig({ mode: "full", rounds: 3, participants: builtinPicks() }),
     datasets: BUILTIN_DATASETS,
     participants: BUILTIN_PARTICIPANTS,
   });
@@ -68,7 +77,7 @@ function completedPaperTask(): Task {
     ...finished,
     rounds: finished.rounds.map((record) => ({
       ...record,
-      correct: Object.fromEntries(Object.entries(PAPER_CORRECT).map(([id, values]) => [id, values[record.round - 1]])),
+      correct: Object.fromEntries(finished.members.map((member) => [member.participantId, PAPER_CORRECT[member.datasetId][record.round - 1]])),
     })),
   };
 }
@@ -78,7 +87,7 @@ function runningTrialTask(): Task {
     id: "task-trial-4",
     name: "快速试跑：4 个参与方",
     createdAt: "2026-09-28T15:30:00+08:00",
-    config: seedConfig({ mode: "trial", trialCap: 5, rounds: 2, datasetIds: ["ds-aime24", "ds-amc", "ds-ccee", "ds-cnmo"] }),
+    config: seedConfig({ mode: "trial", trialCap: 5, rounds: 2, participants: builtinPicks(["ds-aime24", "ds-amc", "ds-ccee", "ds-cnmo"]) }),
     datasets: BUILTIN_DATASETS,
     participants: BUILTIN_PARTICIPANTS,
   });
@@ -89,7 +98,7 @@ function runningTrialTask(): Task {
 
 export function seedState(): State {
   return {
-    version: 6,
+    version: 7,
     // 新登记的参与方排在前面，内置示例在后。
     participants: [{ ...LOCAL_EXAMPLE }, ...BUILTIN_PARTICIPANTS.map((item) => ({ ...item }))],
     datasets: [{ ...LOCAL_EXAMPLE_DATASET }, ...BUILTIN_DATASETS.map((item) => ({ ...item }))],

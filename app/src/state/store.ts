@@ -1,13 +1,27 @@
-// 页面状态：参与方与数据、模型接口、联邦任务、已发布的应用，以及新建任务的草稿。
+// 页面状态：参与方、数据集、模型接口、联邦任务、已发布的应用，以及新建任务的草稿。
 // 规则都在 domain/，这里只负责组合和查找。
 
-import { chooseAlgorithm, chooseScenario, chooseTaskType, DEFAULT_DRAFT, defaultTaskName, draftIssues, toConfig, toggleDataset, withDefaults, type Draft } from "../domain/config";
+import {
+  chooseAlgorithm,
+  chooseScenario,
+  chooseTaskType,
+  DEFAULT_DRAFT,
+  defaultTaskName,
+  draftIssues,
+  joinable,
+  pickDataset,
+  setParticipants,
+  toConfig,
+  withDefaults,
+  type Draft,
+  type TaskParticipant,
+} from "../domain/config";
 import type { AlgorithmId, ScenarioId, TaskType } from "../domain/catalog";
 import { DEFAULT_ENDPOINT_ID, type Dataset, type Endpoint, type Participant } from "../domain/resources";
 import { cancel, createTask, pause, resume, tick, type Task } from "../domain/task";
 import { seedState } from "./seed";
 
-export const STATE_VERSION = 6;
+export const STATE_VERSION = 7;
 
 export type Published = {
   id: string;
@@ -33,8 +47,9 @@ export type Action =
   | { type: "chooseScenario"; scenario: ScenarioId; auto?: boolean }
   | { type: "chooseTaskType"; taskType: TaskType }
   | { type: "chooseAlgorithm"; algorithm: AlgorithmId }
-  | { type: "toggleDataset"; datasetId: string }
-  | { type: "setDatasets"; datasetIds: string[] }
+  /** 选入、换掉（datasetId 换成另一份）或取消（null）某个参与方。 */
+  | { type: "pickDataset"; participantId: string; datasetId: string | null }
+  | { type: "setParticipants"; participants: TaskParticipant[] }
   | { type: "updateDraft"; patch: Partial<Draft> }
   | { type: "resetDraft"; draft?: Partial<Draft> }
   /** name：页面上显示的默认名称；草稿里没有填名称时用它。 */
@@ -48,6 +63,7 @@ export type Action =
   | { type: "unpublish"; id: string }
   | { type: "addParticipant"; participant: Participant; dataset?: Dataset }
   | { type: "addDataset"; dataset: Dataset }
+  | { type: "removeDataset"; id: string }
   | { type: "removeParticipant"; id: string }
   | { type: "addEndpoint"; endpoint: Endpoint }
   | { type: "updateEndpoint"; id: string; patch: Partial<Omit<Endpoint, "id">> }
@@ -66,6 +82,10 @@ export function datasetsOf(state: State, participantId: string): Dataset[] {
   return state.datasets.filter((dataset) => dataset.participantId === participantId);
 }
 
+export function datasetOf(state: State, id: string): Dataset | undefined {
+  return state.datasets.find((dataset) => dataset.id === id);
+}
+
 export function publishedOf(state: State, taskId: string, builtAfterRound: number): Published | undefined {
   return state.published.find((item) => item.taskId === taskId && item.builtAfterRound === builtAfterRound);
 }
@@ -73,6 +93,17 @@ export function publishedOf(state: State, taskId: string, builtAfterRound: numbe
 /** 参加过的任务数（按任务快照里的参与方统计）。 */
 export function taskCountOf(state: State, participantId: string): number {
   return state.tasks.filter((task) => task.members.some((member) => member.participantId === participantId)).length;
+}
+
+/** 删掉数据集后，草稿里用到它的参与方一起取消（连同单独指定的模型）。 */
+function withoutDatasets(draft: Draft, removed: ReadonlySet<string>): Draft {
+  const participants = draft.participants.filter((item) => !removed.has(item.datasetId));
+  const kept = new Set(participants.map((item) => item.participantId));
+  return {
+    ...draft,
+    participants,
+    clientOverrides: Object.fromEntries(Object.entries(draft.clientOverrides).filter(([id]) => kept.has(id))),
+  };
 }
 
 function updateTask(state: State, id: string, change: (task: Task) => Task): State {
@@ -97,13 +128,17 @@ export function reducer(state: State, action: Action): State {
       return { ...state, draft: { ...chooseTaskType(state.draft, action.taskType), touched: true } };
 
     case "chooseAlgorithm":
-      return { ...state, draft: { ...chooseAlgorithm(state.draft, action.algorithm, state.datasets, state.participants), touched: true } };
+      return { ...state, draft: { ...chooseAlgorithm(state.draft, action.algorithm), touched: true } };
 
-    case "toggleDataset":
-      return { ...state, draft: { ...toggleDataset(state.draft, action.datasetId), touched: true } };
+    case "pickDataset": {
+      const dataset = action.datasetId ? state.datasets.find((item) => item.id === action.datasetId) : null;
+      // 只能选这个参与方自己的数据集。
+      if (dataset && dataset.participantId !== action.participantId) return state;
+      return { ...state, draft: { ...pickDataset(state.draft, action.participantId, action.datasetId), touched: true } };
+    }
 
-    case "setDatasets":
-      return { ...state, draft: { ...state.draft, datasetIds: [...action.datasetIds], touched: true } };
+    case "setParticipants":
+      return { ...state, draft: { ...setParticipants(state.draft, action.participants), touched: true } };
 
     case "updateDraft":
       return { ...state, draft: { ...state.draft, ...action.patch, touched: true } };
@@ -112,8 +147,10 @@ export function reducer(state: State, action: Action): State {
       return { ...state, draft: withDefaults(action.draft ?? {}) };
 
     case "createTask": {
-      const config = toConfig(state.draft);
-      if (!config || draftIssues(state.draft, state.datasets, state.participants, state.endpoints).length) return state;
+      if (draftIssues(state.draft, state.datasets, state.participants, state.endpoints).length) return state;
+      // 只带上真正能参加的参与方（数据集还在、场景和任务类型一致、持有方在线）。
+      const config = toConfig({ ...state.draft, participants: joinable(state.draft, state.datasets, state.participants) });
+      if (!config) return state;
       const task = createTask({
         id: action.id,
         name: state.draft.name?.trim() || action.name || defaultTaskName(state.draft, new Date(action.createdAt)),
@@ -142,8 +179,8 @@ export function reducer(state: State, action: Action): State {
     case "publish": {
       const task = taskOf(state, action.taskId);
       const exists = publishedOf(state, action.taskId, action.builtAfterRound);
-      const hasLibrary = task?.rounds.some((record) => record.round === action.builtAfterRound && record.library);
-      if (!task || exists || !hasLibrary) return state;
+      const hasOutput = task?.rounds.some((record) => record.round === action.builtAfterRound && record.output);
+      if (!task || exists || !hasOutput) return state;
       const item: Published = {
         id: action.id,
         taskId: action.taskId,
@@ -174,19 +211,31 @@ export function reducer(state: State, action: Action): State {
     }
 
     case "addDataset": {
-      if (!participantOf(state, action.dataset.participantId)) return state;
-      return { ...state, datasets: [...state.datasets, action.dataset] };
+      if (!participantOf(state, action.dataset.participantId) || datasetOf(state, action.dataset.id)) return state;
+      // 新登记的排在最前面。
+      return { ...state, datasets: [action.dataset, ...state.datasets] };
+    }
+
+    case "removeDataset": {
+      const dataset = datasetOf(state, action.id);
+      if (!dataset || dataset.source === "builtin") return state;
+      return {
+        ...state,
+        datasets: state.datasets.filter((item) => item.id !== action.id),
+        draft: withoutDatasets(state.draft, new Set([action.id])),
+      };
     }
 
     case "removeParticipant": {
       const participant = participantOf(state, action.id);
       if (!participant || participant.builtin) return state;
       const removed = new Set(datasetsOf(state, action.id).map((dataset) => dataset.id));
+      const draft = withoutDatasets(state.draft, removed);
       return {
         ...state,
         participants: state.participants.filter((item) => item.id !== action.id),
         datasets: state.datasets.filter((dataset) => !removed.has(dataset.id)),
-        draft: { ...state.draft, datasetIds: state.draft.datasetIds.filter((id) => !removed.has(id)) },
+        draft: { ...draft, participants: draft.participants.filter((item) => item.participantId !== action.id) },
       };
     }
 

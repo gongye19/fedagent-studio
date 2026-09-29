@@ -1,6 +1,6 @@
-/** 任务相关的展示文字：状态色、当前步骤、摘要、指标名、轮次和产出版本的叫法，以及列表排序。 */
-import { algorithmOf, scenarioOf, TASK_TYPES, type Algorithm } from "../domain/catalog";
-import type { LibraryVersion, Task } from "../domain/task";
+/** 展示文字：任务的状态色、当前步骤、摘要、指标名、轮次和产出版本的叫法，数据集的用途，以及列表排序。 */
+import { algorithmOf, scenarioOf, TASK_TYPES, type Algorithm, type ScenarioId, type TaskType } from "../domain/catalog";
+import type { OutputVersion, Task } from "../domain/task";
 import type { Tone } from "./common";
 
 export function statusTone(task: Task): Tone {
@@ -62,7 +62,12 @@ export function roundHeader(round: number, last = false): { main: string; note?:
   return last ? { main: `第 ${round} 轮`, note: "（联邦）" } : { main: `第 ${round} 轮` };
 }
 
-export function versionLabel(task: Task, version: LibraryVersion): string {
+/** 数据集的用途：登记时选定的场景和任务类型，例如"横向联邦 · 数学推理"。 */
+export function usageText(scenario: ScenarioId, taskType: TaskType): string {
+  return `${scenarioOf(scenario).short} · ${TASK_TYPES[taskType].label}`;
+}
+
+export function versionLabel(task: Task, version: OutputVersion): string {
   const final = task.status === "completed" && version.builtAfterRound === task.config.rounds;
   return final ? `第 ${version.builtAfterRound} 轮后（最终）` : `第 ${version.builtAfterRound} 轮后`;
 }

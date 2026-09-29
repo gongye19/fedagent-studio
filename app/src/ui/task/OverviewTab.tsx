@@ -4,8 +4,8 @@ import {
   averageAccuracy,
   changeOf,
   latestScoredRound,
-  libraries,
   negativeTransfer,
+  outputs,
   roundOf,
   scoredRounds,
   type Task,
@@ -18,6 +18,11 @@ import { Panel } from "../console";
 import { formatDelta, formatPercent } from "../format";
 import { algorithmOfTask, deltaClass, metricOf, roundHeader } from "../labels";
 
+/** 提示框是 HTML：参与方和数据集的名称是用户填的，先转义。 */
+function escapeHtml(text: string): string {
+  return text.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
+}
+
 // 图表库较大，按需加载，不拖慢首屏。
 const EChart = lazy(() => import("../Chart"));
 
@@ -29,7 +34,7 @@ const COLORS = { base: "#71717a", latest: "#18181b", flat: "#71717a", upLine: "#
 export function OverviewTab({ task, state }: { task: Task; state: State }) {
   const rounds = scoredRounds(task);
   const metric = metricOf(task);
-  const output = algorithmOfTask(task).output;
+  const product = algorithmOfTask(task).output;
   if (!rounds.length) {
     return (
       <EmptyState title="还没有结果" action={<a className="button button--secondary" href={hrefOf({ page: "task", id: task.id, tab: "progress" })}>查看进度</a>}>
@@ -42,8 +47,8 @@ export function OverviewTab({ task, state }: { task: Task; state: State }) {
   const last = averageAccuracy(task, latest);
   const delta = latest > 1 && first !== null && last !== null ? last - first : null;
   const ntr = negativeTransfer(task);
-  const library = libraries(task).at(-1);
-  const published = library ? publishedOf(state, task.id, library.builtAfterRound) : undefined;
+  const output = outputs(task).at(-1);
+  const published = output ? publishedOf(state, task.id, output.builtAfterRound) : undefined;
 
   return (
     <div className="panel-stack">
@@ -58,9 +63,9 @@ export function OverviewTab({ task, state }: { task: Task; state: State }) {
           <Stat label="负迁移" value={ntr ? `${ntr.count} / ${ntr.total} 方` : "—"} sub={ntr ? "低于本方第 1 轮" : "第 2 轮完成后统计"} tone={ntr && ntr.count > 0 ? "down" : undefined} />
           <Stat
             label="产出"
-            value={library ? `${library.insights.length} 条` : "—"}
-            href={library ? hrefOf({ page: "task", id: task.id, tab: "output" }) : undefined}
-            sub={library ? `${output.name} · 第 ${library.builtAfterRound} 轮后${published ? " · 已发布" : ""}` : output.name}
+            value={output ? `${output.items.length} 条` : "—"}
+            href={output ? hrefOf({ page: "task", id: task.id, tab: "output" }) : undefined}
+            sub={output ? `${product.name} · 第 ${output.builtAfterRound} 轮后${published ? " · 已发布" : ""}` : product.name}
           />
         </dl>
       </Panel>
@@ -76,7 +81,12 @@ export function OverviewTab({ task, state }: { task: Task; state: State }) {
   );
 }
 
-/** 哑铃图：每个参与方一行，灰点是第 1 轮（本地），彩点是最新一轮，按变化从大到小排。 */
+type Row = { name: string; dataset: string; first: number; last: number };
+
+/**
+ * 哑铃图：每个参与方一行，灰点是第 1 轮（本地），彩点是最新一轮，按变化从大到小排。
+ * 纵轴每行两行字：参与方，下面是它用的数据集。点按行号定位，参与方重名也不会叠在一起。
+ */
 function DumbbellChart({ task, latest }: { task: Task; latest: number }) {
   const rows = useMemo(() => task.members
     .filter((member) => member.answered > 0)
@@ -85,11 +95,12 @@ function DumbbellChart({ task, latest }: { task: Task; latest: number }) {
       const last = accuracy(task, member, latest);
       return {
         name: member.participant,
+        dataset: member.dataset,
         first: first === null ? null : Number((first * 100).toFixed(1)),
         last: last === null ? null : Number((last * 100).toFixed(1)),
       };
     })
-    .filter((row): row is { name: string; first: number; last: number } => row.first !== null && row.last !== null)
+    .filter((row): row is Row => row.first !== null && row.last !== null)
     .sort((a, b) => (b.last - b.first) - (a.last - a.first)), [task, latest]);
 
   const option = useMemo<ChartOption>(() => {
@@ -109,9 +120,10 @@ function DumbbellChart({ task, latest }: { task: Task; latest: number }) {
           const row = rows[list[0]?.dataIndex ?? 0];
           if (!row) return "";
           const change = row.last - row.first;
+          const title = `${escapeHtml(row.name)} · ${escapeHtml(row.dataset)}`;
           return compare
-            ? `${row.name}<br/>第 1 轮 ${row.first}% → 第 ${latest} 轮 ${row.last}%（${change >= 0 ? "+" : "−"}${Math.abs(change).toFixed(1)}）`
-            : `${row.name}<br/>第 1 轮 ${row.first}%`;
+            ? `${title}<br/>第 1 轮 ${row.first}% → 第 ${latest} 轮 ${row.last}%（${change >= 0 ? "+" : "−"}${Math.abs(change).toFixed(1)}）`
+            : `${title}<br/>第 1 轮 ${row.first}%`;
         },
       },
       legend: compare ? {
@@ -132,10 +144,21 @@ function DumbbellChart({ task, latest }: { task: Task; latest: number }) {
       yAxis: {
         type: "category",
         inverse: true,
-        data: rows.map((row) => row.name),
+        data: rows.map((_, index) => String(index)),
         axisLine: { show: false },
         axisTick: { show: false },
-        axisLabel: { color: "#18181b", fontSize: 12 },
+        axisLabel: {
+          formatter: (value: string) => {
+            const row = rows[Number(value)];
+            // 富文本用 {样式|文字} 标记，名称里的花括号和竖线先去掉。
+            const plain = (text: string) => text.replace(/[{}|]/g, "");
+            return row ? `{name|${plain(row.name)}}\n{dataset|${plain(row.dataset)}}` : "";
+          },
+          rich: {
+            name: { color: "#18181b", fontSize: 12, lineHeight: 16, align: "right" },
+            dataset: { color: "#71717a", fontSize: 12, lineHeight: 16, align: "right" },
+          },
+        },
       },
       series: compare ? [
         { type: "bar", stack: "range", silent: true, barWidth: 3, itemStyle: { color: "transparent" }, data: rows.map((row) => Math.min(row.first, row.last)) },
@@ -146,22 +169,22 @@ function DumbbellChart({ task, latest }: { task: Task; latest: number }) {
           barWidth: 3,
           data: rows.map((row) => ({ value: Math.abs(row.last - row.first), itemStyle: { color: tone(row) === "down" ? COLORS.downLine : COLORS.upLine } })),
         },
-        { name: "第 1 轮（本地）", type: "scatter", symbolSize: 9, color: COLORS.base, data: rows.map((row) => [row.first, row.name]), z: 3 },
+        { name: "第 1 轮（本地）", type: "scatter", symbolSize: 9, color: COLORS.base, data: rows.map((row, index) => [row.first, String(index)]), z: 3 },
         {
           name: `第 ${latest} 轮（联邦）`,
           type: "scatter",
           symbolSize: 11,
           color: COLORS.latest,
-          data: rows.map((row) => [row.last, row.name]),
+          data: rows.map((row, index) => [row.last, String(index)]),
           z: 4,
         },
       ] : [
-        { name: "第 1 轮（本地）", type: "scatter", symbolSize: 10, color: COLORS.flat, data: rows.map((row) => [row.first, row.name]) },
+        { name: "第 1 轮（本地）", type: "scatter", symbolSize: 10, color: COLORS.flat, data: rows.map((row, index) => [row.first, String(index)]) },
       ],
     };
   }, [rows, latest]);
 
-  const height = rows.length * 34 + (latest > 1 ? 64 : 40);
+  const height = rows.length * 40 + (latest > 1 ? 64 : 40);
   return (
     <Suspense fallback={<div className="chart chart--loading" style={{ height }}>正在加载图表…</div>}>
       <EChart option={option} height={height} label={latest > 1 ? `各参与方第 1 轮与第 ${latest} 轮的准确率对比` : "各参与方第 1 轮的准确率"} />
@@ -205,15 +228,15 @@ function ComparisonTable({ task }: { task: Task }) {
           {byChange(task).map((member) => {
             const change = changeOf(task, member);
             return (
-              <tr key={member.datasetId}>
+              <tr key={member.participantId}>
                 <th scope="row">
                   {member.participant}
-                  {member.dataset !== member.participant ? <small>{member.dataset}</small> : null}
+                  <small>{member.dataset}</small>
                 </th>
                 <td className="numeric col-optional">{member.problems}</td>
                 {rounds.map((round) => {
                   const value = accuracy(task, member, round);
-                  const correct = roundOf(task, round)?.correct?.[member.datasetId];
+                  const correct = roundOf(task, round)?.correct?.[member.participantId];
                   return (
                     <td key={round} className={`numeric${middle(round) ? " col-optional" : ""}`}>
                       {member.answered === 0 ? <span className="muted">无标注</span> : formatPercent(value)}

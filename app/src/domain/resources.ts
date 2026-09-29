@@ -1,12 +1,15 @@
 /**
  * 参与方、数据集和模型接口。
  *
- * 每份数据集只属于一个参与方，数据只在持有方使用。参与方有两种运行位置：
- * - 平台托管：数据上传到平台，由平台运行这个参与方的 Agent，适合公开数据、演示和算法验证；
- * - 参与方本地：数据和模型密钥留在参与方自己的环境，由参与方运行客户端，只上传算法需要交换的内容；平台只登记数据集的名称和说明，样本数由客户端连上后上报。
- * 内置的 8 个数学题库来自 FoT 复现包，每份由一个平台托管的示例参与方持有。
+ * - 参与方：参加联邦的一个机构或节点，是一道隐私边界，原始数据不出本方。参与方本身不绑定场景，
+ *   它能参加哪些联邦任务，由它登记的数据集决定。参与方有两种运行位置：
+ *   平台托管 = 数据上传到平台，由平台代这一方运行 Agent，适合公开数据、演示和算法验证；
+ *   参与方本地 = 数据和模型密钥留在参与方自己的环境，由参与方运行客户端，只上传算法需要交换的内容。
+ * - 数据集：只属于一个参与方。登记时选定场景和任务类型，只能用于同一场景、同一任务类型的联邦任务；
+ *   本地参与方的数据集只登记名称和说明，样本数由客户端连上后上报。
+ * 内置的 8 个数学题库来自 FoT 复现包，分给 8 个平台托管的示例参与方（参与方 A–H），每方一份。
  */
-import type { TaskType } from "./catalog";
+import type { ScenarioId, TaskType } from "./catalog";
 
 export type Hosting = "platform" | "local";
 export type ParticipantStatus = "online" | "offline" | "waiting";
@@ -26,8 +29,10 @@ export type Dataset = {
   name: string;
   participantId: string;
   description: string;
-  /** 题目来源，例如 LiveMathBench 202412；上传的题库可以没有。 */
+  /** 样本来源，例如 LiveMathBench 202412；上传的数据集可以没有。 */
   origin?: string;
+  /** 登记时选定：用在哪个场景、哪种任务。 */
+  scenario: ScenarioId;
   taskType: TaskType;
   /** 样本数；本地数据集在客户端连上之前是 0（未上报）。 */
   count: number;
@@ -59,6 +64,7 @@ export const PARTICIPANT_STATUS: Record<ParticipantStatus, string> = {
   waiting: "等待连接",
 };
 
+/** 内置示例：8 份数学题库，依次分给参与方 A–H。 */
 const BUILTIN = [
   { key: "aime24", name: "AIME24", description: "美国数学邀请赛", origin: "AIME 2024", count: 30,
     sample: { question: "Find the largest possible real part of \\[(75+117i)z+\\frac{96+144i}{z}\\]where $z$ is a complex number with $|z|=4$.", answer: "540" } },
@@ -70,7 +76,7 @@ const BUILTIN = [
     sample: { question: "The mode of the data $2,3,5,5,4$ is ?", answer: "5" } },
   { key: "cnmo", name: "CNMO", description: "中国数学奥林匹克", origin: "LiveMathBench 202412", count: 18,
     sample: { question: "What is the minimum value of $y=\\frac{4^x+1}{2^x+1}$?", answer: "2\\sqrt{2}-2" } },
-  { key: "wlpmc", name: "WLPMC", description: "WLPMC 竞赛题", origin: "LiveMathBench 202412", count: 11,
+  { key: "wlpmc", name: "WLPMC", description: "普特南数学竞赛", origin: "LiveMathBench 202412", count: 11,
     sample: { question: "For a positive integer $n$, let $f_n(x) = \\cos(x) \\cos(2x) \\cos(3x) \\cdots \\cos(nx)$. Find the smallest $n$ such that $|f_n''(0)| > 2023$.", answer: "n=18" } },
   { key: "v202412hard", name: "V202412Hard", description: "竞赛难题", origin: "LiveMathBench 202412", count: 21,
     sample: { question: "Given the data 5, 6, $x$, $x$, 8, 9 with an average of 7, then the 40% percentile of this data set is?", answer: "7" } },
@@ -78,22 +84,25 @@ const BUILTIN = [
     sample: { question: "For two numbers $a > b$ from the list $3, 9, 15, 21, 27$, what can you say for certain?" } },
 ] as const;
 
-export const BUILTIN_PARTICIPANTS: readonly Participant[] = BUILTIN.map((item) => ({
-  id: `p-${item.key}`,
-  name: item.name,
+const LETTERS = "ABCDEFGH";
+
+export const BUILTIN_PARTICIPANTS: readonly Participant[] = BUILTIN.map((_, index) => ({
+  id: `p-${LETTERS[index].toLowerCase()}`,
+  name: `参与方 ${LETTERS[index]}`,
   org: "内置示例",
-  intro: `持有${item.description}题库（${item.origin}）的示例参与方，由平台托管运行。`,
+  intro: "",
   hosting: "platform",
   status: "online",
   builtin: true,
 }));
 
-export const BUILTIN_DATASETS: readonly Dataset[] = BUILTIN.map((item) => ({
+export const BUILTIN_DATASETS: readonly Dataset[] = BUILTIN.map((item, index) => ({
   id: `ds-${item.key}`,
   name: item.name,
-  participantId: `p-${item.key}`,
+  participantId: BUILTIN_PARTICIPANTS[index].id,
   description: item.description,
   origin: item.origin,
+  scenario: "horizontal",
   taskType: "math-reasoning",
   count: item.count,
   answered: item.count,
@@ -168,4 +177,9 @@ export function endpointOf(ref: string, endpoints: readonly Endpoint[]): Endpoin
 export function usable(dataset: Dataset, participants: readonly Participant[]): boolean {
   const owner = participants.find((item) => item.id === dataset.participantId);
   return owner?.status === "online";
+}
+
+/** 数据集能不能用于某个场景、某种任务类型的联邦任务。 */
+export function fits(dataset: Dataset, scenario: ScenarioId, taskType: TaskType): boolean {
+  return dataset.scenario === scenario && dataset.taskType === taskType;
 }

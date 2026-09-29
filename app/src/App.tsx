@@ -8,16 +8,18 @@ import AlgorithmsPage from "./ui/AlgorithmsPage";
 import AppPage from "./ui/AppPage";
 import AppsPage from "./ui/AppsPage";
 import { Confirm, NotFound, Notice, Tag } from "./ui/common";
+import DatasetsPage from "./ui/DatasetsPage";
 import EndpointPage from "./ui/EndpointPage";
 import HomePage from "./ui/HomePage";
 import ModelsPage from "./ui/ModelsPage";
+import NewDatasetPage from "./ui/NewDatasetPage";
 import NewParticipantPage from "./ui/NewParticipantPage";
 import NewTaskPage from "./ui/NewTaskPage";
 import ParticipantsPage from "./ui/ParticipantsPage";
 import TaskPage from "./ui/TaskPage";
 import TasksPage from "./ui/TasksPage";
 
-type NavKey = "home" | "tasks" | "apps" | "participants" | "algorithms" | "models";
+type NavKey = "home" | "tasks" | "apps" | "participants" | "datasets" | "algorithms" | "models";
 
 function navKeyOf(route: Route): NavKey {
   switch (route.page) {
@@ -31,6 +33,9 @@ function navKeyOf(route: Route): NavKey {
     case "participants":
     case "newParticipant":
       return "participants";
+    case "datasets":
+    case "newDataset":
+      return "datasets";
     case "algorithms":
       return "algorithms";
     case "models":
@@ -42,7 +47,7 @@ function navKeyOf(route: Route): NavKey {
   }
 }
 
-/** 与原平台一致：首页、任务、应用放在上面，参与方、算法、模型接口收在"基础管理"下。 */
+/** 与原平台一致：首页、任务、应用放在上面，参与方、数据集、算法、模型接口收在"基础管理"下。 */
 const NAV: readonly { group: string | null; items: readonly { key: NavKey; label: string; route: Route }[] }[] = [
   {
     group: null,
@@ -55,7 +60,8 @@ const NAV: readonly { group: string | null; items: readonly { key: NavKey; label
   {
     group: "基础管理",
     items: [
-      { key: "participants", label: "参与方与数据", route: { page: "participants" } },
+      { key: "participants", label: "参与方", route: { page: "participants" } },
+      { key: "datasets", label: "数据集", route: { page: "datasets" } },
       { key: "algorithms", label: "算法", route: { page: "algorithms" } },
       { key: "models", label: "模型接口", route: { page: "models" } },
     ],
@@ -135,7 +141,11 @@ function Page({ state, dispatch, route }: { state: State; dispatch: Dispatch<Act
     case "participants":
       return <ParticipantsPage state={state} dispatch={dispatch} selectedId={route.id} />;
     case "newParticipant":
-      return <NewParticipantPage dispatch={dispatch} from={route.from} />;
+      return <NewParticipantPage state={state} dispatch={dispatch} from={route.from} />;
+    case "datasets":
+      return <DatasetsPage state={state} dispatch={dispatch} selectedId={route.id} />;
+    case "newDataset":
+      return <NewDatasetPage key={route.participant ?? ""} state={state} dispatch={dispatch} participant={route.participant} from={route.from} />;
     case "algorithms":
       return <AlgorithmsPage selectedId={route.id} />;
     case "models":
@@ -155,7 +165,7 @@ function ResetDemo({ onReset }: { onReset: () => void }) {
   if (confirming) {
     return (
       <Confirm title="重置演示数据？" confirmLabel="重置" onConfirm={() => { setConfirming(false); onReset(); }} onCancel={() => setConfirming(false)} className="confirm--compact">
-        新建的任务、参与方、接口和发布记录都会清除。
+        新建的任务、参与方、数据集、接口和发布记录都会清除。
       </Confirm>
     );
   }

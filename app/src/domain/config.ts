@@ -2,36 +2,35 @@
  * 任务配置：默认值、校验和调用量预估。
  *
  * 新建任务依次选场景 → 任务类型 → 算法 → 参与方，每一步都由用户选，页面不替用户默认。
- * 预估按算法在注册表里声明的步骤和交换量计算，平台不认具体的算法；平台只负责按接口单价算费用。
- *
- * FoT 的参数与已审计的复现器一一对应（轮次、经验库条数、经验提取量、每条样本上传上限、汇总重试、种子、并发），
- * 只有汇总重试上限的默认值不同：复现器默认 0（一直重试到结果合法），平台默认 5 次，超过后暂停任务，避免费用失控。
+ * 参与方只能用登记在同一场景、同一任务类型下的数据集，每方出一份。
+ * 算法参数按注册表的定义保存（键和默认值由算法声明）；预估按算法声明的步骤和交换量计算，平台不认具体的算法，
+ * 只负责按接口单价算费用。
  */
-import { algorithmOf, scenarioOf, TASK_TYPES, type AlgorithmId, type ScenarioId, type TaskType } from "./catalog";
-import { DEFAULT_MODEL, endpointOf, usable, type Dataset, type Endpoint, type Participant } from "./resources";
+import { algorithmOf, defaultParams, paramsOf, scenarioOf, TASK_TYPES, type AlgorithmId, type Params, type ScenarioId, type TaskType } from "./catalog";
+import { DEFAULT_MODEL, endpointOf, fits, usable, type Dataset, type Endpoint, type Participant } from "./resources";
 
 export type RunMode = "trial" | "full";
-export type InsightTarget = "paper-auto" | "author-formula" | "fixed-11" | "fixed-37";
-export type TraceDensity = "native" | "paper-gemini";
+
+/** 参加任务的一方和它出的数据集。 */
+export type TaskParticipant = { participantId: string; datasetId: string };
 
 export type TaskConfig = {
   scenario: ScenarioId;
   /** 任务类型：决定数据格式、评估指标，以及能选哪些算法和数据集。 */
   taskType: TaskType;
   algorithm: AlgorithmId;
-  datasetIds: string[];
+  /** 参加的参与方，每方一份数据集，按选择的先后排列。 */
+  participants: TaskParticipant[];
   clientModel: string;
-  /** 数据集 id → 模型引用；没有单独指定的参与方用 clientModel。 */
+  /** 参与方 id → 模型引用；没有单独指定的参与方用 clientModel。 */
   clientOverrides: Record<string, string>;
   serverModel: string;
   rounds: number;
   mode: RunMode;
-  /** 试跑时每份数据只取前几条样本。 */
+  /** 试跑时每份数据集只取前几条样本。 */
   trialCap: number;
-  insightTarget: InsightTarget;
-  traceDensity: TraceDensity;
-  maxTracesPerItem: number | null;
-  aggregationRetries: number;
+  /** 算法参数：键由算法在注册表里声明，没有设置的按默认值。 */
+  params: Params;
   seed: number;
   workers: number;
 };
@@ -53,33 +52,37 @@ export const DEFAULT_DRAFT: Draft = {
   scenario: null,
   taskType: null,
   algorithm: null,
-  datasetIds: [],
+  participants: [],
   clientModel: DEFAULT_MODEL,
   clientOverrides: {},
   serverModel: DEFAULT_MODEL,
   rounds: 3,
   mode: "trial",
   trialCap: 5,
-  insightTarget: "paper-auto",
-  traceDensity: "native",
-  maxTracesPerItem: null,
-  aggregationRetries: 5,
+  params: {},
   seed: 0,
   workers: 8,
 };
 
 export function withDefaults(draft: Partial<Draft>): Draft {
-  return { ...DEFAULT_DRAFT, ...draft, clientOverrides: { ...(draft.clientOverrides ?? {}) } };
+  return {
+    ...DEFAULT_DRAFT,
+    ...draft,
+    participants: [...(draft.participants ?? [])],
+    clientOverrides: { ...(draft.clientOverrides ?? {}) },
+    params: { ...(draft.params ?? {}) },
+  };
 }
 
-/** 本次任务每份数据实际使用的样本数。 */
+/** 本次任务每份数据集实际使用的样本数。 */
 export function problemsOf(config: Pick<TaskConfig, "mode" | "trialCap">, dataset: Dataset): number {
   return config.mode === "trial" ? Math.min(dataset.count, Math.max(1, config.trialCap)) : dataset.count;
 }
 
-export function selectedDatasets(draft: Pick<Draft, "datasetIds">, datasets: readonly Dataset[]): Dataset[] {
-  return draft.datasetIds
-    .map((id) => datasets.find((dataset) => dataset.id === id))
+/** 已选的数据集，顺序和参与方一致；数据集不属于这个参与方时忽略。 */
+export function selectedDatasets(config: Pick<TaskConfig, "participants">, datasets: readonly Dataset[]): Dataset[] {
+  return config.participants
+    .map(({ participantId, datasetId }) => datasets.find((dataset) => dataset.id === datasetId && dataset.participantId === participantId))
     .filter((dataset): dataset is Dataset => Boolean(dataset));
 }
 
@@ -103,17 +106,21 @@ export type Estimate = {
  */
 export function estimate(config: TaskConfig, datasets: readonly Dataset[], endpoints: readonly Endpoint[]): Estimate {
   const algorithm = algorithmOf(config.algorithm);
+  const params = paramsOf(algorithm, config.params);
   const problems = selectedDatasets(config, datasets).map((dataset) => problemsOf(config, dataset)).reduce((sum, value) => sum + value, 0);
   const participantStages = algorithm.stages.filter((stage) => stage.side === "participant");
   const serverModelStages = algorithm.stages.filter((stage) => stage.side === "server" && stage.model);
-  const uploadTokens = problems * algorithm.exchangeVolume.perSample(config) * algorithm.exchangeVolume.tokens;
+  const volume = algorithm.exchangeVolume;
+  const perSample = Math.min(volume.perSample(params), volume.maxPerSample?.(params) ?? Infinity);
+  const uploadTokens = problems * perSample * volume.tokens;
   const batches = Math.ceil(problems / Math.max(1, config.workers));
   const perRoundSeconds = algorithm.stages.reduce((sum, stage) => sum + (stage.side === "participant" ? batches * stage.seconds : stage.seconds), 0);
   const participantTokens = Math.round(problems * participantStages.reduce((sum, stage) => sum + (stage.tokens ?? 0), 0) * config.rounds);
   const serverTokens = Math.round(serverModelStages.reduce((sum, stage) => sum + uploadTokens + (stage.tokens ?? 0), 0) * config.rounds);
 
   const clientPrice = endpointOf(config.clientModel, endpoints)?.price ?? null;
-  const serverPrice = endpointOf(config.serverModel, endpoints)?.price ?? null;
+  // 服务端不调用模型的算法用不到服务端模型，也就不需要它的单价。
+  const serverPrice = serverModelStages.length ? endpointOf(config.serverModel, endpoints)?.price ?? null : 0;
   const overridesPriced = Object.values(activeOverrides(config)).every((ref) => endpointOf(ref, endpoints)?.price != null);
   const cost = clientPrice != null && serverPrice != null && overridesPriced
     ? (participantTokens * clientPrice + serverTokens * serverPrice) / 1_000_000
@@ -130,7 +137,7 @@ export function estimate(config: TaskConfig, datasets: readonly Dataset[], endpo
   };
 }
 
-export type Issue = { field: "scenario" | "taskType" | "algorithm" | "datasets" | "models" | "rounds"; message: string };
+export type Issue = { field: "scenario" | "taskType" | "algorithm" | "participants" | "models" | "rounds"; message: string };
 
 /** 草稿能否创建任务；返回全部未满足的条件，按页面顺序排列。 */
 export function draftIssues(
@@ -157,14 +164,12 @@ export function draftIssues(
     return issues;
   }
   const algorithm = algorithmOf(draft.algorithm);
-  if (!algorithm.accepts.includes(draft.taskType)) {
+  if (algorithm.scenario !== draft.scenario || !algorithm.accepts.includes(draft.taskType)) {
     issues.push({ field: "algorithm", message: "所选算法不支持这种任务类型" });
     return issues;
   }
-  const taskType = draft.taskType;
-  const chosen = selectedDatasets(draft, datasets).filter((dataset) => dataset.taskType === taskType && usable(dataset, participants));
-  if (chosen.length < algorithm.minParticipants) {
-    issues.push({ field: "datasets", message: `至少选 ${algorithm.minParticipants} 个参与方` });
+  if (joinable(draft, datasets, participants).length < algorithm.minParticipants) {
+    issues.push({ field: "participants", message: `至少选 ${algorithm.minParticipants} 个参与方` });
   }
   const refs = [draft.clientModel, draft.serverModel, ...Object.values(activeOverrides(draft))];
   if (refs.some((ref) => !endpointOf(ref, endpoints))) {
@@ -176,41 +181,55 @@ export function draftIssues(
   return issues;
 }
 
+/** 草稿里真正能参加的参与方：数据集还在、属于这个参与方、场景和任务类型一致、持有方在线。 */
+export function joinable(draft: Draft, datasets: readonly Dataset[], participants: readonly Participant[]): TaskParticipant[] {
+  const { scenario, taskType } = draft;
+  if (!scenario || !taskType) return [];
+  return draft.participants.filter(({ participantId, datasetId }) => {
+    const dataset = datasets.find((item) => item.id === datasetId && item.participantId === participantId);
+    return Boolean(dataset && fits(dataset, scenario, taskType) && usable(dataset, participants));
+  });
+}
+
 export function toConfig(draft: Draft): TaskConfig | null {
   if (!draft.scenario || !draft.taskType || !draft.algorithm) return null;
   return {
     scenario: draft.scenario,
     taskType: draft.taskType,
     algorithm: draft.algorithm,
-    datasetIds: [...draft.datasetIds],
+    participants: draft.participants.map((item) => ({ ...item })),
     clientModel: draft.clientModel,
     clientOverrides: activeOverrides(draft),
     serverModel: draft.serverModel,
     rounds: draft.rounds,
     mode: draft.mode,
     trialCap: draft.trialCap,
-    insightTarget: draft.insightTarget,
-    traceDensity: draft.traceDensity,
-    maxTracesPerItem: draft.maxTracesPerItem,
-    aggregationRetries: draft.aggregationRetries,
+    params: paramsOf(algorithmOf(draft.algorithm), draft.params),
     seed: draft.seed,
     workers: draft.workers,
   };
 }
 
-/** 只保留已选数据的单独模型设置（取消勾选后，之前的设置不再生效）。 */
-export function activeOverrides(config: Pick<TaskConfig, "datasetIds" | "clientOverrides">): Record<string, string> {
-  return Object.fromEntries(Object.entries(config.clientOverrides).filter(([id]) => config.datasetIds.includes(id)));
+/** 只保留已选参与方的单独模型设置（取消勾选后，之前的设置不再生效）。 */
+export function activeOverrides(config: Pick<TaskConfig, "participants" | "clientOverrides">): Record<string, string> {
+  return Object.fromEntries(Object.entries(config.clientOverrides).filter(([id]) => config.participants.some((item) => item.participantId === id)));
 }
 
 /** 某个参与方实际使用的模型。 */
-export function clientModelOf(config: Pick<TaskConfig, "clientModel" | "clientOverrides">, datasetId: string): string {
-  return config.clientOverrides[datasetId] ?? config.clientModel;
+export function clientModelOf(config: Pick<TaskConfig, "clientModel" | "clientOverrides">, participantId: string): string {
+  return config.clientOverrides[participantId] ?? config.clientModel;
 }
 
 /** "复制为新任务"：带上原任务的配置，算作用户动过的草稿。 */
 export function toDraft(config: TaskConfig, name: string | null = null): Draft {
-  return { ...config, name, touched: true, datasetIds: [...config.datasetIds], clientOverrides: { ...config.clientOverrides } };
+  return {
+    ...config,
+    name,
+    touched: true,
+    participants: config.participants.map((item) => ({ ...item })),
+    clientOverrides: { ...config.clientOverrides },
+    params: { ...config.params },
+  };
 }
 
 /**
@@ -224,35 +243,55 @@ export function defaultTaskName(draft: Pick<Draft, "taskType">, now: Date = new 
   return `${draft.taskType ? `${TASK_TYPES[draft.taskType].label}任务` : "联邦任务"} ${stamp}`;
 }
 
-/** 能参加某类任务的数据集（按任务类型匹配）。 */
-export function compatibleDatasets(taskType: TaskType, datasets: readonly Dataset[]): Dataset[] {
-  return datasets.filter((dataset) => dataset.taskType === taskType);
+/** 能用于某个场景、某种任务类型的数据集。 */
+export function compatibleDatasets(scenario: ScenarioId, taskType: TaskType, datasets: readonly Dataset[]): Dataset[] {
+  return datasets.filter((dataset) => fits(dataset, scenario, taskType));
 }
 
-/** 选场景：换场景时清空后面的选择，任务类型和算法都要用户再选。 */
+/** 选场景：换场景时清空后面的选择，任务类型、算法和参与方都要用户再选。 */
 export function chooseScenario(draft: Draft, scenario: ScenarioId): Draft {
   if (draft.scenario === scenario) return draft;
-  return { ...draft, scenario, taskType: null, algorithm: null, datasetIds: [], clientOverrides: {} };
+  return { ...draft, scenario, taskType: null, algorithm: null, participants: [], clientOverrides: {}, params: {} };
 }
 
 /** 选任务类型：换类型时清空算法和参与方（算法和数据集都要能处理这种任务）。 */
 export function chooseTaskType(draft: Draft, taskType: TaskType): Draft {
   if (draft.taskType === taskType) return draft;
-  return { ...draft, taskType, algorithm: null, datasetIds: [], clientOverrides: {} };
+  return { ...draft, taskType, algorithm: null, participants: [], clientOverrides: {}, params: {} };
 }
 
-/** 选算法：勾选全部能参加的数据集（任务类型匹配、持有方在线），之后用户可以再增减。 */
-export function chooseAlgorithm(draft: Draft, algorithm: AlgorithmId, datasets: readonly Dataset[], participants: readonly Participant[]): Draft {
+/** 选算法：参数回到这个算法的推荐值；参与方由用户自己勾选，不替用户选。 */
+export function chooseAlgorithm(draft: Draft, algorithm: AlgorithmId): Draft {
   if (draft.algorithm === algorithm || !draft.taskType) return draft;
-  const datasetIds = compatibleDatasets(draft.taskType, datasets)
-    .filter((dataset) => usable(dataset, participants))
-    .map((dataset) => dataset.id);
-  return { ...draft, algorithm, datasetIds, clientOverrides: {} };
+  return { ...draft, algorithm, params: defaultParams(algorithmOf(algorithm)) };
 }
 
-export function toggleDataset(draft: Draft, datasetId: string): Draft {
-  const datasetIds = draft.datasetIds.includes(datasetId)
-    ? draft.datasetIds.filter((id) => id !== datasetId)
-    : [...draft.datasetIds, datasetId];
-  return { ...draft, datasetIds };
+/** 选入、换掉或取消某个参与方出的数据集：每个参与方最多一份，换数据集时保留它原来的位置。 */
+export function pickDataset(draft: Draft, participantId: string, datasetId: string | null): Draft {
+  if (!datasetId) return { ...draft, participants: draft.participants.filter((item) => item.participantId !== participantId) };
+  const next = { participantId, datasetId };
+  const exists = draft.participants.some((item) => item.participantId === participantId);
+  return {
+    ...draft,
+    participants: exists ? draft.participants.map((item) => (item.participantId === participantId ? next : item)) : [...draft.participants, next],
+  };
+}
+
+/**
+ * 从新建任务出发新登记的数据集，能不能直接选入任务：任务已经选好算法，数据集的场景和任务类型一致，
+ * 持有方在线，而且这个参与方在任务里还没有选数据集（已经选了的不替用户换掉）。
+ */
+export function canPickInto(draft: Draft, owner: Participant, dataset: Dataset): boolean {
+  if (!draft.algorithm || !draft.scenario || !draft.taskType) return false;
+  if (owner.status !== "online" || !fits(dataset, draft.scenario, draft.taskType)) return false;
+  return !draft.participants.some((item) => item.participantId === owner.id);
+}
+
+/** 一次设好全部参与方（表头的全选）；同一个参与方只保留第一份。 */
+export function setParticipants(draft: Draft, participants: readonly TaskParticipant[]): Draft {
+  const unique: TaskParticipant[] = [];
+  for (const item of participants) {
+    if (!unique.some((entry) => entry.participantId === item.participantId)) unique.push({ ...item });
+  }
+  return { ...draft, participants: unique };
 }

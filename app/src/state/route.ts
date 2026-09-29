@@ -7,8 +7,10 @@
  * #/tasks/:id[/标签]           任务详情
  * #/apps                      应用（任务产出发布后的成果）
  * #/apps/:id[/标签]            应用详情
- * #/participants[/:id]        参与方与数据
+ * #/participants[/:id]        参与方
  * #/participants/new          新增参与方
+ * #/datasets[/:id]            数据集
+ * #/datasets/new              新增数据集（?participant=参与方 id 时预先选好参与方）
  * #/algorithms[/:id]          算法
  * #/models                    模型接口
  * #/models/new                新增接口
@@ -37,6 +39,8 @@ export type Route =
   | { page: "app"; id: string; tab?: AppTab }
   | { page: "participants"; id?: string }
   | { page: "newParticipant"; from?: From }
+  | { page: "datasets"; id?: string }
+  | { page: "newDataset"; participant?: string; from?: From }
   | { page: "algorithms"; id?: string }
   | { page: "models" }
   | { page: "newEndpoint"; from?: From }
@@ -48,7 +52,8 @@ function oneOf<T extends string>(values: readonly T[], value: string | undefined
 
 export function parseHash(hash: string): Route {
   const [path, query = ""] = hash.replace(/^#/, "").split("?");
-  const from: From | undefined = new URLSearchParams(query).get("from") === "new-task" ? "newTask" : undefined;
+  const search = new URLSearchParams(query);
+  const from: From | undefined = search.get("from") === "new-task" ? "newTask" : undefined;
   const withFrom = <T extends object>(route: T): T & { from?: From } => (from ? { ...route, from } : route);
   const [first, second, third] = path.split("/").filter(Boolean).map(decodeURIComponent);
   switch (first) {
@@ -62,6 +67,11 @@ export function parseHash(hash: string): Route {
     case "participants":
       if (second === "new") return withFrom({ page: "newParticipant" as const });
       return second ? { page: "participants", id: second } : { page: "participants" };
+    case "datasets": {
+      if (second !== "new") return second ? { page: "datasets", id: second } : { page: "datasets" };
+      const participant = search.get("participant");
+      return withFrom(participant ? { page: "newDataset" as const, participant } : { page: "newDataset" as const });
+    }
     case "algorithms":
       return second ? { page: "algorithms", id: second } : { page: "algorithms" };
     case "models":
@@ -89,22 +99,33 @@ export function hrefOf(route: Route): string {
     case "participants":
       return route.id ? `#/participants/${part(route.id)}` : "#/participants";
     case "newParticipant":
-      return `#/participants/new${fromQuery(route.from)}`;
+      return `#/participants/new${query({ from: fromValue(route.from) })}`;
+    case "datasets":
+      return route.id ? `#/datasets/${part(route.id)}` : "#/datasets";
+    case "newDataset":
+      return `#/datasets/new${query({ participant: route.participant, from: fromValue(route.from) })}`;
     case "algorithms":
       return route.id ? `#/algorithms/${part(route.id)}` : "#/algorithms";
     case "models":
       return "#/models";
     case "newEndpoint":
-      return `#/models/new${fromQuery(route.from)}`;
+      return `#/models/new${query({ from: fromValue(route.from) })}`;
     case "editEndpoint":
-      return `#/models/${part(route.id)}/edit${fromQuery(route.from)}`;
+      return `#/models/${part(route.id)}/edit${query({ from: fromValue(route.from) })}`;
     default:
       return "#/";
   }
 }
 
-function fromQuery(from: From | undefined): string {
-  return from === "newTask" ? "?from=new-task" : "";
+function fromValue(from: From | undefined): string | undefined {
+  return from === "newTask" ? "new-task" : undefined;
+}
+
+/** 地址里的查询参数；没有值的项不写。 */
+function query(values: Record<string, string | undefined>): string {
+  const search = new URLSearchParams(Object.entries(values).filter((entry): entry is [string, string] => Boolean(entry[1])));
+  const text = search.toString();
+  return text ? `?${text}` : "";
 }
 
 /**

@@ -364,6 +364,8 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 .table-link { color: var(--foreground); font-weight: var(--weight-medium); text-decoration: none; }
 .table-link:hover { text-decoration: underline; }
 .table td.cell-action .button--compact { margin-block: -5px; }
+/* 表格行里的下拉框（例如参与方选用哪份数据集）：和行里的文字同高，不把行撑高 */
+.table select.cell-select { width: auto; min-width: 140px; max-width: 100%; min-height: 28px; margin-block: -5px; padding: 3px 8px; }
 .progress-cell { min-width: 180px; }
 .progress-line { display: flex; flex-wrap: wrap; gap: 2px var(--space-2); align-items: center; }
 .progress-cell .progress { margin-top: 6px; }
@@ -399,7 +401,7 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 .panel-body--flush > .table-shell { border: 0; border-radius: 0 0 var(--radius) var(--radius); }
 .panel-body--flush > .table-shell:not(:last-child) { border-radius: 0; }
 .panel:not(:has(.panel-head)) .panel-body--flush > .table-shell { border-radius: var(--radius); }
-.panel-body > .stats, .panel-body > .facts, .panel-body > .insight-groups, .panel-body > .round-list, .panel-body > .uploads, .panel-body > .compare-grid, .panel-body > .chart { margin-top: var(--space-3); }
+.panel-body > .stats, .panel-body > .facts, .panel-body > .output-groups, .panel-body > .round-list, .panel-body > .uploads, .panel-body > .compare-grid, .panel-body > .chart { margin-top: var(--space-3); }
 .panel-toolbar { padding: var(--space-3) var(--space-4); display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: center; border-bottom: 1px solid var(--border); }
 .panel-toolbar input[type="search"] { flex: 1 1 200px; width: auto; max-width: 320px; }
 .panel-toolbar select { flex: none; width: auto; min-width: 140px; }
@@ -512,6 +514,11 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 
 /* 键值清单：两栏排布 */
 .facts--columns { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-8); row-gap: var(--space-2); }
+/* 首页"几个概念"：左边是概念，右边一句话说明；概念本身是要读的词，不用浅色小字 */
+.facts.terms { row-gap: var(--space-3); }
+.facts.terms > div { grid-template-columns: 64px minmax(0, 1fr); }
+.facts.terms dt { color: var(--foreground); font-size: var(--text-sm); font-weight: var(--weight-semibold); }
+.facts.terms dd { color: var(--secondary); }
 
 
 /* 折叠：带边框的模块，左侧箭头 */
@@ -541,6 +548,9 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 .select-row--disabled:hover > * { background: none; }
 .cell-title { display: inline-flex; flex-wrap: wrap; gap: 2px var(--space-2); align-items: center; }
 .cell-note { color: var(--muted); font-weight: var(--weight-regular); }
+/* 一格里有几项：链接并排、可以换行；用途一行一条 */
+.cell-links { display: flex; flex-wrap: wrap; gap: 2px var(--space-3); }
+.cell-line { display: block; }
 
 
 
@@ -572,7 +582,7 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 .publish-form { background: var(--surface); border-color: var(--border); }
 .publish-form .confirm-copy { gap: 6px; }
 .panel-body > .publish-form { margin-top: var(--space-3); }
-.panel-body > .publish-form + .insight-groups { margin-top: var(--space-5); }
+.panel-body > .publish-form + .output-groups { margin-top: var(--space-5); }
 
 /* ——— 任务详情 ——— */
 .live-banner { padding: var(--space-3) var(--space-4); display: grid; grid-template-columns: minmax(0, 1fr) minmax(160px, 320px) 40px; gap: var(--space-4); align-items: center; background: var(--accent-soft); border-radius: var(--radius); }
@@ -635,14 +645,14 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 .trace-list li { max-width: var(--measure-en); padding: 10px var(--space-3); color: var(--secondary); background: var(--surface); border-radius: var(--radius-sm); font-size: var(--text-sm); }
 
 /* 产出条目列表（FoT 的经验库）：任务产出和应用内容共用 */
-.insight-groups { display: grid; gap: var(--space-6); }
-.insight-group { display: grid; gap: var(--space-1); }
-.insight-heading { display: flex; gap: var(--space-2); align-items: baseline; font-size: var(--text-md); }
-.insight-count { color: var(--muted); font-size: var(--text-xs); font-weight: var(--weight-regular); }
-.insight-list { max-width: var(--measure-en); }
-.insight-list li { padding: 10px 0; display: grid; gap: 2px; border-bottom: 1px solid var(--border); }
-.insight-list li:last-child { border-bottom: 0; }
-.insight-list p { font-size: var(--text-sm); }
+.output-groups { display: grid; gap: var(--space-6); }
+.output-group { display: grid; gap: var(--space-1); }
+.output-heading { display: flex; gap: var(--space-2); align-items: baseline; font-size: var(--text-md); }
+.output-count { color: var(--muted); font-size: var(--text-xs); font-weight: var(--weight-regular); }
+.output-list { max-width: var(--measure-en); }
+.output-list li { padding: 10px 0; display: grid; gap: 2px; border-bottom: 1px solid var(--border); }
+.output-list li:last-child { border-bottom: 0; }
+.output-list p { font-size: var(--text-sm); }
 
 /* ——— 应用试用 ——— */
 .compare-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); }
@@ -811,6 +821,7 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
   .table--stack tr.detail-row { display: block; padding: 0 var(--space-3) var(--space-4); background: var(--surface); }
   .table--stack tr.detail-row > td { padding: 0; }
   .col-optional, .wide-only { display: none; }
+  .table select.cell-select { width: 100%; min-width: 0; }
   .table--numbers th, .table--numbers td { padding-inline: 10px; }
   .table--numbers th:first-child, .table--numbers td:first-child { padding-left: var(--space-3); }
   .table--numbers th:last-child, .table--numbers td:last-child { padding-right: var(--space-3); }
@@ -825,6 +836,7 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 @media (pointer: coarse) {
   .button, .nav-link, .choice, .tab, .menu-button, .skip-link { min-height: 44px; }
   input:not([type="checkbox"], [type="radio"], [type="file"]), select { min-height: 44px; }
+  .table select.cell-select { min-height: 44px; margin-block: -10px; }
   .wordmark { min-height: 44px; align-content: center; }
   /* 行内链接不改变排版，只把可点区域撑到 44px 左右 */
   .crumbs a, .text-link, .link-button, .field-info { padding-block: 12px; margin-block: -12px; }

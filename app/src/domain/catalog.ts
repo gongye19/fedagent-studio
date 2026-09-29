@@ -1,16 +1,16 @@
 /**
- * 场景、任务类型与算法注册表。平台是通用的：页面只按这里的定义展示和校验，不针对某个算法写死；
- * 接入后端后改为由后端注册表下发。
+ * 场景、任务类型与算法注册表。平台是通用的：页面、校验、预估和任务推进都只按这里的定义来，
+ * 不针对某个算法写死；接入后端后改为由后端注册表下发。
  *
- * 场景沿用联邦学习的三分法，落到 Agent 上：
- * - 横向：各方做同一类任务，数据不同；
- * - 纵向：同一批对象，各方掌握不同方面的信息；
- * - 迁移：把已有参与方的经验迁移到新领域。
- * 新建任务时依次选：场景 → 任务类型 → 算法 → 参与方。每个算法只属于一个场景，并声明：
- * 适用的任务类型、各方交换什么、产出什么、有哪些可调参数、每轮分几步、每一步的预估用量。
+ * 三个概念分开：
+ * - 场景：各方的数据怎么分布。沿用联邦学习的三分法，落到 Agent 上：
+ *   横向 = 各方做同一类任务，各有各的样本；纵向 = 同一批对象，各方掌握不同方面的信息；迁移 = 把已有领域的经验用到新领域；
+ * - 任务类型：Agent 要做的事，决定数据格式和评估指标；
+ * - 算法：各方怎么协作。每个算法只属于一个场景，并声明适用的任务类型、各方交换什么、产出什么、
+ *   有哪些可调参数（含默认值）、每轮分几步、每一步的预估用量。
+ * 参与方和数据集见 resources.ts：数据集登记时选定场景和任务类型，只能用于同一场景、同一任务类型的联邦任务。
  * 第一版只登记了横向的 FoT（用来做演示），纵向和迁移的算法待接入。
  */
-import type { Draft, TaskConfig } from "./config";
 
 export type ScenarioId = "horizontal" | "vertical" | "transfer";
 export type AlgorithmId = "fot";
@@ -24,9 +24,6 @@ export type Scenario = {
   short: string;
   /** 一句话说明。 */
   summary: string;
-  example: string;
-  /** 每个参与方需要带来的数据。 */
-  dataNeeds: string;
   status: "available" | "planned";
 };
 
@@ -36,8 +33,6 @@ export const SCENARIOS: readonly Scenario[] = [
     name: "横向联邦 Agent",
     short: "横向联邦",
     summary: "各方做同类任务、数据不同，只共享经验，一起提升",
-    example: "8 个数学竞赛题库，各由一个参与方持有",
-    dataNeeds: "每方一份同类型的数据集",
     status: "available",
   },
   {
@@ -45,8 +40,6 @@ export const SCENARIOS: readonly Scenario[] = [
     name: "纵向联邦 Agent",
     short: "纵向联邦",
     summary: "同一批对象，信息分散在各方，结合起来才能回答",
-    example: "银行有交易记录、电商有消费记录，共同回答同一批用户的问题",
-    dataNeeds: "各方持有同一批对象的不同信息",
     status: "planned",
   },
   {
@@ -54,8 +47,6 @@ export const SCENARIOS: readonly Scenario[] = [
     name: "联邦迁移 Agent",
     short: "联邦迁移",
     summary: "把已有参与方的经验，迁移到新领域",
-    example: "把数学推理的经验迁移到物理题",
-    dataNeeds: "源领域经验和目标领域的少量数据",
     status: "planned",
   },
 ];
@@ -88,11 +79,11 @@ export const GRADERS: Record<GraderId, { label: string; detail: string }> = {
   "math-answer": { label: "答案比对", detail: "抽取 \\boxed{} 里的答案，规范化后与标准答案比较" },
 };
 
-/** 每轮的步骤：由算法定义，进度页、任务推进和预估都只按这里的定义来。 */
-export type StageId = "solve" | "reflect" | "extract" | "collect" | "profile" | "library";
+/** 每轮的步骤：由算法定义，进度页、任务推进和预估都只按这里的定义来。步骤 id 由算法自己取。 */
+export type StageId = string;
 
 /**
- * 一步完成后显示什么结果，进度页按这里的类型统一生成文字，不认具体的算法：
+ * 一步完成后记下什么结果、进度页显示什么，都按这里的类型处理，不认具体的算法：
  * metric = 本轮指标，uploads = 各方上传条数，received = 服务端收到条数，groups = 分出的类别数，output = 产出条数。
  */
 export type StageResult = "metric" | "uploads" | "received" | "groups" | "output";
@@ -122,33 +113,17 @@ export const FOT_STAGES: readonly Stage[] = [
 ];
 
 /**
- * 算法的可调参数。页面按这里的定义生成"高级配置"里的表单项，默认值即推荐值。
- * key 对应任务配置里的字段；选项只写短标签，默认的一项标"（默认）"，解释写在 help 里，点字段名旁的"说明"才展开。
+ * 算法的可调参数。页面按这里的定义生成"高级配置"里的表单项，任务配置里按 key 保存取值，平台不认具体的参数。
+ * default 是推荐值；选项只写短标签，默认的一项标"（默认）"，解释写在 help 里，点字段名旁的"说明"才展开。
  */
+export type ParamValue = string | number | null;
+export type Params = Record<string, ParamValue>;
+
+type ParamBase = { key: string; label: string; help: string };
 export type ParamDef =
-  | {
-    key: "insightTarget" | "traceDensity";
-    label: string;
-    help: string;
-    kind: "select";
-    options: readonly { value: string; label: string }[];
-  }
-  | {
-    key: "maxTracesPerItem";
-    label: string;
-    help: string;
-    kind: "select-number";
-    options: readonly { value: number | null; label: string }[];
-  }
-  | {
-    key: "aggregationRetries";
-    label: string;
-    help: string;
-    kind: "number";
-    min: number;
-    max: number;
-    unit: string;
-  };
+  | (ParamBase & { kind: "select"; options: readonly { value: string; label: string }[]; default: string })
+  | (ParamBase & { kind: "select-number"; options: readonly { value: number | null; label: string }[]; default: number | null })
+  | (ParamBase & { kind: "number"; min: number; max: number; unit: string; default: number });
 
 export type Algorithm = {
   id: AlgorithmId;
@@ -159,14 +134,15 @@ export type Algorithm = {
   summary: string;
   /** 各方和服务端之间交换的内容。 */
   exchange: string;
-  /** 预估用：每条样本每轮上传几条交换内容（可以随参数变化），每条多少 token。 */
-  exchangeVolume: { perSample: (config: Pick<TaskConfig, "traceDensity">) => number; tokens: number };
+  /**
+   * 预估用：每条样本每轮平均上传几条交换内容、每条最多几条（都可以随参数变化），每条多少 token。
+   * 参数表里没有的键按默认值传进来。
+   */
+  exchangeVolume: { perSample: (params: Params) => number; maxPerSample?: (params: Params) => number | null; tokens: number };
   /** 算法的产出物，例如经验库、全局模型。 */
   output: { name: string; unit: string };
   stages: readonly Stage[];
   accepts: readonly TaskType[];
-  /** 标注只用于评分时为 false：没有标注的数据也能参与。 */
-  answersRequired: boolean;
   params: readonly ParamDef[];
   minParticipants: number;
   minRounds: number;
@@ -174,6 +150,10 @@ export type Algorithm = {
   source: { paper: string; paperUrl: string; code: string; codeUrl: string };
 };
 
+/**
+ * FoT 的参数与已审计的复现器一一对应（经验库条数、经验提取量、每条样本上传上限、汇总重试），
+ * 只有汇总重试上限的默认值不同：复现器默认 0（一直重试到结果合法），平台默认 5 次，超过后暂停任务，避免费用失控。
+ */
 export const ALGORITHMS: readonly Algorithm[] = [
   {
     id: "fot",
@@ -183,11 +163,14 @@ export const ALGORITHMS: readonly Algorithm[] = [
     summary: "各方上传解题经验，服务端汇总成共享的经验库",
     exchange: "解题经验（文本）",
     // 与复现器一致：全部提取时平均每条样本 1.5 条，按论文密度时 0.9 条；每条约 150 token。
-    exchangeVolume: { perSample: (config) => (config.traceDensity === "native" ? 1.5 : 0.9), tokens: 150 },
+    exchangeVolume: {
+      perSample: (params) => (params.traceDensity === "paper-gemini" ? 0.9 : 1.5),
+      maxPerSample: (params) => (typeof params.maxTracesPerItem === "number" ? params.maxTracesPerItem : null),
+      tokens: 150,
+    },
     output: { name: "经验库", unit: "条经验" },
     stages: FOT_STAGES,
     accepts: ["math-reasoning"],
-    answersRequired: false,
     params: [
       {
         key: "insightTarget",
@@ -200,6 +183,7 @@ export const ALGORITHMS: readonly Algorithm[] = [
           { value: "fixed-11", label: "固定 11 条" },
           { value: "fixed-37", label: "固定 37 条" },
         ],
+        default: "paper-auto",
       },
       {
         key: "traceDensity",
@@ -210,6 +194,7 @@ export const ALGORITHMS: readonly Algorithm[] = [
           { value: "native", label: "全部提取（默认）" },
           { value: "paper-gemini", label: "每条样本 1 条" },
         ],
+        default: "native",
       },
       {
         key: "maxTracesPerItem",
@@ -222,6 +207,7 @@ export const ALGORITHMS: readonly Algorithm[] = [
           { value: 2, label: "2 条" },
           { value: 3, label: "3 条" },
         ],
+        default: null,
       },
       {
         key: "aggregationRetries",
@@ -231,6 +217,7 @@ export const ALGORITHMS: readonly Algorithm[] = [
         min: 1,
         max: 20,
         unit: "次",
+        default: 5,
       },
     ],
     minParticipants: 2,
@@ -273,9 +260,23 @@ export function stageOf(algorithm: Algorithm, id: StageId): Stage {
   return stage;
 }
 
+/** 算法参数的默认取值（推荐值）。 */
+export function defaultParams(algorithm: Algorithm): Params {
+  return Object.fromEntries(algorithm.params.map((def) => [def.key, def.default]));
+}
+
+/** 补上没有设置的参数：任务里只保存取值，缺的按注册表的默认值。 */
+export function paramsOf(algorithm: Algorithm, params: Params): Params {
+  return { ...defaultParams(algorithm), ...params };
+}
+
+export function paramValue(def: ParamDef, params: Params): ParamValue {
+  return def.key in params ? params[def.key] : def.default;
+}
+
 /** 参数取值的显示文字。 */
-export function paramText(def: ParamDef, draft: Pick<Draft, ParamDef["key"]>): string {
-  const value = draft[def.key];
+export function paramText(def: ParamDef, params: Params): string {
+  const value = paramValue(def, params);
   if (def.kind === "number") return `${value} ${def.unit}`;
   return def.options.find((option) => option.value === value)?.label ?? String(value);
 }

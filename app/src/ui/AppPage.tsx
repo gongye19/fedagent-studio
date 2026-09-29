@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type Dispatch } from "react";
 import { TASK_TYPES } from "../domain/catalog";
 import { DEFAULT_ENDPOINT_ID, DEFAULT_MODEL, isConfigured, modelLabel, modelOptions } from "../domain/resources";
 import { TRY_EXAMPLE } from "../domain/sample";
-import { libraries, type LibraryVersion, type Task } from "../domain/task";
+import { outputs, type OutputVersion, type Task } from "../domain/task";
 import { showFlash } from "../state/flash";
 import { hrefOf, navigate, type AppTab } from "../state/route";
 import type { Action, Published, State } from "../state/store";
@@ -10,16 +10,17 @@ import { CodeBlock, Confirm, EmptyState, Meta, PageHead, TabLinks, Tag } from ".
 import { Field, FieldGroup, Panel } from "./console";
 import { formatDate } from "./format";
 import { Icon } from "./icons";
-import { InsightGroups } from "./InsightGroups";
+import { OutputGroups } from "./OutputGroups";
 import { algorithmOfTask } from "./labels";
 
 type Props = { item: Published; task: Task | undefined; state: State; dispatch: Dispatch<Action>; tab?: AppTab };
 
-function bodyOf(version: LibraryVersion): Record<string, string> {
-  return Object.fromEntries(version.insights.map((insight) => [insight.key, insight.text]));
+/** 导出的 JSON：条目编号 → 内容（FoT 经验库的格式）。 */
+function bodyOf(version: OutputVersion): Record<string, string> {
+  return Object.fromEntries(version.items.map((item) => [item.key, item.text]));
 }
 
-function exportApp(item: Published, version: LibraryVersion) {
+function exportApp(item: Published, version: OutputVersion) {
   const blob = new Blob([`${JSON.stringify(bodyOf(version), null, 2)}\n`], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -32,7 +33,7 @@ function exportApp(item: Published, version: LibraryVersion) {
 /** 应用详情：试用、查看内容、接入方式。和原平台的"应用"页一样，选好应用、输入、运行、看结果。 */
 export default function AppPage({ item, task, state, dispatch, tab }: Props) {
   const [editing, setEditing] = useState<"rename" | "unpublish" | null>(null);
-  const version = task ? libraries(task).find((library) => library.builtAfterRound === item.builtAfterRound) : undefined;
+  const version = task ? outputs(task).find((output) => output.builtAfterRound === item.builtAfterRound) : undefined;
 
   function unpublish() {
     dispatch({ type: "unpublish", id: item.id });
@@ -78,7 +79,7 @@ export default function AppPage({ item, task, state, dispatch, tab }: Props) {
         title={item.name}
         meta={<Meta parts={[
           `${algorithm.output.name} · ${algorithm.name}`,
-          `${version.insights.length} 条`,
+          `${version.items.length} 条`,
           <>来源任务 <a className="text-link" href={hrefOf({ page: "task", id: task.id, tab: "output" })}>{task.name}</a></>,
           `发布于 ${formatDate(item.publishedAt)}`,
         ]} />}
@@ -98,8 +99,8 @@ export default function AppPage({ item, task, state, dispatch, tab }: Props) {
       <div className="tab-panel">
         {active === "try" ? <TryPanel task={task} version={version} state={state} /> : null}
         {active === "content" ? (
-          <Panel title={algorithm.output.name} extra={`${version.insights.length} 条`}>
-            <InsightGroups insights={version.insights} />
+          <Panel title={algorithm.output.name} extra={`${version.items.length} 条`}>
+            <OutputGroups items={version.items} />
           </Panel>
         ) : null}
         {active === "integrate" ? <IntegratePanel item={item} version={version} /> : null}
@@ -139,13 +140,13 @@ function RenameForm({ name, onSave, onCancel }: { name: string; onSave: (name: s
   );
 }
 
-function TryPanel({ task, version, state }: { task: Task; version: LibraryVersion; state: State }) {
+function TryPanel({ task, version, state }: { task: Task; version: OutputVersion; state: State }) {
   const options = modelOptions(state.endpoints);
   const [model, setModel] = useState(options[0]?.ref ?? DEFAULT_MODEL);
   const [question, setQuestion] = useState("");
   const [ran, setRan] = useState<string | null>(null);
   const type = TASK_TYPES[task.config.taskType];
-  const hasExample = version.insights.some((insight) => insight.key === TRY_EXAMPLE.insight);
+  const hasExample = version.items.some((item) => item.key === TRY_EXAMPLE.item);
   const isExample = ran !== null && ran.trim() === TRY_EXAMPLE.question;
   const fillExample = () => setQuestion(TRY_EXAMPLE.question);
   const endpoint = state.endpoints.find((item) => item.id === DEFAULT_ENDPOINT_ID);
@@ -216,8 +217,8 @@ function TryPanel({ task, version, state }: { task: Task; version: LibraryVersio
   );
 }
 
-function IntegratePanel({ item, version }: { item: Published; version: LibraryVersion }) {
-  const preview = JSON.stringify(Object.fromEntries(version.insights.slice(0, 2).map((insight) => [insight.key, insight.text])), null, 2);
+function IntegratePanel({ item, version }: { item: Published; version: OutputVersion }) {
+  const preview = JSON.stringify(Object.fromEntries(version.items.slice(0, 2).map((entry) => [entry.key, entry.text])), null, 2);
   return (
     <div className="panel-stack">
       <Panel title="导出" extra="JSON 格式，放进自己 Agent 的提示词">
