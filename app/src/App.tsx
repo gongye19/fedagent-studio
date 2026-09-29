@@ -9,7 +9,6 @@ import AppPage from "./ui/AppPage";
 import AppsPage from "./ui/AppsPage";
 import { Confirm, NotFound, Notice, Tag } from "./ui/common";
 import { Icon } from "./ui/icons";
-import DatasetsPage from "./ui/DatasetsPage";
 import EndpointPage from "./ui/EndpointPage";
 import HomePage from "./ui/HomePage";
 import ModelsPage from "./ui/ModelsPage";
@@ -20,7 +19,7 @@ import ParticipantsPage from "./ui/ParticipantsPage";
 import TaskPage from "./ui/TaskPage";
 import TasksPage from "./ui/TasksPage";
 
-type NavKey = "home" | "tasks" | "apps" | "participants" | "datasets" | "algorithms" | "models";
+type NavKey = "home" | "tasks" | "apps" | "participants" | "algorithms" | "models";
 
 function navKeyOf(route: Route): NavKey {
   switch (route.page) {
@@ -33,10 +32,8 @@ function navKeyOf(route: Route): NavKey {
       return "apps";
     case "participants":
     case "newParticipant":
-      return "participants";
-    case "datasets":
     case "newDataset":
-      return "datasets";
+      return "participants";
     case "algorithms":
       return "algorithms";
     case "models":
@@ -52,7 +49,7 @@ type NavItem = { key: NavKey; label: string; route: Route };
 
 /**
  * 一级导航：首页、联邦任务、应用、基础管理，四项同一级、同一个样式。
- * 基础管理是可以展开的一组，点开后才出现参与方、数据集、算法、模型接口。
+ * 基础管理是可以展开的一组，点开后才出现参与方与数据、算法、模型接口。
  */
 const NAV: readonly NavItem[] = [
   { key: "home", label: "首页", route: { page: "home" } },
@@ -61,8 +58,7 @@ const NAV: readonly NavItem[] = [
 ];
 
 const MANAGE: readonly NavItem[] = [
-  { key: "participants", label: "参与方", route: { page: "participants" } },
-  { key: "datasets", label: "数据集", route: { page: "datasets" } },
+  { key: "participants", label: "参与方与数据", route: { page: "participants" } },
   { key: "algorithms", label: "算法", route: { page: "algorithms" } },
   { key: "models", label: "模型接口", route: { page: "models" } },
 ];
@@ -138,11 +134,9 @@ function Page({ state, dispatch, route }: { state: State; dispatch: Dispatch<Act
         : <NotFound kind="应用" back={{ page: "apps" }} backLabel="应用" />;
     }
     case "participants":
-      return <ParticipantsPage state={state} dispatch={dispatch} selectedId={route.id} />;
+      return <ParticipantsPage state={state} dispatch={dispatch} scenario={route.scenario} selectedId={route.id} />;
     case "newParticipant":
       return <NewParticipantPage state={state} dispatch={dispatch} from={route.from} />;
-    case "datasets":
-      return <DatasetsPage state={state} dispatch={dispatch} selectedId={route.id} />;
     case "newDataset":
       return <NewDatasetPage key={route.participant ?? ""} state={state} dispatch={dispatch} participant={route.participant} from={route.from} />;
     case "algorithms":

@@ -7,9 +7,8 @@
  * #/tasks/:id[/标签]           任务详情
  * #/apps                      应用（任务产出发布后的成果）
  * #/apps/:id[/标签]            应用详情
- * #/participants[/:id]        参与方
+ * #/participants[/场景[/:id]] 参与方与数据：按场景分标签，标签里按任务类型分组；带 id 时展开这个参与方
  * #/participants/new          新增参与方
- * #/datasets[/:id]            数据集
  * #/datasets/new              新增数据集（?participant=参与方 id 时预先选好参与方）
  * #/algorithms[/:id]          算法
  * #/models                    模型接口
@@ -37,9 +36,8 @@ export type Route =
   | { page: "task"; id: string; tab?: TaskTab }
   | { page: "apps" }
   | { page: "app"; id: string; tab?: AppTab }
-  | { page: "participants"; id?: string }
+  | { page: "participants"; scenario?: ScenarioId; id?: string }
   | { page: "newParticipant"; from?: From }
-  | { page: "datasets"; id?: string }
   | { page: "newDataset"; participant?: string; from?: From }
   | { page: "algorithms"; id?: string }
   | { page: "models" }
@@ -64,11 +62,16 @@ export function parseHash(hash: string): Route {
     case "apps":
     case "libraries": // 旧地址
       return second ? { page: "app", id: second, tab: oneOf(APP_TABS, third) } : { page: "apps" };
-    case "participants":
+    case "participants": {
       if (second === "new") return withFrom({ page: "newParticipant" as const });
+      const scenario = oneOf(SCENARIOS.map((item) => item.id), second);
+      if (scenario) return third ? { page: "participants", scenario, id: third } : { page: "participants", scenario };
+      // 旧地址 #/participants/:id：由页面按这个参与方的数据集决定打开哪个场景
       return second ? { page: "participants", id: second } : { page: "participants" };
+    }
     case "datasets": {
-      if (second !== "new") return second ? { page: "datasets", id: second } : { page: "datasets" };
+      // 数据集已并入"参与方与数据"，旧的列表地址回到那里
+      if (second !== "new") return { page: "participants" };
       const participant = search.get("participant");
       return withFrom(participant ? { page: "newDataset" as const, participant } : { page: "newDataset" as const });
     }
@@ -97,11 +100,9 @@ export function hrefOf(route: Route): string {
     case "app":
       return `#/apps/${part(route.id)}${route.tab ? `/${route.tab}` : ""}`;
     case "participants":
-      return route.id ? `#/participants/${part(route.id)}` : "#/participants";
+      return `#/participants${route.scenario ? `/${route.scenario}` : ""}${route.id ? `/${part(route.id)}` : ""}`;
     case "newParticipant":
       return `#/participants/new${query({ from: fromValue(route.from) })}`;
-    case "datasets":
-      return route.id ? `#/datasets/${part(route.id)}` : "#/datasets";
     case "newDataset":
       return `#/datasets/new${query({ participant: route.participant, from: fromValue(route.from) })}`;
     case "algorithms":

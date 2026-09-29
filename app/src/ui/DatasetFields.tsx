@@ -52,7 +52,7 @@ export function DatasetFields({ form, hosting, onChange }: { form: DatasetForm; 
       {form.scenario ? (
         <Field label="任务类型" labelId={ids.type} wide>
           {types.length ? (
-            <Choices labelledBy={ids.type} value={form.taskType} options={types.map((item) => ({ value: item, label: TASK_TYPES[item].label }))} onChange={(taskType) => onChange((current) => ({ ...current, taskType }))} />
+            <Choices labelledBy={ids.type} value={form.taskType} options={types.map((item) => ({ value: item, label: TASK_TYPES[item].label }))} placeholder="更多类型" onChange={(taskType) => onChange((current) => ({ ...current, taskType }))} />
           ) : <p className="field-static">这个场景还没有可用的任务类型。</p>}
         </Field>
       ) : null}

@@ -218,7 +218,8 @@ export function reducer(state: State, action: Action): State {
 
     case "removeDataset": {
       const dataset = datasetOf(state, action.id);
-      if (!dataset || dataset.source === "builtin") return state;
+      // 内置示例不能删；参与方至少留一份数据集，要删最后一份就删除参与方。
+      if (!dataset || dataset.source === "builtin" || datasetsOf(state, dataset.participantId).length < 2) return state;
       return {
         ...state,
         datasets: state.datasets.filter((item) => item.id !== action.id),

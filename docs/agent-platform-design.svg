@@ -38,7 +38,7 @@
 <text x="612.0" y="157.5" font-size="11" font-weight="400" fill="#4b5563" text-anchor="middle">持有数据集：平台托管，或在本地运行客户端</text>
 <rect x="808" y="122" width="356" height="46" rx="8" ry="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
 <text x="986.0" y="141.5" font-size="13" font-weight="600" fill="#111827" text-anchor="middle">管理员</text>
-<text x="986.0" y="157.5" font-size="11" font-weight="400" fill="#4b5563" text-anchor="middle">参与方、数据集、算法、模型接口</text>
+<text x="986.0" y="157.5" font-size="11" font-weight="400" fill="#4b5563" text-anchor="middle">参与方与数据、算法、模型接口</text>
 <rect x="1182" y="122" width="356" height="46" rx="8" ry="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
 <text x="1360.0" y="141.5" font-size="13" font-weight="600" fill="#111827" text-anchor="middle">外部 Agent / 脚本</text>
 <text x="1360.0" y="157.5" font-size="11" font-weight="400" fill="#4b5563" text-anchor="middle">通过 API 和命令行操作平台</text>
@@ -56,8 +56,8 @@
 <text x="986.0" y="275.2" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="middle">试用 · 内容 · 接入</text>
 <rect x="1182" y="226" width="356" height="58" rx="8" ry="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.2"/>
 <text x="1360.0" y="244.2" font-size="13.5" font-weight="600" fill="#111827" text-anchor="middle">基础管理（点开展开）</text>
-<text x="1360.0" y="259.8" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="middle">参与方（机构或节点）· 数据集（选定场景和任务类型）</text>
-<text x="1360.0" y="275.2" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="middle">算法（注册表）· 模型接口（预留的 LLM API）</text>
+<text x="1360.0" y="259.8" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="middle">参与方与数据：按场景分标签、按任务类型分组</text>
+<text x="1360.0" y="275.2" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="middle">算法（每类留待接入的空位）· 模型接口</text>
 <rect x="150" y="318" width="1300" height="50" rx="8" ry="8" fill="#eff6ff" stroke="#60a5fa" stroke-width="1.2"/>
 <text x="800.0" y="340.0" font-size="14.5" font-weight="600" fill="#111827" text-anchor="middle">后端 API（REST）</text>
 <text x="800.0" y="356.5" font-size="11.5" font-weight="400" fill="#4b5563" text-anchor="middle">界面、命令行 fedagent、参与方客户端 fedagent-client 共用一套接口，权限与审计一致</text>

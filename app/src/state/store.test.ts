@@ -124,6 +124,15 @@ describe("store", () => {
     expect(removed.draft.participants.some((item) => item.participantId === "p-c")).toBe(false);
     expect(reducer(removed, { type: "removeDataset", id: "ds-amc" })).toBe(removed);
   });
+
+  it("keeps at least one dataset per participant", () => {
+    const state = reducer(seedState(), {
+      type: "addParticipant",
+      participant: { id: "p-new", name: "新参与方", org: "", intro: "", hosting: "platform", status: "online" },
+      dataset: UPLOAD,
+    });
+    expect(reducer(state, { type: "removeDataset", id: "ds-new" })).toBe(state);
+  });
 });
 
 describe("route", () => {
@@ -139,10 +148,10 @@ describe("route", () => {
       { page: "app", id: "lib-1", tab: "try" },
       { page: "participants" },
       { page: "participants", id: "p-c" },
+      { page: "participants", scenario: "horizontal" },
+      { page: "participants", scenario: "vertical", id: "p-c" },
       { page: "newParticipant" },
       { page: "newParticipant", from: "newTask" },
-      { page: "datasets" },
-      { page: "datasets", id: "ds-amc" },
       { page: "newDataset" },
       { page: "newDataset", participant: "p-c" },
       { page: "newDataset", participant: "p-c", from: "newTask" },
@@ -162,5 +171,8 @@ describe("route", () => {
     expect(parseHash("#/libraries/lib-1")).toEqual({ page: "app", id: "lib-1", tab: undefined });
     expect(parseHash("#/tasks/t1/uploads")).toEqual({ page: "task", id: "t1", tab: undefined });
     expect(parseHash("#/tasks/t1/unknown")).toEqual({ page: "task", id: "t1", tab: undefined });
+    // 数据集已并入"参与方与数据"
+    expect(parseHash("#/datasets")).toEqual({ page: "participants" });
+    expect(parseHash("#/datasets/ds-amc")).toEqual({ page: "participants" });
   });
 });

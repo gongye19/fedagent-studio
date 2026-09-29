@@ -100,15 +100,19 @@ export function UnitInput({ id, unit, ...props }: InputHTMLAttributes<HTMLInputE
 
 export type Choice<T> = { value: T; label: ReactNode; disabled?: boolean; badge?: string };
 
-/** 选项按钮组：方向键在可选的选项之间移动，只有当前选项在 Tab 顺序里。 */
+/**
+ * 选项按钮组：方向键在可选的选项之间移动，只有当前选项在 Tab 顺序里。
+ * placeholder 在最后留一个"待接入"的空位（虚线框、不能选），表示之后还会接入别的选项。
+ */
 export function Choices<T extends string | number>({
-  value, options, onChange, labelledBy, label,
+  value, options, onChange, labelledBy, label, placeholder,
 }: {
   value: T | null;
   options: readonly Choice<T>[];
   onChange: (value: T) => void;
   labelledBy?: string;
   label?: string;
+  placeholder?: string;
 }) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const enabled = options.map((option, index) => (option.disabled ? -1 : index)).filter((index) => index >= 0);
@@ -125,7 +129,7 @@ export function Choices<T extends string | number>({
     refs.current[next]?.focus();
   }
 
-  const badged = options.some((option) => option.badge);
+  const badged = options.some((option) => option.badge) || Boolean(placeholder);
   return (
     <div className={`choices${badged ? " choices--badged" : ""}`} role="radiogroup" aria-labelledby={labelledBy} aria-label={labelledBy ? undefined : label}>
       {options.map((option, index) => {
@@ -148,6 +152,12 @@ export function Choices<T extends string | number>({
           </button>
         );
       })}
+      {placeholder ? (
+        <button type="button" role="radio" aria-checked={false} disabled tabIndex={-1} className="choice choice--placeholder">
+          {placeholder}
+          <span className="choice-badge">待接入</span>
+        </button>
+      ) : null}
     </div>
   );
 }

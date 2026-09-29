@@ -50,9 +50,8 @@ app/src/
 │   ├── TaskPage.tsx         任务详情（task/ 下是概览、进度、产出、配置四个标签）
 │   ├── AppsPage.tsx         应用列表（任务产出发布后的成果）
 │   ├── AppPage.tsx          应用详情：试用、内容、接入
-│   ├── ParticipantsPage.tsx 参与方（列表；详情里有连接命令、添加数据集、删除）
+│   ├── ParticipantsPage.tsx 参与方与数据：按场景分标签、按任务类型分组；详情里有数据集、连接命令、新增数据集、删除
 │   ├── NewParticipantPage.tsx 新增参与方（独立页面，同时登记第一份数据集）
-│   ├── DatasetsPage.tsx     数据集（列表；详情里有来源、标注、数据格式、样本示例、删除）
 │   ├── NewDatasetPage.tsx   新增数据集（独立页面：参与方 → 场景 → 任务类型 → 文件或名称）
 │   ├── DatasetFields.tsx / datasetForm.ts 登记数据集的字段和规则（场景、任务类型、在浏览器里检查文件；新增参与方和新增数据集共用）
 │   ├── AlgorithmsPage.tsx   算法（注册表，每行可展开看步骤、参数和来源）
@@ -60,7 +59,7 @@ app/src/
 │   ├── EndpointPage.tsx     新增、编辑模型接口（独立页面）
 │   ├── Chart.tsx            ECharts 封装（按需加载，概览页的哑铃图）
 │   ├── OutputGroups.tsx     按类别列出产出里的条目（任务产出和应用内容共用）
-│   ├── console.tsx          控制台风格的表单组件：Panel（配置面板）、Field / FieldGroup（字段名在上的表单字段和两栏网格）、UnitInput（带单位的输入框）、Choices（选项按钮组）
+│   ├── console.tsx          控制台风格的表单组件：Panel（配置面板）、Field / FieldGroup（字段名在上的表单字段和两栏网格）、UnitInput（带单位的输入框）、Choices（选项按钮组，可以在最后留"待接入"的空位）
 │   ├── common.tsx           共用组件：Tag（唯一的标签）、PageHead（同时设置浏览器标题）、Confirm（页面内的确认条）、Notice、FormActions、Meta（分隔点不落在行首行尾）、CodeBlock、Collapsible、PanelEmpty、Stat、Facts 等
 │   ├── TaskTable.tsx / labels.ts / format.ts / icons.tsx
 ├── App.tsx             外框与侧栏导航（四个一级导航；基础管理是可以展开的一组）

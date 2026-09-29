@@ -61,12 +61,12 @@ export default function NewParticipantPage({ state, dispatch, from }: Props) {
     showFlash({ page: "participants" }, hosting === "platform"
       ? `已添加“${participant.name}”和它的数据集“${dataset.name}”。`
       : `已添加“${participant.name}”，详情里有连接命令；连上之前显示“等待连接”。`);
-    navigate({ page: "participants", id });
+    navigate({ page: "participants", scenario: dataset.scenario, id });
   }
 
   return (
     <>
-      <PageHead title="新增参与方" crumbs={[{ label: "参与方", route: { page: "participants" } }]} />
+      <PageHead title="新增参与方" crumbs={[{ label: "参与方与数据", route: { page: "participants" } }]} />
       <div className="form-page">
         <Panel title="基本信息">
           <div className="form-body">

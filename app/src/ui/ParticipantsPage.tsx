@@ -1,113 +1,190 @@
 import { Fragment, useState, type Dispatch } from "react";
-import { HOSTING_LABELS, PARTICIPANT_STATUS, type Participant } from "../domain/resources";
+import { SCENARIOS, TASK_TYPES, type ScenarioId, type TaskType } from "../domain/catalog";
+import { HOSTING_LABELS, PARTICIPANT_STATUS, type Dataset, type Participant } from "../domain/resources";
 import { showFlash } from "../state/flash";
 import { hrefOf, navigate } from "../state/route";
-import { datasetsOf, taskCountOf, type Action, type State } from "../state/store";
-import { CodeBlock, Confirm, PageHead, Tag } from "./common";
+import { datasetsOf, type Action, type State } from "../state/store";
+import { CodeBlock, Confirm, EmptyState, Facts, PageHead, TabLinks, Tag } from "./common";
 import { Panel } from "./console";
+import { formatNumber } from "./format";
 import { Icon } from "./icons";
-import { usageText } from "./labels";
 
-type Props = { state: State; dispatch: Dispatch<Action>; selectedId?: string };
+type Props = { state: State; dispatch: Dispatch<Action>; scenario?: ScenarioId; selectedId?: string };
+
+/** 一个参与方在某个场景、某种任务类型下登记的数据集。 */
+type Entry = { participant: Participant; datasets: Dataset[] };
 
 /**
- * 参与方：参加联邦的机构或节点。参与方本身不绑定场景，能参加哪些联邦任务由它登记的数据集决定，
- * 所以列表里写出它的数据集各用于哪个场景、哪种任务类型；数据集的详情在"数据集"页。
+ * 参与方与数据：先按场景分标签（横向、纵向、迁移），标签里再按任务类型分组，
+ * 每组列出登记在这个场景、这种任务类型下的参与方和它们的数据集。
+ * 参与方本身不绑定场景：它在几个场景、几种任务类型下有数据集，就出现在几处。
  */
-export default function ParticipantsPage({ state, dispatch, selectedId }: Props) {
-  const toggle = (id: string) => navigate(selectedId === id ? { page: "participants" } : { page: "participants", id }, { keepScroll: true });
-  // 新登记的在前（登记时插到最前面），内置示例在后。
-  const participants = [...state.participants].sort((a, b) => Number(Boolean(a.builtin)) - Number(Boolean(b.builtin)));
+export default function ParticipantsPage({ state, dispatch, scenario, selectedId }: Props) {
+  // 地址里没写场景时（例如旧链接只带了参与方），打开这个参与方的数据集所在的场景，否则打开第一个场景。
+  const active: ScenarioId = scenario
+    ?? state.datasets.find((dataset) => dataset.participantId === selectedId)?.scenario
+    ?? SCENARIOS[0].id;
+  const inScenario = state.datasets.filter((dataset) => dataset.scenario === active);
+  const types = (Object.keys(TASK_TYPES) as TaskType[]).filter((type) => inScenario.some((dataset) => dataset.taskType === type));
+  const countOf = (id: ScenarioId) => new Set(state.datasets.filter((dataset) => dataset.scenario === id).map((dataset) => dataset.participantId)).size;
+  const current = SCENARIOS.find((item) => item.id === active) ?? SCENARIOS[0];
 
   return (
     <>
       <PageHead
-        title="参与方"
-        meta="参加联邦的机构或节点，原始数据不出本方。能参加哪些联邦任务，由它登记的数据集决定。"
-        actions={<a className="button button--primary" href={hrefOf({ page: "newParticipant" })}><Icon name="plus" />新增参与方</a>}
+        title="参与方与数据"
+        meta="按场景和任务类型分类：参与方的数据集登记在哪个场景、哪种任务类型下，就列在哪一类里。"
+        actions={(
+          <>
+            <a className="button button--secondary" href={hrefOf({ page: "newDataset" })}><Icon name="plus" />新增数据集</a>
+            <a className="button button--primary" href={hrefOf({ page: "newParticipant" })}><Icon name="plus" />新增参与方</a>
+          </>
+        )}
       />
-
-      <Panel flush>
-        <div className="table-shell">
-          {/* 列宽固定（宽屏），展开详情时列不会跳动 */}
-          <table className="table table--rows table--fixed">
-            <thead>
-              <tr>
-                <th scope="col" style={{ width: "22%" }}>参与方</th>
-                <th scope="col" className="col-optional" style={{ width: "20%" }}>数据集</th>
-                <th scope="col" style={{ width: "22%" }}>场景 · 任务类型</th>
-                <th scope="col" className="col-optional" style={{ width: "14%" }}>运行位置</th>
-                <th scope="col" style={{ width: "12%" }}>状态</th>
-                <th scope="col" className="numeric col-optional" style={{ width: "10%" }}>参加任务</th>
-              </tr>
-            </thead>
-            <tbody>
-              {participants.map((participant) => {
-                const datasets = datasetsOf(state, participant.id);
-                const usages = [...new Set(datasets.map((dataset) => usageText(dataset.scenario, dataset.taskType)))];
-                const open = selectedId === participant.id;
-                return (
-                  <Fragment key={participant.id}>
-                    <tr
-                      className={`row--toggle${open ? " row--open" : ""}`}
-                      onClick={(event) => {
-                        // 整行都能点开；点到行里的按钮、链接时交给它们自己处理。
-                        if ((event.target as HTMLElement).closest("button, a, input, label")) return;
-                        toggle(participant.id);
-                      }}
-                    >
-                      <th scope="row">
-                        <button type="button" className="row-button" aria-expanded={open} onClick={() => toggle(participant.id)}>
-                          <Icon name="chevron" />
-                          <span className="cell-title">
-                            {participant.name}
-                            {participant.org ? <span className="cell-note">{participant.org}</span> : null}
-                          </span>
-                        </button>
-                      </th>
-                      <td className="col-optional">
-                        {datasets.length ? (
-                          <span className="cell-links">
-                            {datasets.map((dataset) => <a key={dataset.id} className="text-link" href={hrefOf({ page: "datasets", id: dataset.id })}>{dataset.name}</a>)}
-                          </span>
-                        ) : "—"}
-                      </td>
-                      <td>{usages.length ? usages.map((usage) => <span key={usage} className="cell-line">{usage}</span>) : "—"}</td>
-                      <td className="col-optional">{HOSTING_LABELS[participant.hosting]}</td>
-                      <td>{participant.status === "online" ? <span className="status-text">在线</span> : <Tag tone="warning">{PARTICIPANT_STATUS[participant.status]}</Tag>}</td>
-                      <td className="numeric col-optional">{taskCountOf(state, participant.id)}</td>
-                    </tr>
-                    {open ? (
-                      <tr className="detail-row">
-                        <td colSpan={6}>
-                          <ParticipantDetail participant={participant} dispatch={dispatch} />
-                        </td>
-                      </tr>
-                    ) : null}
-                  </Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </Panel>
+      <TabLinks
+        label="联邦场景"
+        tabs={SCENARIOS.map((item) => ({
+          id: item.id,
+          label: <>{item.short}<span className="tab-count">{item.status === "available" || countOf(item.id) ? countOf(item.id) : "规划中"}</span></>,
+        }))}
+        active={active}
+        routeOf={(id) => ({ page: "participants", scenario: id })}
+      />
+      <div className="tab-panel">
+        {types.length ? (
+          <div className="panel-stack">
+            {types.map((type) => (
+              <TypeGroup key={type} state={state} dispatch={dispatch} scenario={active} taskType={type} selectedId={selectedId} />
+            ))}
+          </div>
+        ) : current.status === "available" ? (
+          <EmptyState title="还没有参与方" action={<a className="button button--secondary" href={hrefOf({ page: "newParticipant" })}>新增参与方</a>}>
+            <p>登记了{current.short}数据集的参与方会按任务类型列在这里。</p>
+          </EmptyState>
+        ) : (
+          <EmptyState title="还没有参与方">
+            <p>{current.short}的算法还在规划中，接入后可以登记这个场景的数据集。</p>
+          </EmptyState>
+        )}
+      </div>
     </>
   );
 }
 
-/** 展开后：简介、本地参与方的连接步骤，以及添加数据集、删除参与方。 */
-function ParticipantDetail({ participant, dispatch }: { participant: Participant; dispatch: Dispatch<Action> }) {
+/** 一种任务类型：表格一行一个参与方，写出它在这一类里的数据集；点开一行看数据集详情和操作。 */
+function TypeGroup({
+  state, dispatch, scenario, taskType, selectedId,
+}: {
+  state: State;
+  dispatch: Dispatch<Action>;
+  scenario: ScenarioId;
+  taskType: TaskType;
+  selectedId?: string;
+}) {
+  // 新登记的参与方在前（登记时插到最前面），内置示例在后。
+  const participants = [...state.participants].sort((a, b) => Number(Boolean(a.builtin)) - Number(Boolean(b.builtin)));
+  const entries: Entry[] = participants.flatMap((participant) => {
+    const datasets = datasetsOf(state, participant.id).filter((dataset) => dataset.scenario === scenario && dataset.taskType === taskType);
+    return datasets.length ? [{ participant, datasets }] : [];
+  });
+  const tasksOf = (participantId: string) => state.tasks.filter((task) => task.config.scenario === scenario
+    && task.config.taskType === taskType
+    && task.members.some((member) => member.participantId === participantId)).length;
+  const toggle = (id: string) => navigate(selectedId === id ? { page: "participants", scenario } : { page: "participants", scenario, id }, { keepScroll: true });
+
+  return (
+    <Panel title={TASK_TYPES[taskType].label} extra={`${entries.length} 个参与方`} flush>
+      <div className="table-shell">
+        {/* 列宽固定（宽屏），展开详情时列不会跳动 */}
+        <table className="table table--rows table--fixed">
+          <thead>
+            <tr>
+              <th scope="col" style={{ width: "24%" }}>参与方</th>
+              <th scope="col" style={{ width: "22%" }}>数据集</th>
+              <th scope="col" className="numeric col-optional" style={{ width: "10%" }}>样本</th>
+              <th scope="col" className="col-optional" style={{ width: "16%" }}>运行位置</th>
+              <th scope="col" style={{ width: "16%" }}>状态</th>
+              <th scope="col" className="numeric col-optional" style={{ width: "12%" }}>参加任务</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map(({ participant, datasets }) => {
+              const open = selectedId === participant.id;
+              const reported = datasets.filter((dataset) => dataset.source !== "local");
+              return (
+                <Fragment key={participant.id}>
+                  <tr
+                    className={`row--toggle${open ? " row--open" : ""}`}
+                    onClick={(event) => {
+                      // 整行都能点开；点到行里的按钮、链接时交给它们自己处理。
+                      if ((event.target as HTMLElement).closest("button, a, input, label")) return;
+                      toggle(participant.id);
+                    }}
+                  >
+                    <th scope="row">
+                      <button type="button" className="row-button" aria-expanded={open} onClick={() => toggle(participant.id)}>
+                        <Icon name="chevron" />
+                        <span className="cell-title">
+                          {participant.name}
+                          {participant.org ? <span className="cell-note">{participant.org}</span> : null}
+                        </span>
+                      </button>
+                    </th>
+                    <td>{datasets.map((dataset) => dataset.name).join("、")}</td>
+                    <td className="numeric col-optional">{reported.length ? formatNumber(reported.reduce((sum, dataset) => sum + dataset.count, 0)) : "—"}</td>
+                    <td className="col-optional">{HOSTING_LABELS[participant.hosting]}</td>
+                    <td>{participant.status === "online" ? <span className="status-text">在线</span> : <Tag tone="warning">{PARTICIPANT_STATUS[participant.status]}</Tag>}</td>
+                    <td className="numeric col-optional">{tasksOf(participant.id)}</td>
+                  </tr>
+                  {open ? (
+                    <tr className="detail-row">
+                      <td colSpan={6}>
+                        <ParticipantDetail state={state} participant={participant} datasets={datasets} scenario={scenario} dispatch={dispatch} />
+                      </td>
+                    </tr>
+                  ) : null}
+                </Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </Panel>
+  );
+}
+
+/** 数据集的来源。 */
+function sourceText(dataset: Dataset): string {
+  if (dataset.source === "builtin") return dataset.origin ? `内置示例（${dataset.origin}）` : "内置示例";
+  return dataset.source === "local" ? "留在参与方本地" : "上传到平台";
+}
+
+/** 展开后：简介、这一类里的数据集（来源、标注、样本示例）、本地参与方的连接步骤，以及新增数据集、删除参与方。 */
+function ParticipantDetail({
+  state, participant, datasets, scenario, dispatch,
+}: {
+  state: State;
+  participant: Participant;
+  datasets: Dataset[];
+  scenario: ScenarioId;
+  dispatch: Dispatch<Action>;
+}) {
   const [removing, setRemoving] = useState(false);
+  // 参与方至少留一份数据集：只有一份时不能单独删，要删就删除参与方。
+  const total = datasetsOf(state, participant.id).length;
 
   function remove() {
     dispatch({ type: "removeParticipant", id: participant.id });
     showFlash({ page: "participants" }, `已删除“${participant.name}”。`);
-    navigate({ page: "participants" }, { keepScroll: true });
+    navigate({ page: "participants", scenario }, { keepScroll: true });
   }
 
   return (
     <div className="participant-detail">
       {participant.intro ? <p className="detail-lede">{participant.intro}</p> : null}
+      {datasets.map((dataset) => (
+        <DatasetBlock key={dataset.id} dataset={dataset} removable={dataset.source !== "builtin" && total > 1} dispatch={dispatch} />
+      ))}
       {participant.hosting === "local" ? <LocalConnect /> : null}
       {removing ? (
         <Confirm title={`删除“${participant.name}”？`} confirmLabel="删除" onConfirm={remove} onCancel={() => setRemoving(false)}>
@@ -115,10 +192,52 @@ function ParticipantDetail({ participant, dispatch }: { participant: Participant
         </Confirm>
       ) : (
         <div className="detail-actions">
-          <a className="button button--secondary button--compact" href={hrefOf({ page: "newDataset", participant: participant.id })}><Icon name="plus" />添加数据集</a>
+          <a className="button button--secondary button--compact" href={hrefOf({ page: "newDataset", participant: participant.id })}><Icon name="plus" />新增数据集</a>
           {participant.builtin ? null : <button type="button" className="button button--secondary button--compact button--danger" onClick={() => setRemoving(true)}>删除参与方</button>}
         </div>
       )}
+    </div>
+  );
+}
+
+/** 一份数据集：来源、标注和一条样本示例；自己登记的、又不是这一方最后一份的，可以删除。 */
+function DatasetBlock({ dataset, removable, dispatch }: { dataset: Dataset; removable: boolean; dispatch: Dispatch<Action> }) {
+  const [removing, setRemoving] = useState(false);
+
+  function remove() {
+    dispatch({ type: "removeDataset", id: dataset.id });
+    showFlash({ page: "participants" }, `已删除数据集“${dataset.name}”。`);
+  }
+
+  return (
+    <div className="dataset-info">
+      <h3 className="detail-title">
+        <span className="cell-title">{dataset.name}{dataset.description && dataset.description !== dataset.name ? <span className="cell-note">{dataset.description}</span> : null}</span>
+      </h3>
+      <Facts className="facts--columns" items={[
+        ["来源", sourceText(dataset)],
+        ["标注", dataset.source === "local"
+          ? "连上客户端后上报"
+          : dataset.answered === dataset.count
+            ? `${formatNumber(dataset.count)} 条都有标注`
+            : `${formatNumber(dataset.count)} 条中 ${formatNumber(dataset.answered)} 条有标注`],
+      ]} />
+      {dataset.sample ? (
+        <div className="sample-question">
+          <span>样本示例</span>
+          <p lang="en">{dataset.sample.question}</p>
+          {dataset.sample.answer ? <p className="sample-answer" lang="en">标注：{dataset.sample.answer}</p> : null}
+        </div>
+      ) : null}
+      {removable ? (removing ? (
+        <Confirm title={`删除数据集“${dataset.name}”？`} confirmLabel="删除" onConfirm={remove} onCancel={() => setRemoving(false)}>
+          删除后不能再选入新任务；已有任务里的记录不受影响。
+        </Confirm>
+      ) : (
+        <div className="detail-actions">
+          <button type="button" className="button button--secondary button--compact button--danger" onClick={() => setRemoving(true)}>删除数据集</button>
+        </div>
+      )) : null}
     </div>
   );
 }
@@ -127,7 +246,7 @@ function ParticipantDetail({ participant, dispatch }: { participant: Participant
 function LocalConnect() {
   return (
     <div className="connect-steps">
-      <h2 className="detail-title">在参与方的环境里连接</h2>
+      <h3 className="detail-title">在参与方的环境里连接</h3>
       <CodeBlock copyable={false} code={`pip install fedagent-client
 fedagent-client connect \\
   --server https://<平台地址> \\

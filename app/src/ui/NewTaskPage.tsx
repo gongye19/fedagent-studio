@@ -311,13 +311,13 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
   );
 }
 
-/** 任务类型：列出这个场景里有算法能处理的类型，由用户选；指标跟着任务类型走。 */
+/** 任务类型：列出这个场景里有算法能处理的类型，由用户选；指标跟着任务类型走。最后留一个"待接入"的空位。 */
 function TaskTypeChoice({ scenario, value, onChange }: { scenario: ScenarioId; value: TaskType | null; onChange: (type: TaskType) => void }) {
   const types = taskTypesFor(scenario);
   return (
     <Field label="任务类型" labelId="task-type-label" wide>
       {types.length ? (
-        <Choices labelledBy="task-type-label" value={value} options={types.map((type) => ({ value: type, label: TASK_TYPES[type].label }))} onChange={onChange} />
+        <Choices labelledBy="task-type-label" value={value} options={types.map((type) => ({ value: type, label: TASK_TYPES[type].label }))} placeholder="更多类型" onChange={onChange} />
       ) : <p className="field-static">这个场景还没有可用的任务类型。</p>}
     </Field>
   );
@@ -333,6 +333,7 @@ function AlgorithmField({ scenario, taskType, value, onChange }: { scenario: Sce
   );
 }
 
+/** 算法表：最后一行留"更多算法 · 待接入"的空位，表示之后还会接入别的算法。 */
 function AlgorithmTable({ algorithms, value, onChange }: { algorithms: readonly Algorithm[]; value: Draft["algorithm"]; onChange: (id: Algorithm["id"]) => void }) {
   return (
     <div className="table-shell">
@@ -361,6 +362,13 @@ function AlgorithmTable({ algorithms, value, onChange }: { algorithms: readonly 
               </tr>
             );
           })}
+          <tr className="select-row select-row--disabled select-row--placeholder">
+            <td className="select-cell"><input type="radio" name="algorithm" disabled aria-label="更多算法（待接入）" /></td>
+            <th scope="row" className="nowrap-cell">更多算法<small>待接入</small></th>
+            <td className="col-optional" />
+            <td className="col-optional" />
+            <td />
+          </tr>
         </tbody>
       </table>
     </div>
@@ -452,7 +460,7 @@ function ParticipantTable({ draft, dispatch, candidates }: { draft: Draft; dispa
                   {enabled ? <span className="status-text">可用</span> : (
                     <span className="cell-title">
                       <Tag tone="warning">{PARTICIPANT_STATUS[participant.status]}</Tag>
-                      <a className="text-link" href={hrefOf({ page: "participants", id: participant.id })}>查看</a>
+                      <a className="text-link" href={hrefOf({ page: "participants", scenario: draft.scenario ?? undefined, id: participant.id })}>查看</a>
                     </span>
                   )}
                 </td>

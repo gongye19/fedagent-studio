@@ -36,13 +36,13 @@ export default function NewDatasetPage({ state, dispatch, participant, from }: P
       navigate({ page: "newTask" });
       return;
     }
-    showFlash({ page: "datasets" }, `已为“${owner.name}”添加数据集“${dataset.name}”。`);
-    navigate({ page: "datasets", id: dataset.id });
+    showFlash({ page: "participants" }, `已为“${owner.name}”添加数据集“${dataset.name}”。`);
+    navigate({ page: "participants", scenario: dataset.scenario, id: owner.id });
   }
 
   return (
     <>
-      <PageHead title="新增数据集" crumbs={[{ label: "数据集", route: { page: "datasets" } }]} />
+      <PageHead title="新增数据集" crumbs={[{ label: "参与方与数据", route: { page: "participants" } }]} />
       <div className="form-page">
         <Panel title="数据集">
           <div className="form-body">
@@ -69,7 +69,7 @@ export default function NewDatasetPage({ state, dispatch, participant, from }: P
           </div>
         </Panel>
 
-        <FormActions missing={missing} saveLabel="保存数据集" onCancel={() => navigate(backTo(from, { page: "datasets" }))} onSave={save} />
+        <FormActions missing={missing} saveLabel="保存数据集" onCancel={() => navigate(backTo(from, { page: "participants" }))} onSave={save} />
       </div>
     </>
   );
