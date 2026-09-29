@@ -10,7 +10,7 @@
  * #/participants[/场景[/:id]] 参与方与数据：按场景分标签，标签里按任务类型分组；带 id 时展开这个参与方
  * #/participants/new          新增参与方
  * #/datasets/new              新增数据集（?participant=参与方 id 时预先选好参与方）
- * #/algorithms[/:id]          算法
+ * #/algorithms[/:id]          算法：按场景分栏；带 id 时是这个算法的详情页
  * #/models                    模型接口
  * #/models/new                新增接口
  * #/models/:id/edit           编辑接口
@@ -138,6 +138,8 @@ export function pageKeyOf(route: Route): string {
     case "app":
     case "editEndpoint":
       return `${route.page}:${route.id}`;
+    case "algorithms":
+      return route.id ? `algorithm:${route.id}` : route.page;
     default:
       return route.page;
   }

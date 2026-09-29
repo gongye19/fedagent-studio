@@ -15,8 +15,9 @@ type Props = { state: State; dispatch: Dispatch<Action>; scenario?: ScenarioId; 
 type Row = { participant: Participant; dataset: Dataset };
 
 /**
- * 参与方与数据：按场景分标签（横向、纵向、迁移）。每个标签一张表，一行是一个参与方在这个场景下登记的一份数据集，
- * 任务类型是数据集的一列。参与方本身不绑定场景：它在几个场景下有数据集，就出现在几个标签里。
+ * 参与方与数据：按场景分标签（横向、纵向、迁移）。每个标签一张表，只写参与方和数据：
+ * 一行是一个参与方在这个场景下登记的一份数据集，列为参与方、数据集、任务类型、样本数。
+ * 参加了哪些任务属于联邦任务，不在这里显示。参与方本身不绑定场景：它在几个场景下有数据集，就出现在几个标签里。
  */
 export default function ParticipantsPage({ state, dispatch, scenario, selectedId }: Props) {
   // 地址里没写场景时（例如只带了参与方的链接），打开这个参与方的数据集所在的场景，否则打开第一个场景。
@@ -54,7 +55,7 @@ export default function ParticipantsPage({ state, dispatch, scenario, selectedId
       />
       <div className="tab-panel">
         {rows.length ? (
-          <Panel flush>
+          <Panel title="参与方" extra={`共 ${new Set(rows.map((row) => row.participant.id)).size} 个，${rows.length} 份数据集`} flush>
             <DataTable state={state} dispatch={dispatch} scenario={active} rows={rows} selectedId={selectedId} />
           </Panel>
         ) : current.status === "available" ? (
@@ -72,8 +73,8 @@ export default function ParticipantsPage({ state, dispatch, scenario, selectedId
 }
 
 /**
- * 一个场景下的全部数据集：参与方、数据集、任务类型、样本、运行位置、状态、参加过的任务。
- * 点开一行看这份数据集的详情和操作；手机上每行变成一张卡片，字段名写在值上面。
+ * 一个场景下的全部数据集：参与方、数据集、任务类型、样本数。还不能用的参与方（等待连接、离线）在名字旁标出来。
+ * 点开一行看运行位置、这份数据集的详情和操作；手机上每行变成一张卡片，字段名写在值上面。
  */
 function DataTable({
   state, dispatch, scenario, rows, selectedId,
@@ -84,20 +85,16 @@ function DataTable({
   rows: readonly Row[];
   selectedId?: string;
 }) {
-  const tasksOf = (dataset: Dataset) => state.tasks.filter((task) => task.members.some((member) => member.datasetId === dataset.id)).length;
   return (
     <div className="table-shell">
       {/* 列宽固定（宽屏），展开详情时列不会跳动 */}
       <table className="table table--rows table--fixed table--stack">
         <thead>
           <tr>
-            <th scope="col" style={{ width: "21%" }}>参与方</th>
-            <th scope="col" style={{ width: "21%" }}>数据集</th>
-            <th scope="col" style={{ width: "12%" }}>任务类型</th>
-            <th scope="col" className="numeric" style={{ width: "8%" }}>样本</th>
-            <th scope="col" style={{ width: "13%" }}>运行位置</th>
-            <th scope="col" style={{ width: "13%" }}>状态</th>
-            <th scope="col" className="numeric" style={{ width: "10%" }}>参加任务</th>
+            <th scope="col" style={{ width: "34%" }}>参与方</th>
+            <th scope="col" style={{ width: "30%" }}>数据集</th>
+            <th scope="col" style={{ width: "20%" }}>任务类型</th>
+            <th scope="col" className="numeric" style={{ width: "16%" }}>样本数</th>
           </tr>
         </thead>
         <tbody>
@@ -121,6 +118,7 @@ function DataTable({
                       <span className="cell-title">
                         {participant.name}
                         {participant.org ? <span className="cell-note">{participant.org}</span> : null}
+                        {participant.status === "online" ? null : <Tag tone="warning">{PARTICIPANT_STATUS[participant.status]}</Tag>}
                       </span>
                     </button>
                   </th>
@@ -129,14 +127,11 @@ function DataTable({
                     {dataset.description && dataset.description !== dataset.name ? <small>{dataset.description}</small> : null}
                   </td>
                   <td data-label="任务类型">{TASK_TYPES[dataset.taskType].label}</td>
-                  <td className="numeric" data-label="样本">{dataset.source === "local" ? "—" : formatNumber(dataset.count)}</td>
-                  <td data-label="运行位置">{HOSTING_LABELS[participant.hosting]}</td>
-                  <td data-label="状态">{participant.status === "online" ? <span className="status-text">在线</span> : <Tag tone="warning">{PARTICIPANT_STATUS[participant.status]}</Tag>}</td>
-                  <td className="numeric" data-label="参加任务">{tasksOf(dataset)}</td>
+                  <td className="numeric" data-label="样本数">{dataset.source === "local" ? "连上后上报" : formatNumber(dataset.count)}</td>
                 </tr>
                 {open ? (
                   <tr className="detail-row">
-                    <td colSpan={7}>
+                    <td colSpan={4}>
                       <RowDetail state={state} participant={participant} dataset={dataset} scenario={scenario} dispatch={dispatch} />
                     </td>
                   </tr>
@@ -187,6 +182,8 @@ function RowDetail({
   return (
     <div className="participant-detail">
       <Facts className="facts--columns" items={[
+        ["运行位置", HOSTING_LABELS[participant.hosting]],
+        ["状态", PARTICIPANT_STATUS[participant.status]],
         ["来源", sourceText(dataset)],
         ["标注", dataset.source === "local"
           ? "连上客户端后上报"

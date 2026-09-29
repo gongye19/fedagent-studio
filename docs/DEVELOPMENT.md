@@ -55,7 +55,8 @@ app/src/
 │   ├── NewParticipantPage.tsx 新增参与方（独立页面，同时登记第一份数据集）
 │   ├── NewDatasetPage.tsx   新增数据集（独立页面：参与方 → 场景 → 任务类型 → 文件或名称）
 │   ├── DatasetFields.tsx / datasetForm.ts 登记数据集的字段和规则（场景、任务类型、在浏览器里检查文件；新增参与方和新增数据集共用）
-│   ├── AlgorithmsPage.tsx   算法（注册表，每行可展开看步骤、参数和来源）
+│   ├── AlgorithmsPage.tsx   算法：按场景分三栏的算法卡片，每栏最后是"待接入"的空位
+│   ├── AlgorithmPage.tsx    算法详情：概况、每轮步骤、参数（默认值和说明）、来源
 │   ├── ModelsPage.tsx       模型接口列表
 │   ├── EndpointPage.tsx     新增、编辑模型接口（独立页面）
 │   ├── Chart.tsx            ECharts 封装（按需加载，概览页的哑铃图）

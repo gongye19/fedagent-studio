@@ -4,6 +4,8 @@ import { loadState, saveState } from "./state/persistence";
 import { hrefOf, pageKeyOf, useRoute, type Route } from "./state/route";
 import { useSimulation } from "./state/simulation";
 import { reducer, taskOf, type Action, type State } from "./state/store";
+import { ALGORITHMS } from "./domain/catalog";
+import AlgorithmPage from "./ui/AlgorithmPage";
 import AlgorithmsPage from "./ui/AlgorithmsPage";
 import AppPage from "./ui/AppPage";
 import AppsPage from "./ui/AppsPage";
@@ -139,8 +141,11 @@ function Page({ state, dispatch, route }: { state: State; dispatch: Dispatch<Act
       return <NewParticipantPage state={state} dispatch={dispatch} from={route.from} />;
     case "newDataset":
       return <NewDatasetPage key={route.participant ?? ""} state={state} dispatch={dispatch} participant={route.participant} from={route.from} />;
-    case "algorithms":
-      return <AlgorithmsPage selectedId={route.id} />;
+    case "algorithms": {
+      if (!route.id) return <AlgorithmsPage />;
+      const algorithm = ALGORITHMS.find((item) => item.id === route.id);
+      return algorithm ? <AlgorithmPage algorithm={algorithm} /> : <NotFound kind="算法" back={{ page: "algorithms" }} backLabel="算法" />;
+    }
     case "models":
       return <ModelsPage state={state} />;
     case "newEndpoint":
