@@ -1,13 +1,13 @@
 // 页面状态：参与方与数据、模型接口、联邦任务、已发布的应用，以及新建任务的草稿。
 // 规则都在 domain/，这里只负责组合和查找。
 
-import { chooseAlgorithm, chooseScenario, DEFAULT_DRAFT, defaultTaskName, draftIssues, toConfig, toggleDataset, withDefaults, type Draft } from "../domain/config";
-import type { AlgorithmId, ScenarioId } from "../domain/catalog";
+import { chooseAlgorithm, chooseScenario, chooseTaskType, DEFAULT_DRAFT, defaultTaskName, draftIssues, toConfig, toggleDataset, withDefaults, type Draft } from "../domain/config";
+import type { AlgorithmId, ScenarioId, TaskType } from "../domain/catalog";
 import { DEFAULT_ENDPOINT_ID, type Dataset, type Endpoint, type Participant } from "../domain/resources";
 import { cancel, createTask, pause, resume, tick, type Task } from "../domain/task";
 import { seedState } from "./seed";
 
-export const STATE_VERSION = 5;
+export const STATE_VERSION = 6;
 
 export type Published = {
   id: string;
@@ -29,8 +29,9 @@ export type State = {
 };
 
 export type Action =
-  /** auto：页面自动选的（地址里带的场景、唯一可用的场景），不算用户动过草稿。 */
+  /** auto：从首页的场景入口带进来的场景，不算用户动过草稿。 */
   | { type: "chooseScenario"; scenario: ScenarioId; auto?: boolean }
+  | { type: "chooseTaskType"; taskType: TaskType }
   | { type: "chooseAlgorithm"; algorithm: AlgorithmId }
   | { type: "toggleDataset"; datasetId: string }
   | { type: "setDatasets"; datasetIds: string[] }
@@ -88,9 +89,12 @@ function updateTask(state: State, id: string, change: (task: Task) => Task): Sta
 export function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "chooseScenario": {
-      const draft = chooseScenario(state.draft, action.scenario, state.datasets, state.participants);
+      const draft = chooseScenario(state.draft, action.scenario);
       return draft === state.draft ? state : { ...state, draft: action.auto ? draft : { ...draft, touched: true } };
     }
+
+    case "chooseTaskType":
+      return { ...state, draft: { ...chooseTaskType(state.draft, action.taskType), touched: true } };
 
     case "chooseAlgorithm":
       return { ...state, draft: { ...chooseAlgorithm(state.draft, action.algorithm, state.datasets, state.participants), touched: true } };

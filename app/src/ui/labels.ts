@@ -20,7 +20,7 @@ export function algorithmOfTask(task: Task): Algorithm {
 
 /** 任务的主要指标，由任务类型决定（数学推理是准确率）。 */
 export function metricOf(task: Task): string {
-  return TASK_TYPES[algorithmOfTask(task).accepts[0]].metric;
+  return TASK_TYPES[task.config.taskType].metric;
 }
 
 /** 当前停在哪一轮哪一步；完成的任务返回 null。步骤名由算法定义。 */
@@ -31,10 +31,10 @@ export function stageText(task: Task): string | null {
   return `第 ${cursor.round} / ${task.config.rounds} 轮 · ${stage?.label ?? ""}`;
 }
 
-/** 列表和详情页标题下的摘要：场景、算法、参与方数、运行方式。交给 Meta 排版，折行时分隔点不落在行首行尾。 */
+/** 列表和详情页标题下的摘要：场景、任务类型、算法、参与方数、运行方式。交给 Meta 排版，折行时分隔点不落在行首行尾。 */
 export function taskSummaryParts(task: Task): string[] {
   const mode = task.config.mode === "trial" ? "试跑" : "正式运行";
-  return [scenarioOf(task.config.scenario).short, algorithmOfTask(task).name, `${task.members.length} 个参与方`, mode];
+  return [scenarioOf(task.config.scenario).short, TASK_TYPES[task.config.taskType].label, algorithmOfTask(task).name, `${task.members.length} 个参与方`, mode];
 }
 
 /** 运行中、暂停的任务排在前面，其余按创建时间从新到旧。 */

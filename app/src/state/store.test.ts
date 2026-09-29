@@ -6,7 +6,9 @@ import { reducer, type State } from "./store";
 const NOW = "2026-09-28T16:00:00+08:00";
 
 function ready(state: State): State {
-  return reducer(state, { type: "chooseScenario", scenario: "horizontal" });
+  const scenario = reducer(state, { type: "chooseScenario", scenario: "horizontal" });
+  const typed = reducer(scenario, { type: "chooseTaskType", taskType: "math-reasoning" });
+  return reducer(typed, { type: "chooseAlgorithm", algorithm: "fot" });
 }
 
 describe("store", () => {
@@ -14,7 +16,7 @@ describe("store", () => {
     const state = ready(seedState());
     const next = reducer(state, { type: "createTask", id: "task-new", createdAt: NOW });
     expect(next.tasks[0]).toMatchObject({ id: "task-new", status: "running" });
-    expect(next.tasks[0].name).toMatch(/^FoT 任务 \d{2}-\d{2} \d{2}:\d{2}$/);
+    expect(next.tasks[0].name).toMatch(/^数学推理任务 \d{2}-\d{2} \d{2}:\d{2}$/);
     expect(next.tasks[0].members).toHaveLength(8);
     expect(next.draft.scenario).toBeNull();
   });
@@ -45,7 +47,8 @@ describe("store", () => {
 
   it("counts only the user's own changes as touching the draft", () => {
     const auto = reducer(seedState(), { type: "chooseScenario", scenario: "horizontal", auto: true });
-    expect(auto.draft.algorithm).toBe("fot");
+    expect(auto.draft.scenario).toBe("horizontal");
+    expect(auto.draft.algorithm).toBeNull();
     expect(auto.draft.touched).toBe(false);
     const edited = reducer(auto, { type: "updateDraft", patch: { rounds: 4 } });
     expect(edited.draft.touched).toBe(true);
@@ -54,8 +57,8 @@ describe("store", () => {
 
   it("names the task with the name shown on the page when the user left it unchanged", () => {
     const state = ready(seedState());
-    const named = reducer(state, { type: "createTask", id: "task-a", createdAt: NOW, name: "FoT 任务 09-28 15:59" });
-    expect(named.tasks[0].name).toBe("FoT 任务 09-28 15:59");
+    const named = reducer(state, { type: "createTask", id: "task-a", createdAt: NOW, name: "数学推理任务 09-28 15:59" });
+    expect(named.tasks[0].name).toBe("数学推理任务 09-28 15:59");
     const typed = reducer(reducer(state, { type: "updateDraft", patch: { name: "我的任务" } }), { type: "createTask", id: "task-b", createdAt: NOW, name: "ignored" });
     expect(typed.tasks[0].name).toBe("我的任务");
   });

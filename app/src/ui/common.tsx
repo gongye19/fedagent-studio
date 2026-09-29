@@ -18,7 +18,7 @@ export function Tag({ tone = "neutral", children, live = false }: { tone?: Tone;
   );
 }
 
-const PRODUCT = "Federation Studio";
+const PRODUCT = "FedAgent Studio";
 
 /** 页面标题：同时写进浏览器标签页的标题，多开标签页和读屏时都能分清是哪一页。 */
 export function PageHead({

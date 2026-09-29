@@ -9,7 +9,7 @@ import { formatNumber } from "../format";
 import { InsightGroups } from "../InsightGroups";
 import { algorithmOfTask, versionLabel } from "../labels";
 
-/** 任务的产出：由算法决定（FoT 产出洞见库）。每轮一版，任意一版都可以发布为应用。 */
+/** 任务的产出：由算法决定（FoT 产出经验库）。每轮一版，任意一版都可以发布为应用。 */
 export function OutputTab({ task, state, dispatch }: { task: Task; state: State; dispatch: Dispatch<Action> }) {
   const output = algorithmOfTask(task).output;
   const versions = libraries(task);

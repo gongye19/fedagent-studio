@@ -1,11 +1,11 @@
 /**
- * 联邦任务：创建时冻结配置和参与方，之后按 FoT 每轮 6 步推进。
+ * 联邦任务：创建时冻结配置和参与方，之后按所选算法在注册表里定义的步骤逐轮推进（FoT 每轮 6 步）。
  *
  * 前端原型用节拍模拟推进（tick），每完成一步就把这一步的示例结果记进 RoundRecord；
  * 接入后端后，进度和结果改为读取运行目录里的检查点，状态机本身不变。
  */
-import { FOT_STAGES, stageOf, type StageId } from "./catalog";
-import { clientModelOf, ESTIMATE_BASIS, problemsOf, selectedDatasets, type TaskConfig } from "./config";
+import { algorithmOf, stageOf, type Stage, type StageId } from "./catalog";
+import { clientModelOf, problemsOf, selectedDatasets, type TaskConfig } from "./config";
 import type { Dataset, Participant } from "./resources";
 import { librarySize, rankedPool, sampleClusters, sampleCorrect, sampleTokens, sampleTraceCount } from "./sample";
 
@@ -75,6 +75,11 @@ export type Task = {
 /** 服务端每一步占用的模拟节拍数。 */
 export const SERVER_TICKS = 2;
 
+/** 这个任务每轮的步骤，来自所选算法的定义。 */
+export function stagesOf(task: Pick<Task, "config">): readonly Stage[] {
+  return algorithmOf(task.config.algorithm).stages;
+}
+
 export function createTask(input: {
   id: string;
   name: string;
@@ -105,7 +110,7 @@ export function createTask(input: {
     config: input.config,
     members,
     status: "running",
-    cursor: { round: 1, stage: "solve", done: {}, ticks: 0 },
+    cursor: { round: 1, stage: algorithmOf(input.config.algorithm).stages[0].id, done: {}, ticks: 0 },
     rounds: [],
   };
 }
@@ -129,7 +134,7 @@ function recordStage(task: Task, record: RoundRecord, stage: StageId): RoundReco
       return { ...record, correct };
     }
     case "extract": {
-      const perProblem = ESTIMATE_BASIS.tracesPerProblem[task.config.traceDensity];
+      const perProblem = algorithmOf(task.config.algorithm).exchangeVolume.perSample(task.config);
       const traces = Object.fromEntries(task.members.map((member) => [
         member.datasetId,
         sampleTraceCount(task.id, member.datasetId, member.problems, round, perProblem, task.config.maxTracesPerItem),
@@ -164,11 +169,12 @@ export function completeStage(task: Task, now: string): Task {
   const cursor = task.cursor;
   if (!cursor) return task;
   const rounds = withRound(task.rounds, cursor.round, (record) => recordStage(task, record, cursor.stage));
-  const index = FOT_STAGES.findIndex((stage) => stage.id === cursor.stage);
-  const next = FOT_STAGES[index + 1];
+  const stages = stagesOf(task);
+  const index = stages.findIndex((stage) => stage.id === cursor.stage);
+  const next = stages[index + 1];
   if (next) return { ...task, rounds, cursor: { round: cursor.round, stage: next.id, done: {}, ticks: 0 } };
   if (cursor.round < task.config.rounds) {
-    return { ...task, rounds, cursor: { round: cursor.round + 1, stage: "solve", done: {}, ticks: 0 } };
+    return { ...task, rounds, cursor: { round: cursor.round + 1, stage: stages[0].id, done: {}, ticks: 0 } };
   }
   return { ...task, rounds, cursor: null, status: "completed", finishedAt: now };
 }
@@ -177,7 +183,7 @@ export function completeStage(task: Task, now: string): Task {
 export function tick(task: Task, now: string): Task {
   const cursor = task.cursor;
   if (task.status !== "running" || !cursor) return task;
-  if (stageOf(cursor.stage).side === "participant") {
+  if (stageOf(algorithmOf(task.config.algorithm), cursor.stage).side === "participant") {
     let finished = true;
     const done: Record<string, number> = {};
     task.members.forEach((member, index) => {
@@ -265,10 +271,11 @@ export function totalProblems(task: Pick<Task, "members">): number {
 export function progressOf(task: Task): number {
   const cursor = task.cursor;
   if (!cursor) return task.status === "completed" ? 1 : 0;
-  const perRound = FOT_STAGES.length;
-  const index = FOT_STAGES.findIndex((stage) => stage.id === cursor.stage);
+  const stages = stagesOf(task);
+  const perRound = stages.length;
+  const index = stages.findIndex((stage) => stage.id === cursor.stage);
   let within = 0;
-  if (stageOf(cursor.stage).side === "participant") {
+  if (stages[index]?.side === "participant") {
     const total = totalProblems(task);
     const done = task.members.reduce((sum, member) => sum + (cursor.done[member.datasetId] ?? 0), 0);
     within = total ? done / total : 0;
@@ -286,23 +293,15 @@ export function stepState(task: Task, round: number, stage: StageId): StepState 
   if (!cursor) return "done";
   if (round < cursor.round) return "done";
   if (round > cursor.round) return "pending";
-  const current = FOT_STAGES.findIndex((item) => item.id === cursor.stage);
-  const index = FOT_STAGES.findIndex((item) => item.id === stage);
+  const stages = stagesOf(task);
+  const current = stages.findIndex((item) => item.id === cursor.stage);
+  const index = stages.findIndex((item) => item.id === stage);
   return index < current ? "done" : index === current ? "current" : "pending";
 }
 
-/** 每一步的预估耗时（秒）：所有参与方的题目共用同一组并发，与 estimate 口径一致。 */
+/** 每一步的预估耗时（秒）：按算法给出的每步耗时计算，所有参与方的样本共用同一组并发，与 estimate 口径一致。 */
 export function stageSeconds(task: Task, stage: StageId): number {
-  const basis = ESTIMATE_BASIS;
-  const batches = Math.ceil(totalProblems(task) / Math.max(1, task.config.workers));
-  switch (stage) {
-    case "solve":
-    case "reflect":
-    case "extract":
-      return batches * basis.secondsPerCall[stage];
-    case "collect":
-      return 5;
-    default:
-      return basis.secondsPerServerCall;
-  }
+  const definition = stageOf(algorithmOf(task.config.algorithm), stage);
+  if (definition.side === "server") return definition.seconds;
+  return Math.ceil(totalProblems(task) / Math.max(1, task.config.workers)) * definition.seconds;
 }

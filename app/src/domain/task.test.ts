@@ -24,6 +24,7 @@ const NOW = "2026-09-28T10:00:00+08:00";
 function newTask(patch: Partial<Draft> = {}): Task {
   const config = toConfig(withDefaults({
     scenario: "horizontal",
+    taskType: "math-reasoning",
     algorithm: "fot",
     datasetIds: ["ds-aime24", "ds-amc", "ds-ccee"],
     ...patch,

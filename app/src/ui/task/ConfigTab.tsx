@@ -26,7 +26,7 @@ export function ConfigTab({ task, state }: { task: Task; state: State }) {
         <Facts className="facts--columns" items={[
           ["场景", scenarioOf(config.scenario).short],
           ["算法", `${algorithm.name}（${algorithm.fullName}）`],
-          ["任务类型", TASK_TYPES[algorithm.accepts[0]].label],
+          ["任务类型", TASK_TYPES[config.taskType].label],
           ["运行方式", config.mode === "trial" ? `试跑，每个数据集前 ${config.trialCap} 条` : "正式运行，全部样本"],
           ["轮次", `${config.rounds} 轮`],
           ["样本", `${formatNumber(totalProblems(task))} 条`],

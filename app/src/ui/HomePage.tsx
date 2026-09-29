@@ -1,72 +1,58 @@
-import { algorithmsFor, SCENARIOS } from "../domain/catalog";
-import { isConfigured } from "../domain/resources";
+import { SCENARIOS } from "../domain/catalog";
 import { hrefOf } from "../state/route";
-import type { State } from "../state/store";
-import { PageHead, PanelEmpty, Tag } from "./common";
+import { PageHead, Tag } from "./common";
 import { Panel } from "./console";
-import { formatNumber } from "./format";
 import { Icon } from "./icons";
-import { sortTasks } from "./labels";
-import { TaskTable } from "./TaskTable";
 
-/** 首页：从场景开始新建任务，看最近的任务和平台上的资源。 */
-export default function HomePage({ state }: { state: State }) {
-  const recent = sortTasks(state.tasks).slice(0, 5);
-  const online = state.participants.filter((participant) => participant.status === "online").length;
-  const samples = state.datasets.reduce((sum, dataset) => sum + dataset.count, 0);
-  const pending = state.endpoints.filter((endpoint) => !isConfigured(endpoint)).length;
+/**
+ * 一个联邦任务从头到尾怎么走：每步一个标题、一句说明。
+ * 中文只在标点处换行，说明里每一段都不超过 14 个字，排成四栏时每栏放得下。
+ */
+const STEPS: readonly { title: string; text: string }[] = [
+  { title: "登记参与方", text: "每个参与方带自己的数据集，可以上传到平台托管，也可以留在本地。" },
+  { title: "新建联邦任务", text: "依次选场景、任务类型、算法和参与方，再设好轮次和模型。" },
+  { title: "协作几轮", text: "每轮各方先用自己的数据作答，再把交换内容发给服务端汇总，汇总结果在下一轮发回各方。" },
+  { title: "看效果、发布应用", text: "看各方联邦前后的效果变化，把产出发布为应用，接入自己的 Agent。" },
+];
 
+/**
+ * 首页只放别的页面没有的内容：三种联邦场景各是什么，和一个联邦任务怎么进行。
+ * 任务、参与方、接口、应用的列表和数量都在各自的页面里，入口在侧栏，这里不重复；
+ * 新建联邦任务只在页头放一个按钮。
+ */
+export default function HomePage() {
   return (
     <>
-      <PageHead title="首页" actions={<a className="button button--primary" href={hrefOf({ page: "newTask" })}><Icon name="plus" />新建联邦任务</a>} />
+      <PageHead
+        title="首页"
+        meta="让多个参与方的 Agent 一起变强：各方之间不交换原始数据，只交换算法需要的内容。"
+        actions={<a className="button button--primary" href={hrefOf({ page: "newTask" })}><Icon name="plus" />新建联邦任务</a>}
+      />
 
       <div className="scenario-grid">
-        {SCENARIOS.map((scenario) => {
-          const algorithms = algorithmsFor(scenario.id);
-          const available = scenario.status === "available";
-          return (
-            <section key={scenario.id} className="panel scenario-tile" aria-labelledby={`scenario-${scenario.id}`}>
-              <div className="scenario-tile-head">
-                <h2 id={`scenario-${scenario.id}`}>{scenario.name}</h2>
-                {available ? null : <Tag>规划中</Tag>}
-              </div>
-              <p>{scenario.summary}</p>
-              <div className="scenario-tile-foot">
-                <span className="muted">{algorithms.length ? `算法：${algorithms.map((item) => item.name).join("、")}` : "算法待接入"}</span>
-                {available ? <a className="button button--secondary button--compact" href={hrefOf({ page: "newTask", scenario: scenario.id })}>新建联邦任务</a> : null}
-              </div>
-            </section>
-          );
-        })}
+        {SCENARIOS.map((scenario) => (
+          <section key={scenario.id} className="panel scenario-tile" aria-labelledby={`scenario-${scenario.id}`}>
+            <div className="scenario-tile-head">
+              <h2 id={`scenario-${scenario.id}`}>{scenario.name}</h2>
+              {scenario.status === "available" ? null : <Tag>规划中</Tag>}
+            </div>
+            <p>{scenario.summary}</p>
+          </section>
+        ))}
       </div>
 
-      <dl className="resource-strip">
-        <a className="resource" href={hrefOf({ page: "participants" })}>
-          <dt>参与方<Icon name="chevron" /></dt>
-          <dd><strong>{state.participants.length}</strong><span>{online} 个在线</span></dd>
-        </a>
-        <a className="resource" href={hrefOf({ page: "participants" })}>
-          <dt>数据集<Icon name="chevron" /></dt>
-          <dd><strong>{state.datasets.length}</strong><span>{formatNumber(samples)} 条样本</span></dd>
-        </a>
-        <a className="resource" href={hrefOf({ page: "models" })}>
-          <dt>模型接口<Icon name="chevron" /></dt>
-          <dd><strong>{state.endpoints.length}</strong><span>{pending ? `${pending} 个待配置` : "都已配置"}</span></dd>
-        </a>
-        <a className="resource" href={hrefOf({ page: "apps" })}>
-          <dt>应用<Icon name="chevron" /></dt>
-          <dd><strong>{state.published.length}</strong><span>由任务产出发布</span></dd>
-        </a>
-      </dl>
-
-      <Panel
-        title="最近任务"
-        flush
-        actions={state.tasks.length > recent.length ? <a className="text-link" href={hrefOf({ page: "tasks" })}>查看全部</a> : null}
-      >
-        {recent.length ? <TaskTable tasks={recent} /> : (
-          <PanelEmpty action={<a className="button button--secondary button--compact" href={hrefOf({ page: "newTask" })}>新建联邦任务</a>}>还没有任务。</PanelEmpty>
-        )}
+      <Panel title="一个联邦任务怎么进行" id="flow" className="flow-panel">
+        <ol className="flow-steps">
+          {STEPS.map((step, index) => (
+            <li key={step.title}>
+              <span className="flow-index" aria-hidden="true">{index + 1}</span>
+              <div className="flow-copy">
+                <strong>{step.title}</strong>
+                <p>{step.text}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
       </Panel>
     </>
   );

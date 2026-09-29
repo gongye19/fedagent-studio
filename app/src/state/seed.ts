@@ -1,6 +1,6 @@
 /**
  * 演示环境的初始数据：8 个内置示例参与方（各持一份数学题库）、一个等待连接的本地参与方示例、
- * 预留的默认 LLM 接口（待配置）、一个已完成的示例任务（其最终洞见库已发布）和一个正在试跑的任务。
+ * 预留的默认 LLM 接口（待配置）、一个已完成的示例任务（其最终经验库已发布为应用）和一个正在试跑的任务。
  *
  * 任务都通过领域函数推进生成，与用户新建的任务走同一套规则。结果都是示例数据。
  */
@@ -43,7 +43,7 @@ const PAPER_CORRECT: Record<string, readonly [number, number, number]> = {
 };
 
 function seedConfig(patch: Partial<Draft>): TaskConfig {
-  const config = toConfig(withDefaults({ scenario: "horizontal", algorithm: "fot", ...patch }));
+  const config = toConfig(withDefaults({ scenario: "horizontal", taskType: "math-reasoning", algorithm: "fot", ...patch }));
   if (!config) throw new Error("seed config expected");
   return config;
 }
@@ -89,7 +89,7 @@ function runningTrialTask(): Task {
 
 export function seedState(): State {
   return {
-    version: 5,
+    version: 6,
     // 新登记的参与方排在前面，内置示例在后。
     participants: [{ ...LOCAL_EXAMPLE }, ...BUILTIN_PARTICIPANTS.map((item) => ({ ...item }))],
     datasets: [{ ...LOCAL_EXAMPLE_DATASET }, ...BUILTIN_DATASETS.map((item) => ({ ...item }))],
@@ -100,7 +100,7 @@ export function seedState(): State {
         id: "lib-paper-math8",
         taskId: "task-paper-math8",
         builtAfterRound: 3,
-        name: "数学推理洞见库（8 方）",
+        name: "数学推理经验库（8 方）",
         publishedAt: "2026-09-26T14:05:00+08:00",
       },
     ],

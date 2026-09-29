@@ -145,7 +145,7 @@ function Page({ state, dispatch, route }: { state: State; dispatch: Dispatch<Act
     case "editEndpoint":
       return <EndpointPage state={state} dispatch={dispatch} id={route.id} from={route.from} />;
     default:
-      return <HomePage state={state} />;
+      return <HomePage />;
   }
 }
 
@@ -186,7 +186,7 @@ function Sidebar({ route, state, onReset }: { route: Route; state: State; onRese
   return (
     <aside className={`sidebar${open ? " sidebar--open" : ""}`} aria-label="侧栏">
       <div className="sidebar-top">
-        <a className="wordmark" href={hrefOf({ page: "home" })} onClick={close} translate="no">Federation Studio</a>
+        <a className="wordmark" href={hrefOf({ page: "home" })} onClick={close} translate="no">FedAgent Studio</a>
         {/* 品牌位置只放有用的状态：这是前端原型，数据都是示例。 */}
         <span className="env" title="任务运行、结果和应用都是示例数据，后端尚未接入">
           {/* 宽屏时标签前面由样式补上"前端原型 · "，标签里只有文字 */}

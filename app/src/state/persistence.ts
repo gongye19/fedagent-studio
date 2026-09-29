@@ -5,7 +5,7 @@
 import { seedState } from "./seed";
 import { STATE_VERSION, type State } from "./store";
 
-const KEY = "federation-studio:agent-platform";
+const KEY = "fedagent-studio:agent-platform";
 
 export function loadState(): State {
   try {

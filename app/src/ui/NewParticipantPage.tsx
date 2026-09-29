@@ -1,5 +1,5 @@
 import { useState, type Dispatch } from "react";
-import { DEFAULT_TASK_TYPE, TASK_TYPES } from "../domain/catalog";
+import type { TaskType } from "../domain/catalog";
 import { HOSTING_LABELS, type Dataset, type Hosting, type Participant } from "../domain/resources";
 import { showFlash } from "../state/flash";
 import { newId } from "../state/ids";
@@ -7,7 +7,7 @@ import { backTo, navigate, type From } from "../state/route";
 import type { Action } from "../state/store";
 import { FormActions, PageHead } from "./common";
 import { Choices, Field, FieldGroup, Panel } from "./console";
-import { DatasetPicker } from "./DatasetPicker";
+import { DatasetPicker, TaskTypeField } from "./DatasetPicker";
 
 type Props = { dispatch: Dispatch<Action>; from?: From };
 
@@ -26,17 +26,19 @@ export default function NewParticipantPage({ dispatch, from }: Props) {
   const [org, setOrg] = useState("");
   const [intro, setIntro] = useState("");
   const [hosting, setHosting] = useState<Hosting>("platform");
+  const [taskType, setTaskType] = useState<TaskType | null>(null);
   const [upload, setUpload] = useState<Omit<Dataset, "participantId"> | null>(null);
   const [localName, setLocalName] = useState("");
   const [localDescription, setLocalDescription] = useState("");
   const missing = [
     name.trim() ? null : "名称",
-    hosting === "platform" && !upload ? "检查通过的数据集文件" : null,
+    taskType ? null : "任务类型",
+    taskType && hosting === "platform" && !upload ? "检查通过的数据集文件" : null,
     hosting === "local" && !localName.trim() ? "数据集名称" : null,
   ].filter((item): item is string => Boolean(item));
 
   function save() {
-    if (missing.length) return;
+    if (missing.length || !taskType) return;
     const id = newId("p");
     const participant: Participant = {
       id,
@@ -53,7 +55,7 @@ export default function NewParticipantPage({ dispatch, from }: Props) {
         name: localName.trim(),
         participantId: id,
         description: localDescription.trim(),
-        taskType: DEFAULT_TASK_TYPE,
+        taskType,
         count: 0,
         answered: 0,
         source: "local",
@@ -82,7 +84,7 @@ export default function NewParticipantPage({ dispatch, from }: Props) {
           <div className="form-body">
             <FieldGroup>
               <Field label="名称" htmlFor="participant-name">
-                <input id="participant-name" name="participant-name" autoComplete="off" value={name} maxLength={40} onChange={(event) => setName(event.target.value)} placeholder="例如：某高校数学组" />
+                <input id="participant-name" name="participant-name" autoComplete="off" value={name} maxLength={40} onChange={(event) => setName(event.target.value)} placeholder="例如：某高校实验室" />
               </Field>
               <Field label="所属机构" optional htmlFor="participant-org">
                 <input id="participant-org" name="participant-org" autoComplete="off" value={org} maxLength={40} onChange={(event) => setOrg(event.target.value)} />
@@ -100,16 +102,14 @@ export default function NewParticipantPage({ dispatch, from }: Props) {
 
         <Panel title="数据集">
           <div className="form-body">
-            {hosting === "platform" ? <DatasetPicker onChange={setUpload} /> : (
+            {hosting === "platform" ? <DatasetPicker taskType={taskType} onTaskType={setTaskType} onChange={setUpload} /> : (
               <FieldGroup>
-                <Field label="任务类型">
-                  <p className="field-static">{TASK_TYPES[DEFAULT_TASK_TYPE].label}</p>
-                </Field>
+                <TaskTypeField value={taskType} onChange={setTaskType} />
                 <Field label="数据集名称" htmlFor="local-dataset-name">
-                  <input id="local-dataset-name" name="local-dataset-name" autoComplete="off" value={localName} maxLength={40} onChange={(event) => setLocalName(event.target.value)} placeholder="例如：校内竞赛题库" />
+                  <input id="local-dataset-name" name="local-dataset-name" autoComplete="off" value={localName} maxLength={40} onChange={(event) => setLocalName(event.target.value)} placeholder="例如：内部评测集" />
                 </Field>
                 <Field label="说明" optional htmlFor="local-dataset-description">
-                  <input id="local-dataset-description" name="local-dataset-description" autoComplete="off" value={localDescription} maxLength={60} onChange={(event) => setLocalDescription(event.target.value)} placeholder="例如：2024 年校内竞赛题" />
+                  <input id="local-dataset-description" name="local-dataset-description" autoComplete="off" value={localDescription} maxLength={60} onChange={(event) => setLocalDescription(event.target.value)} placeholder="例如：2024 年收集的样本" />
                 </Field>
               </FieldGroup>
             )}

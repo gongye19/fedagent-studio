@@ -1,9 +1,9 @@
 /**
- * 示例数据：前端原型模拟运行时生成的准确率、trace 数、洞见库和 token 用量。
+ * 示例数据：前端原型模拟运行时生成的准确率、上传的经验条数、经验库和 token 用量。
  *
  * 全部由任务 id 和数据集 id 确定性地算出，刷新后不变；界面上一律标"示例"，不代表真实运行结果。
  * 接入后端后，这些值改为读取任务运行目录里的检查点文件（solve / trace / library / metrics）。
- * 洞见和 trace 的文字用英文，因为 FoT 的上游提示词是英文，真实输出也是英文。
+ * 经验和经验库的文字用英文，因为 FoT 的上游提示词是英文，真实输出也是英文（代码里沿用论文的 trace / insight 叫法）。
  */
 
 export type PoolEntry = {
@@ -108,7 +108,7 @@ export const INSIGHT_POOL: readonly PoolEntry[] = [
   },
 ];
 
-/** 内置数据集第 1 轮（没有洞见库）的示例正确率。 */
+/** 内置数据集第 1 轮（还没有经验库）的示例正确率。 */
 export const BASE_RATE: Record<string, number> = {
   "ds-aime24": 0.3,
   "ds-aime25": 0.267,
@@ -157,7 +157,7 @@ export type LibrarySize = "paper-auto" | "author-formula" | "fixed-11" | "fixed-
 
 const PAPER_AUTO_SIZES = [9, 11, 12, 13, 13, 14, 14];
 
-/** 洞见库条数；示例池只有 INSIGHT_POOL.length 条，超过时按池大小截断。 */
+/** 经验库条数；示例池只有 INSIGHT_POOL.length 条，超过时按池大小截断。 */
 export function librarySize(target: LibrarySize, builtAfterRound: number, traces: number): number {
   const pool = INSIGHT_POOL.length;
   switch (target) {
@@ -198,8 +198,8 @@ export function apportion(total: number, weights: readonly number[]): number[] {
 }
 
 /**
- * 把本轮 trace 按洞见的类别分组，每个参与方的 trace 按相关程度分到各类。
- * 和关系分析一样，每条 trace 只归入一类，所以各类之和等于上传总数。
+ * 把本轮上传的经验按类别分组，每个参与方的经验按相关程度分到各类。
+ * 和归类一样，每条 trace 只归入一类，所以各类之和等于上传总数。
  */
 export function sampleClusters(entries: readonly PoolEntry[], traces: Record<string, number>): SampleCluster[] {
   const categories = [...new Set(entries.map((entry) => entry.category))];
@@ -234,7 +234,7 @@ export function sampleTraceTexts(datasetId: string, round: number, limit: number
 }
 
 /**
- * 应用试用页的示例题：只在应用里含有相关洞见时提供。两种回答都是说明用的示意文字，不是真实调用结果。
+ * 应用试用页的示例题：只在应用里含有相关经验时提供。两种回答都是说明用的示意文字，不是真实调用结果。
  * 公式里不加空格，避免在"x -"这种地方断行。
  */
 export const TRY_EXAMPLE = {

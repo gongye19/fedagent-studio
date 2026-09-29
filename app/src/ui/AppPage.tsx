@@ -144,7 +144,7 @@ function TryPanel({ task, version, state }: { task: Task; version: LibraryVersio
   const [model, setModel] = useState(options[0]?.ref ?? DEFAULT_MODEL);
   const [question, setQuestion] = useState("");
   const [ran, setRan] = useState<string | null>(null);
-  const type = TASK_TYPES[algorithmOfTask(task).accepts[0]];
+  const type = TASK_TYPES[task.config.taskType];
   const hasExample = version.insights.some((insight) => insight.key === TRY_EXAMPLE.insight);
   const isExample = ran !== null && ran.trim() === TRY_EXAMPLE.question;
   const fillExample = () => setQuestion(TRY_EXAMPLE.question);

@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type Dispatch, type MouseEvent } from "react";
-import { algorithmOf, algorithmsFor, SCENARIOS, scenarioOf, TASK_TYPES, type Algorithm, type ParamDef, type ScenarioId } from "../domain/catalog";
+import { algorithmOf, algorithmsFor, SCENARIOS, scenarioOf, TASK_TYPES, taskTypesFor, type Algorithm, type ParamDef, type ScenarioId, type TaskType } from "../domain/catalog";
 import {
   activeOverrides,
   compatibleDatasets,
@@ -33,7 +33,7 @@ type Pending = "full" | "leave" | "restart" | null;
 
 /**
  * 新建联邦任务：按云平台"创建实例"的方式，分区块配置，右侧是配置摘要和预估。
- * 场景、算法、任务类型、参数都来自注册表，页面不针对某个算法写死。
+ * 场景、任务类型、算法、参数都来自注册表，页面不针对某个算法写死；每一步都由用户自己选，不替用户默认。
  */
 export default function NewTaskPage({ state, dispatch, scenario }: Props) {
   const draft = state.draft;
@@ -63,16 +63,9 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
     if (scenarioOf(scenario).status === "available") dispatch({ type: "chooseScenario", scenario, auto: true });
   }, [scenario, dispatch]);
 
-  useEffect(() => {
-    // 只有一个场景可用时直接选上。
-    if (draft.scenario || (scenario && scenarioOf(scenario).status === "available")) return;
-    const available = SCENARIOS.filter((item) => item.status === "available");
-    if (available.length === 1) dispatch({ type: "chooseScenario", scenario: available[0].id, auto: true });
-  }, [scenario, draft.scenario, dispatch]);
-
   const update = (patch: Partial<Draft>) => dispatch({ type: "updateDraft", patch });
   const algorithm = draft.algorithm ? algorithmOf(draft.algorithm) : null;
-  const candidates = algorithm ? compatibleDatasets(algorithm.id, state.datasets) : [];
+  const candidates = algorithm && draft.taskType ? compatibleDatasets(draft.taskType, state.datasets) : [];
   const selected = candidates.filter((dataset) => draft.datasetIds.includes(dataset.id) && usable(dataset, state.participants));
   const issues = draftIssues(draft, state.datasets, state.participants, state.endpoints);
   const config = toConfig(draft);
@@ -172,7 +165,7 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
             </div>
           </Panel>
 
-          <Panel title="场景与算法" id="scenario">
+          <Panel title="场景、任务类型与算法" id="scenario">
             <div className="form-body">
               <FieldGroup>
                 <Field label="场景" labelId="scenario-label" wide>
@@ -183,11 +176,9 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
                     onChange={(value) => dispatch({ type: "chooseScenario", scenario: value })}
                   />
                 </Field>
-                {draft.scenario ? <AlgorithmField scenario={draft.scenario} value={draft.algorithm} onChange={(id) => dispatch({ type: "chooseAlgorithm", algorithm: id })} /> : null}
-                {algorithm ? (
-                  <Field label="任务类型">
-                    <p className="field-static">{algorithm.accepts.map((type) => TASK_TYPES[type].label).join("、")}</p>
-                  </Field>
+                {draft.scenario ? <TaskTypeChoice scenario={draft.scenario} value={draft.taskType} onChange={(taskType) => dispatch({ type: "chooseTaskType", taskType })} /> : null}
+                {draft.scenario && draft.taskType ? (
+                  <AlgorithmField scenario={draft.scenario} taskType={draft.taskType} value={draft.algorithm} onChange={(id) => dispatch({ type: "chooseAlgorithm", algorithm: id })} />
                 ) : null}
               </FieldGroup>
             </div>
@@ -218,6 +209,7 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
           <Panel title="配置摘要" className="summary-panel">
             <dl className="summary-list">
               <div><dt>场景</dt><dd>{draft.scenario ? scenarioOf(draft.scenario).short : "—"}</dd></div>
+              <div><dt>任务类型</dt><dd>{draft.taskType ? TASK_TYPES[draft.taskType].label : "—"}</dd></div>
               <div><dt>算法</dt><dd>{algorithm ? algorithm.name : "—"}</dd></div>
               <div><dt>参与方</dt><dd>{selected.length ? `${selected.length} 个` : "—"}</dd></div>
               {algorithm ? (
@@ -265,23 +257,24 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
   );
 }
 
-/**
- * 算法：场景下只有一个算法时直接写出来，不做成"只有一行的单选表格"；
- * 有多个时用带单选的表格，比较它们交换什么、产出什么。
- */
-function AlgorithmField({ scenario, value, onChange }: { scenario: ScenarioId; value: Draft["algorithm"]; onChange: (id: Algorithm["id"]) => void }) {
-  const algorithms = algorithmsFor(scenario);
-  if (algorithms.length === 1) {
-    const only = algorithms[0];
-    return (
-      <Field label="算法" wide>
-        <p className="field-static"><span><strong>{only.name}</strong>（<span translate="no">{only.fullName}</span>）：{only.summary}</span></p>
-      </Field>
-    );
-  }
+/** 任务类型：列出这个场景里有算法能处理的类型，由用户选；指标跟着任务类型走。 */
+function TaskTypeChoice({ scenario, value, onChange }: { scenario: ScenarioId; value: TaskType | null; onChange: (type: TaskType) => void }) {
+  const types = taskTypesFor(scenario);
+  return (
+    <Field label="任务类型" labelId="task-type-label" wide>
+      {types.length ? (
+        <Choices labelledBy="task-type-label" value={value} options={types.map((type) => ({ value: type, label: TASK_TYPES[type].label }))} onChange={onChange} />
+      ) : <p className="field-static">这个场景还没有可用的任务类型。</p>}
+    </Field>
+  );
+}
+
+/** 算法：带单选的表格，列出这个场景里能处理所选任务类型的算法，比较说明、交换内容和产出，由用户选。 */
+function AlgorithmField({ scenario, taskType, value, onChange }: { scenario: ScenarioId; taskType: TaskType; value: Draft["algorithm"]; onChange: (id: Algorithm["id"]) => void }) {
+  const algorithms = algorithmsFor(scenario, taskType);
   return (
     <Field label="算法" labelId="algorithm-label" wide>
-      {algorithms.length ? <AlgorithmTable algorithms={algorithms} value={value} onChange={onChange} /> : <p className="field-static">这个场景的算法待接入。</p>}
+      {algorithms.length ? <AlgorithmTable algorithms={algorithms} value={value} onChange={onChange} /> : <p className="field-static">这种任务类型在这个场景下还没有算法。</p>}
     </Field>
   );
 }

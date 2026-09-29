@@ -19,10 +19,12 @@ export default function TasksPage({ state }: { state: State }) {
     (filter === "all" || task.status === filter) && (!keyword || task.name.toLowerCase().includes(keyword))
   )));
 
+  // 联邦任务是什么：放在列表页标题下，用户第一次看到这个词的地方。
+  const meta = "每个联邦任务让多个参与方的 Agent 按选定的场景、任务类型和算法协作几轮；完成后对比各方效果，产出可以发布为应用。";
   if (!state.tasks.length) {
     return (
       <>
-        <PageHead title="联邦任务" />
+        <PageHead title="联邦任务" meta={meta} />
         <EmptyState title="还没有联邦任务" action={create}>
           <p>选择场景、算法和参与方，几步就能创建一个任务。</p>
         </EmptyState>
@@ -32,7 +34,7 @@ export default function TasksPage({ state }: { state: State }) {
 
   return (
     <>
-      <PageHead title="联邦任务" actions={create} />
+      <PageHead title="联邦任务" meta={meta} actions={create} />
       <Panel flush>
         <div className="panel-toolbar">
           <input

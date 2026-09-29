@@ -1,5 +1,5 @@
 import { Fragment, useState, type Dispatch } from "react";
-import { TASK_TYPES } from "../domain/catalog";
+import { TASK_TYPES, type TaskType } from "../domain/catalog";
 import { HOSTING_LABELS, PARTICIPANT_STATUS, type Dataset, type Participant } from "../domain/resources";
 import { showFlash } from "../state/flash";
 import { hrefOf, navigate } from "../state/route";
@@ -174,14 +174,15 @@ fedagent-client connect \\
 }
 
 function DatasetForm({ participantId, onSave, onCancel }: { participantId: string; onSave: (dataset: Dataset) => void; onCancel: () => void }) {
+  const [taskType, setTaskType] = useState<TaskType | null>(null);
   const [dataset, setDataset] = useState<Omit<Dataset, "participantId"> | null>(null);
   return (
     <div className="form-body dataset-form">
       <h2 className="detail-title">上传数据集</h2>
-      <DatasetPicker onChange={setDataset} />
+      <DatasetPicker taskType={taskType} onTaskType={setTaskType} onChange={setDataset} />
       <FormActions
         compact
-        missing={dataset ? [] : ["检查通过的数据集文件"]}
+        missing={!taskType ? ["任务类型"] : dataset ? [] : ["检查通过的数据集文件"]}
         saveLabel="保存数据集"
         onCancel={onCancel}
         onSave={() => dataset && onSave({ ...dataset, participantId })}

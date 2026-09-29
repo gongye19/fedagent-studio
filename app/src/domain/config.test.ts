@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   activeOverrides,
+  chooseAlgorithm,
   chooseScenario,
+  chooseTaskType,
   DEFAULT_DRAFT,
   defaultTaskName,
   draftIssues,
@@ -19,7 +21,7 @@ const LAB: Endpoint = { id: "lab", name: "实验室接口", baseUrl: "http://10.
 const ALL = BUILTIN_DATASETS.map((dataset) => dataset.id);
 
 function draft(patch: Partial<Draft> = {}): Draft {
-  return withDefaults({ scenario: "horizontal", algorithm: "fot", datasetIds: ALL, ...patch });
+  return withDefaults({ scenario: "horizontal", taskType: "math-reasoning", algorithm: "fot", datasetIds: ALL, ...patch });
 }
 
 describe("estimate", () => {
@@ -65,20 +67,25 @@ describe("draft", () => {
     expect(draft().clientModel).toBe("default");
   });
 
-  it("choosing horizontal selects FoT and every usable dataset; planned scenarios select nothing", () => {
-    const horizontal = chooseScenario(DEFAULT_DRAFT, "horizontal", BUILTIN_DATASETS, BUILTIN_PARTICIPANTS);
-    expect(horizontal.algorithm).toBe("fot");
-    expect(horizontal.datasetIds).toEqual(ALL);
-    const vertical = chooseScenario(horizontal, "vertical", BUILTIN_DATASETS, BUILTIN_PARTICIPANTS);
-    expect(vertical.algorithm).toBeNull();
-    expect(vertical.datasetIds).toEqual([]);
+  it("asks for scenario, task type and algorithm in turn, selecting nothing on the user's behalf", () => {
+    const horizontal = chooseScenario(DEFAULT_DRAFT, "horizontal");
+    expect(horizontal.taskType).toBeNull();
+    expect(horizontal.algorithm).toBeNull();
+    expect(draftIssues(horizontal, BUILTIN_DATASETS, BUILTIN_PARTICIPANTS, DEFAULT_ENDPOINTS)[0].field).toBe("taskType");
+    const typed = chooseTaskType(horizontal, "math-reasoning");
+    expect(draftIssues(typed, BUILTIN_DATASETS, BUILTIN_PARTICIPANTS, DEFAULT_ENDPOINTS)[0].field).toBe("algorithm");
+    const chosen = chooseAlgorithm(typed, "fot", BUILTIN_DATASETS, BUILTIN_PARTICIPANTS);
+    expect(chosen.datasetIds).toEqual(ALL);
+    const vertical = chooseScenario(chosen, "vertical");
+    expect([vertical.taskType, vertical.algorithm, vertical.datasetIds]).toEqual([null, null, []]);
   });
 
   it("skips datasets whose participant is offline", () => {
     const participants = BUILTIN_PARTICIPANTS.map((participant) => (
       participant.id === "p-amc" ? { ...participant, status: "offline" as const } : participant
     ));
-    const chosen = chooseScenario(DEFAULT_DRAFT, "horizontal", BUILTIN_DATASETS, participants);
+    const typed = chooseTaskType(chooseScenario(DEFAULT_DRAFT, "horizontal"), "math-reasoning");
+    const chosen = chooseAlgorithm(typed, "fot", BUILTIN_DATASETS, participants);
     expect(chosen.datasetIds).not.toContain("ds-amc");
   });
 
@@ -89,9 +96,9 @@ describe("draft", () => {
     expect(toConfig(deselected)?.clientOverrides).toEqual({});
   });
 
-  it("names tasks by algorithm and time, without repeating the summary", () => {
+  it("names tasks by what they do (task type) and time, not by the algorithm", () => {
     const at = new Date(2026, 8, 28, 16, 36);
-    expect(defaultTaskName(draft({ mode: "trial" }), at)).toBe("FoT 任务 09-28 16:36");
+    expect(defaultTaskName(draft({ mode: "trial" }), at)).toBe("数学推理任务 09-28 16:36");
     expect(defaultTaskName(withDefaults({}), at)).toBe("联邦任务 09-28 16:36");
   });
 });
