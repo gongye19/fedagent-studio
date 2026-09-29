@@ -44,13 +44,14 @@ app/src/
 │   ├── persistence.ts  浏览器本地保存与恢复
 │   └── route.ts        hash 路由
 ├── ui/
-│   ├── HomePage.tsx         首页：横向、纵向、迁移三个大选项（可用的点进去新建这个场景的任务）
+│   ├── HomePage.tsx         首页：居中的三张场景卡片（可用的点进去新建这个场景的任务）
+│   ├── ScenarioArt.tsx      场景卡片上的示意图（横向按行分、纵向按列分、迁移从已有领域到新领域）
 │   ├── TasksPage.tsx        联邦任务列表（名称搜索、状态筛选）
 │   ├── NewTaskPage.tsx      新建联邦任务（控制台风格的配置面板 + 右侧配置摘要 + 窄屏吸底操作栏）
 │   ├── TaskPage.tsx         任务详情（task/ 下是概览、进度、产出、配置四个标签）
 │   ├── AppsPage.tsx         应用列表（任务产出发布后的成果）
 │   ├── AppPage.tsx          应用详情：试用、内容、接入
-│   ├── ParticipantsPage.tsx 参与方与数据：按场景分标签、按任务类型分组；详情里有数据集、连接命令、新增数据集、删除
+│   ├── ParticipantsPage.tsx 参与方与数据：按场景分标签，每个标签一张表（一行一份数据集，任务类型是一列）；详情里有数据集、连接命令、新增和删除
 │   ├── NewParticipantPage.tsx 新增参与方（独立页面，同时登记第一份数据集）
 │   ├── NewDatasetPage.tsx   新增数据集（独立页面：参与方 → 场景 → 任务类型 → 文件或名称）
 │   ├── DatasetFields.tsx / datasetForm.ts 登记数据集的字段和规则（场景、任务类型、在浏览器里检查文件；新增参与方和新增数据集共用）

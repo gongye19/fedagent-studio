@@ -59,10 +59,11 @@
         "value": "*",
         "files": [
           "**/participants",
-          "**/participants/*"
+          "**/participants/*",
+          "**/participants/*/*"
         ],
         "createdAt": "2026-09-29T12:40:00.000Z",
-        "reason": "Agent: same flush list table as tasks/apps/models (.panel-body--flush); every cell keeps 10–16px padding; verified in T43 screenshots"
+        "reason": "Agent: same flush list table as tasks/apps/models (.panel-body--flush); every cell keeps 10–16px padding; covers scenario tabs and expanded rows (verified in T43–T46 screenshots)"
       }
     ]
   }

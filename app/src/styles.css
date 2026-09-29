@@ -501,22 +501,50 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 .panel--collapsible .module-title small { font-size: var(--text-sm); }
 .panel--collapsible > .module-body { padding: var(--space-2) var(--space-5) var(--space-4); }
 
-/* 首页：三种联邦场景就是三个大选项，可用的整张卡片都能点，点进去配置这个场景的联邦任务。
- * 按内容区宽度排：放得下时三张并排（每张至少约 256px，标题和"规划中"一行放下），放不下就上下排，不出现"Agent"单独折到第二行 */
-.scenario-picker { container-type: inline-size; }
+/* 首页：居中的"选择联邦场景"。三张卡片各配一张示意图，说明三种场景怎么分数据；可用的整张卡片都能点 */
+.home { min-height: calc(100dvh - var(--space-6) - 80px); display: grid; align-content: center; gap: var(--space-8); padding-bottom: var(--space-10); }
+.page-head--center { justify-content: center; text-align: center; }
+.page-head--center .page-title { justify-items: center; }
+.page-head--center .page-title-row h1 { font-size: var(--text-2xl); }
+/* 按内容区宽度排：放得下时三张并排，放不下就上下排，标题不会折行 */
+.scenario-picker { container-type: inline-size; width: min(100%, 1040px); margin-inline: auto; }
 .scenario-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
-@container (min-width: 800px) { .scenario-list { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-.scenario-card { height: 100%; padding: var(--space-6); display: grid; align-content: start; gap: var(--space-3); color: var(--foreground); background: var(--background); border: 1px solid var(--border); border-radius: var(--radius); text-decoration: none; }
-a.scenario-card { transition: border-color .15s ease, box-shadow .15s ease; }
-a.scenario-card:hover { border-color: var(--accent-border); box-shadow: 0 4px 14px rgb(37 99 235 / 8%); }
-a.scenario-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@container (min-width: 800px) { .scenario-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-5); } }
+.scenario-card { height: 100%; display: grid; grid-template-rows: auto 1fr; overflow: hidden; color: var(--foreground); background: var(--background); border: 1px solid var(--border); border-radius: 12px; text-decoration: none; }
+.scenario-art { min-height: 148px; padding: var(--space-4); display: grid; place-items: center; align-content: center; gap: var(--space-2); background: var(--surface); border-bottom: 1px solid var(--border); }
+.scenario-art-caption { color: var(--muted); font-size: var(--text-xs); }
+.scenario-art svg { width: 168px; height: 88px; }
+.scenario-card-body { padding: var(--space-5); display: grid; gap: var(--space-2); align-content: start; }
 .scenario-card-head { display: flex; gap: var(--space-3); align-items: center; justify-content: space-between; }
-.scenario-card-head strong { font-size: var(--text-xl); font-weight: var(--weight-semibold); line-height: 1.3; }
-a.scenario-card .scenario-card-head .icon { color: var(--accent); }
-.scenario-card-text { color: var(--secondary); font-size: var(--text-md); }
-/* 规划中的场景：灰底、不能点 */
-.scenario-card--planned { background: var(--surface); }
-.scenario-card--planned strong, .scenario-card--planned .scenario-card-text { color: var(--muted); }
+.scenario-card-head strong { font-size: var(--text-lg); font-weight: var(--weight-semibold); line-height: 1.35; }
+.scenario-card-text { color: var(--secondary); font-size: var(--text-sm); }
+.scenario-card-go { margin-top: var(--space-2); display: inline-flex; gap: 6px; align-items: center; color: var(--accent-strong); font-size: var(--text-sm); font-weight: var(--weight-medium); }
+.scenario-card-go .icon { transition: transform .15s ease; }
+a.scenario-card { transition: border-color .15s ease, box-shadow .15s ease; }
+a.scenario-card:hover { border-color: var(--accent-border); box-shadow: 0 6px 20px rgb(37 99 235 / 10%); }
+a.scenario-card:hover .scenario-card-go .icon { transform: translateX(3px); }
+a.scenario-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.scenario-card--planned .scenario-card-head strong, .scenario-card--planned .scenario-card-text { color: var(--muted); }
+/* 示意图：深浅三档代表三个参与方，灰色一行是字段名；规划中的场景换成灰色 */
+.scenario-art .art-head { fill: var(--border-strong); }
+.scenario-art .art-1 { fill: #3b82f6; }
+.scenario-art .art-2 { fill: #93c5fd; }
+.scenario-art .art-3 { fill: #dbeafe; }
+.scenario-art .art-empty { fill: none; stroke: var(--border-strong); stroke-dasharray: 2 2; }
+.scenario-art .art-arrow { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.scenario-card--planned .art-1 { fill: #a1a1aa; }
+.scenario-card--planned .art-2 { fill: #d4d4d8; }
+.scenario-card--planned .art-3 { fill: #e4e4e7; }
+/* 一栏、又比手机宽时：示意图放左边，卡片不会太高 */
+@container (min-width: 520px) and (max-width: 799px) {
+  .scenario-card { grid-template-rows: none; grid-template-columns: 184px minmax(0, 1fr); }
+  .scenario-art { min-height: 0; border-bottom: 0; border-right: 1px solid var(--border); }
+  .scenario-art svg { width: 144px; height: 75px; }
+}
+@container (max-width: 519px) {
+  .scenario-art { min-height: 132px; }
+  .scenario-art svg { width: 144px; height: 75px; }
+}
 .row--muted > * { color: var(--muted); }
 /* 表格里的分组行（例如算法按场景分组）：比表头稍重，和数据行区分开 */
 .table .group-row th { padding-block: 8px; color: var(--foreground); background: var(--surface); font-size: var(--text-sm); font-weight: var(--weight-semibold); }
@@ -764,6 +792,8 @@ a.scenario-card .scenario-card-head .icon { color: var(--accent); }
   /* 顶栏只放导航；"重置演示数据"移到页面底部 */
   .sidebar-foot { display: none; }
   .page-foot { display: flex; justify-content: center; padding-top: var(--space-6); }
+  /* 顶栏和页脚占了高度，首页不再上下居中，从上往下排 */
+  .home { min-height: 0; align-content: start; padding-bottom: 0; }
   .page { width: calc(100% - 32px); padding-top: var(--space-5); }
   /* 顶栏吸顶，锚点和焦点滚动时留出它的高度 */
   html { scroll-padding-top: 72px; }
@@ -781,7 +811,6 @@ a.scenario-card .scenario-card-head .icon { color: var(--accent); }
   .panel-body--flush { padding: 0; }
   .panel--collapsible > summary, .panel--collapsible > .module-body { padding-inline: var(--space-4); }
   .facts--columns { grid-template-columns: minmax(0, 1fr); }
-  .scenario-card { padding: var(--space-5); }
   .choice { min-width: 0; flex: 1 1 0; }
   .step-line { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
   .step-group ol { grid-template-columns: minmax(0, 1fr); }

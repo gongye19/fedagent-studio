@@ -44,7 +44,7 @@
 <text x="1360.0" y="157.5" font-size="11" font-weight="400" fill="#4b5563" text-anchor="middle">通过 API 和命令行操作平台</text>
 <rect x="60" y="226" width="356" height="58" rx="8" ry="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.2"/>
 <text x="238.0" y="244.2" font-size="13.5" font-weight="600" fill="#111827" text-anchor="middle">首页</text>
-<text x="238.0" y="259.8" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="middle">横向 · 纵向 · 迁移三个大选项</text>
+<text x="238.0" y="259.8" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="middle">横向 · 纵向 · 迁移三张场景卡片（带示意图）</text>
 <text x="238.0" y="275.2" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="middle">点进去配置这个场景的联邦任务</text>
 <rect x="434" y="226" width="356" height="58" rx="8" ry="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.2"/>
 <text x="612.0" y="244.2" font-size="13.5" font-weight="600" fill="#111827" text-anchor="middle">联邦任务</text>
@@ -56,7 +56,7 @@
 <text x="986.0" y="275.2" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="middle">试用 · 内容 · 接入</text>
 <rect x="1182" y="226" width="356" height="58" rx="8" ry="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.2"/>
 <text x="1360.0" y="244.2" font-size="13.5" font-weight="600" fill="#111827" text-anchor="middle">基础管理（点开展开）</text>
-<text x="1360.0" y="259.8" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="middle">参与方与数据：按场景分标签、按任务类型分组</text>
+<text x="1360.0" y="259.8" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="middle">参与方与数据：按场景分标签，任务类型是一列</text>
 <text x="1360.0" y="275.2" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="middle">算法（每类留待接入的空位）· 模型接口</text>
 <rect x="150" y="318" width="1300" height="50" rx="8" ry="8" fill="#eff6ff" stroke="#60a5fa" stroke-width="1.2"/>
 <text x="800.0" y="340.0" font-size="14.5" font-weight="600" fill="#111827" text-anchor="middle">后端 API（REST）</text>

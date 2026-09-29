@@ -22,19 +22,21 @@ const PRODUCT = "FedAgent Studio";
 
 /** 页面标题：同时写进浏览器标签页的标题，多开标签页和读屏时都能分清是哪一页。 */
 export function PageHead({
-  title, crumbs, status, meta, actions,
+  title, crumbs, status, meta, actions, className,
 }: {
   title: string;
   crumbs?: readonly { label: string; route: Route }[];
   status?: ReactNode;
   meta?: ReactNode;
   actions?: ReactNode;
+  /** 例如首页用 page-head--center 居中。 */
+  className?: string;
 }) {
   useEffect(() => {
     document.title = `${title} · ${PRODUCT}`;
   }, [title]);
   return (
-    <header className="page-head">
+    <header className={`page-head${className ? ` ${className}` : ""}`}>
       <div className="page-title">
         {crumbs?.length ? (
           <nav className="crumbs" aria-label="位置">
