@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState, type KeyboardEvent } from "react";
 import type { Stage } from "../../domain/catalog";
 import { sampleTraceTexts } from "../../domain/sample";
 import { averageAccuracy, roundOf, stageSeconds, stepState, type RoundRecord, type StepState, type Task } from "../../domain/task";
@@ -21,6 +21,11 @@ function roundStateOf(task: Task, round: number): "done" | "current" | "pending"
   return "current";
 }
 
+/** 停下来的任务：暂停用黄色，取消用灰色，和任务状态标签一致。 */
+function stopTone(task: Task): "" | "paused" | "canceled" {
+  return task.status === "paused" ? "paused" : task.status === "canceled" ? "canceled" : "";
+}
+
 /** 一轮完成后的一行摘要：指标、上传量、产出。 */
 function roundSummary(task: Task, record: RoundRecord | undefined): string {
   if (!record) return "";
@@ -40,7 +45,7 @@ export function ProgressTab({ task }: { task: Task }) {
           {rounds.map((round) => <RoundItem key={round} task={task} round={round} />)}
         </ol>
       </Panel>
-      <Panel title="通信记录" id="uploads" extra={`各方每轮上传给服务端的${algorithm.exchange}；原始数据留在参与方`}>
+      <Panel title="通信记录" id="uploads" extra={`上传内容：${algorithm.exchange}`}>
         <Uploads task={task} />
       </Panel>
     </div>
@@ -52,11 +57,13 @@ function RoundItem({ task, round }: { task: Task; round: number }) {
   const state = roundStateOf(task, round);
   const output = algorithmOfTask(task).output.name;
   const base = round === 1 ? `还没有${output}（本地基线）` : `用第 ${round - 1} 轮的${output}`;
+  // 收起的轮次不渲染步骤，展开时才生成。
+  const [open, setOpen] = useState(false);
 
   if (state === "done") {
     return (
       <li className="round round--done">
-        <details>
+        <details open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
           <summary className="round-head">
             <Icon name="chevron" />
             <span className="round-mark" aria-hidden="true"><Icon name="check" /></span>
@@ -65,7 +72,7 @@ function RoundItem({ task, round }: { task: Task; round: number }) {
               <span className="round-summary">{roundSummary(task, record)}</span>
             </span>
           </summary>
-          <StepLine task={task} round={round} record={record} />
+          {open ? <StepLine task={task} round={round} record={record} /> : null}
         </details>
       </li>
     );
@@ -87,15 +94,15 @@ function RoundItem({ task, round }: { task: Task; round: number }) {
     );
   }
 
-  const stopped = task.status === "paused" ? "已暂停" : task.status === "canceled" ? "已取消" : "进行中";
+  const tone = stopTone(task);
   return (
-    <li className={`round round--current${task.status === "running" ? "" : " round--stopped"}`}>
+    <li className={`round round--current${tone ? ` round--${tone}` : ""}`}>
       <div className="round-head">
         <span className="round-spacer" aria-hidden="true" />
         <span className="round-mark" aria-hidden="true">{round}</span>
         <span className="round-title">
           <h3>第 {round} 轮</h3>
-          <span className="round-summary">{stopped} · {base}</span>
+          <span className="round-summary">{stoppedText(task)} · {base}</span>
         </span>
       </div>
       <StepLine task={task} round={round} record={record} />
@@ -108,6 +115,7 @@ function stoppedText(task: Task): string {
   return task.status === "paused" ? "已暂停" : task.status === "canceled" ? "已取消" : "进行中";
 }
 
+/** 每一步下面的一行结果。写什么由算法在注册表里声明（stage.result），这里不认具体的算法。 */
 function stepNote(task: Task, record: RoundRecord | undefined, stage: Stage, state: StepState): string {
   if (state === "pending") return formatDuration(stageSeconds(task, stage.id));
   if (state === "current") {
@@ -120,27 +128,29 @@ function stepNote(task: Task, record: RoundRecord | undefined, stage: Stage, sta
     }
     return stoppedText(task);
   }
-  switch (stage.id) {
-    case "solve":
+  const output = algorithmOfTask(task).output;
+  switch (stage.result) {
+    case "metric":
       return record ? `${metricOf(task)} ${formatPercent(averageAccuracy(task, record.round))}` : "完成";
-    case "extract":
+    case "uploads":
       return `上传 ${formatNumber(sum(record?.traces))} 条`;
-    case "collect":
+    case "received":
       return `收到 ${formatNumber(sum(record?.traces))} 条`;
-    case "profile":
+    case "groups":
       return record?.library ? `${record.library.clusters.length} 类` : "完成";
-    case "library":
-      return record?.library ? `${record.library.insights.length} 条洞见` : "完成";
+    case "output":
+      return record?.library ? `${record.library.insights.length} ${output.unit}` : "完成";
     default:
       return "完成";
   }
 }
 
-/** 一轮的 6 步：参与方 3 步、服务端 3 步分两组；参与方正在做题时，各方进度放在参与方这一组里。 */
+/** 一轮的步骤：参与方、服务端分两组；参与方正在执行时，各方进度放在参与方这一组里。 */
 function StepLine({ task, round, record }: { task: Task; round: number; record: RoundRecord | undefined }) {
   const cursor = task.cursor;
   const stages = algorithmOfTask(task).stages;
   const showMembers = cursor?.round === round && stages.find((stage) => stage.id === cursor.stage)?.side === "participant";
+  const tone = stopTone(task);
   const groups = [
     { label: "参与方", side: "participant", stages: stages.filter((stage) => stage.side === "participant") },
     { label: "服务端", side: "server", stages: stages.filter((stage) => stage.side === "server") },
@@ -153,10 +163,10 @@ function StepLine({ task, round, record }: { task: Task; round: number; record: 
           <ol>
             {group.stages.map((stage) => {
               const state = stepState(task, round, stage.id);
-              const stopped = state === "current" && task.status !== "running";
+              const stopped = state === "current" && tone ? ` step--${tone}` : "";
               const index = stages.indexOf(stage) + 1;
               return (
-                <li key={stage.id} className={`step step--${state}${stopped ? " step--stopped" : ""}`}>
+                <li key={stage.id} className={`step step--${state}${stopped}`}>
                   <span className="step-mark" aria-hidden="true">{state === "done" ? <Icon name="check" /> : index}</span>
                   <span className="step-copy">
                     <strong>{stage.label}</strong>
@@ -174,7 +184,7 @@ function StepLine({ task, round, record }: { task: Task; round: number; record: 
                 return (
                   <li key={member.datasetId}>
                     <span>{member.participant}</span>
-                    <ProgressBar value={done / member.problems} label={`${member.participant} 的进度`} tone={task.status === "running" ? "info" : "neutral"} />
+                    <ProgressBar value={done / member.problems} label={`${member.participant} 的进度`} tone={tone === "paused" ? "warning" : tone === "canceled" ? "neutral" : "info"} />
                     <span className="member-count">{done} / {member.problems}</span>
                   </li>
                 );
@@ -187,41 +197,61 @@ function StepLine({ task, round, record }: { task: Task; round: number; record: 
   );
 }
 
+/**
+ * 通信记录：每个参与方每轮上传的条数，点数字在右边看内容。
+ * 整张表只占一个 Tab 停靠点，用方向键在格子之间移动（和表格网格的键盘习惯一致）。
+ */
 function Uploads({ task }: { task: Task }) {
   const rounds = task.rounds.filter((record) => record.traces).map((record) => record.round);
   const [cell, setCell] = useState<{ datasetId: string; round: number } | null>(null);
+  const grid = useRef<HTMLTableSectionElement>(null);
   if (!rounds.length) return <p className="section-empty">第 1 轮参与方步骤完成后，这里列出每个参与方上传的内容。</p>;
 
   const active = cell ?? { datasetId: task.members[0].datasetId, round: rounds[rounds.length - 1] };
   const member = task.members.find((item) => item.datasetId === active.datasetId) ?? task.members[0];
   const count = task.rounds.find((record) => record.round === active.round)?.traces?.[member.datasetId] ?? 0;
+  const allRounds = Array.from({ length: task.config.rounds }, (_, index) => index + 1).filter((round) => round <= Math.max(...rounds));
+
+  function move(event: KeyboardEvent<HTMLButtonElement>, row: number, column: number) {
+    const delta: Record<string, [number, number]> = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+    const step = delta[event.key];
+    if (!step) return;
+    event.preventDefault();
+    const nextRow = Math.min(task.members.length - 1, Math.max(0, row + step[0]));
+    const nextColumn = Math.min(allRounds.length - 1, Math.max(0, column + step[1]));
+    setCell({ datasetId: task.members[nextRow].datasetId, round: allRounds[nextColumn] });
+    grid.current?.querySelector<HTMLButtonElement>(`[data-cell="${nextRow}-${nextColumn}"]`)?.focus();
+  }
 
   return (
     <div className="uploads">
       <div className="table-shell">
         <table className="table table--numbers">
-          <caption className="visually-hidden">每个参与方每轮上传的条数，点数字查看内容</caption>
+          <caption className="visually-hidden">每个参与方每轮上传的条数，点数字查看内容；方向键在格子之间移动</caption>
           <thead>
             <tr>
               <th scope="col">参与方</th>
-              {rounds.map((round) => <th key={round} scope="col" className="numeric">第 {round} 轮</th>)}
+              {allRounds.map((round) => <th key={round} scope="col" className="numeric">第 {round} 轮</th>)}
             </tr>
           </thead>
-          <tbody>
-            {task.members.map((item) => (
+          <tbody ref={grid}>
+            {task.members.map((item, row) => (
               <tr key={item.datasetId}>
                 <th scope="row">{item.participant}</th>
-                {rounds.map((round) => {
+                {allRounds.map((round, column) => {
                   const value = task.rounds.find((record) => record.round === round)?.traces?.[item.datasetId] ?? 0;
                   const selected = active.datasetId === item.datasetId && active.round === round;
                   return (
                     <td key={round} className="numeric">
                       <button
                         type="button"
+                        data-cell={`${row}-${column}`}
+                        tabIndex={selected ? 0 : -1}
                         className={`cell-button${selected ? " cell-button--active" : ""}`}
                         aria-pressed={selected}
                         aria-label={`${item.participant} 第 ${round} 轮上传 ${value} 条，查看内容`}
                         onClick={() => setCell({ datasetId: item.datasetId, round })}
+                        onKeyDown={(event) => move(event, row, column)}
                       >
                         {formatNumber(value)}
                       </button>

@@ -10,6 +10,8 @@ import {
   scoredRounds,
   type Task,
 } from "../../domain/task";
+import { hrefOf } from "../../state/route";
+import { publishedOf, type State } from "../../state/store";
 import type { ChartOption } from "../Chart";
 import { EmptyState, Stat } from "../common";
 import { Panel } from "../console";
@@ -21,14 +23,19 @@ const EChart = lazy(() => import("../Chart"));
 
 const FONT = "Geist Sans, PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif";
 // 点只分"第 1 轮 / 最新一轮"两种颜色，和图例一致；涨跌只看连线：绿色表示变好，红色表示变差。
-const COLORS = { base: "#a1a1aa", latest: "#18181b", flat: "#71717a", upLine: "#4ade80", downLine: "#f87171" };
+// 颜色和白底的对比度都在 3:1 以上（图形元素的要求），取自 styles.css 的 --muted / --success / --danger。
+const COLORS = { base: "#71717a", latest: "#18181b", flat: "#71717a", upLine: "#16875f", downLine: "#d14343" };
 
-export function OverviewTab({ task }: { task: Task }) {
+export function OverviewTab({ task, state }: { task: Task; state: State }) {
   const rounds = scoredRounds(task);
   const metric = metricOf(task);
   const output = algorithmOfTask(task).output;
   if (!rounds.length) {
-    return <EmptyState title="还没有结果"><p>第 1 轮完成后，这里显示各参与方的{metric}。</p></EmptyState>;
+    return (
+      <EmptyState title="还没有结果" action={<a className="button button--secondary" href={hrefOf({ page: "task", id: task.id, tab: "progress" })}>查看进度</a>}>
+        <p>第 1 轮完成后，这里显示各参与方的{metric}。</p>
+      </EmptyState>
+    );
   }
   const latest = rounds[rounds.length - 1];
   const first = averageAccuracy(task, 1);
@@ -36,6 +43,7 @@ export function OverviewTab({ task }: { task: Task }) {
   const delta = latest > 1 && first !== null && last !== null ? last - first : null;
   const ntr = negativeTransfer(task);
   const library = libraries(task).at(-1);
+  const published = library ? publishedOf(state, task.id, library.builtAfterRound) : undefined;
 
   return (
     <div className="panel-stack">
@@ -48,7 +56,12 @@ export function OverviewTab({ task }: { task: Task }) {
             sub={latest > 1 ? <span className={deltaClass(delta)}>{formatDelta(delta)}</span> : "第 2 轮完成后统计"}
           />
           <Stat label="负迁移" value={ntr ? `${ntr.count} / ${ntr.total} 方` : "—"} sub={ntr ? "低于本方第 1 轮" : "第 2 轮完成后统计"} tone={ntr && ntr.count > 0 ? "down" : undefined} />
-          <Stat label="产出" value={library ? `${library.insights.length} 条` : "—"} sub={library ? `${output.name} · 第 ${library.builtAfterRound} 轮后` : output.name} />
+          <Stat
+            label="产出"
+            value={library ? `${library.insights.length} 条` : "—"}
+            href={library ? hrefOf({ page: "task", id: task.id, tab: "output" }) : undefined}
+            sub={library ? `${output.name} · 第 ${library.builtAfterRound} 轮后${published ? " · 已发布" : ""}` : output.name}
+          />
         </dl>
       </Panel>
 

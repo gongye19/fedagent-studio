@@ -24,7 +24,7 @@ export function ConfigTab({ task, state }: { task: Task; state: State }) {
     <div className="panel-stack">
       <Panel title="任务配置" extra="创建时冻结；要修改请“复制为新任务”">
         <Facts className="facts--columns" items={[
-          ["场景", scenarioOf(config.scenario).name],
+          ["场景", scenarioOf(config.scenario).short],
           ["算法", `${algorithm.name}（${algorithm.fullName}）`],
           ["任务类型", TASK_TYPES[algorithm.accepts[0]].label],
           ["运行方式", config.mode === "trial" ? `试跑，每个数据集前 ${config.trialCap} 条` : "正式运行，全部样本"],

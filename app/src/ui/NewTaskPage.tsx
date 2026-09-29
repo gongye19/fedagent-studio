@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type Dispatch, type MouseEvent } from "react";
+import { useEffect, useId, useRef, useState, type Dispatch, type MouseEvent } from "react";
 import { algorithmOf, algorithmsFor, SCENARIOS, scenarioOf, TASK_TYPES, type Algorithm, type ParamDef, type ScenarioId } from "../domain/catalog";
 import {
   activeOverrides,
@@ -12,17 +12,24 @@ import {
   type Estimate,
   type RunMode,
 } from "../domain/config";
-import { HOSTING_LABELS, modelLabel, modelOptions, PARTICIPANT_STATUS, usable, type Dataset } from "../domain/resources";
-import { hrefOf, navigate } from "../state/route";
+import { DEFAULT_ENDPOINT_ID, DEFAULT_MODEL, endpointOf, HOSTING_LABELS, isConfigured, modelLabel, modelOptions, PARTICIPANT_STATUS, usable, type Dataset } from "../domain/resources";
+import { flashFor, showFlash } from "../state/flash";
+import { newId } from "../state/ids";
+import { hrefOf, navigate, type Route } from "../state/route";
 import { participantOf, type Action, type State } from "../state/store";
-import { Collapsible, Notice, PageHead, Tag } from "./common";
+import { Collapsible, Confirm, Meta, Notice, PageHead, Tag } from "./common";
 import { Choices, Field, FieldGroup, Panel, UnitInput } from "./console";
 import { formatDuration, formatNumber, formatTokens, formatYuan } from "./format";
 import { Icon } from "./icons";
 
 type Props = { state: State; dispatch: Dispatch<Action>; scenario?: ScenarioId };
 
-const NARROW = "(max-width: 1180px)";
+/** 从新建任务出发去新增参与方、配置接口，保存后回到这里。 */
+const NEW_PARTICIPANT: Route = { page: "newParticipant", from: "newTask" };
+const endpointRoute = (id: string): Route => ({ page: "editEndpoint", id, from: "newTask" });
+
+type Restored = { kind: "copy"; source: string } | { kind: "draft" } | null;
+type Pending = "full" | "leave" | "restart" | null;
 
 /**
  * 新建联邦任务：按云平台"创建实例"的方式，分区块配置，右侧是配置摘要和预估。
@@ -31,41 +38,37 @@ const NARROW = "(max-width: 1180px)";
 export default function NewTaskPage({ state, dispatch, scenario }: Props) {
   const draft = state.draft;
   const applied = useRef<ScenarioId | undefined>(undefined);
-  const named = useRef(false);
-  const cardConfirm = useRef<HTMLButtonElement>(null);
-  const barConfirm = useRef<HTMLButtonElement>(null);
-  const [confirming, setConfirming] = useState(false);
-  // 打开页面时草稿里已经有内容：要么是上次没填完，要么是从任务"复制为新任务"带过来的。
-  const [restored, setRestored] = useState<"copy" | "draft" | null>(() => (
-    draft.scenario === null ? null : draft.name.endsWith("（副本）") ? "copy" : "draft"
-  ));
+  // 没动过的草稿不保留：每次打开都按当前的参与方和数据重新选，默认名称也按这次打开的时间生成。
+  const resetOnOpen = useRef(!draft.touched);
+  const [openedAt] = useState(() => new Date());
+  const [pending, setPending] = useState<Pending>(null);
+  const issuesId = useId();
+  // 打开时草稿里已经有用户的内容：要么是上次没填完，要么是从任务"复制为新任务"带过来的。
+  // 从新增参与方、配置接口回来时顶部已经有结果提示，不再重复提示"已恢复"。
+  const [restored, setRestored] = useState<Restored>(() => {
+    if (!draft.touched || flashFor({ page: "newTask" })) return null;
+    return draft.name?.endsWith("（副本）") ? { kind: "copy", source: draft.name.slice(0, -"（副本）".length) } : { kind: "draft" };
+  });
 
   useEffect(() => {
-    // 从别处带着场景进入时预先选好；只在地址里的场景变化时应用一次。
+    if (!resetOnOpen.current) return;
+    resetOnOpen.current = false;
+    dispatch({ type: "resetDraft" });
+  }, [dispatch]);
+
+  useEffect(() => {
+    // 从首页的场景入口进来时预先选好；规划中的场景不能选，直接忽略。
     if (!scenario || applied.current === scenario) return;
     applied.current = scenario;
-    dispatch({ type: "chooseScenario", scenario });
+    if (scenarioOf(scenario).status === "available") dispatch({ type: "chooseScenario", scenario, auto: true });
   }, [scenario, dispatch]);
 
   useEffect(() => {
     // 只有一个场景可用时直接选上。
-    if (scenario || draft.scenario) return;
+    if (draft.scenario || (scenario && scenarioOf(scenario).status === "available")) return;
     const available = SCENARIOS.filter((item) => item.status === "available");
-    if (available.length === 1) dispatch({ type: "chooseScenario", scenario: available[0].id });
+    if (available.length === 1) dispatch({ type: "chooseScenario", scenario: available[0].id, auto: true });
   }, [scenario, draft.scenario, dispatch]);
-
-  useEffect(() => {
-    // 选好算法后填一个默认名称；每次打开页面只填一次，用户清空后不再填回。
-    if (!draft.algorithm || draft.name || named.current) return;
-    named.current = true;
-    dispatch({ type: "updateDraft", patch: { name: defaultTaskName({ algorithm: draft.algorithm }) } });
-  }, [draft.algorithm, draft.name, dispatch]);
-
-  useEffect(() => {
-    // 确认框出现后把焦点交给"确认开始"：窄屏时它在底部栏里，宽屏时在配置摘要里。
-    if (!confirming) return;
-    (window.matchMedia(NARROW).matches ? barConfirm : cardConfirm).current?.focus();
-  }, [confirming]);
 
   const update = (patch: Partial<Draft>) => dispatch({ type: "updateDraft", patch });
   const algorithm = draft.algorithm ? algorithmOf(draft.algorithm) : null;
@@ -75,46 +78,85 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
   const config = toConfig(draft);
   const result = config && selected.length ? estimate(config, state.datasets, state.endpoints) : null;
   const full = draft.mode === "full";
-  const samples = selected.reduce((sum, dataset) => sum + dataset.count, 0);
+  const autoName = defaultTaskName(draft, openedAt);
   const overrideCount = Object.keys(activeOverrides(draft)).length;
+  const priceEndpoint = endpointOf(draft.clientModel, state.endpoints)?.id ?? DEFAULT_ENDPOINT_ID;
 
   function create() {
     if (issues.length) return;
-    const id = `task-${Date.now().toString(36)}`;
-    dispatch({ type: "createTask", id, createdAt: new Date().toISOString() });
+    const id = newId("task");
+    const name = draft.name?.trim() || autoName;
+    dispatch({ type: "createTask", id, createdAt: new Date().toISOString(), name: autoName });
+    showFlash({ page: "task", id }, full ? `已创建“${name}”，开始正式运行。` : `已创建“${name}”，开始试跑。`);
     navigate({ page: "task", id, tab: "progress" });
   }
 
   function restart() {
     dispatch({ type: "resetDraft" });
-    named.current = false;
-    setConfirming(false);
+    setPending(null);
     setRestored(null);
-    if (scenario) {
-      applied.current = scenario;
-      dispatch({ type: "chooseScenario", scenario });
-    }
+    if (scenario && scenarioOf(scenario).status === "available") dispatch({ type: "chooseScenario", scenario, auto: true });
+  }
+
+  function leave() {
+    dispatch({ type: "resetDraft" });
+    navigate({ page: "tasks" });
   }
 
   /** 正式运行调用量大，先确认一次；试跑直接开始。 */
   function start() {
     if (issues.length) return;
-    if (full && !confirming) {
-      setConfirming(true);
-      return;
-    }
-    create();
+    if (full) setPending("full");
+    else create();
   }
 
-  const showConfirm = confirming && full && result !== null && !issues.length;
+  /** 动过的草稿要确认才放弃；没动过的直接离开。 */
+  function cancel() {
+    if (draft.touched) setPending("leave");
+    else navigate({ page: "tasks" });
+  }
+
   const startLabel = full ? "创建并正式运行" : "创建并试跑";
+  const cost = result ? (result.cost === null ? "费用无法估算（没有设置单价）" : `费用${formatYuan(result.cost)}`) : "";
+  // 确认条里的数字按段排版（Meta），不会把"3 轮"拆成两行。
+  const confirm = pending === "full" && result && !issues.length
+    ? {
+      title: "开始正式运行？",
+      text: (
+        <>
+          <Meta parts={[`${selected.length} 个参与方`, `${formatNumber(result.problems)} 条样本`, `${draft.rounds} 轮`]} />
+          <Meta parts={[formatDuration(result.seconds), cost]} />
+          <span>创建后配置不能修改，运行中可以暂停或取消。</span>
+        </>
+      ),
+      short: <Meta parts={[`${formatNumber(result.participantCalls)} 次调用`, formatDuration(result.seconds), result.cost === null ? "费用无法估算" : formatYuan(result.cost)]} />,
+      confirmLabel: "确认开始",
+      cancelLabel: "取消",
+      tone: "primary" as const,
+      onConfirm: create,
+    }
+    : pending === "leave"
+      ? {
+        title: "放弃这次的配置？",
+        text: "已选的参与方和设置都会清空。",
+        short: "已选的参与方和设置都会清空",
+        confirmLabel: "放弃",
+        cancelLabel: "继续编辑",
+        tone: "danger" as const,
+        onConfirm: leave,
+      }
+      : null;
 
   return (
     <>
       <PageHead title="新建联邦任务" crumbs={[{ label: "联邦任务", route: { page: "tasks" } }]} />
-      {restored && draft.scenario ? (
-        <Notice action={<button type="button" className="link-button" onClick={restart}>清空重填</button>}>
-          {restored === "copy" ? "已带入原任务的配置。" : "已恢复上次没填完的配置。"}
+      {pending === "restart" ? (
+        <Confirm title="清空这次的配置？" confirmLabel="清空" onConfirm={restart} onCancel={() => setPending(null)}>
+          已选的参与方和设置都会恢复默认。
+        </Confirm>
+      ) : restored && draft.scenario ? (
+        <Notice action={<button type="button" className="link-button" onClick={() => setPending("restart")}>清空重填</button>}>
+          {restored.kind === "copy" ? `已带入“${restored.source}”的配置。` : "已恢复上次没填完的配置。"}
         </Notice>
       ) : null}
 
@@ -124,7 +166,7 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
             <div className="form-body">
               <FieldGroup>
                 <Field label="任务名称" htmlFor="task-name">
-                  <input id="task-name" name="task-name" autoComplete="off" value={draft.name} placeholder={defaultTaskName(draft)} maxLength={60} onChange={(event) => update({ name: event.target.value })} />
+                  <input id="task-name" name="task-name" autoComplete="off" value={draft.name ?? autoName} placeholder={autoName} maxLength={60} onChange={(event) => update({ name: event.target.value })} />
                 </Field>
               </FieldGroup>
             </div>
@@ -141,11 +183,7 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
                     onChange={(value) => dispatch({ type: "chooseScenario", scenario: value })}
                   />
                 </Field>
-                {draft.scenario ? (
-                  <Field label="算法" labelId="algorithm-label" wide>
-                    <AlgorithmTable scenario={draft.scenario} value={draft.algorithm} onChange={(id) => dispatch({ type: "chooseAlgorithm", algorithm: id })} />
-                  </Field>
-                ) : null}
+                {draft.scenario ? <AlgorithmField scenario={draft.scenario} value={draft.algorithm} onChange={(id) => dispatch({ type: "chooseAlgorithm", algorithm: id })} /> : null}
                 {algorithm ? (
                   <Field label="任务类型">
                     <p className="field-static">{algorithm.accepts.map((type) => TASK_TYPES[type].label).join("、")}</p>
@@ -159,8 +197,8 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
             <Panel
               title="参与方与数据"
               id="data"
-              extra={`已选 ${selected.length} 个 · ${formatNumber(samples)} 条样本`}
-              actions={<a className="button button--secondary button--compact" href={hrefOf({ page: "participants" })}><Icon name="plus" />新增参与方</a>}
+              extra={`已选 ${selected.length} 个`}
+              actions={<a className="button button--secondary button--compact" href={hrefOf(NEW_PARTICIPANT)}><Icon name="plus" />新增参与方</a>}
               flush
             >
               <DataTable state={state} dispatch={dispatch} candidates={candidates} selected={selected} />
@@ -191,52 +229,64 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
                 </>
               ) : null}
             </dl>
-            {result ? <EstimateBlock result={result} /> : null}
-            {showConfirm ? (
-              <div className="summary-confirm" role="alertdialog" aria-labelledby="confirm-title" aria-describedby="confirm-text">
-                <strong id="confirm-title">开始正式运行？</strong>
-                <p id="confirm-text">{result ? `参与方调用 ${formatNumber(result.participantCalls)} 次，${formatDuration(result.seconds)}；费用${result.cost === null ? "未知（没有设置单价）" : formatYuan(result.cost)}。` : ""}</p>
-                <div className="summary-confirm-actions">
-                  <button type="button" className="button button--secondary" onClick={() => setConfirming(false)}>取消</button>
-                  <button ref={cardConfirm} type="button" className="button button--primary" onClick={create}>确认开始</button>
-                </div>
-              </div>
+            {result ? <EstimateBlock result={result} priceHref={hrefOf(endpointRoute(priceEndpoint))} /> : null}
+            {confirm ? (
+              <Confirm className="summary-confirm" title={confirm.title} confirmLabel={confirm.confirmLabel} cancelLabel={confirm.cancelLabel} tone={confirm.tone} onConfirm={confirm.onConfirm} onCancel={() => setPending(null)}>
+                {confirm.text}
+              </Confirm>
             ) : (
-              <button type="button" className="button button--primary button--block" disabled={issues.length > 0} onClick={start}>{startLabel}</button>
+              <div className="summary-actions">
+                <button type="button" className="button button--primary button--block summary-start" disabled={issues.length > 0} aria-describedby={issues.length ? issuesId : undefined} onClick={start}>{startLabel}</button>
+                <button type="button" className="button button--ghost button--block" onClick={cancel}>取消</button>
+              </div>
             )}
-            {issues.length ? <p className="summary-issues">还需要：{issues.map((issue) => issue.message).join("；")}</p> : null}
+            <p className="summary-issues" id={issuesId} aria-live="polite">{issues.length ? `还需要：${issues.map((issue) => issue.message).join("；")}` : ""}</p>
           </Panel>
         </aside>
       </div>
 
-      {showConfirm ? (
-        <div className="order-bar order-bar--confirm" role="alertdialog" aria-labelledby="bar-confirm-title" aria-describedby="bar-confirm-text">
-          <div>
-            <strong id="bar-confirm-title">开始正式运行？</strong>
-            <small id="bar-confirm-text">{result ? `参与方调用 ${formatNumber(result.participantCalls)} 次 · ${formatDuration(result.seconds)}` : ""}</small>
-          </div>
-          <div className="order-bar-actions">
-            <button type="button" className="button button--secondary" onClick={() => setConfirming(false)}>取消</button>
-            <button ref={barConfirm} type="button" className="button button--primary" onClick={create}>确认开始</button>
-          </div>
-        </div>
+      {confirm ? (
+        <Confirm className="order-bar order-bar--confirm" title={confirm.title} confirmLabel={confirm.confirmLabel} cancelLabel={confirm.cancelLabel} tone={confirm.tone} onConfirm={confirm.onConfirm} onCancel={() => setPending(null)}>
+          {confirm.short}
+        </Confirm>
       ) : (
         <div className="order-bar" aria-label="创建任务">
           <div>
-            <strong>{issues.length ? `还需要：${issues[0].message}` : `${selected.length} 个参与方 · 约 ${formatNumber(result?.participantCalls ?? 0)} 次调用`}</strong>
+            <strong className={issues.length ? "order-bar-issue" : undefined}>{issues.length ? `还需要：${issues[0].message}` : `${selected.length} 个参与方 · 约 ${formatNumber(result?.participantCalls ?? 0)} 次调用`}</strong>
             {result && !issues.length ? <small>{formatDuration(result.seconds)}</small> : null}
           </div>
-          <button type="button" className="button button--primary" disabled={issues.length > 0} onClick={start}>{startLabel}</button>
+          <div className="order-bar-actions">
+            <button type="button" className="button button--ghost order-bar-cancel" onClick={cancel}>取消</button>
+            <button type="button" className="button button--primary" disabled={issues.length > 0} onClick={start}>{startLabel}</button>
+          </div>
         </div>
       )}
     </>
   );
 }
 
-/** 算法：带单选的表格，列出这个场景下登记的算法，比较它们交换什么、产出什么。 */
-function AlgorithmTable({ scenario, value, onChange }: { scenario: ScenarioId; value: Draft["algorithm"]; onChange: (id: Algorithm["id"]) => void }) {
+/**
+ * 算法：场景下只有一个算法时直接写出来，不做成"只有一行的单选表格"；
+ * 有多个时用带单选的表格，比较它们交换什么、产出什么。
+ */
+function AlgorithmField({ scenario, value, onChange }: { scenario: ScenarioId; value: Draft["algorithm"]; onChange: (id: Algorithm["id"]) => void }) {
   const algorithms = algorithmsFor(scenario);
-  if (!algorithms.length) return <p className="field-static">这个场景的算法待接入。</p>;
+  if (algorithms.length === 1) {
+    const only = algorithms[0];
+    return (
+      <Field label="算法" wide>
+        <p className="field-static"><span><strong>{only.name}</strong>（<span translate="no">{only.fullName}</span>）：{only.summary}</span></p>
+      </Field>
+    );
+  }
+  return (
+    <Field label="算法" labelId="algorithm-label" wide>
+      {algorithms.length ? <AlgorithmTable algorithms={algorithms} value={value} onChange={onChange} /> : <p className="field-static">这个场景的算法待接入。</p>}
+    </Field>
+  );
+}
+
+function AlgorithmTable({ algorithms, value, onChange }: { algorithms: readonly Algorithm[]; value: Draft["algorithm"]; onChange: (id: Algorithm["id"]) => void }) {
   return (
     <div className="table-shell">
       <table className="table table--select">
@@ -278,7 +328,7 @@ function rowToggle(enabled: boolean, toggle: () => void) {
   };
 }
 
-/** 参与方与数据：带复选框的表格，表头可以全选。 */
+/** 参与方与数据：带复选框的表格，表头可以全选；还不能参加的参与方写明状态，并能点进去查看。 */
 function DataTable({
   state, dispatch, candidates, selected,
 }: {
@@ -289,6 +339,8 @@ function DataTable({
 }) {
   const head = useRef<HTMLInputElement>(null);
   const usableIds = candidates.filter((dataset) => usable(dataset, state.participants)).map((dataset) => dataset.id);
+  // 能选的排在前面，还不能参加的（等待连接、离线）放在后面。
+  const rows = [...candidates].sort((a, b) => Number(!usable(a, state.participants)) - Number(!usable(b, state.participants)));
   const chosen = new Set(selected.map((dataset) => dataset.id));
   const all = usableIds.length > 0 && usableIds.every((id) => chosen.has(id));
   const some = !all && selected.length > 0;
@@ -316,7 +368,7 @@ function DataTable({
           </tr>
         </thead>
         <tbody>
-          {candidates.map((dataset) => {
+          {rows.map((dataset) => {
             const owner = participantOf(state, dataset.participantId);
             const enabled = usable(dataset, state.participants);
             const checked = enabled && chosen.has(dataset.id);
@@ -326,10 +378,17 @@ function DataTable({
               <tr key={dataset.id} className={`select-row${checked ? " select-row--checked" : ""}${enabled ? "" : " select-row--disabled"}`} onClick={rowToggle(enabled, toggle)}>
                 <td className="select-cell"><input id={inputId} type="checkbox" checked={checked} disabled={!enabled} onChange={toggle} /></td>
                 <th scope="row"><label htmlFor={inputId}>{owner?.name ?? dataset.name}</label></th>
-                <td className="col-optional">{dataset.description}</td>
-                <td className="numeric">{formatNumber(dataset.count)}</td>
+                <td className="col-optional">{dataset.description || dataset.name}</td>
+                <td className="numeric">{dataset.source === "local" ? "—" : formatNumber(dataset.count)}</td>
                 <td className="col-optional">{owner ? HOSTING_LABELS[owner.hosting] : "—"}</td>
-                <td>{owner && owner.status !== "online" ? <Tag tone="warning">{PARTICIPANT_STATUS[owner.status]}</Tag> : <span className="status-text">可用</span>}</td>
+                <td>
+                  {owner && owner.status !== "online" ? (
+                    <span className="cell-title">
+                      <Tag tone="warning">{PARTICIPANT_STATUS[owner.status]}</Tag>
+                      <a className="text-link" href={hrefOf({ page: "participants", id: owner.id })}>查看</a>
+                    </span>
+                  ) : <span className="status-text">可用</span>}
+                </td>
               </tr>
             );
           })}
@@ -343,7 +402,7 @@ function DataTable({
               <td>
                 <span className="cell-title">
                   <Tag tone="warning">{PARTICIPANT_STATUS[participant.status]}</Tag>
-                  <a className="text-link" href={hrefOf({ page: "participants", id: participant.id })}>去连接</a>
+                  <a className="text-link" href={hrefOf({ page: "participants", id: participant.id })}>查看</a>
                 </span>
               </td>
             </tr>
@@ -381,21 +440,40 @@ function RunSettings({
             <UnitInput id="trial-cap" unit="条 / 数据集" name="trial-cap" type="number" inputMode="numeric" autoComplete="off" min={1} max={50} value={draft.trialCap} onChange={(event) => update({ trialCap: clampInt(event.target.value, 1, 50, draft.trialCap) })} />
           </Field>
         ) : null}
-        <Field label="轮次" labelId="rounds-label" wide>
+        <Field label="轮次" labelId="rounds-label" wide info={`第 1 轮各方单独作答，作为本地基线；之后每轮都带上上一轮的${algorithm.output.name}再作答。`}>
           <Choices labelledBy="rounds-label" value={draft.rounds} options={rounds.map((value) => ({ value, label: `${value} 轮` }))} onChange={(value) => update({ rounds: value })} />
         </Field>
-        <Field label="参与方模型" htmlFor="client-model">
-          <select id="client-model" name="client-model" value={draft.clientModel} onChange={(event) => update({ clientModel: event.target.value })}>
-            {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
-          </select>
-        </Field>
-        <Field label="服务端模型" htmlFor="server-model">
-          <select id="server-model" name="server-model" value={draft.serverModel} onChange={(event) => update({ serverModel: event.target.value })}>
-            {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
-          </select>
-        </Field>
+        {options.length === 1 ? (
+          <ModelField state={state} />
+        ) : (
+          <>
+            <Field label="参与方模型" htmlFor="client-model">
+              <select id="client-model" name="client-model" value={draft.clientModel} onChange={(event) => update({ clientModel: event.target.value })}>
+                {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
+              </select>
+            </Field>
+            <Field label="服务端模型" htmlFor="server-model" info="服务端每轮要读完各方上传的内容，需要长上下文的模型。">
+              <select id="server-model" name="server-model" value={draft.serverModel} onChange={(event) => update({ serverModel: event.target.value })}>
+                {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
+              </select>
+            </Field>
+          </>
+        )}
       </FieldGroup>
     </div>
+  );
+}
+
+/** 只有一个模型可用时不做成下拉：参与方和服务端都用它；接口还没配置时给出去配置的入口。 */
+function ModelField({ state }: { state: State }) {
+  const endpoint = state.endpoints.find((item) => item.id === DEFAULT_ENDPOINT_ID);
+  return (
+    <Field label="模型" wide>
+      <p className="field-static">
+        <span>{modelLabel(DEFAULT_MODEL, state.endpoints)}</span>
+        {endpoint && !isConfigured(endpoint) ? <a className="text-link" href={hrefOf(endpointRoute(endpoint.id))}>去配置</a> : null}
+      </p>
+    </Field>
   );
 }
 
@@ -412,6 +490,8 @@ function AdvancedPanel({
   selected: Dataset[];
 }) {
   const changed = ADVANCED_KEYS.filter((key) => draft[key] !== DEFAULT_DRAFT[key]).length + Object.keys(activeOverrides(draft)).length;
+  // 只有一个模型时没有可指定的，不显示这一项。
+  const canOverride = modelOptions(state.endpoints).length > 1;
   return (
     <Collapsible
       className="panel panel--collapsible"
@@ -423,28 +503,30 @@ function AdvancedPanel({
           {algorithm.params.map((def) => <ParamField key={def.key} def={def} draft={draft} update={update} />)}
         </FieldGroup>
         <FieldGroup title="通用">
-          <Field label="并发数" htmlFor="workers">
+          <Field label="并发数" htmlFor="workers" info="同时发出的模型调用数，所有参与方共用。">
             <input id="workers" name="workers" type="number" inputMode="numeric" autoComplete="off" min={1} max={64} value={draft.workers} onChange={(event) => update({ workers: clampInt(event.target.value, 1, 64, draft.workers) })} />
           </Field>
-          <Field label="随机种子" htmlFor="seed">
+          <Field label="随机种子" htmlFor="seed" info="固定种子后，同样的配置可以复现同样的结果。">
             <input id="seed" name="seed" type="number" inputMode="numeric" autoComplete="off" min={0} value={draft.seed} onChange={(event) => update({ seed: clampInt(event.target.value, 0, 1_000_000, draft.seed) })} />
           </Field>
-          <Field label="单独指定模型" labelId="overrides-label" wide>
-            <ModelOverrides state={state} draft={draft} update={update} selected={selected} />
-          </Field>
+          {canOverride ? (
+            <Field label="单独指定模型" labelId="overrides-label" wide>
+              <ModelOverrides state={state} draft={draft} update={update} selected={selected} />
+            </Field>
+          ) : null}
         </FieldGroup>
       </div>
     </Collapsible>
   );
 }
 
-/** 按注册表里的参数定义生成一个字段：下拉或数字输入。 */
+/** 按注册表里的参数定义生成一个字段：下拉或数字输入；解释来自注册表，点"说明"才展开。 */
 function ParamField({ def, draft, update }: { def: ParamDef; draft: Draft; update: (patch: Partial<Draft>) => void }) {
   const id = `param-${def.key}`;
   if (def.kind === "number") {
     const value = draft[def.key];
     return (
-      <Field label={def.label} htmlFor={id}>
+      <Field label={def.label} htmlFor={id} info={def.help}>
         <UnitInput id={id} unit={def.unit} name={def.key} type="number" inputMode="numeric" autoComplete="off" min={def.min} max={def.max} value={value} onChange={(event) => update({ [def.key]: clampInt(event.target.value, def.min, def.max, value) })} />
       </Field>
     );
@@ -452,7 +534,7 @@ function ParamField({ def, draft, update }: { def: ParamDef; draft: Draft; updat
   if (def.kind === "select-number") {
     const value = draft[def.key];
     return (
-      <Field label={def.label} htmlFor={id}>
+      <Field label={def.label} htmlFor={id} info={def.help}>
         <select id={id} name={def.key} value={value ?? ""} onChange={(event) => update({ [def.key]: event.target.value ? Number(event.target.value) : null })}>
           {def.options.map((option) => <option key={String(option.value)} value={option.value ?? ""}>{option.label}</option>)}
         </select>
@@ -460,7 +542,7 @@ function ParamField({ def, draft, update }: { def: ParamDef; draft: Draft; updat
     );
   }
   return (
-    <Field label={def.label} htmlFor={id}>
+    <Field label={def.label} htmlFor={id} info={def.help}>
       <select id={id} name={def.key} value={draft[def.key]} onChange={(event) => update({ [def.key]: event.target.value } as Partial<Draft>)}>
         {def.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
@@ -468,7 +550,7 @@ function ParamField({ def, draft, update }: { def: ParamDef; draft: Draft; updat
   );
 }
 
-/** 默认所有参与方用同一个模型；需要时逐条添加例外。 */
+/** 默认所有参与方用同一个模型；需要时逐条添加例外。每条一行：参与方、模型、移除。 */
 function ModelOverrides({
   state, draft, update, selected,
 }: {
@@ -488,12 +570,13 @@ function ModelOverrides({
   return (
     <div className="override-editor">
       {entries.length ? (
-        <ul className="override-list" aria-labelledby="overrides-label">
+        <div className="override-list" role="group" aria-labelledby="overrides-label">
+          <div className="override-row override-head" aria-hidden="true"><span>参与方</span><span>模型</span><span /></div>
           {entries.map(([datasetId, ref]) => {
             const dataset = selected.find((item) => item.id === datasetId);
             if (!dataset) return null;
             return (
-              <li key={datasetId}>
+              <div key={datasetId} className="override-row">
                 <select
                   aria-label="参与方"
                   value={datasetId}
@@ -505,26 +588,25 @@ function ModelOverrides({
                 >
                   {[dataset, ...free].map((item) => <option key={item.id} value={item.id}>{nameOf(item)}</option>)}
                 </select>
-                <div className="override-model">
-                  <select aria-label={`${nameOf(dataset)} 使用的模型`} value={ref} onChange={(event) => set({ ...overrides, [datasetId]: event.target.value })}>
-                    {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
-                  </select>
-                  <button
-                    type="button"
-                    className="button button--ghost button--compact"
-                    onClick={() => {
-                      const next = { ...overrides };
-                      delete next[datasetId];
-                      set(next);
-                    }}
-                  >
-                    移除
-                  </button>
-                </div>
-              </li>
+                <select aria-label={`${nameOf(dataset)} 使用的模型`} value={ref} onChange={(event) => set({ ...overrides, [datasetId]: event.target.value })}>
+                  {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
+                </select>
+                <button
+                  type="button"
+                  className="button button--ghost"
+                  aria-label={`移除 ${nameOf(dataset)} 的单独设置`}
+                  onClick={() => {
+                    const next = { ...overrides };
+                    delete next[datasetId];
+                    set(next);
+                  }}
+                >
+                  移除
+                </button>
+              </div>
             );
           })}
-        </ul>
+        </div>
       ) : null}
       {free.length ? (
         <button type="button" className="button button--secondary button--compact" onClick={() => set({ ...overrides, [free[0].id]: draft.clientModel })}>
@@ -546,16 +628,16 @@ function modelSummary(draft: Draft, state: State): string {
   return client === server ? client : `参与方 ${client}；服务端 ${server}`;
 }
 
-function EstimateBlock({ result }: { result: Estimate }) {
+function EstimateBlock({ result, priceHref }: { result: Estimate; priceHref: string }) {
   return (
     <div className="summary-estimate">
       <h3>预估</h3>
       <dl className="summary-list">
         <div><dt>参与方调用</dt><dd>{formatNumber(result.participantCalls)} 次</dd></div>
         <div><dt>服务端调用</dt><dd>至少 {result.serverCalls} 次</dd></div>
-        <div><dt>token</dt><dd>约 {formatTokens(result.participantTokens + result.serverTokens)}</dd></div>
+        <div><dt>Token</dt><dd>约 {formatTokens(result.participantTokens + result.serverTokens)}</dd></div>
         <div><dt>时长</dt><dd>{formatDuration(result.seconds)}</dd></div>
-        <div><dt>费用</dt><dd>{result.cost === null ? <a className="text-link" href={hrefOf({ page: "models" })}>未设置单价</a> : formatYuan(result.cost)}</dd></div>
+        <div><dt>费用</dt><dd>{result.cost === null ? <a className="text-link" href={priceHref}>未设置单价</a> : formatYuan(result.cost)}</dd></div>
       </dl>
     </div>
   );

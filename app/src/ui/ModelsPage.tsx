@@ -1,152 +1,68 @@
-import { useState, type Dispatch } from "react";
-import { DEFAULT_ENDPOINT_ID, endpointOf, isConfigured, type Endpoint } from "../domain/resources";
-import type { Action, State } from "../state/store";
-import { FormActions, Meta, Notice, PageHead, Tag } from "./common";
-import { Field, FieldGroup, Panel, UnitInput } from "./console";
+import { DEFAULT_ENDPOINT_ID, endpointOf, isConfigured } from "../domain/resources";
+import { hrefOf } from "../state/route";
+import type { State } from "../state/store";
+import { Meta, PageHead, Tag } from "./common";
+import { Panel } from "./console";
 import { Icon } from "./icons";
-
-type Props = { state: State; dispatch: Dispatch<Action> };
 
 function usedBy(state: State, endpointId: string): number {
   return state.tasks.filter((task) => [task.config.serverModel, ...task.members.map((member) => member.model)]
     .some((ref) => endpointOf(ref, state.endpoints)?.id === endpointId)).length;
 }
 
-/** 和"参与方与数据"页一样：列表用表格，新增和编辑共用上方的表单。 */
-export default function ModelsPage({ state, dispatch }: Props) {
-  const [editing, setEditing] = useState<string | null>(null);
-  const [saved, setSaved] = useState<string | null>(null);
-  const current = editing ? state.endpoints.find((endpoint) => endpoint.id === editing) : undefined;
-
-  function open(id: string) {
-    setSaved(null);
-    setEditing(id);
-  }
-
+/** 模型接口列表。新增和编辑都是独立页面，和参与方一样。 */
+export default function ModelsPage({ state }: { state: State }) {
   return (
     <>
       <PageHead
         title="模型接口"
-        meta="平台托管的参与方和服务端通过这里调用模型（OpenAI 兼容接口）；本地参与方用自己的模型。"
-        actions={editing ? null : <button type="button" className="button button--primary" onClick={() => open("new")}><Icon name="plus" />新增接口</button>}
+        meta="平台托管的参与方和服务端通过这些接口调用模型；本地参与方用自己的模型。"
+        actions={<a className="button button--primary" href={hrefOf({ page: "newEndpoint" })}><Icon name="plus" />新增接口</a>}
       />
-      {saved ? <Notice action={<button type="button" className="link-button" onClick={() => setSaved(null)}>知道了</button>}>{saved}</Notice> : null}
-      {editing ? (
-        <EndpointForm
-          key={editing}
-          state={state}
-          dispatch={dispatch}
-          endpoint={current}
-          onDone={(message) => {
-            setEditing(null);
-            if (message) setSaved(message);
-          }}
-        />
-      ) : null}
       <Panel flush>
-      <div className="table-shell">
-        <table className="table table--stack">
-          <thead>
-            <tr>
-              <th scope="col">接口</th>
-              <th scope="col">模型</th>
-              <th scope="col" className="numeric">并发上限</th>
-              <th scope="col" className="numeric">单价（元 / 百万 token）</th>
-              <th scope="col" className="numeric">使用</th>
-              <th scope="col" className="numeric"><span className="visually-hidden">操作</span></th>
-            </tr>
-          </thead>
-          <tbody>
-            {state.endpoints.map((endpoint) => {
-              const used = usedBy(state, endpoint.id);
-              const fallback = endpoint.id === DEFAULT_ENDPOINT_ID;
-              return (
-                <tr key={endpoint.id}>
-                  <th scope="row">
-                    <span className="cell-title">
-                      {endpoint.name}
-                      {isConfigured(endpoint) ? null : <Tag tone="warning">待配置</Tag>}
-                    </span>
-                    {endpoint.baseUrl || fallback ? (
-                      <small>
-                        <Meta parts={[endpoint.baseUrl ? <code key="url">{endpoint.baseUrl}</code> : null, fallback ? "未指定模型的调用都走这里" : null]} />
-                      </small>
-                    ) : null}
-                  </th>
-                  <td data-label="模型">{endpoint.models.length ? endpoint.models.join("、") : "—"}</td>
-                  <td className="numeric" data-label="并发上限">{endpoint.concurrency}</td>
-                  <td className="numeric" data-label="单价（元 / 百万 token）">{endpoint.price === null ? "—" : endpoint.price}</td>
-                  <td className="numeric" data-label="使用">{used ? `${used} 个任务` : "—"}</td>
-                  <td className="numeric cell-action">
-                    <button type="button" className="button button--secondary button--compact" disabled={editing !== null} onClick={() => open(endpoint.id)}>编辑</button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+        <div className="table-shell">
+          <table className="table table--stack table--fixed">
+            <thead>
+              <tr>
+                <th scope="col" style={{ width: "34%" }}>接口</th>
+                <th scope="col" style={{ width: "22%" }}>模型</th>
+                <th scope="col" className="numeric" style={{ width: "10%" }}>并发上限</th>
+                <th scope="col" className="numeric" style={{ width: "14%" }}>单价（元 / 百万 token）</th>
+                <th scope="col" className="numeric" style={{ width: "10%" }}>使用</th>
+                <th scope="col" className="numeric" style={{ width: "10%" }}><span className="visually-hidden">操作</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {state.endpoints.map((endpoint) => {
+                const used = usedBy(state, endpoint.id);
+                const fallback = endpoint.id === DEFAULT_ENDPOINT_ID;
+                return (
+                  <tr key={endpoint.id}>
+                    <th scope="row">
+                      <span className="cell-title">
+                        {endpoint.name}
+                        {isConfigured(endpoint) ? null : <Tag tone="warning">待配置</Tag>}
+                      </span>
+                      {endpoint.baseUrl || fallback ? (
+                        <small>
+                          <Meta parts={[endpoint.baseUrl ? <code key="url">{endpoint.baseUrl}</code> : null, fallback ? "未指定模型的调用都走这里" : null]} />
+                        </small>
+                      ) : null}
+                    </th>
+                    <td data-label="模型">{endpoint.models.length ? endpoint.models.join("、") : "—"}</td>
+                    <td className="numeric" data-label="并发上限">{endpoint.concurrency}</td>
+                    <td className="numeric" data-label="单价（元 / 百万 token）">{endpoint.price === null ? "—" : endpoint.price}</td>
+                    <td className="numeric" data-label="使用">{used ? `${used} 个任务` : "—"}</td>
+                    <td className="numeric cell-action">
+                      <a className="button button--secondary button--compact" href={hrefOf({ page: "editEndpoint", id: endpoint.id })} aria-label={`编辑“${endpoint.name}”`}>编辑</a>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </Panel>
     </>
-  );
-}
-
-function EndpointForm({ state, dispatch, endpoint, onDone }: Props & { endpoint?: Endpoint; onDone: (message?: string) => void }) {
-  const [name, setName] = useState(endpoint?.name ?? "");
-  const [baseUrl, setBaseUrl] = useState(endpoint?.baseUrl ?? "");
-  const [models, setModels] = useState(endpoint?.models.join(", ") ?? "");
-  const [concurrency, setConcurrency] = useState(endpoint?.concurrency ?? 8);
-  const [price, setPrice] = useState(endpoint?.price === null || endpoint?.price === undefined ? "" : String(endpoint.price));
-  const list = models.split(/[\n,，]/).map((item) => item.trim()).filter(Boolean);
-  const validUrl = baseUrl.trim() === "" || /^https?:\/\/\S+$/.test(baseUrl.trim());
-  const priceValue = price.trim() === "" ? null : Number(price);
-  const validPrice = priceValue === null || (Number.isFinite(priceValue) && priceValue >= 0);
-  const missing = [
-    name.trim() ? null : "名称",
-    validUrl ? null : "正确的接口地址",
-    validPrice ? null : "正确的单价",
-  ].filter((item): item is string => Boolean(item));
-
-  function save() {
-    if (missing.length) return;
-    const fields = { name: name.trim(), baseUrl: baseUrl.trim(), models: list, concurrency, price: priceValue };
-    if (endpoint) {
-      dispatch({ type: "updateEndpoint", id: endpoint.id, patch: fields });
-      onDone(`已保存“${fields.name}”。`);
-      return;
-    }
-    const base = fields.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "endpoint";
-    let id = base;
-    for (let index = 2; state.endpoints.some((item) => item.id === id) || id === DEFAULT_ENDPOINT_ID; index += 1) id = `${base}-${index}`;
-    dispatch({ type: "addEndpoint", endpoint: { id, ...fields } });
-    onDone(`已添加“${fields.name}”，新建任务时可以在模型下拉里选它的模型。`);
-  }
-
-  return (
-    <Panel title={endpoint ? `编辑“${endpoint.name}”` : "新增接口"}>
-      <div className="form-body">
-        <FieldGroup>
-          <Field label="名称" htmlFor="endpoint-name">
-            <input id="endpoint-name" name="endpoint-name" autoComplete="off" value={name} maxLength={30} onChange={(event) => setName(event.target.value)} placeholder="例如：实验室模型服务" />
-          </Field>
-          <Field label="模型" optional htmlFor="endpoint-models">
-            <input id="endpoint-models" name="endpoint-models" autoComplete="off" spellCheck={false} value={models} onChange={(event) => setModels(event.target.value)} placeholder="多个用逗号分隔" />
-          </Field>
-          <Field label="接口地址" optional htmlFor="endpoint-url" error={validUrl ? undefined : "地址要以 http:// 或 https:// 开头"}>
-            <input id="endpoint-url" name="endpoint-url" type="url" inputMode="url" autoComplete="off" spellCheck={false} value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} placeholder="https://…/v1" aria-invalid={!validUrl} aria-describedby={validUrl ? undefined : "endpoint-url-error"} />
-          </Field>
-          <Field label="API 密钥">
-            <p className="field-static">接入后端后在服务端填写，前端不保存密钥</p>
-          </Field>
-          <Field label="并发上限" htmlFor="endpoint-concurrency">
-            <input id="endpoint-concurrency" name="endpoint-concurrency" type="number" inputMode="numeric" autoComplete="off" min={1} max={256} value={concurrency} onChange={(event) => setConcurrency(Math.max(1, Math.min(256, Number.parseInt(event.target.value, 10) || 1)))} />
-          </Field>
-          <Field label="单价" optional htmlFor="endpoint-price" error={validPrice ? undefined : "单价不能小于 0"}>
-            <UnitInput id="endpoint-price" unit="元 / 百万 token" name="endpoint-price" type="number" inputMode="decimal" autoComplete="off" min={0} step="0.1" value={price} placeholder="未设置" aria-invalid={!validPrice} aria-describedby={validPrice ? undefined : "endpoint-price-error"} onChange={(event) => setPrice(event.target.value)} />
-          </Field>
-        </FieldGroup>
-        <FormActions missing={missing} saveLabel={endpoint ? "保存修改" : "保存接口"} onCancel={() => onDone()} onSave={save} />
-      </div>
-    </Panel>
   );
 }

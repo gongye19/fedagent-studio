@@ -2,7 +2,7 @@ import { useState } from "react";
 import { TASK_STATUS, type TaskStatus } from "../domain/task";
 import { hrefOf } from "../state/route";
 import type { State } from "../state/store";
-import { EmptyState, PageHead } from "./common";
+import { EmptyState, PageHead, PanelEmpty } from "./common";
 import { Panel } from "./console";
 import { Icon } from "./icons";
 import { sortTasks } from "./labels";
@@ -50,7 +50,11 @@ export default function TasksPage({ state }: { state: State }) {
           </select>
           <span className="panel-extra">共 {tasks.length} 个</span>
         </div>
-        {tasks.length ? <TaskTable tasks={tasks} /> : <p className="panel-empty">没有符合条件的任务。</p>}
+        {tasks.length ? <TaskTable tasks={tasks} /> : (
+          <PanelEmpty action={<button type="button" className="button button--secondary button--compact" onClick={() => { setQuery(""); setFilter("all"); }}>清除筛选</button>}>
+            没有符合条件的任务。
+          </PanelEmpty>
+        )}
       </Panel>
     </>
   );

@@ -1,13 +1,13 @@
-// 页面状态：参与方与数据、模型接口、联邦任务、已发布的洞见库，以及新建任务的草稿。
+// 页面状态：参与方与数据、模型接口、联邦任务、已发布的应用，以及新建任务的草稿。
 // 规则都在 domain/，这里只负责组合和查找。
 
 import { chooseAlgorithm, chooseScenario, DEFAULT_DRAFT, defaultTaskName, draftIssues, toConfig, toggleDataset, withDefaults, type Draft } from "../domain/config";
 import type { AlgorithmId, ScenarioId } from "../domain/catalog";
-import type { Dataset, Endpoint, Participant } from "../domain/resources";
+import { DEFAULT_ENDPOINT_ID, type Dataset, type Endpoint, type Participant } from "../domain/resources";
 import { cancel, createTask, pause, resume, tick, type Task } from "../domain/task";
 import { seedState } from "./seed";
 
-export const STATE_VERSION = 4;
+export const STATE_VERSION = 5;
 
 export type Published = {
   id: string;
@@ -29,23 +29,28 @@ export type State = {
 };
 
 export type Action =
-  | { type: "chooseScenario"; scenario: ScenarioId }
+  /** auto：页面自动选的（地址里带的场景、唯一可用的场景），不算用户动过草稿。 */
+  | { type: "chooseScenario"; scenario: ScenarioId; auto?: boolean }
   | { type: "chooseAlgorithm"; algorithm: AlgorithmId }
   | { type: "toggleDataset"; datasetId: string }
   | { type: "setDatasets"; datasetIds: string[] }
   | { type: "updateDraft"; patch: Partial<Draft> }
   | { type: "resetDraft"; draft?: Partial<Draft> }
-  | { type: "createTask"; id: string; createdAt: string }
+  /** name：页面上显示的默认名称；草稿里没有填名称时用它。 */
+  | { type: "createTask"; id: string; createdAt: string; name?: string }
   | { type: "tick"; now: string }
   | { type: "pauseTask"; id: string }
   | { type: "resumeTask"; id: string }
   | { type: "cancelTask"; id: string; now: string }
   | { type: "publish"; id: string; taskId: string; builtAfterRound: number; name: string; publishedAt: string }
+  | { type: "renamePublished"; id: string; name: string }
+  | { type: "unpublish"; id: string }
   | { type: "addParticipant"; participant: Participant; dataset?: Dataset }
   | { type: "addDataset"; dataset: Dataset }
   | { type: "removeParticipant"; id: string }
   | { type: "addEndpoint"; endpoint: Endpoint }
   | { type: "updateEndpoint"; id: string; patch: Partial<Omit<Endpoint, "id">> }
+  | { type: "removeEndpoint"; id: string }
   | { type: "resetDemo" };
 
 export function taskOf(state: State, id: string): Task | undefined {
@@ -82,20 +87,22 @@ function updateTask(state: State, id: string, change: (task: Task) => Task): Sta
 
 export function reducer(state: State, action: Action): State {
   switch (action.type) {
-    case "chooseScenario":
-      return { ...state, draft: chooseScenario(state.draft, action.scenario, state.datasets, state.participants) };
+    case "chooseScenario": {
+      const draft = chooseScenario(state.draft, action.scenario, state.datasets, state.participants);
+      return draft === state.draft ? state : { ...state, draft: action.auto ? draft : { ...draft, touched: true } };
+    }
 
     case "chooseAlgorithm":
-      return { ...state, draft: chooseAlgorithm(state.draft, action.algorithm, state.datasets, state.participants) };
+      return { ...state, draft: { ...chooseAlgorithm(state.draft, action.algorithm, state.datasets, state.participants), touched: true } };
 
     case "toggleDataset":
-      return { ...state, draft: toggleDataset(state.draft, action.datasetId) };
+      return { ...state, draft: { ...toggleDataset(state.draft, action.datasetId), touched: true } };
 
     case "setDatasets":
-      return { ...state, draft: { ...state.draft, datasetIds: [...action.datasetIds] } };
+      return { ...state, draft: { ...state.draft, datasetIds: [...action.datasetIds], touched: true } };
 
     case "updateDraft":
-      return { ...state, draft: { ...state.draft, ...action.patch } };
+      return { ...state, draft: { ...state.draft, ...action.patch, touched: true } };
 
     case "resetDraft":
       return { ...state, draft: withDefaults(action.draft ?? {}) };
@@ -105,7 +112,7 @@ export function reducer(state: State, action: Action): State {
       if (!config || draftIssues(state.draft, state.datasets, state.participants, state.endpoints).length) return state;
       const task = createTask({
         id: action.id,
-        name: state.draft.name.trim() || defaultTaskName(state.draft, new Date(action.createdAt)),
+        name: state.draft.name?.trim() || action.name || defaultTaskName(state.draft, new Date(action.createdAt)),
         createdAt: action.createdAt,
         config,
         datasets: state.datasets,
@@ -143,12 +150,22 @@ export function reducer(state: State, action: Action): State {
       return { ...state, published: [item, ...state.published] };
     }
 
+    case "renamePublished": {
+      const name = action.name.trim();
+      if (!name) return state;
+      return { ...state, published: state.published.map((item) => (item.id === action.id ? { ...item, name } : item)) };
+    }
+
+    case "unpublish":
+      return { ...state, published: state.published.filter((item) => item.id !== action.id) };
+
     case "addParticipant": {
       if (state.participants.some((participant) => participant.id === action.participant.id)) return state;
+      // 新登记的排在最前面。
       return {
         ...state,
-        participants: [...state.participants, action.participant],
-        datasets: action.dataset ? [...state.datasets, action.dataset] : state.datasets,
+        participants: [action.participant, ...state.participants],
+        datasets: action.dataset ? [action.dataset, ...state.datasets] : state.datasets,
       };
     }
 
@@ -178,6 +195,11 @@ export function reducer(state: State, action: Action): State {
         ...state,
         endpoints: state.endpoints.map((endpoint) => (endpoint.id === action.id ? { ...endpoint, ...action.patch } : endpoint)),
       };
+
+    case "removeEndpoint":
+      // 预留的默认接口不能删；已有任务只保存模型引用，不受影响。
+      if (action.id === DEFAULT_ENDPOINT_ID) return state;
+      return { ...state, endpoints: state.endpoints.filter((endpoint) => endpoint.id !== action.id) };
 
     case "resetDemo":
       return seedState();

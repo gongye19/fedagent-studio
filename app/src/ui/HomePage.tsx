@@ -2,7 +2,7 @@ import { algorithmsFor, SCENARIOS } from "../domain/catalog";
 import { isConfigured } from "../domain/resources";
 import { hrefOf } from "../state/route";
 import type { State } from "../state/store";
-import { PageHead, Tag } from "./common";
+import { PageHead, PanelEmpty, Tag } from "./common";
 import { Panel } from "./console";
 import { formatNumber } from "./format";
 import { Icon } from "./icons";
@@ -18,7 +18,7 @@ export default function HomePage({ state }: { state: State }) {
 
   return (
     <>
-      <PageHead title="概览" actions={<a className="button button--primary" href={hrefOf({ page: "newTask" })}><Icon name="plus" />新建联邦任务</a>} />
+      <PageHead title="首页" actions={<a className="button button--primary" href={hrefOf({ page: "newTask" })}><Icon name="plus" />新建联邦任务</a>} />
 
       <div className="scenario-grid">
         {SCENARIOS.map((scenario) => {
@@ -33,7 +33,7 @@ export default function HomePage({ state }: { state: State }) {
               <p>{scenario.summary}</p>
               <div className="scenario-tile-foot">
                 <span className="muted">{algorithms.length ? `算法：${algorithms.map((item) => item.name).join("、")}` : "算法待接入"}</span>
-                {available ? <a className="button button--secondary button--compact" href={hrefOf({ page: "newTask", scenario: scenario.id })}>新建任务</a> : null}
+                {available ? <a className="button button--secondary button--compact" href={hrefOf({ page: "newTask", scenario: scenario.id })}>新建联邦任务</a> : null}
               </div>
             </section>
           );
@@ -42,19 +42,19 @@ export default function HomePage({ state }: { state: State }) {
 
       <dl className="resource-strip">
         <a className="resource" href={hrefOf({ page: "participants" })}>
-          <dt>参与方</dt>
+          <dt>参与方<Icon name="chevron" /></dt>
           <dd><strong>{state.participants.length}</strong><span>{online} 个在线</span></dd>
         </a>
         <a className="resource" href={hrefOf({ page: "participants" })}>
-          <dt>数据集</dt>
+          <dt>数据集<Icon name="chevron" /></dt>
           <dd><strong>{state.datasets.length}</strong><span>{formatNumber(samples)} 条样本</span></dd>
         </a>
         <a className="resource" href={hrefOf({ page: "models" })}>
-          <dt>模型接口</dt>
+          <dt>模型接口<Icon name="chevron" /></dt>
           <dd><strong>{state.endpoints.length}</strong><span>{pending ? `${pending} 个待配置` : "都已配置"}</span></dd>
         </a>
         <a className="resource" href={hrefOf({ page: "apps" })}>
-          <dt>应用</dt>
+          <dt>应用<Icon name="chevron" /></dt>
           <dd><strong>{state.published.length}</strong><span>由任务产出发布</span></dd>
         </a>
       </dl>
@@ -64,7 +64,9 @@ export default function HomePage({ state }: { state: State }) {
         flush
         actions={state.tasks.length > recent.length ? <a className="text-link" href={hrefOf({ page: "tasks" })}>查看全部</a> : null}
       >
-        {recent.length ? <TaskTable tasks={recent} /> : <p className="panel-empty">还没有任务。</p>}
+        {recent.length ? <TaskTable tasks={recent} /> : (
+          <PanelEmpty action={<a className="button button--secondary button--compact" href={hrefOf({ page: "newTask" })}>新建联邦任务</a>}>还没有任务。</PanelEmpty>
+        )}
       </Panel>
     </>
   );

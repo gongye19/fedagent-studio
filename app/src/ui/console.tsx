@@ -2,13 +2,13 @@
  * 控制台风格的组件，版式参考 AWS 控制台（Cloudscape）：
  * - Panel：灰底画布上的白色容器，标题在上；
  * - Field：字段名在上、控件在下。字段名一行写完，可以不填的字段在后面写"（可选）"；
- *   控件下方不放说明文字，只在填错时显示一行错误；
+ *   控件下方不放说明文字，只在填错时显示一行错误；需要解释的字段在字段名旁放"说明"，点开才显示（和 AWS 的 Info 一样）；
  * - FieldGroup：两栏网格，控件撑满所在的栏，左右边缘对齐；选项按钮组、表格、长文本占满一行；
  *   面板不够宽时自动变成一栏；
  * - UnitInput：数值的单位放在输入框右侧；
- * - Choices：一组互斥的选项按钮，选中的按钮蓝框、右下角带角标。
+ * - Choices：一组互斥的选项按钮，选中的按钮蓝框、右下角带角标；带标记（例如"规划中"）的选项组在手机上竖排。
  */
-import { useRef, type InputHTMLAttributes, type KeyboardEvent, type ReactNode } from "react";
+import { useId, useRef, useState, type InputHTMLAttributes, type KeyboardEvent, type ReactNode } from "react";
 import { Icon } from "./icons";
 
 export function Panel({
@@ -50,11 +50,13 @@ export function FieldGroup({ title, children }: { title?: ReactNode; children: R
 }
 
 export function Field({
-  label, optional = false, error, wide = false, htmlFor, labelId, children,
+  label, optional = false, info, error, wide = false, htmlFor, labelId, children,
 }: {
   label: ReactNode;
   /** 可以不填的字段，字段名后写"（可选）"；必填的不标。 */
   optional?: boolean;
+  /** 字段的解释：字段名旁出现"说明"，点开后显示在字段名和控件之间，默认收起。 */
+  info?: ReactNode;
   /** 填错时的一句话，显示在控件下方；控件要带 aria-invalid，并用 aria-describedby 指向 `${htmlFor}-error`。 */
   error?: ReactNode;
   /** 占满一行：选项按钮组、表格、长文本。 */
@@ -65,11 +67,20 @@ export function Field({
   children: ReactNode;
 }) {
   const text = <>{label}{optional ? <span className="field-optional">（可选）</span> : null}</>;
+  const [open, setOpen] = useState(false);
+  const helpId = useId();
+  const name = htmlFor
+    ? <label className="field-label" htmlFor={htmlFor} id={labelId}>{text}</label>
+    : <span className="field-label" id={labelId}>{text}</span>;
   return (
     <div className={`field${wide ? " field--wide" : ""}`}>
-      {htmlFor
-        ? <label className="field-label" htmlFor={htmlFor} id={labelId}>{text}</label>
-        : <span className="field-label" id={labelId}>{text}</span>}
+      {info ? (
+        <div className="field-head">
+          {name}
+          <button type="button" className="field-info" aria-expanded={open} aria-controls={helpId} onClick={() => setOpen((value) => !value)}>说明</button>
+        </div>
+      ) : name}
+      {info && open ? <div className="field-help" id={helpId}>{info}</div> : null}
       {children}
       {error ? <p className="field-error" id={htmlFor ? `${htmlFor}-error` : undefined}><Icon name="alert" />{error}</p> : null}
     </div>
@@ -114,8 +125,9 @@ export function Choices<T extends string | number>({
     refs.current[next]?.focus();
   }
 
+  const badged = options.some((option) => option.badge);
   return (
-    <div className="choices" role="radiogroup" aria-labelledby={labelledBy} aria-label={labelledBy ? undefined : label}>
+    <div className={`choices${badged ? " choices--badged" : ""}`} role="radiogroup" aria-labelledby={labelledBy} aria-label={labelledBy ? undefined : label}>
       {options.map((option, index) => {
         const checked = option.value === value;
         return (

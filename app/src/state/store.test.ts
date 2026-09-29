@@ -43,6 +43,37 @@ describe("store", () => {
     expect(reducer(state, { ...action, builtAfterRound: 9 })).toBe(state);
   });
 
+  it("counts only the user's own changes as touching the draft", () => {
+    const auto = reducer(seedState(), { type: "chooseScenario", scenario: "horizontal", auto: true });
+    expect(auto.draft.algorithm).toBe("fot");
+    expect(auto.draft.touched).toBe(false);
+    const edited = reducer(auto, { type: "updateDraft", patch: { rounds: 4 } });
+    expect(edited.draft.touched).toBe(true);
+    expect(reducer(auto, { type: "toggleDataset", datasetId: "ds-amc" }).draft.touched).toBe(true);
+  });
+
+  it("names the task with the name shown on the page when the user left it unchanged", () => {
+    const state = ready(seedState());
+    const named = reducer(state, { type: "createTask", id: "task-a", createdAt: NOW, name: "FoT 任务 09-28 15:59" });
+    expect(named.tasks[0].name).toBe("FoT 任务 09-28 15:59");
+    const typed = reducer(reducer(state, { type: "updateDraft", patch: { name: "我的任务" } }), { type: "createTask", id: "task-b", createdAt: NOW, name: "ignored" });
+    expect(typed.tasks[0].name).toBe("我的任务");
+  });
+
+  it("renames and unpublishes apps", () => {
+    const state = seedState();
+    const renamed = reducer(state, { type: "renamePublished", id: "lib-paper-math8", name: "  新名字 " });
+    expect(renamed.published[0].name).toBe("新名字");
+    expect(reducer(state, { type: "renamePublished", id: "lib-paper-math8", name: "  " })).toBe(state);
+    expect(reducer(state, { type: "unpublish", id: "lib-paper-math8" }).published).toHaveLength(0);
+  });
+
+  it("removes added endpoints but keeps the reserved default one", () => {
+    const withLab = reducer(seedState(), { type: "addEndpoint", endpoint: { id: "lab", name: "实验室", baseUrl: "http://x/v1", models: ["m1"], concurrency: 4, price: null } });
+    expect(reducer(withLab, { type: "removeEndpoint", id: "lab" }).endpoints.map((item) => item.id)).toEqual(["default"]);
+    expect(reducer(withLab, { type: "removeEndpoint", id: "default" })).toBe(withLab);
+  });
+
   it("removes custom participants with their data, never built-in ones", () => {
     let state = seedState();
     state = reducer(state, {
@@ -50,6 +81,7 @@ describe("store", () => {
       participant: { id: "p-new", name: "新参与方", org: "", intro: "", hosting: "platform", status: "online" },
       dataset: { id: "ds-new", name: "新题库", participantId: "p-new", description: "", taskType: "math-reasoning", count: 3, answered: 3, source: "upload" },
     });
+    expect(state.participants[0].id).toBe("p-new");
     state = ready(state);
     expect(state.draft.datasetIds).toContain("ds-new");
     const removed = reducer(state, { type: "removeParticipant", id: "p-new" });
@@ -72,8 +104,13 @@ describe("route", () => {
       { page: "app", id: "lib-1", tab: "try" },
       { page: "participants" },
       { page: "participants", id: "p-amc" },
+      { page: "newParticipant" },
+      { page: "newParticipant", from: "newTask" },
       { page: "algorithms" },
+      { page: "algorithms", id: "fot" },
       { page: "models" },
+      { page: "newEndpoint" },
+      { page: "editEndpoint", id: "default", from: "newTask" },
     ];
     for (const route of routes) expect(parseHash(hrefOf(route))).toEqual(route);
   });

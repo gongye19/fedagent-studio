@@ -1,5 +1,6 @@
-import { useState, type Dispatch } from "react";
+import { useEffect, useRef, useState, type Dispatch } from "react";
 import { libraries, type Task } from "../../domain/task";
+import { showFlash } from "../../state/flash";
 import { hrefOf } from "../../state/route";
 import { publishedOf, type Action, type State } from "../../state/store";
 import { EmptyState, Tag } from "../common";
@@ -13,6 +14,13 @@ export function OutputTab({ task, state, dispatch }: { task: Task; state: State;
   const output = algorithmOfTask(task).output;
   const versions = libraries(task);
   const [chosen, setChosen] = useState<number | null>(null);
+  const [naming, setNaming] = useState<string | null>(null);
+  const nameInput = useRef<HTMLInputElement>(null);
+  const isNaming = naming !== null;
+  useEffect(() => {
+    // 展开后直接输入名称。
+    if (isNaming) nameInput.current?.select();
+  }, [isNaming]);
   if (!versions.length) {
     return <EmptyState title={`还没有${output.name}`}><p>第 1 轮结束后生成第一版，之后每轮更新一次。</p></EmptyState>;
   }
@@ -22,17 +30,15 @@ export function OutputTab({ task, state, dispatch }: { task: Task; state: State;
   const added = current.insights.filter((insight) => !previousKeys.has(insight.key)).length;
   const published = publishedOf(state, task.id, current.builtAfterRound);
   const final = task.status === "completed" && current.builtAfterRound === task.config.rounds;
+  const suggested = final ? `${task.name} ${output.name}` : `${task.name} 第 ${current.builtAfterRound} 轮后${output.name}`;
 
-  function publish() {
+  function publish(name: string) {
     const round = current.builtAfterRound;
-    dispatch({
-      type: "publish",
-      id: `lib-${task.id}-r${round}`,
-      taskId: task.id,
-      builtAfterRound: round,
-      name: final ? `${task.name} ${output.name}` : `${task.name} 第 ${round} 轮后${output.name}`,
-      publishedAt: new Date().toISOString(),
-    });
+    const id = `app-${task.id}-r${round}`;
+    const title = name.trim() || suggested;
+    dispatch({ type: "publish", id, taskId: task.id, builtAfterRound: round, name: title, publishedAt: new Date().toISOString() });
+    setNaming(null);
+    showFlash({ page: "task", id: task.id }, `已发布为应用“${title}”。`, { label: "查看应用", route: { page: "app", id } });
   }
 
   return (
@@ -42,7 +48,7 @@ export function OutputTab({ task, state, dispatch }: { task: Task; state: State;
       actions={(
         <>
           {versions.length > 1 ? (
-            <select name="version" aria-label="版本" value={current.builtAfterRound} onChange={(event) => setChosen(Number(event.target.value))}>
+            <select name="version" aria-label="版本" value={current.builtAfterRound} onChange={(event) => { setChosen(Number(event.target.value)); setNaming(null); }}>
               {versions.map((version) => <option key={version.builtAfterRound} value={version.builtAfterRound}>{versionLabel(task, version)}</option>)}
             </select>
           ) : null}
@@ -51,12 +57,34 @@ export function OutputTab({ task, state, dispatch }: { task: Task; state: State;
               <Tag>已发布</Tag>
               <a className="button button--secondary button--compact" href={hrefOf({ page: "app", id: published.id })}>查看应用</a>
             </>
-          ) : (
-            <button type="button" className="button button--primary button--compact" onClick={publish}>发布为应用</button>
-          )}
+          ) : naming === null ? (
+            <button type="button" className="button button--primary button--compact" onClick={() => setNaming(suggested)}>发布为应用</button>
+          ) : null}
         </>
       )}
     >
+      {naming !== null && !published ? (
+        <form
+          className="confirm publish-form"
+          aria-label="发布为应用"
+          onSubmit={(event) => {
+            event.preventDefault();
+            publish(naming);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") setNaming(null);
+          }}
+        >
+          <div className="confirm-copy">
+            <label className="field-label" htmlFor="publish-name">应用名称</label>
+            <input ref={nameInput} id="publish-name" name="publish-name" autoComplete="off" value={naming} maxLength={60} onChange={(event) => setNaming(event.target.value)} />
+          </div>
+          <div className="confirm-actions">
+            <button type="button" className="button button--secondary" onClick={() => setNaming(null)}>取消</button>
+            <button type="submit" className="button button--primary">发布</button>
+          </div>
+        </form>
+      ) : null}
       <InsightGroups insights={current.insights} isNew={previous ? (key) => !previousKeys.has(key) : undefined} />
     </Panel>
   );

@@ -1,14 +1,17 @@
-import { useEffect, useReducer, useState, type Dispatch } from "react";
+import { useEffect, useReducer, useRef, useState, type Dispatch } from "react";
+import { clearFlash, useFlash } from "./state/flash";
 import { loadState, saveState } from "./state/persistence";
-import { hrefOf, useRoute, type Route } from "./state/route";
+import { hrefOf, pageKeyOf, useRoute, type Route } from "./state/route";
 import { useSimulation } from "./state/simulation";
 import { reducer, taskOf, type Action, type State } from "./state/store";
 import AlgorithmsPage from "./ui/AlgorithmsPage";
 import AppPage from "./ui/AppPage";
 import AppsPage from "./ui/AppsPage";
-import { NotFound, Tag } from "./ui/common";
+import { Confirm, NotFound, Notice, Tag } from "./ui/common";
+import EndpointPage from "./ui/EndpointPage";
 import HomePage from "./ui/HomePage";
 import ModelsPage from "./ui/ModelsPage";
+import NewParticipantPage from "./ui/NewParticipantPage";
 import NewTaskPage from "./ui/NewTaskPage";
 import ParticipantsPage from "./ui/ParticipantsPage";
 import TaskPage from "./ui/TaskPage";
@@ -26,10 +29,13 @@ function navKeyOf(route: Route): NavKey {
     case "app":
       return "apps";
     case "participants":
+    case "newParticipant":
       return "participants";
     case "algorithms":
       return "algorithms";
     case "models":
+    case "newEndpoint":
+    case "editEndpoint":
       return "models";
     default:
       return "home";
@@ -59,21 +65,49 @@ const NAV: readonly { group: string | null; items: readonly { key: NavKey; label
 export default function App() {
   const [state, dispatch] = useReducer(reducer, undefined, loadState);
   const route = useRoute();
+  const pageKey = pageKeyOf(route);
+  const firstPage = useRef(true);
+  const flash = useFlash(route);
   useSimulation(state, dispatch);
   useEffect(() => saveState(state), [state]);
 
+  useEffect(() => {
+    // 换页后焦点移到主内容，读屏软件从新页面开头读起；同一页里展开行、切换标签不算换页。
+    if (firstPage.current) {
+      firstPage.current = false;
+      return;
+    }
+    document.getElementById("main")?.focus({ preventScroll: true });
+  }, [pageKey]);
+
+  useEffect(() => {
+    // 提示条只属于它显示的那一页，换到别的页就收起。
+    if (!flash) clearFlash();
+  }, [pageKey, flash]);
+
+  const reset = () => dispatch({ type: "resetDemo" });
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main" onClick={(event) => {
         event.preventDefault();
         document.getElementById("main")?.focus();
       }}>跳到主要内容</a>
-      <Sidebar route={route} state={state} onReset={() => {
-        if (window.confirm("重置后，新建的任务、参与方、接口和发布记录都会清除，回到初始演示数据。确定重置？")) dispatch({ type: "resetDemo" });
-      }} />
+      <Sidebar route={route} state={state} onReset={reset} />
       <main className="main" id="main" tabIndex={-1}>
         <div className="page">
+          {flash ? (
+            <Notice
+              action={flash.link ? <a className="text-link" href={hrefOf(flash.link.route)}>{flash.link.label}</a> : undefined}
+              onDismiss={clearFlash}
+            >
+              {flash.text}
+            </Notice>
+          ) : null}
           <Page state={state} dispatch={dispatch} route={route} />
+          {/* 窄屏时侧栏变成顶栏，"重置演示数据"放到页面底部，不和导航挤在一起 */}
+          <div className="page-foot">
+            <ResetDemo onReset={reset} />
+          </div>
         </div>
       </main>
     </div>
@@ -95,18 +129,37 @@ function Page({ state, dispatch, route }: { state: State; dispatch: Dispatch<Act
     case "app": {
       const item = state.published.find((entry) => entry.id === route.id);
       return item
-        ? <AppPage key={item.id} item={item} task={taskOf(state, item.taskId)} state={state} tab={route.tab} />
-        : <NotFound kind="应用" back={{ page: "apps" }} backLabel="应用列表" />;
+        ? <AppPage key={item.id} item={item} task={taskOf(state, item.taskId)} state={state} dispatch={dispatch} tab={route.tab} />
+        : <NotFound kind="应用" back={{ page: "apps" }} backLabel="应用" />;
     }
     case "participants":
       return <ParticipantsPage state={state} dispatch={dispatch} selectedId={route.id} />;
+    case "newParticipant":
+      return <NewParticipantPage dispatch={dispatch} from={route.from} />;
     case "algorithms":
-      return <AlgorithmsPage />;
+      return <AlgorithmsPage selectedId={route.id} />;
     case "models":
-      return <ModelsPage state={state} dispatch={dispatch} />;
+      return <ModelsPage state={state} />;
+    case "newEndpoint":
+      return <EndpointPage state={state} dispatch={dispatch} from={route.from} />;
+    case "editEndpoint":
+      return <EndpointPage state={state} dispatch={dispatch} id={route.id} from={route.from} />;
     default:
       return <HomePage state={state} />;
   }
+}
+
+/** 重置演示数据：会清掉用户新建的内容，先在原地确认。 */
+function ResetDemo({ onReset }: { onReset: () => void }) {
+  const [confirming, setConfirming] = useState(false);
+  if (confirming) {
+    return (
+      <Confirm title="重置演示数据？" confirmLabel="重置" onConfirm={() => { setConfirming(false); onReset(); }} onCancel={() => setConfirming(false)} className="confirm--compact">
+        新建的任务、参与方、接口和发布记录都会清除。
+      </Confirm>
+    );
+  }
+  return <button type="button" className="link-button" onClick={() => setConfirming(true)}>重置演示数据</button>;
 }
 
 function Sidebar({ route, state, onReset }: { route: Route; state: State; onReset: () => void }) {
@@ -115,13 +168,29 @@ function Sidebar({ route, state, onReset }: { route: Route; state: State; onRese
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
 
+  useEffect(() => {
+    // 手机上展开的菜单不跟着页面钉住：一滚动或按 Esc 就收起。
+    if (!open) return;
+    const onScroll = () => setOpen(false);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   return (
-    <aside className={`sidebar${open ? " sidebar--open" : ""}`}>
+    <aside className={`sidebar${open ? " sidebar--open" : ""}`} aria-label="侧栏">
       <div className="sidebar-top">
         <a className="wordmark" href={hrefOf({ page: "home" })} onClick={close} translate="no">Federation Studio</a>
         {/* 品牌位置只放有用的状态：这是前端原型，数据都是示例。 */}
         <span className="env" title="任务运行、结果和应用都是示例数据，后端尚未接入">
-          <Tag tone="warning"><span className="env-long">前端原型 · </span>示例数据</Tag>
+          {/* 宽屏时标签前面由样式补上"前端原型 · "，标签里只有文字 */}
+          <Tag tone="warning">示例数据</Tag>
         </span>
         <button type="button" className="menu-button" aria-expanded={open} aria-controls="main-nav" onClick={() => setOpen((value) => !value)}>
           {open ? "收起" : "菜单"}
@@ -147,7 +216,7 @@ function Sidebar({ route, state, onReset }: { route: Route; state: State; onRese
         ))}
       </nav>
       <div className="sidebar-foot">
-        <button type="button" className="link-button" onClick={onReset}>重置演示数据</button>
+        <ResetDemo onReset={onReset} />
       </div>
     </aside>
   );

@@ -5,7 +5,7 @@
  * 任务都通过领域函数推进生成，与用户新建的任务走同一套规则。结果都是示例数据。
  */
 import { DEFAULT_DRAFT, toConfig, withDefaults, type Draft, type TaskConfig } from "../domain/config";
-import { BUILTIN_DATASETS, BUILTIN_PARTICIPANTS, DEFAULT_ENDPOINTS, type Participant } from "../domain/resources";
+import { BUILTIN_DATASETS, BUILTIN_PARTICIPANTS, DEFAULT_ENDPOINTS, type Dataset, type Participant } from "../domain/resources";
 import { completeStage, createTask, tick, type Task } from "../domain/task";
 import type { State } from "./store";
 
@@ -16,6 +16,18 @@ const LOCAL_EXAMPLE: Participant = {
   intro: "演示用的本地参与方，还没有连上客户端。",
   hosting: "local",
   status: "waiting",
+};
+
+/** 本地参与方只登记数据集的名称和说明，样本数等客户端连上后上报。 */
+const LOCAL_EXAMPLE_DATASET: Dataset = {
+  id: "ds-local-example",
+  name: "合作方题库",
+  participantId: LOCAL_EXAMPLE.id,
+  description: "校内数学竞赛题",
+  taskType: "math-reasoning",
+  count: 0,
+  answered: 0,
+  source: "local",
 };
 
 /** 已完成示例任务每份数据第 1–3 轮的答对题数。 */
@@ -77,9 +89,10 @@ function runningTrialTask(): Task {
 
 export function seedState(): State {
   return {
-    version: 4,
-    participants: [...BUILTIN_PARTICIPANTS.map((item) => ({ ...item })), { ...LOCAL_EXAMPLE }],
-    datasets: BUILTIN_DATASETS.map((item) => ({ ...item })),
+    version: 5,
+    // 新登记的参与方排在前面，内置示例在后。
+    participants: [{ ...LOCAL_EXAMPLE }, ...BUILTIN_PARTICIPANTS.map((item) => ({ ...item }))],
+    datasets: [{ ...LOCAL_EXAMPLE_DATASET }, ...BUILTIN_DATASETS.map((item) => ({ ...item }))],
     endpoints: DEFAULT_ENDPOINTS.map((item) => ({ ...item, models: [...item.models] })),
     tasks: [runningTrialTask(), completedPaperTask()],
     published: [

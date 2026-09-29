@@ -1,25 +1,19 @@
-import { useState } from "react";
-import { modelOptions } from "../domain/resources";
+import { useEffect, useRef, useState, type Dispatch } from "react";
+import { TASK_TYPES } from "../domain/catalog";
+import { DEFAULT_ENDPOINT_ID, DEFAULT_MODEL, isConfigured, modelLabel, modelOptions } from "../domain/resources";
+import { TRY_EXAMPLE } from "../domain/sample";
 import { libraries, type LibraryVersion, type Task } from "../domain/task";
-import { hrefOf, type AppTab } from "../state/route";
-import type { Published, State } from "../state/store";
-import { CodeBlock, EmptyState, Meta, PageHead, TabLinks, Tag } from "./common";
+import { showFlash } from "../state/flash";
+import { hrefOf, navigate, type AppTab } from "../state/route";
+import type { Action, Published, State } from "../state/store";
+import { CodeBlock, Confirm, EmptyState, Meta, PageHead, TabLinks, Tag } from "./common";
 import { Field, FieldGroup, Panel } from "./console";
 import { formatDate } from "./format";
 import { Icon } from "./icons";
 import { InsightGroups } from "./InsightGroups";
 import { algorithmOfTask } from "./labels";
 
-type Props = { item: Published; task: Task | undefined; state: State; tab?: AppTab };
-
-/** 试用的示例题只在产出里包含相关内容时提供；回答是示意文字，不是真实调用结果。 */
-const EXAMPLE = {
-  insight: "insight_integrality_by_division",
-  question: "How many integers x make (4x + 7)/(x - 1) an integer?",
-  answer: "4",
-  without: { text: "(4x + 7)/(x - 1) = 4 + 11/(x - 1). For this to be an integer, x - 1 must divide 11, so x - 1 = 1 or 11, giving x = 2 or x = 12.\n\nAnswer: \\boxed{2}", boxed: "2" },
-  with: { text: "Split off the constant remainder: (4x + 7)/(x - 1) = 4 + 11/(x - 1). The denominator must divide 11, including negative divisors: x - 1 ∈ {1, -1, 11, -11}, so x ∈ {2, 0, 12, -10}. None of them makes the denominator zero.\n\nAnswer: \\boxed{4}", boxed: "4" },
-};
+type Props = { item: Published; task: Task | undefined; state: State; dispatch: Dispatch<Action>; tab?: AppTab };
 
 function bodyOf(version: LibraryVersion): Record<string, string> {
   return Object.fromEntries(version.insights.map((insight) => [insight.key, insight.text]));
@@ -36,13 +30,41 @@ function exportApp(item: Published, version: LibraryVersion) {
 }
 
 /** 应用详情：试用、查看内容、接入方式。和原平台的"应用"页一样，选好应用、输入、运行、看结果。 */
-export default function AppPage({ item, task, state, tab }: Props) {
+export default function AppPage({ item, task, state, dispatch, tab }: Props) {
+  const [editing, setEditing] = useState<"rename" | "unpublish" | null>(null);
   const version = task ? libraries(task).find((library) => library.builtAfterRound === item.builtAfterRound) : undefined;
+
+  function unpublish() {
+    dispatch({ type: "unpublish", id: item.id });
+    showFlash({ page: "apps" }, `已撤下“${item.name}”。产出还在任务里，可以重新发布。`);
+    navigate({ page: "apps" });
+  }
+
+  const manage = (
+    <>
+      {version ? <button type="button" className="button button--secondary" onClick={() => exportApp(item, version)}><Icon name="download" />导出 JSON</button> : null}
+      <button type="button" className="button button--secondary" onClick={() => setEditing("rename")}>重命名</button>
+      <button type="button" className="button button--secondary button--danger" onClick={() => setEditing("unpublish")}>撤下应用</button>
+    </>
+  );
+  const editor = editing === "rename" ? (
+    <RenameForm name={item.name} onCancel={() => setEditing(null)} onSave={(name) => {
+      dispatch({ type: "renamePublished", id: item.id, name });
+      setEditing(null);
+      showFlash({ page: "app", id: item.id }, `已改名为“${name}”。`);
+    }} />
+  ) : editing === "unpublish" ? (
+    <Confirm title={`撤下“${item.name}”？`} confirmLabel="撤下" onConfirm={unpublish} onCancel={() => setEditing(null)}>
+      撤下后不能再试用和接入；产出还在任务里，可以重新发布。
+    </Confirm>
+  ) : null;
+
   if (!task || !version) {
     return (
       <>
-        <PageHead title={item.name} crumbs={[{ label: "应用", route: { page: "apps" } }]} />
-        <EmptyState title="来源任务已不存在"><p>演示数据重置后，之前发布的应用会失效。</p></EmptyState>
+        <PageHead title={item.name} crumbs={[{ label: "应用", route: { page: "apps" } }]} actions={editing ? null : manage} />
+        {editor}
+        <EmptyState title="来源任务已不存在"><p>演示数据重置后，之前发布的应用会失效，可以撤下。</p></EmptyState>
       </>
     );
   }
@@ -60,8 +82,9 @@ export default function AppPage({ item, task, state, tab }: Props) {
           <>来源任务 <a className="text-link" href={hrefOf({ page: "task", id: task.id, tab: "output" })}>{task.name}</a></>,
           `发布于 ${formatDate(item.publishedAt)}`,
         ]} />}
-        actions={<button type="button" className="button button--secondary" onClick={() => exportApp(item, version)}><Icon name="download" />导出 JSON</button>}
+        actions={editing ? null : manage}
       />
+      {editor}
       <TabLinks
         label="应用"
         tabs={[
@@ -73,7 +96,7 @@ export default function AppPage({ item, task, state, tab }: Props) {
         routeOf={(id) => ({ page: "app", id: item.id, tab: id })}
       />
       <div className="tab-panel">
-        {active === "try" ? <TryPanel version={version} state={state} /> : null}
+        {active === "try" ? <TryPanel task={task} version={version} state={state} /> : null}
         {active === "content" ? (
           <Panel title={algorithm.output.name} extra={`${version.insights.length} 条`}>
             <InsightGroups insights={version.insights} />
@@ -85,54 +108,96 @@ export default function AppPage({ item, task, state, tab }: Props) {
   );
 }
 
-function TryPanel({ version, state }: { version: LibraryVersion; state: State }) {
+/** 重命名：在页面标题下方展开一行，和发布时填名称的样式一样。 */
+function RenameForm({ name, onSave, onCancel }: { name: string; onSave: (name: string) => void; onCancel: () => void }) {
+  const [value, setValue] = useState(name);
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    input.current?.select();
+  }, []);
+  return (
+    <form
+      className="confirm publish-form"
+      aria-label="重命名应用"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (value.trim()) onSave(value.trim());
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") onCancel();
+      }}
+    >
+      <div className="confirm-copy">
+        <label className="field-label" htmlFor="app-name">应用名称</label>
+        <input ref={input} id="app-name" name="app-name" autoComplete="off" value={value} maxLength={60} onChange={(event) => setValue(event.target.value)} />
+      </div>
+      <div className="confirm-actions">
+        <button type="button" className="button button--secondary" onClick={onCancel}>取消</button>
+        <button type="submit" className="button button--primary" disabled={!value.trim()}>保存</button>
+      </div>
+    </form>
+  );
+}
+
+function TryPanel({ task, version, state }: { task: Task; version: LibraryVersion; state: State }) {
   const options = modelOptions(state.endpoints);
-  const [model, setModel] = useState(options[0]?.ref ?? "");
+  const [model, setModel] = useState(options[0]?.ref ?? DEFAULT_MODEL);
   const [question, setQuestion] = useState("");
   const [ran, setRan] = useState<string | null>(null);
-  const hasExample = version.insights.some((insight) => insight.key === EXAMPLE.insight);
-  const isExample = ran !== null && ran.trim() === EXAMPLE.question;
-  const fillExample = () => setQuestion(EXAMPLE.question);
+  const type = TASK_TYPES[algorithmOfTask(task).accepts[0]];
+  const hasExample = version.insights.some((insight) => insight.key === TRY_EXAMPLE.insight);
+  const isExample = ran !== null && ran.trim() === TRY_EXAMPLE.question;
+  const fillExample = () => setQuestion(TRY_EXAMPLE.question);
+  const endpoint = state.endpoints.find((item) => item.id === DEFAULT_ENDPOINT_ID);
 
   return (
     <div className="panel-stack">
-      <Panel
-        title="试用"
-        extra="同一个问题，分别不带和带上这个应用回答"
-        actions={hasExample ? <button type="button" className="button button--secondary button--compact" onClick={fillExample}>填入示例问题</button> : null}
-      >
+      <Panel>
         <div className="form-body">
           <FieldGroup>
             <Field label="问题" htmlFor="try-question" wide>
-              <textarea id="try-question" name="question" autoComplete="off" rows={4} value={question} placeholder="输入一道数学题…" onChange={(event) => setQuestion(event.target.value)} />
+              <textarea id="try-question" name="question" autoComplete="off" rows={4} value={question} placeholder={type.placeholder} onChange={(event) => setQuestion(event.target.value)} />
             </Field>
-            <Field label="模型" htmlFor="try-model">
-              <select id="try-model" name="model" value={model} onChange={(event) => setModel(event.target.value)}>
-                {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
-              </select>
-            </Field>
+            {options.length > 1 ? (
+              <Field label="模型" htmlFor="try-model">
+                <select id="try-model" name="model" value={model} onChange={(event) => setModel(event.target.value)}>
+                  {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
+                </select>
+              </Field>
+            ) : (
+              <Field label="模型">
+                <p className="field-static">
+                  <span>{modelLabel(DEFAULT_MODEL, state.endpoints)}</span>
+                  {endpoint && !isConfigured(endpoint) ? <a className="text-link" href={hrefOf({ page: "editEndpoint", id: endpoint.id })}>去配置</a> : null}
+                </p>
+              </Field>
+            )}
           </FieldGroup>
           <div className="form-actions">
-            <button type="button" className="button button--primary" disabled={!question.trim()} onClick={() => setRan(question)}>运行对比</button>
+            <span className="form-status" id="try-status" aria-live="polite">{question.trim() ? "" : "还需填写：问题"}</span>
+            <div className="form-buttons">
+              {hasExample ? <button type="button" className="button button--secondary" onClick={fillExample}>填入示例问题</button> : null}
+              <button type="button" className="button button--primary" disabled={!question.trim()} aria-describedby={question.trim() ? undefined : "try-status"} onClick={() => setRan(question)}>运行对比</button>
+            </div>
           </div>
         </div>
       </Panel>
 
       {ran !== null ? (
         isExample ? (
-          <Panel title={<>对比结果<Tag tone="warning">示意</Tag></>} id="try-result" actions={<span className="section-value">标准答案 {EXAMPLE.answer}</span>}>
+          <Panel title={<>对比结果<Tag tone="warning">示意</Tag></>} id="try-result" actions={<span className="section-value">标注：{TRY_EXAMPLE.answer}</span>}>
             <div className="compare-grid">
-              {([["不带应用", EXAMPLE.without], ["带应用", EXAMPLE.with]] as const).map(([title, answer]) => {
-                const correct = answer.boxed === EXAMPLE.answer;
+              {([["不带应用", TRY_EXAMPLE.without], ["带应用", TRY_EXAMPLE.with]] as const).map(([title, answer]) => {
+                const correct = answer.boxed === TRY_EXAMPLE.answer;
                 return (
                   <div key={title} className="compare-item">
                     <div className="compare-head">
                       <h3>{title}</h3>
                       <span className={correct ? "verdict verdict--right" : "verdict verdict--wrong"}>
-                        <Icon name={correct ? "check" : "x"} />{correct ? "正确" : `错误（答 ${answer.boxed}）`}
+                        <Icon name={correct ? "check" : "x"} />{correct ? "正确" : `错误（回答 ${answer.boxed}）`}
                       </span>
                     </div>
-                    <pre className="answer" lang="en">{answer.text}</pre>
+                    <p className="answer" lang="en">{answer.text}</p>
                   </div>
                 );
               })}
@@ -141,7 +206,7 @@ function TryPanel({ version, state }: { version: LibraryVersion; state: State })
         ) : (
           <EmptyState
             title="前端原型没有连接模型"
-            action={hasExample ? <button type="button" className="button button--secondary" onClick={() => { fillExample(); setRan(EXAMPLE.question); }}>看示例问题的对比</button> : null}
+            action={hasExample ? <button type="button" className="button button--secondary" onClick={() => { fillExample(); setRan(TRY_EXAMPLE.question); }}>看示例问题的对比</button> : null}
           >
             <p>接入后端后，这里会并排显示两种回答。</p>
           </EmptyState>
@@ -155,16 +220,16 @@ function IntegratePanel({ item, version }: { item: Published; version: LibraryVe
   const preview = JSON.stringify(Object.fromEntries(version.insights.slice(0, 2).map((insight) => [insight.key, insight.text])), null, 2);
   return (
     <div className="panel-stack">
-      <Panel title="导出" extra={<>JSON 格式，放进自己 Agent 的提示词；和 <code>library_r{version.builtAfterRound + 1}.json</code> 相同</>}>
+      <Panel title="导出" extra="JSON 格式，放进自己 Agent 的提示词">
         <CodeBlock wrap code={`${preview.slice(0, -2)},\n  …\n}`} copyText={`${JSON.stringify(bodyOf(version), null, 2)}\n`} copyLabel="复制完整 JSON" />
       </Panel>
-      <Panel title={<>API 与命令行<Tag>规划中</Tag></>}>
+      <Panel title={<>API 与命令行<Tag>规划中</Tag></>} extra="接入后端后提供">
         <div className="panel-stack panel-stack--tight">
-          <CodeBlock code={`curl -X POST https://<平台地址>/api/v1/apps/${item.id}/run \\
+          <CodeBlock copyable={false} code={`curl -X POST https://<平台地址>/api/v1/apps/${item.id}/run \\
   -H "Authorization: Bearer $FEDAGENT_TOKEN" \\
   -H "Content-Type: application/json" \\
   -d '{"input": "…", "model": "default", "compare": true}'`} />
-          <CodeBlock code={`fedagent run --app ${item.id} --file questions.jsonl --compare`} />
+          <CodeBlock copyable={false} code={`fedagent run --app ${item.id} --file questions.jsonl --compare`} />
         </div>
       </Panel>
     </div>

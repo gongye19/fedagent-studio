@@ -1,54 +1,92 @@
-import { ALGORITHMS, algorithmsFor, SCENARIOS, TASK_TYPES } from "../domain/catalog";
-import { PageHead, Tag } from "./common";
+import { Fragment } from "react";
+import { DEFAULT_DRAFT } from "../domain/config";
+import { ALGORITHMS, algorithmsFor, paramText, scenarioOf, SCENARIOS, TASK_TYPES, type Algorithm } from "../domain/catalog";
+import { navigate } from "../state/route";
+import { Facts, PageHead, Tag } from "./common";
 import { Panel } from "./console";
+import { Icon } from "./icons";
 
-/** 算法：平台按注册表接入算法，每个算法声明适用场景、任务类型、交换内容和产出。 */
-export default function AlgorithmsPage() {
+/**
+ * 算法：注册表里登记的算法。每行点开看这个算法每轮做什么、有哪些参数、出自哪里；
+ * 还没有算法的场景合成一行写"待接入"。
+ */
+export default function AlgorithmsPage({ selectedId }: { selectedId?: string }) {
   const planned = SCENARIOS.filter((scenario) => !algorithmsFor(scenario.id).length);
+  const toggle = (id: string) => navigate(selectedId === id ? { page: "algorithms" } : { page: "algorithms", id }, { keepScroll: true });
   return (
     <>
-      <PageHead title="算法" meta="算法以插件接入平台：声明适用的场景和任务类型、各方交换什么、产出什么。" />
+      <PageHead title="算法" />
       <Panel flush>
         <div className="table-shell">
-          <table className="table table--stack">
+          <table className="table table--rows">
             <thead>
               <tr>
                 <th scope="col">算法</th>
                 <th scope="col">场景</th>
-                <th scope="col">任务类型</th>
-                <th scope="col">通信内容</th>
+                <th scope="col" className="col-optional">任务类型</th>
+                <th scope="col" className="col-optional">通信内容</th>
                 <th scope="col">产出</th>
-                <th scope="col">状态</th>
               </tr>
             </thead>
             <tbody>
-              {ALGORITHMS.map((algorithm) => (
-                <tr key={algorithm.id}>
-                  <th scope="row">
-                    <span className="cell-title">{algorithm.name}<span className="cell-note" translate="no">{algorithm.fullName}</span></span>
-                    <small>{algorithm.summary} · <a className="text-link" href={algorithm.source.paperUrl} target="_blank" rel="noreferrer">论文</a></small>
-                  </th>
-                  <td data-label="场景">{SCENARIOS.find((scenario) => scenario.id === algorithm.scenario)?.short}</td>
-                  <td data-label="任务类型">{algorithm.accepts.map((type) => TASK_TYPES[type].label).join("、")}</td>
-                  <td data-label="通信内容">{algorithm.exchange}</td>
-                  <td data-label="产出">{algorithm.output.name}</td>
-                  <td data-label="状态"><span className="status-text">可用</span></td>
+              {ALGORITHMS.map((algorithm) => {
+                const open = selectedId === algorithm.id;
+                return (
+                  <Fragment key={algorithm.id}>
+                    <tr
+                      className={`row--toggle${open ? " row--open" : ""}`}
+                      onClick={(event) => {
+                        if ((event.target as HTMLElement).closest("button, a")) return;
+                        toggle(algorithm.id);
+                      }}
+                    >
+                      <th scope="row">
+                        <button type="button" className="row-button" aria-expanded={open} onClick={() => toggle(algorithm.id)}>
+                          <Icon name="chevron" />
+                          <span className="cell-title">{algorithm.name}<span className="cell-note" translate="no">{algorithm.fullName}</span></span>
+                        </button>
+                      </th>
+                      <td>{scenarioOf(algorithm.scenario).short}</td>
+                      <td className="col-optional">{algorithm.accepts.map((type) => TASK_TYPES[type].label).join("、")}</td>
+                      <td className="col-optional">{algorithm.exchange}</td>
+                      <td>{algorithm.output.name}</td>
+                    </tr>
+                    {open ? (
+                      <tr className="detail-row">
+                        <td colSpan={5}><AlgorithmDetail algorithm={algorithm} /></td>
+                      </tr>
+                    ) : null}
+                  </Fragment>
+                );
+              })}
+              {planned.length ? (
+                <tr className="row--muted">
+                  <td colSpan={5}>
+                    <span className="cell-title">{planned.map((scenario) => scenario.short).join("、")}：算法待接入<Tag>规划中</Tag></span>
+                  </td>
                 </tr>
-              ))}
-              {planned.map((scenario) => (
-                <tr key={scenario.id} className="row--muted">
-                  <th scope="row">待接入</th>
-                  <td data-label="场景">{scenario.short}</td>
-                  <td data-label="任务类型">—</td>
-                  <td data-label="通信内容">—</td>
-                  <td data-label="产出">—</td>
-                  <td data-label="状态"><Tag>规划中</Tag></td>
-                </tr>
-              ))}
+              ) : null}
             </tbody>
           </table>
         </div>
       </Panel>
     </>
+  );
+}
+
+function AlgorithmDetail({ algorithm }: { algorithm: Algorithm }) {
+  const side = (which: "participant" | "server") => algorithm.stages.filter((stage) => stage.side === which).map((stage) => stage.label).join(" → ");
+  return (
+    <div className="participant-detail">
+      <p className="detail-lede">{algorithm.summary}</p>
+      <Facts className="facts--columns" items={[
+        ["参与方每轮", side("participant")],
+        ["服务端每轮", side("server")],
+        ["参与方", `至少 ${algorithm.minParticipants} 个`],
+        ["轮次", `${algorithm.minRounds}–${algorithm.maxRounds} 轮，第 1 轮是本地基线`],
+        ...algorithm.params.map((def) => [def.label, `默认：${paramText(def, DEFAULT_DRAFT).replace(/（默认）$/, "")}`] as const),
+        ["来源", <a key="paper" className="text-link" href={algorithm.source.paperUrl} target="_blank" rel="noreferrer">论文 {algorithm.source.paper}</a>],
+      ]} />
+    </div>
   );
 }

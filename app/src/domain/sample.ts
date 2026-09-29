@@ -232,3 +232,15 @@ export function sampleTraceTexts(datasetId: string, round: number, limit: number
   const rotated = [...source.slice(offset), ...source.slice(0, offset)];
   return rotated.slice(0, limit).map((entry) => ({ key: entry.key, text: entry.trace }));
 }
+
+/**
+ * 应用试用页的示例题：只在应用里含有相关洞见时提供。两种回答都是说明用的示意文字，不是真实调用结果。
+ * 公式里不加空格，避免在"x -"这种地方断行。
+ */
+export const TRY_EXAMPLE = {
+  insight: "insight_integrality_by_division",
+  question: "How many integers x make (4x+7)/(x−1) an integer?",
+  answer: "4",
+  without: { text: "(4x+7)/(x−1) = 4 + 11/(x−1). For this to be an integer, x−1 must divide 11, so x−1 = 1 or 11, giving x = 2 or x = 12.\n\nAnswer: \\boxed{2}", boxed: "2" },
+  with: { text: "Split off the constant remainder: (4x+7)/(x−1) = 4 + 11/(x−1). The denominator must divide 11, including negative divisors: x−1 ∈ {1, −1, 11, −11}, so x ∈ {2, 0, 12, −10}. None of them makes the denominator zero.\n\nAnswer: \\boxed{4}", boxed: "4" },
+} as const;

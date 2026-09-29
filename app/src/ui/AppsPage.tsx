@@ -13,7 +13,7 @@ export default function AppsPage({ state }: { state: State }) {
       <>
         <PageHead title="应用" />
         <EmptyState title="还没有应用" action={<a className="button button--secondary" href={hrefOf({ page: "tasks" })}>查看联邦任务</a>}>
-          <p>任务完成后，在任务详情的“产出”里发布为应用。</p>
+          <p>在任务详情的“产出”里，把任意一版产出发布为应用。</p>
         </EmptyState>
       </>
     );

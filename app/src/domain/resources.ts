@@ -3,7 +3,7 @@
  *
  * 每份数据集只属于一个参与方，数据只在持有方使用。参与方有两种运行位置：
  * - 平台托管：数据上传到平台，由平台运行这个参与方的 Agent，适合公开数据、演示和算法验证；
- * - 参与方本地：数据和模型密钥留在参与方自己的环境，由参与方运行客户端，只上传 trace。
+ * - 参与方本地：数据和模型密钥留在参与方自己的环境，由参与方运行客户端，只上传 trace；平台只登记数据集的名称和说明，样本数由客户端连上后上报。
  * 内置的 8 个数学题库来自 FoT 复现包，每份由一个平台托管的示例参与方持有。
  */
 import type { TaskType } from "./catalog";
@@ -29,11 +29,12 @@ export type Dataset = {
   /** 题目来源，例如 LiveMathBench 202412；上传的题库可以没有。 */
   origin?: string;
   taskType: TaskType;
-  /** 题目数。 */
+  /** 样本数；本地数据集在客户端连上之前是 0（未上报）。 */
   count: number;
-  /** 带标准答案的题目数；没有答案的题只参与联邦，不计准确率。 */
+  /** 带标注的样本数；没有标注的样本只参与联邦，不计指标。 */
   answered: number;
-  source: "builtin" | "upload";
+  /** builtin：内置示例；upload：上传到平台；local：留在参与方本地，只登记名称和说明。 */
+  source: "builtin" | "upload" | "local";
   sample?: { question: string; answer?: string };
 };
 
@@ -116,10 +117,12 @@ export function isConfigured(endpoint: Endpoint): boolean {
   return endpoint.baseUrl.trim() !== "" && endpoint.models.length > 0;
 }
 
+/** 默认接口的显示名跟着接口名称走，改名后各处一起变。 */
 function defaultModelLabel(endpoints: readonly Endpoint[], withStatus = true): string {
   const endpoint = endpoints.find((item) => item.id === DEFAULT_ENDPOINT_ID);
-  if (endpoint && isConfigured(endpoint)) return `默认 LLM 接口 · ${endpoint.models[0]}`;
-  return withStatus ? "默认 LLM 接口（待配置）" : "默认 LLM 接口";
+  const name = endpoint?.name || "默认 LLM 接口";
+  if (endpoint && isConfigured(endpoint)) return `${name} · ${endpoint.models[0]}`;
+  return withStatus ? `${name}（待配置）` : name;
 }
 
 /** 模型引用写成"接口 id:模型名"（或 DEFAULT_MODEL），任务里只保存引用。 */
@@ -133,13 +136,13 @@ export function parseModelRef(ref: string): { endpointId: string; model: string 
   return { endpointId: ref.slice(0, index), model: ref.slice(index + 1) };
 }
 
+/** 可选的模型。默认接口的第一个模型就是"默认"那一项，不再重复列出。 */
 export function modelOptions(endpoints: readonly Endpoint[]): { ref: string; label: string }[] {
   return [
     { ref: DEFAULT_MODEL, label: defaultModelLabel(endpoints) },
-    ...endpoints.flatMap((endpoint) => endpoint.models.map((model) => ({
-      ref: modelRef(endpoint.id, model),
-      label: `${model} · ${endpoint.name}`,
-    }))),
+    ...endpoints.flatMap((endpoint) => endpoint.models
+      .filter((_, index) => !(endpoint.id === DEFAULT_ENDPOINT_ID && index === 0))
+      .map((model) => ({ ref: modelRef(endpoint.id, model), label: `${model} · ${endpoint.name}` }))),
   ];
 }
 

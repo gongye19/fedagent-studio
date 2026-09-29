@@ -11,7 +11,7 @@ import {
   withDefaults,
   type Draft,
 } from "./config";
-import { BUILTIN_DATASETS, BUILTIN_PARTICIPANTS, DEFAULT_ENDPOINTS, type Endpoint } from "./resources";
+import { BUILTIN_DATASETS, BUILTIN_PARTICIPANTS, DEFAULT_ENDPOINTS, modelLabel, modelOptions, type Endpoint } from "./resources";
 
 /** 另外登记的接口，用来测试"给某个参与方单独指定模型"。 */
 const LAB: Endpoint = { id: "lab", name: "实验室接口", baseUrl: "http://10.0.0.1/v1", models: ["m1"], concurrency: 4, price: null };
@@ -57,7 +57,9 @@ describe("draft", () => {
     const planned = withDefaults({ scenario: "vertical" });
     expect(draftIssues(planned, BUILTIN_DATASETS, BUILTIN_PARTICIPANTS, DEFAULT_ENDPOINTS)[0].message).toContain("规划中");
     const one = draft({ datasetIds: ["ds-amc"], serverModel: "missing:model" });
-    expect(draftIssues(one, BUILTIN_DATASETS, BUILTIN_PARTICIPANTS, DEFAULT_ENDPOINTS).map((issue) => issue.field)).toEqual(["datasets", "models"]);
+    const issues = draftIssues(one, BUILTIN_DATASETS, BUILTIN_PARTICIPANTS, DEFAULT_ENDPOINTS);
+    expect(issues.map((issue) => issue.field)).toEqual(["datasets", "models"]);
+    expect(issues[0].message).toBe("至少选 2 个参与方");
     expect(draftIssues(draft(), BUILTIN_DATASETS, BUILTIN_PARTICIPANTS, DEFAULT_ENDPOINTS)).toEqual([]);
     // 默认走预留的 LLM 接口，接口还没配置也能创建任务。
     expect(draft().clientModel).toBe("default");
@@ -93,3 +95,13 @@ describe("draft", () => {
     expect(defaultTaskName(withDefaults({}), at)).toBe("联邦任务 09-28 16:36");
   });
 });
+
+describe("models", () => {
+  it("labels the default endpoint by its current name and lists each model once", () => {
+    expect(modelLabel("default", DEFAULT_ENDPOINTS)).toBe("默认 LLM 接口（待配置）");
+    const renamed: Endpoint[] = [{ ...DEFAULT_ENDPOINTS[0], name: "实验室网关", baseUrl: "http://x/v1", models: ["m1", "m2"] }];
+    expect(modelLabel("default", renamed)).toBe("实验室网关 · m1");
+    expect(modelOptions(renamed).map((option) => option.ref)).toEqual(["default", "default:m2"]);
+  });
+});
+

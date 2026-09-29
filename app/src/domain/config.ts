@@ -33,13 +33,17 @@ export type TaskConfig = {
 
 /** 新建任务页的草稿：场景和算法可以还没选。 */
 export type Draft = Omit<TaskConfig, "scenario" | "algorithm"> & {
-  name: string;
+  /** null：还没改过名称，页面显示按打开时间生成的默认名称；空字符串：用户清空了，创建时仍用默认名称。 */
+  name: string | null;
   scenario: ScenarioId | null;
   algorithm: AlgorithmId | null;
+  /** 用户动过这份草稿（页面自动选的场景、算法不算）。只有动过的草稿，再打开时才提示"已恢复"。 */
+  touched: boolean;
 };
 
 export const DEFAULT_DRAFT: Draft = {
-  name: "",
+  name: null,
+  touched: false,
   scenario: null,
   algorithm: null,
   datasetIds: [],
@@ -56,18 +60,6 @@ export const DEFAULT_DRAFT: Draft = {
   seed: 0,
   workers: 8,
 };
-
-export const INSIGHT_TARGETS: readonly { id: InsightTarget; label: string; hint: string }[] = [
-  { id: "paper-auto", label: "论文默认", hint: "由服务端模型自行决定条数" },
-  { id: "author-formula", label: "上游代码公式", hint: "按 trace 数计算：int(log10(trace 数) × 10 + 1)" },
-  { id: "fixed-11", label: "固定 11 条", hint: "消融实验：论文中 DeepSeek 第 3 轮的条数" },
-  { id: "fixed-37", label: "固定 37 条", hint: "消融实验：论文中 Gemini 第 3 轮的条数" },
-];
-
-export const TRACE_DENSITIES: readonly { id: TraceDensity; label: string; hint: string }[] = [
-  { id: "native", label: "原生", hint: "提取全部可复用的 trace，和上游代码一致" },
-  { id: "paper-gemini", label: "按论文密度校准", hint: "每题最多保留 1 条最有价值的 trace，接近论文 Gemini 的通信量" },
-];
 
 export function withDefaults(draft: Partial<Draft>): Draft {
   return { ...DEFAULT_DRAFT, ...draft, clientOverrides: { ...(draft.clientOverrides ?? {}) } };
@@ -165,7 +157,7 @@ export function draftIssues(
     algorithm.accepts.includes(dataset.taskType) && usable(dataset, participants)
   ));
   if (chosen.length < algorithm.minParticipants) {
-    issues.push({ field: "datasets", message: `至少选 ${algorithm.minParticipants} 份数据（每份代表一个参与方）` });
+    issues.push({ field: "datasets", message: `至少选 ${algorithm.minParticipants} 个参与方` });
   }
   const refs = [draft.clientModel, draft.serverModel, ...Object.values(activeOverrides(draft))];
   if (refs.some((ref) => !endpointOf(ref, endpoints))) {
@@ -208,8 +200,9 @@ export function clientModelOf(config: Pick<TaskConfig, "clientModel" | "clientOv
   return config.clientOverrides[datasetId] ?? config.clientModel;
 }
 
-export function toDraft(config: TaskConfig, name = ""): Draft {
-  return { ...config, name, datasetIds: [...config.datasetIds], clientOverrides: { ...config.clientOverrides } };
+/** "复制为新任务"：带上原任务的配置，算作用户动过的草稿。 */
+export function toDraft(config: TaskConfig, name: string | null = null): Draft {
+  return { ...config, name, touched: true, datasetIds: [...config.datasetIds], clientOverrides: { ...config.clientOverrides } };
 }
 
 /**

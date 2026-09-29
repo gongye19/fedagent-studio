@@ -8,4 +8,6 @@ app/coverage/
 app/*.log
 app/*.local
 
-.impeccable/
+# 设计检测的审查快照和缓存留在本地；检测器的例外配置要提交，门禁在别处也按同样的规则跑
+.impeccable/*
+!.impeccable/config.json

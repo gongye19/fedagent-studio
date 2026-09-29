@@ -1,0 +1,59 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "geist sans",
+        "createdAt": "2026-09-29T08:03:04.101Z",
+        "reason": "Agent: refinement keeps the incumbent Geist family (impeccable EXISTING_VISUAL_SYSTEM; DECISIONS D33)"
+      },
+      {
+        "rule": "first-viewport-column-overflow",
+        "value": "*",
+        "files": [
+          "**/tasks/new"
+        ],
+        "createdAt": "2026-09-29T08:03:25.057Z",
+        "reason": "Agent: the right column is a sticky configuration summary (position: sticky), visible at every scroll position; verified in T41 screenshots"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "**/tasks"
+        ],
+        "createdAt": "2026-09-29T08:15:17.410Z",
+        "reason": "Agent: tables sit flush inside list panels by design (.panel-body--flush); every cell keeps 10–16px padding, verified by the T41 detector sub-agent"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "**/apps"
+        ],
+        "createdAt": "2026-09-29T08:15:17.449Z",
+        "reason": "Agent: tables sit flush inside list panels by design (.panel-body--flush); every cell keeps 10–16px padding, verified by the T41 detector sub-agent"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "**/models"
+        ],
+        "createdAt": "2026-09-29T08:15:17.486Z",
+        "reason": "Agent: tables sit flush inside list panels by design (.panel-body--flush); every cell keeps 10–16px padding, verified by the T41 detector sub-agent"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "**/tasks/*/progress"
+        ],
+        "createdAt": "2026-09-29T08:15:17.534Z",
+        "reason": "Agent: tables sit flush inside list panels by design (.panel-body--flush); every cell keeps 10–16px padding, verified by the T41 detector sub-agent"
+      }
+    ]
+  }
+}

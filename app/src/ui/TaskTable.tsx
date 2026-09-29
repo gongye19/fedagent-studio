@@ -1,8 +1,8 @@
 import { averageAccuracy, latestScoredRound, progressOf, TASK_STATUS, type Task } from "../domain/task";
 import { hrefOf } from "../state/route";
-import { ProgressBar, Tag } from "./common";
+import { Meta, ProgressBar, Tag } from "./common";
 import { formatDate, formatDelta, formatPercent } from "./format";
-import { deltaClass, metricOf, stageText, statusTone, taskSummary } from "./labels";
+import { deltaClass, metricOf, stageText, statusTone, taskSummaryParts } from "./labels";
 
 /** 运行中、暂停、取消用标签提醒；已完成是常态，用普通文字。 */
 export function TaskStatus({ task }: { task: Task }) {
@@ -45,7 +45,7 @@ export function TaskTable({ tasks }: { tasks: readonly Task[] }) {
               <tr key={task.id}>
                 <th scope="row">
                   <a className="table-link" href={hrefOf({ page: "task", id: task.id })}>{task.name}</a>
-                  <small>{taskSummary(task)}</small>
+                  <small><Meta parts={taskSummaryParts(task)} /></small>
                 </th>
                 <td className="progress-cell" data-label="状态">
                   <div className="progress-line">
