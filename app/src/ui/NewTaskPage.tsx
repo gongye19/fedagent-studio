@@ -62,9 +62,12 @@ type Pending = "full" | "leave" | "restart" | null;
 /**
  * 新建联邦任务：按云平台"创建实例"的方式，分区块配置，右侧是配置摘要和预估。
  * 场景、任务类型、算法、参数都来自注册表，页面不针对某个算法写死；每一步都由用户自己选，不替用户默认。
+ * 从首页点某个场景进来时，场景已经选好：页面只列这个场景的选项，不再显示场景这一项，标题旁写明场景。
  */
 export default function NewTaskPage({ state, dispatch, scenario }: Props) {
   const draft = state.draft;
+  const fixedScenario = scenario && scenarioOf(scenario).status === "available" ? scenario : undefined;
+  const back: Route = fixedScenario ? { page: "home" } : { page: "tasks" };
   const applied = useRef<ScenarioId | undefined>(undefined);
   // 没动过的草稿不保留：每次打开都按当前的参与方和数据重新选，默认名称也按这次打开的时间生成。
   const resetOnOpen = useRef(!draft.touched);
@@ -129,7 +132,7 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
 
   function leave() {
     dispatch({ type: "resetDraft" });
-    navigate({ page: "tasks" });
+    navigate(back);
   }
 
   /** 正式运行调用量大，先确认一次；试跑直接开始。 */
@@ -142,7 +145,7 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
   /** 动过的草稿要确认才放弃；没动过的直接离开。 */
   function cancel() {
     if (draft.touched) setPending("leave");
-    else navigate({ page: "tasks" });
+    else navigate(back);
   }
 
   const startLabel = full ? "创建并正式运行" : "创建并试跑";
@@ -178,7 +181,11 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
 
   return (
     <>
-      <PageHead title="新建联邦任务" crumbs={[{ label: "联邦任务", route: { page: "tasks" } }]} />
+      <PageHead
+        title="新建联邦任务"
+        crumbs={[{ label: fixedScenario ? "首页" : "联邦任务", route: back }]}
+        status={fixedScenario ? <Tag>{scenarioOf(fixedScenario).name}</Tag> : undefined}
+      />
       {pending === "restart" ? (
         <Confirm title="清空这次的配置？" confirmLabel="清空" onConfirm={restart} onCancel={() => setPending(null)}>
           已选的参与方和设置都会恢复默认。
@@ -201,17 +208,19 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
             </div>
           </Panel>
 
-          <Panel title="场景、任务类型与算法" id="scenario">
+          <Panel title={fixedScenario ? "任务类型与算法" : "场景、任务类型与算法"} id="scenario">
             <div className="form-body">
               <FieldGroup>
-                <Field label="场景" labelId="scenario-label" wide>
-                  <Choices
-                    labelledBy="scenario-label"
-                    value={draft.scenario}
-                    options={SCENARIOS.map((item) => ({ value: item.id, label: item.short, disabled: item.status !== "available", badge: item.status === "available" ? undefined : "规划中" }))}
-                    onChange={(value) => dispatch({ type: "chooseScenario", scenario: value })}
-                  />
-                </Field>
+                {fixedScenario ? null : (
+                  <Field label="场景" labelId="scenario-label" wide>
+                    <Choices
+                      labelledBy="scenario-label"
+                      value={draft.scenario}
+                      options={SCENARIOS.map((item) => ({ value: item.id, label: item.short, disabled: item.status !== "available", badge: item.status === "available" ? undefined : "规划中" }))}
+                      onChange={(value) => dispatch({ type: "chooseScenario", scenario: value })}
+                    />
+                  </Field>
+                )}
                 {draft.scenario ? <TaskTypeChoice scenario={draft.scenario} value={draft.taskType} onChange={(taskType) => dispatch({ type: "chooseTaskType", taskType })} /> : null}
                 {draft.scenario && draft.taskType ? (
                   <AlgorithmField scenario={draft.scenario} taskType={draft.taskType} value={draft.algorithm} onChange={(id) => dispatch({ type: "chooseAlgorithm", algorithm: id })} />

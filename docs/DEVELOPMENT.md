@@ -44,7 +44,7 @@ app/src/
 │   ├── persistence.ts  浏览器本地保存与恢复
 │   └── route.ts        hash 路由
 ├── ui/
-│   ├── HomePage.tsx         首页：三种场景、几个概念、一个联邦任务怎么进行
+│   ├── HomePage.tsx         首页：横向、纵向、迁移三个大选项（可用的点进去新建这个场景的任务）
 │   ├── TasksPage.tsx        联邦任务列表（名称搜索、状态筛选）
 │   ├── NewTaskPage.tsx      新建联邦任务（控制台风格的配置面板 + 右侧配置摘要 + 窄屏吸底操作栏）
 │   ├── TaskPage.tsx         任务详情（task/ 下是概览、进度、产出、配置四个标签）
@@ -63,7 +63,7 @@ app/src/
 │   ├── console.tsx          控制台风格的表单组件：Panel（配置面板）、Field / FieldGroup（字段名在上的表单字段和两栏网格）、UnitInput（带单位的输入框）、Choices（选项按钮组）
 │   ├── common.tsx           共用组件：Tag（唯一的标签）、PageHead（同时设置浏览器标题）、Confirm（页面内的确认条）、Notice、FormActions、Meta（分隔点不落在行首行尾）、CodeBlock、Collapsible、PanelEmpty、Stat、Facts 等
 │   ├── TaskTable.tsx / labels.ts / format.ts / icons.tsx
-├── App.tsx             外框与侧栏导航
+├── App.tsx             外框与侧栏导航（四个一级导航；基础管理是可以展开的一组）
 ├── main.tsx
 └── styles.css
 ```

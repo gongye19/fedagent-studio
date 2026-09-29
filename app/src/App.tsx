@@ -8,6 +8,7 @@ import AlgorithmsPage from "./ui/AlgorithmsPage";
 import AppPage from "./ui/AppPage";
 import AppsPage from "./ui/AppsPage";
 import { Confirm, NotFound, Notice, Tag } from "./ui/common";
+import { Icon } from "./ui/icons";
 import DatasetsPage from "./ui/DatasetsPage";
 import EndpointPage from "./ui/EndpointPage";
 import HomePage from "./ui/HomePage";
@@ -47,25 +48,23 @@ function navKeyOf(route: Route): NavKey {
   }
 }
 
-/** 与原平台一致：首页、任务、应用放在上面，参与方、数据集、算法、模型接口收在"基础管理"下。 */
-const NAV: readonly { group: string | null; items: readonly { key: NavKey; label: string; route: Route }[] }[] = [
-  {
-    group: null,
-    items: [
-      { key: "home", label: "首页", route: { page: "home" } },
-      { key: "tasks", label: "联邦任务", route: { page: "tasks" } },
-      { key: "apps", label: "应用", route: { page: "apps" } },
-    ],
-  },
-  {
-    group: "基础管理",
-    items: [
-      { key: "participants", label: "参与方", route: { page: "participants" } },
-      { key: "datasets", label: "数据集", route: { page: "datasets" } },
-      { key: "algorithms", label: "算法", route: { page: "algorithms" } },
-      { key: "models", label: "模型接口", route: { page: "models" } },
-    ],
-  },
+type NavItem = { key: NavKey; label: string; route: Route };
+
+/**
+ * 一级导航：首页、联邦任务、应用、基础管理，四项同一级、同一个样式。
+ * 基础管理是可以展开的一组，点开后才出现参与方、数据集、算法、模型接口。
+ */
+const NAV: readonly NavItem[] = [
+  { key: "home", label: "首页", route: { page: "home" } },
+  { key: "tasks", label: "联邦任务", route: { page: "tasks" } },
+  { key: "apps", label: "应用", route: { page: "apps" } },
+];
+
+const MANAGE: readonly NavItem[] = [
+  { key: "participants", label: "参与方", route: { page: "participants" } },
+  { key: "datasets", label: "数据集", route: { page: "datasets" } },
+  { key: "algorithms", label: "算法", route: { page: "algorithms" } },
+  { key: "models", label: "模型接口", route: { page: "models" } },
 ];
 
 export default function App() {
@@ -177,6 +176,28 @@ function Sidebar({ route, state, onReset }: { route: Route; state: State; onRese
   const running = state.tasks.filter((task) => task.status === "running").length;
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
+  // 基础管理：在它下面的页面时默认展开，否则收起；用户点过就按用户的来，换到另一组页面时再回到默认。
+  const inManage = MANAGE.some((item) => item.key === active);
+  const [toggled, setToggled] = useState<boolean | null>(null);
+  const [wasInManage, setWasInManage] = useState(inManage);
+  if (wasInManage !== inManage) {
+    setWasInManage(inManage);
+    setToggled(null);
+  }
+  const manageOpen = toggled ?? inManage;
+
+  const link = (item: NavItem, sub = false) => (
+    <a
+      key={item.key}
+      className={`nav-link${sub ? " nav-link--sub" : ""}${item.key === active ? " nav-link--active" : ""}`}
+      href={hrefOf(item.route)}
+      aria-current={item.key === active ? "page" : undefined}
+      onClick={close}
+    >
+      <span>{item.label}</span>
+      {item.key === "tasks" && running ? <span className="nav-count" aria-label={`${running} 个运行中`}>{running}</span> : null}
+    </a>
+  );
 
   useEffect(() => {
     // 手机上展开的菜单不跟着页面钉住：一滚动或按 Esc 就收起。
@@ -207,23 +228,20 @@ function Sidebar({ route, state, onReset }: { route: Route; state: State; onRese
         </button>
       </div>
       <nav className="side-nav" id="main-nav" aria-label="主导航">
-        {NAV.map((group) => (
-          <div key={group.group ?? "main"} className="nav-group">
-            {group.group ? <p>{group.group}</p> : null}
-            {group.items.map((item) => (
-              <a
-                key={item.key}
-                className={`nav-link${item.key === active ? " nav-link--active" : ""}`}
-                href={hrefOf(item.route)}
-                aria-current={item.key === active ? "page" : undefined}
-                onClick={close}
-              >
-                <span>{item.label}</span>
-                {item.key === "tasks" && running ? <span className="nav-count" aria-label={`${running} 个运行中`}>{running}</span> : null}
-              </a>
-            ))}
-          </div>
-        ))}
+        {NAV.map((item) => link(item))}
+        <button
+          type="button"
+          className={`nav-link nav-parent${inManage ? " nav-parent--current" : ""}`}
+          aria-expanded={manageOpen}
+          aria-controls="nav-manage"
+          onClick={() => setToggled(!manageOpen)}
+        >
+          <span>基础管理</span>
+          <Icon name="chevron" />
+        </button>
+        <div className="nav-sub" id="nav-manage" hidden={!manageOpen}>
+          {MANAGE.map((item) => link(item, true))}
+        </div>
       </nav>
       <div className="sidebar-foot">
         <ResetDemo onReset={onReset} />
