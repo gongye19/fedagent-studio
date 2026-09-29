@@ -55,7 +55,7 @@ app/src/
 │   ├── ModelsPage.tsx       模型接口
 │   ├── Chart.tsx            ECharts 封装（按需加载，概览页的哑铃图）
 │   ├── InsightGroups.tsx    按类别列出产出内容（任务产出和应用内容共用）
-│   ├── console.tsx          控制台风格的表单组件：Panel（配置面板）、FormRow（左标签表单行）、Choices（选项按钮组）
+│   ├── console.tsx          控制台风格的表单组件：Panel（配置面板）、Field / FieldGroup（字段名在上的表单字段和两栏网格）、UnitInput（带单位的输入框）、Choices（选项按钮组）
 │   ├── common.tsx           共用组件：Tag（唯一的标签）、Collapsible（折叠）、CodeBlock（带复制）、Notice、FormActions、Meta、PageHead、Stat、Facts 等
 │   ├── TaskTable.tsx / labels.ts / format.ts / icons.tsx
 ├── App.tsx             外框与侧栏导航
@@ -91,8 +91,10 @@ app/src/
 - `state/*.test.ts`：reducer、初始数据和路由。
 - 示例数据要自洽：例如关系分析各类的 trace 数之和等于上传总数，后一版洞见库包含前一版。
 - 页面结构变化时，至少做一次桌面和手机端的浏览器验证。
-- 界面规范写在 `styles.css` 开头，新增界面前先看一遍（T39 起按云控制台风格：面板 + 左标签表单行 + 选项按钮 + 带单选 / 复选的表格）：
-  - 配置区块一律用 `Panel`，表单行一律用 `FormRow`（左边字段名、右边控件、下方一句说明）；
+- 界面规范写在 `styles.css` 开头，新增界面前先看一遍（T40 起表单按 AWS 控制台的写法：面板 + 字段名在上的两栏表单 + 选项按钮 + 带单选 / 复选的表格）：
+  - 配置区块一律用 `Panel`；表单字段一律用 `Field`，放进 `FieldGroup` 的两栏网格，选项按钮组、表格、长文本用 `wide` 占满一行；
+  - 字段名一行写完；可以不填的字段传 `optional`；控件下方不放说明，只有填错时传 `error`；单位用 `UnitInput`；
+  - 只有一个取值的字段直接显示文字，不做成控件；
   - 互斥的少量选项用 `Choices`，选项多或次要设置用下拉，选对象（算法、参与方）用带单选 / 复选的表格；
   - 标签一律用 `Tag`，折叠一律用 `Collapsible`，代码块一律用 `CodeBlock`；
   - 表单底部一律用 `FormActions`：保存按钮不可用时写明还缺什么，保存后用 `Notice` 提示；

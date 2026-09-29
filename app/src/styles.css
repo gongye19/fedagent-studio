@@ -16,13 +16,15 @@
 
 /*
  * 设计规范（T39：通用平台 + 云控制台风格）
- * - 版式参考阿里云、AWS 控制台：灰色画布上放白色配置面板（.panel），面板里是"左边字段名、右边控件"的表单行（.form-row）。
+ * - 版式参考 AWS 控制台：灰色画布上放白色面板（.panel）。表单字段（.field）字段名在上、控件在下，
+ *   放在两栏网格（.field-grid）里，控件撑满所在的栏，左右边缘对齐；面板不到 440px 宽时变成一栏。
  * - 选择控件：
  *   互斥的少量选项 → 选项按钮组（.choices），选中蓝框加右下角标，不可选的置灰并写原因；
  *   选项多或是次要设置 → 下拉框；
  *   选一个或多个对象（算法、参与方）→ 带单选或复选的表格，整行可点；
- *   数值 → 数字输入框，单位写在右边。
- * - 说明只写一句，放在控件下方；细节不在页面上铺开，需要时放进折叠的"高级配置"。
+ *   数值 → 数字输入框，单位贴在输入框右侧（.unit-input）。
+ * - 字段名一行写完，不换行；可以不填的字段在字段名后写"（可选）"。
+ * - 控件下方不放说明小字，只在填错时显示一行错误。字段名本身要说清楚；说不清的操作放进面板标题栏，细节放进折叠的"高级配置"。
  * - 字号 6 档：12 / 13 / 14 / 16 / 20 / 24；字重 3 档：400 / 500 / 600。页面标题 20，面板标题 16，正文 13–14，字段名和注释 12–13。
  * - 标签只有一种胶囊（.tag）：黄色 = 需要处理或示例数据，蓝色 = 进行中或新增，灰色 = 普通属性。
  * - 颜色：黑色只给主按钮；蓝色表示选中与进行中；绿色只表示变好；黄色只表示"示例数据"或需要处理。
@@ -107,6 +109,10 @@ body {
   font-family: var(--sans);
   font-size: var(--text-md);
   line-height: 1.55;
+  /* 中文只在标点和空格处换行，不把词拆开；一段太长放不下时才在中间断开。段落最后一行不留孤字。 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  text-wrap: pretty;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: rgb(37 99 235 / 12%);
 }
@@ -291,15 +297,8 @@ input::placeholder, textarea::placeholder { color: var(--muted); }
 input[aria-invalid="true"] { border-color: var(--danger); }
 input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin: 0; flex: none; accent-color: var(--accent); }
 
-.field { display: grid; gap: 6px; align-content: start; min-width: 0; }
-.field > span, .field > legend { color: var(--secondary); font-size: var(--text-xs); font-weight: var(--weight-medium); }
-.field > legend { margin-bottom: 6px; }
-.field-error, .field > .field-error { color: var(--danger-text); font-size: var(--text-xs); }
 .form-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--space-2); }
 .form-status { margin-right: auto; max-width: var(--measure); color: var(--muted); font-size: var(--text-xs); }
-.field-static { color: var(--muted); font-size: var(--text-sm); }
-
-/* 全站唯一的容器：配置清单、表单、模型接口、试用都用它 */
 
 
 /* ——— 进度条与指标 ——— */
@@ -386,34 +385,52 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 .panel-toolbar input[type="search"] { width: min(280px, 100%); }
 .panel-toolbar select { width: auto; min-width: 140px; }
 .panel-toolbar .panel-extra { margin-left: auto; }
-.panel-note { padding: var(--space-3) var(--space-5); color: var(--muted); font-size: var(--text-xs); border-top: 1px solid var(--border); }
 .panel-empty { padding: var(--space-8) var(--space-5); color: var(--muted); font-size: var(--text-sm); text-align: center; }
 .panel-stack { display: grid; gap: var(--space-4); min-width: 0; }
 .panel-stack--tight { gap: var(--space-3); }
 
-/* 表单行：左边字段名、右边控件 */
-.form-row { padding: var(--space-3) 0; display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: var(--space-4); align-items: start; }
-.form-row + .form-row { border-top: 0; }
-.form-label { padding-top: 8px; color: var(--secondary); font-size: var(--text-sm); line-height: 20px; }
-.form-control { min-width: 0; display: grid; gap: 6px; justify-items: start; }
-/* 控件默认宽度：优先级高于全局的 input 规则，又低于 .control-wide / .control-full */
-.form-control > :is(input, select, textarea) { width: min(100%, 200px); }
-.form-control > .control-wide, .form-control .control-wide { width: min(100%, 400px); }
-.form-control > .control-full, .form-control .control-full { width: 100%; justify-self: stretch; }
-.form-hint { color: var(--muted); font-size: var(--text-xs); line-height: 1.5; }
-.form-empty { padding-top: 8px; color: var(--muted); font-size: var(--text-sm); }
-.form-group-title { margin-top: var(--space-3); padding-top: var(--space-3); color: var(--foreground); font-size: var(--text-sm); font-weight: var(--weight-semibold); border-top: 1px solid var(--border); }
-.form-group-title:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
-.input-unit { display: inline-flex; gap: var(--space-2); align-items: center; color: var(--secondary); font-size: var(--text-sm); }
-.input-unit input { width: 120px; }
+/* 表单：参考 AWS 控制台，字段名在上、控件在下；字段放进两栏网格，控件撑满所在的栏 */
+.form-body { padding-block: var(--space-3) var(--space-1); display: grid; gap: var(--space-5); container-type: inline-size; }
+/* 表单内容最宽 760px：字段、分隔线、提示和底部按钮共用同一条右边缘 */
+.form-body > * { max-width: 760px; }
+.field-group { display: grid; gap: var(--space-4); }
+.field-group + .field-group { padding-top: var(--space-5); border-top: 1px solid var(--border); }
+.field-group-title { font-size: var(--text-md); line-height: 1.4; }
+.field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5) var(--space-6); align-items: start; }
+.field { min-width: 0; display: grid; gap: 6px; align-content: start; }
+.field--wide { grid-column: 1 / -1; }
+/* 字段名一行写完，不因为栏宽换行 */
+.field-label { width: fit-content; color: var(--foreground); font-size: var(--text-sm); font-weight: var(--weight-medium); line-height: 20px; white-space: nowrap; }
+.field-optional { color: var(--muted); font-weight: var(--weight-regular); }
+.field > .button { justify-self: start; }
+/* 没有控件时的一句话：和控件一样高，跟旁边一栏的控件对齐 */
+.field-static { min-height: 36px; display: flex; align-items: center; color: var(--secondary); font-size: var(--text-sm); }
+.field-error { display: flex; gap: 4px; align-items: center; color: var(--danger-text); font-size: var(--text-xs); }
+.form-alert { padding: 10px var(--space-3); color: var(--foreground); background: var(--accent-soft); border: 1px solid var(--accent-border); border-radius: var(--radius-sm); font-size: var(--text-sm); }
+/* 带单位的输入框：单位贴在右侧，整体和其他控件一样宽 */
+.unit-input { min-width: 0; display: flex; }
+.unit-input input { flex: 1 1 auto; min-width: 0; border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.unit-input input:focus-visible { position: relative; z-index: 1; }
+.unit-input-suffix { flex: none; padding: 0 10px; display: inline-flex; align-items: center; color: var(--secondary); background: var(--surface); border: 1px solid var(--border-strong); border-left: 0; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-size: var(--text-sm); white-space: nowrap; }
+/* 单独指定模型：每条例外占一行，左栏参与方、右栏模型，和上方两栏对齐 */
 .override-editor { display: grid; gap: var(--space-2); justify-items: start; }
+.override-list { justify-self: stretch; display: grid; gap: var(--space-2); }
+.override-list li { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2) var(--space-6); align-items: center; }
+.override-model { min-width: 0; display: flex; gap: var(--space-2); align-items: center; }
+.override-model select { flex: 1 1 auto; min-width: 0; }
+@container (max-width: 440px) {
+  .field-grid, .override-list li { grid-template-columns: minmax(0, 1fr); }
+  /* 变成一栏后每条例外占两行，条与条之间拉开，看得出哪个模型属于哪个参与方 */
+  .override-list { gap: var(--space-4); }
+  .override-list li { row-gap: 6px; }
+}
 .table--select .nowrap-cell { white-space: nowrap; }
 
 /* 选项按钮组：选中蓝框，右下角一个小三角加勾 */
 .choices { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .choice {
   position: relative;
-  min-width: 96px;
+  min-width: 88px;
   min-height: 36px;
   padding: 0 var(--space-4);
   display: inline-flex;
@@ -438,7 +455,6 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 /* 带单选或复选的表格 */
 .select-row--checked > * { background: var(--accent-surface); }
 .select-row--checked:hover > * { background: var(--accent-soft); }
-.form-control > .table-shell { width: 100%; justify-self: stretch; }
 
 /* 可折叠的面板（高级配置） */
 .panel--collapsible > summary { min-height: 52px; padding: var(--space-3) var(--space-5); align-items: center; }
@@ -446,7 +462,7 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 .panel--collapsible .module-title { display: flex; flex-wrap: wrap; gap: 2px var(--space-3); align-items: baseline; }
 .panel--collapsible .module-title strong { font-size: var(--text-lg); }
 .panel--collapsible .module-title small { font-size: var(--text-sm); }
-.panel--collapsible > .module-body { padding: var(--space-3) var(--space-5) var(--space-4); }
+.panel--collapsible > .module-body { padding: var(--space-2) var(--space-5) var(--space-4); }
 
 /* 首页 */
 .scenario-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
@@ -468,25 +484,20 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 .facts--columns { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-8); row-gap: var(--space-2); }
 
 
-/* 折叠：模块（带边框）和正文开关，统一左侧箭头 */
+/* 折叠：带边框的模块，左侧箭头 */
 .module { background: var(--background); border: 1px solid var(--border); border-radius: var(--radius); }
-.module > summary, .disclosure > summary { display: flex; gap: var(--space-2); align-items: flex-start; cursor: pointer; list-style: none; }
-.module > summary::-webkit-details-marker, .disclosure > summary::-webkit-details-marker { display: none; }
+.module > summary { display: flex; gap: var(--space-2); align-items: flex-start; cursor: pointer; list-style: none; }
+.module > summary::-webkit-details-marker { display: none; }
 .module > summary { padding: var(--space-3) var(--space-4); border-radius: var(--radius); }
 .module > summary:hover { background: var(--surface); }
 .module[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
-.module > summary .icon, .disclosure > summary .icon { margin-top: 3px; color: var(--muted); transition: transform .15s ease; }
-.module[open] > summary .icon, .disclosure[open] > summary .icon { transform: rotate(90deg); }
+.module > summary .icon { margin-top: 3px; color: var(--muted); transition: transform .15s ease; }
+.module[open] > summary .icon { transform: rotate(90deg); }
 .module-title { display: grid; gap: 2px; min-width: 0; }
 .module-title strong { font-size: var(--text-md); }
 .module-title strong .tag { margin-left: var(--space-2); vertical-align: 1px; }
 .module-title small { color: var(--muted); }
 .module-body { padding: var(--space-4); border-top: 1px solid var(--border); }
-.disclosure > summary { width: fit-content; min-height: 28px; align-items: center; color: var(--muted); font-size: var(--text-xs); }
-.disclosure > summary:hover { color: var(--foreground); }
-.disclosure > summary .icon { margin-top: 0; }
-.disclosure .module-title strong { font-size: var(--text-xs); font-weight: var(--weight-medium); }
-.disclosure .module-body { max-width: var(--measure); padding: 2px 0 0 22px; color: var(--muted); border-top: 0; font-size: var(--text-xs); }
 
 /* 多选表格：带复选框，按类别分组；点行里任意位置都能勾选 */
 .select-cell { width: 44px; }
@@ -501,8 +512,6 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 .cell-title { display: inline-flex; flex-wrap: wrap; gap: 2px var(--space-2); align-items: center; }
 .cell-note { color: var(--muted); font-weight: var(--weight-regular); }
 
-.override-list { display: grid; gap: var(--space-2); }
-.override-list li { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2) var(--space-5); align-items: center; }
 
 
 .order-summary { position: sticky; top: var(--space-4); }
@@ -511,7 +520,6 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 .summary-list div { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: var(--space-3); align-items: baseline; font-size: var(--text-sm); }
 .summary-list dt { color: var(--muted); font-size: var(--text-xs); }
 .summary-list dd { min-width: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
-.summary-list dd small { display: block; color: var(--muted); }
 .summary-estimate { padding-top: var(--space-4); display: grid; gap: var(--space-2); border-top: 1px solid var(--border); }
 .summary-issues { color: var(--muted); font-size: var(--text-xs); }
 .summary-confirm { padding: var(--space-3); display: grid; gap: var(--space-2); background: var(--warning-soft); border-radius: var(--radius-sm); font-size: var(--text-sm); }
@@ -616,9 +624,8 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 .sample-answer { color: var(--secondary); }
 .detail-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
 .connect-steps { display: grid; gap: var(--space-2); }
-.connect-title { font-size: var(--text-sm); }
+.detail-title { font-size: var(--text-sm); }
 .connect-foot { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; color: var(--secondary); font-size: var(--text-sm); }
-.dataset-form, .dataset-picker { display: grid; gap: var(--space-3); }
 .upload-zone { position: relative; padding: var(--space-5); display: grid; gap: 6px; justify-items: center; text-align: center; background: var(--surface); border: 1px dashed var(--border-strong); border-radius: var(--radius); cursor: pointer; transition: border-color .15s ease, background-color .15s ease; }
 .upload-zone:hover { border-color: var(--border-hover); background: var(--surface-hover); }
 .upload-zone:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -635,17 +642,14 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 
 /* ——— 模型接口 ——— */
 
-/* ——— 平板：配置清单移到下方 ——— */
-/* ——— 配置清单移到下方后，开始按钮放进吸底操作栏 ——— */
-@media (max-width: 1100px) {
+/* ——— 1180px 以下：新建任务的配置摘要移到下方，开始按钮放进吸底操作栏 ———
+ * 侧栏和摘要同时占位时，主栏窄于 600px，参与方表格会把中文挤成两行 */
+@media (max-width: 1180px) {
   .order-layout { grid-template-columns: minmax(0, 1fr); gap: var(--space-8); }
   .order-summary { position: static; }
-  .uploads { grid-template-columns: minmax(0, 1fr); }
   .page:has(.order-bar) { padding-bottom: 104px; }
   /* 吸底栏不能挡住获得焦点的控件 */
   html:has(.order-bar) { scroll-padding-bottom: 96px; }
-  /* 进度：参与方 3 步和服务端 3 步上下排，每组一行三步 */
-  .step-line { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
   .order-bar {
     position: fixed;
     right: 0;
@@ -665,6 +669,13 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
   .order-summary .button--block, .summary-confirm { display: none; }
   .order-bar-actions { display: flex; gap: var(--space-2); }
   .order-bar--confirm { background: var(--warning-soft); border-top-color: var(--warning-border); }
+}
+
+/* ——— 平板（≤1100）：任务详情的两栏内容改为上下排 ——— */
+@media (max-width: 1100px) {
+  .uploads { grid-template-columns: minmax(0, 1fr); }
+  /* 进度：参与方 3 步和服务端 3 步上下排，每组一行三步 */
+  .step-line { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
 }
 
 /* ——— 窄屏（721–900）：侧栏变成一行顶栏，4 个入口直接平铺 ——— */
@@ -691,11 +702,7 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 /* ——— 手机（≤720）：顶栏收成"菜单" ——— */
 @media (max-width: 720px) {
   .compare-grid { grid-template-columns: minmax(0, 1fr); }
-  /* 手机上字段名放到控件上方 */
-  .form-row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
-  .form-label { padding-top: 0; }
-  .form-control > :is(input, select, textarea), .form-control .control-wide { width: 100%; }
-  .panel-head, .panel-toolbar, .panel-note { padding-inline: var(--space-4); }
+  .panel-head, .panel-toolbar { padding-inline: var(--space-4); }
   .panel-body { padding-inline: var(--space-4); }
   .panel-body--flush { padding: 0; }
   .panel--collapsible > summary, .panel--collapsible > .module-body { padding-inline: var(--space-4); }
@@ -712,7 +719,6 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
   .sidebar--open .sidebar-foot { display: grid; width: 100%; padding: var(--space-2) var(--space-2) var(--space-1); }
   .step-line { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
   .step-group ol { grid-template-columns: minmax(0, 1fr); }
-  .override-list li { grid-template-columns: minmax(0, 1fr); }
   .facts > div { grid-template-columns: 104px minmax(0, 1fr); }
   .live-banner { grid-template-columns: minmax(0, 1fr) 40px; }
   .live-banner .progress { grid-column: 1 / -1; grid-row: 2; }
@@ -748,7 +754,7 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 
 /* 触屏：点击目标至少 44px */
 @media (pointer: coarse) {
-  .button, .nav-link, .choice, .tab, .menu-button, .skip-link, .disclosure > summary { min-height: 44px; }
+  .button, .nav-link, .choice, .tab, .menu-button, .skip-link { min-height: 44px; }
   input:not([type="checkbox"], [type="radio"], [type="file"]), select { min-height: 44px; }
   .wordmark { min-height: 44px; align-content: center; }
   /* 行内链接不改变排版，只把可点区域撑到 44px 左右 */

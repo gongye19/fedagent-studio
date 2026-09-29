@@ -52,7 +52,7 @@ export const SCENARIOS: readonly Scenario[] = [
     id: "transfer",
     name: "联邦迁移 Agent",
     short: "联邦迁移",
-    summary: "把已有参与方的经验迁移到新领域",
+    summary: "把已有参与方的经验，迁移到新领域",
     example: "把数学推理的经验迁移到物理题",
     dataNeeds: "源领域经验和目标领域的少量数据",
     status: "planned",

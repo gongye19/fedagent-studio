@@ -46,21 +46,17 @@ export function PageHead({
   );
 }
 
-/**
- * 全站唯一的折叠样式：左侧箭头朝右，展开后朝下。
- * card 为 true 时是带边框的模块（流程说明、高级设置），为 false 时是正文里的一行文字开关。
- */
+/** 全站唯一的折叠样式（高级配置）：左侧箭头朝右，展开后朝下；标题右边可以跟一句说明。 */
 export function Collapsible({
-  title, sub, children, card = true, className,
+  title, sub, children, className,
 }: {
   title: ReactNode;
   sub?: ReactNode;
   children: ReactNode;
-  card?: boolean;
   className?: string;
 }) {
   return (
-    <details className={`${card ? "module" : "disclosure"}${className ? ` ${className}` : ""}`}>
+    <details className={`module${className ? ` ${className}` : ""}`}>
       <summary>
         <Icon name="chevron" />
         <span className="module-title">

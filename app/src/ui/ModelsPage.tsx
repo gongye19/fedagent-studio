@@ -2,7 +2,7 @@ import { useState, type Dispatch } from "react";
 import { DEFAULT_ENDPOINT_ID, endpointOf, isConfigured, type Endpoint } from "../domain/resources";
 import type { Action, State } from "../state/store";
 import { FormActions, Meta, Notice, PageHead, Tag } from "./common";
-import { FormRow, Panel } from "./console";
+import { Field, FieldGroup, Panel, UnitInput } from "./console";
 import { Icon } from "./icons";
 
 type Props = { state: State; dispatch: Dispatch<Action> };
@@ -27,7 +27,7 @@ export default function ModelsPage({ state, dispatch }: Props) {
     <>
       <PageHead
         title="模型接口"
-        meta="平台托管的参与方和服务端通过这里调用模型；本地参与方用自己的模型。"
+        meta="平台托管的参与方和服务端通过这里调用模型（OpenAI 兼容接口）；本地参与方用自己的模型。"
         actions={editing ? null : <button type="button" className="button button--primary" onClick={() => open("new")}><Icon name="plus" />新增接口</button>}
       />
       {saved ? <Notice action={<button type="button" className="link-button" onClick={() => setSaved(null)}>知道了</button>}>{saved}</Notice> : null}
@@ -94,7 +94,7 @@ export default function ModelsPage({ state, dispatch }: Props) {
 function EndpointForm({ state, dispatch, endpoint, onDone }: Props & { endpoint?: Endpoint; onDone: (message?: string) => void }) {
   const [name, setName] = useState(endpoint?.name ?? "");
   const [baseUrl, setBaseUrl] = useState(endpoint?.baseUrl ?? "");
-  const [models, setModels] = useState(endpoint?.models.join("\n") ?? "");
+  const [models, setModels] = useState(endpoint?.models.join(", ") ?? "");
   const [concurrency, setConcurrency] = useState(endpoint?.concurrency ?? 8);
   const [price, setPrice] = useState(endpoint?.price === null || endpoint?.price === undefined ? "" : String(endpoint.price));
   const list = models.split(/[\n,，]/).map((item) => item.trim()).filter(Boolean);
@@ -124,33 +124,29 @@ function EndpointForm({ state, dispatch, endpoint, onDone }: Props & { endpoint?
 
   return (
     <Panel title={endpoint ? `编辑“${endpoint.name}”` : "新增接口"}>
-      <FormRow label="名称" htmlFor="endpoint-name">
-        <input id="endpoint-name" name="endpoint-name" autoComplete="off" className="control-wide" value={name} maxLength={30} onChange={(event) => setName(event.target.value)} placeholder="例如：实验室模型服务" />
-      </FormRow>
-      <FormRow
-        label="接口地址"
-        htmlFor="endpoint-url"
-        hint={validUrl ? "OpenAI 兼容接口的地址；留空则保持“待配置”" : <span className="field-error">地址要以 http:// 或 https:// 开头</span>}
-      >
-        <input id="endpoint-url" name="endpoint-url" type="url" inputMode="url" autoComplete="off" spellCheck={false} className="control-wide" value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} placeholder="https://…/v1" aria-invalid={!validUrl} />
-      </FormRow>
-      <FormRow label="模型" htmlFor="endpoint-models" hint="可不填；每行一个，或用逗号分隔">
-        <textarea id="endpoint-models" name="endpoint-models" autoComplete="off" spellCheck={false} className="control-wide" rows={3} value={models} onChange={(event) => setModels(event.target.value)} placeholder="模型名称…" />
-      </FormRow>
-      <FormRow label="并发上限" htmlFor="endpoint-concurrency">
-        <input id="endpoint-concurrency" name="endpoint-concurrency" type="number" inputMode="numeric" autoComplete="off" min={1} max={256} value={concurrency} onChange={(event) => setConcurrency(Math.max(1, Math.min(256, Number.parseInt(event.target.value, 10) || 1)))} />
-      </FormRow>
-      <FormRow
-        label="单价"
-        htmlFor="endpoint-price"
-        hint={validPrice ? "元 / 百万 token，可不填；用于新建任务时的费用预估" : <span className="field-error">单价不能小于 0</span>}
-      >
-        <input id="endpoint-price" name="endpoint-price" type="number" inputMode="decimal" autoComplete="off" min={0} step="0.1" value={price} placeholder="未设置" aria-invalid={!validPrice} onChange={(event) => setPrice(event.target.value)} />
-      </FormRow>
-      <FormRow label="API 密钥">
-        <p className="field-static">接入后端后在服务端填写，前端不保存密钥。</p>
-      </FormRow>
-      <FormActions missing={missing} saveLabel={endpoint ? "保存修改" : "保存接口"} onCancel={() => onDone()} onSave={save} />
+      <div className="form-body">
+        <FieldGroup>
+          <Field label="名称" htmlFor="endpoint-name">
+            <input id="endpoint-name" name="endpoint-name" autoComplete="off" value={name} maxLength={30} onChange={(event) => setName(event.target.value)} placeholder="例如：实验室模型服务" />
+          </Field>
+          <Field label="模型" optional htmlFor="endpoint-models">
+            <input id="endpoint-models" name="endpoint-models" autoComplete="off" spellCheck={false} value={models} onChange={(event) => setModels(event.target.value)} placeholder="多个用逗号分隔" />
+          </Field>
+          <Field label="接口地址" optional htmlFor="endpoint-url" error={validUrl ? undefined : "地址要以 http:// 或 https:// 开头"}>
+            <input id="endpoint-url" name="endpoint-url" type="url" inputMode="url" autoComplete="off" spellCheck={false} value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} placeholder="https://…/v1" aria-invalid={!validUrl} aria-describedby={validUrl ? undefined : "endpoint-url-error"} />
+          </Field>
+          <Field label="API 密钥">
+            <p className="field-static">接入后端后在服务端填写，前端不保存密钥</p>
+          </Field>
+          <Field label="并发上限" htmlFor="endpoint-concurrency">
+            <input id="endpoint-concurrency" name="endpoint-concurrency" type="number" inputMode="numeric" autoComplete="off" min={1} max={256} value={concurrency} onChange={(event) => setConcurrency(Math.max(1, Math.min(256, Number.parseInt(event.target.value, 10) || 1)))} />
+          </Field>
+          <Field label="单价" optional htmlFor="endpoint-price" error={validPrice ? undefined : "单价不能小于 0"}>
+            <UnitInput id="endpoint-price" unit="元 / 百万 token" name="endpoint-price" type="number" inputMode="decimal" autoComplete="off" min={0} step="0.1" value={price} placeholder="未设置" aria-invalid={!validPrice} aria-describedby={validPrice ? undefined : "endpoint-price-error"} onChange={(event) => setPrice(event.target.value)} />
+          </Field>
+        </FieldGroup>
+        <FormActions missing={missing} saveLabel={endpoint ? "保存修改" : "保存接口"} onCancel={() => onDone()} onSave={save} />
+      </div>
     </Panel>
   );
 }

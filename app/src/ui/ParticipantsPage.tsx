@@ -1,20 +1,15 @@
-import { Fragment, useRef, useState, type Dispatch } from "react";
+import { Fragment, useId, useRef, useState, type Dispatch } from "react";
 import { TASK_TYPES } from "../domain/catalog";
 import { HOSTING_LABELS, PARTICIPANT_STATUS, type Dataset, type Hosting, type Participant } from "../domain/resources";
 import { checkJsonl, MAX_FILE_BYTES, MAX_PROBLEMS, type JsonlCheck } from "../domain/validate";
 import { navigate } from "../state/route";
 import { datasetsOf, taskCountOf, type Action, type State } from "../state/store";
-import { CodeBlock, Collapsible, Facts, FormActions, Notice, PageHead, Tag } from "./common";
-import { Choices, FormRow, Panel } from "./console";
+import { CodeBlock, Facts, FormActions, Notice, PageHead, Tag } from "./common";
+import { Choices, Field, FieldGroup, Panel } from "./console";
 import { formatNumber } from "./format";
 import { Icon } from "./icons";
 
 type Props = { state: State; dispatch: Dispatch<Action>; selectedId?: string };
-
-const HOSTING_HINT: Record<Hosting, string> = {
-  platform: "数据集上传到平台，由平台运行这一方的 Agent；适合公开数据和演示",
-  local: "数据和模型密钥留在参与方本地，参与方运行客户端，只上传交换内容；适合真实的跨机构联邦",
-};
 
 function newId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -165,7 +160,7 @@ function ParticipantDetail({ participant, datasets, dispatch }: { participant: P
 function LocalConnect() {
   return (
     <div className="connect-steps">
-      <h2 className="connect-title">在参与方的环境里连接</h2>
+      <h2 className="detail-title">在参与方的环境里连接</h2>
       <CodeBlock code={`pip install fedagent-client
 fedagent-client connect \\
   --server https://<平台地址> \\
@@ -205,20 +200,26 @@ function NewParticipant({ dispatch, onDone }: { dispatch: Dispatch<Action>; onDo
 
   return (
     <Panel title="新增参与方">
-      <FormRow label="名称" htmlFor="participant-name">
-        <input id="participant-name" name="participant-name" autoComplete="off" className="control-wide" value={name} maxLength={40} onChange={(event) => setName(event.target.value)} placeholder="例如：某高校数学组" />
-      </FormRow>
-      <FormRow label="所属机构" htmlFor="participant-org" hint="可不填">
-        <input id="participant-org" name="participant-org" autoComplete="off" className="control-wide" value={org} maxLength={40} onChange={(event) => setOrg(event.target.value)} />
-      </FormRow>
-      <FormRow label="简介" htmlFor="participant-intro" hint="可不填">
-        <input id="participant-intro" name="participant-intro" autoComplete="off" className="control-full" value={intro} maxLength={120} onChange={(event) => setIntro(event.target.value)} placeholder="这个参与方的数据是什么、来自哪里…" />
-      </FormRow>
-      <FormRow label="运行位置" labelId="hosting-label" hint={HOSTING_HINT[hosting]}>
-        <Choices labelledBy="hosting-label" value={hosting} options={[{ value: "platform", label: HOSTING_LABELS.platform }, { value: "local", label: HOSTING_LABELS.local, badge: "客户端未发布" }]} onChange={setHosting} />
-      </FormRow>
-      {hosting === "platform" ? <DatasetPicker onChange={setDataset} /> : null}
-      <FormActions missing={missing} saveLabel="保存参与方" onCancel={() => onDone()} onSave={save} />
+      <div className="form-body">
+        <FieldGroup>
+          <Field label="名称" htmlFor="participant-name">
+            <input id="participant-name" name="participant-name" autoComplete="off" value={name} maxLength={40} onChange={(event) => setName(event.target.value)} placeholder="例如：某高校数学组" />
+          </Field>
+          <Field label="所属机构" optional htmlFor="participant-org">
+            <input id="participant-org" name="participant-org" autoComplete="off" value={org} maxLength={40} onChange={(event) => setOrg(event.target.value)} />
+          </Field>
+          <Field label="简介" optional htmlFor="participant-intro" wide>
+            <input id="participant-intro" name="participant-intro" autoComplete="off" value={intro} maxLength={120} onChange={(event) => setIntro(event.target.value)} placeholder="这个参与方的数据是什么、来自哪里…" />
+          </Field>
+          <Field label="运行位置" labelId="hosting-label" wide>
+            <Choices labelledBy="hosting-label" value={hosting} options={[{ value: "platform", label: HOSTING_LABELS.platform }, { value: "local", label: HOSTING_LABELS.local, badge: "客户端未发布" }]} onChange={setHosting} />
+          </Field>
+        </FieldGroup>
+        {hosting === "platform" ? <DatasetPicker heading="数据集" onChange={setDataset} /> : (
+          <p className="form-alert">数据和模型密钥留在参与方本地，只上传交换内容。保存后，在参与方详情里查看连接命令。</p>
+        )}
+        <FormActions missing={missing} saveLabel="保存参与方" onCancel={() => onDone()} onSave={save} />
+      </div>
     </Panel>
   );
 }
@@ -226,7 +227,8 @@ function NewParticipant({ dispatch, onDone }: { dispatch: Dispatch<Action>; onDo
 function DatasetForm({ participantId, onSave, onCancel }: { participantId: string; onSave: (dataset: Dataset) => void; onCancel: () => void }) {
   const [dataset, setDataset] = useState<Omit<Dataset, "participantId"> | null>(null);
   return (
-    <div className="dataset-form">
+    <div className="form-body dataset-form">
+      <h2 className="detail-title">上传数据集</h2>
       <DatasetPicker onChange={setDataset} />
       <FormActions
         compact
@@ -242,7 +244,10 @@ function DatasetForm({ participantId, onSave, onCancel }: { participantId: strin
 type FileState = { name: string; size: number; check: JsonlCheck | null; error?: string };
 
 /** 选择数据集文件并在浏览器里检查；检查通过后只保存描述（样本数、标注数、示例），不保存内容。 */
-function DatasetPicker({ onChange }: { onChange: (dataset: Omit<Dataset, "participantId"> | null) => void }) {
+function DatasetPicker({ heading, onChange }: { heading?: string; onChange: (dataset: Omit<Dataset, "participantId"> | null) => void }) {
+  // 新增参与方的表单和参与方详情里的上传表单可能同时打开，id 不能写死。
+  const uid = useId();
+  const ids = { file: `${uid}-file`, format: `${uid}-format`, name: `${uid}-name`, description: `${uid}-description` };
   const input = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<FileState | null>(null);
   const [title, setTitle] = useState("");
@@ -288,20 +293,17 @@ function DatasetPicker({ onChange }: { onChange: (dataset: Omit<Dataset, "partic
 
   const failed = file && !file.check?.ok;
   return (
-    <>
-      <FormRow label="任务类型" labelId="dataset-type-label">
-        <Choices labelledBy="dataset-type-label" value="math-reasoning" options={[{ value: "math-reasoning", label: TASK_TYPES["math-reasoning"].label }]} onChange={() => undefined} />
-      </FormRow>
-      <FormRow label="数据集文件" labelId="dataset-file-label">
-        <label className="upload-zone control-full">
-          <input ref={input} name="dataset-file" type="file" accept=".jsonl,.json,application/json" aria-labelledby="dataset-file-label" onChange={(event) => pick(event.target.files?.[0])} />
+    <FieldGroup title={heading}>
+      <Field label="任务类型">
+        <p className="field-static">{TASK_TYPES["math-reasoning"].label}</p>
+      </Field>
+      <Field label="数据集文件" labelId={ids.file} wide>
+        <label className="upload-zone">
+          <input ref={input} name="dataset-file" type="file" accept=".jsonl,.json,application/json" aria-labelledby={ids.file} aria-describedby={ids.format} onChange={(event) => pick(event.target.files?.[0])} />
           <Icon name="upload" />
           <strong>{file ? file.name : "选择 JSONL 文件"}</strong>
-          <span>每行一条样本；不超过 20&nbsp;MB</span>
+          <span id={ids.format}>每行一条 <code>{`{"id", "question", "answer"}`}</code>；没有 answer 的样本不计入指标；不超过 20&nbsp;MB</span>
         </label>
-        <Collapsible card={false} title="查看格式">
-          <p>每行一个 JSON 对象，例如 <code>{`{"id": "q1", "question": "…", "answer": "…"}`}</code>；id 和 question 必填，answer 是标注，可以没有，没有的样本不计入指标。</p>
-        </Collapsible>
         {file ? (
           <div className={`check-result${failed ? " check-result--failed" : " check-result--ok"}`} aria-live="polite">
             {file.error ? <p><Icon name="x" />{file.error}</p> : null}
@@ -321,17 +323,17 @@ function DatasetPicker({ onChange }: { onChange: (dataset: Omit<Dataset, "partic
             {failed ? <button type="button" className="button button--secondary button--compact check-retry" onClick={choose}>改好后重新选择文件</button> : null}
           </div>
         ) : null}
-      </FormRow>
+      </Field>
       {file?.check?.ok ? (
         <>
-          <FormRow label="数据集名称" htmlFor="dataset-name" hint="不填则用文件名">
-            <input id="dataset-name" name="dataset-name" autoComplete="off" className="control-wide" value={title} placeholder={file.name.replace(/\.jsonl?$/i, "")} maxLength={40} onChange={(event) => { setTitle(event.target.value); emit(file, event.target.value, description); }} />
-          </FormRow>
-          <FormRow label="说明" htmlFor="dataset-description" hint="可不填">
-            <input id="dataset-description" name="dataset-description" autoComplete="off" className="control-wide" value={description} placeholder="例如：2024 年校内竞赛题" maxLength={60} onChange={(event) => { setDescription(event.target.value); emit(file, title, event.target.value); }} />
-          </FormRow>
+          <Field label="数据集名称" optional htmlFor={ids.name}>
+            <input id={ids.name} name="dataset-name" autoComplete="off" value={title} placeholder={file.name.replace(/\.jsonl?$/i, "")} maxLength={40} onChange={(event) => { setTitle(event.target.value); emit(file, event.target.value, description); }} />
+          </Field>
+          <Field label="说明" optional htmlFor={ids.description}>
+            <input id={ids.description} name="dataset-description" autoComplete="off" value={description} placeholder="例如：2024 年校内竞赛题" maxLength={60} onChange={(event) => { setDescription(event.target.value); emit(file, title, event.target.value); }} />
+          </Field>
         </>
       ) : null}
-    </>
+    </FieldGroup>
   );
 }

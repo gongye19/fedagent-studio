@@ -16,13 +16,13 @@ import { HOSTING_LABELS, modelLabel, modelOptions, PARTICIPANT_STATUS, usable, t
 import { hrefOf, navigate } from "../state/route";
 import { participantOf, type Action, type State } from "../state/store";
 import { Collapsible, Notice, PageHead, Tag } from "./common";
-import { Choices, FormRow, Panel } from "./console";
+import { Choices, Field, FieldGroup, Panel, UnitInput } from "./console";
 import { formatDuration, formatNumber, formatTokens, formatYuan } from "./format";
 import { Icon } from "./icons";
 
 type Props = { state: State; dispatch: Dispatch<Action>; scenario?: ScenarioId };
 
-const NARROW = "(max-width: 1100px)";
+const NARROW = "(max-width: 1180px)";
 
 /**
  * 新建联邦任务：按云平台"创建实例"的方式，分区块配置，右侧是配置摘要和预估。
@@ -76,6 +76,7 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
   const result = config && selected.length ? estimate(config, state.datasets, state.endpoints) : null;
   const full = draft.mode === "full";
   const samples = selected.reduce((sum, dataset) => sum + dataset.count, 0);
+  const overrideCount = Object.keys(activeOverrides(draft)).length;
 
   function create() {
     if (issues.length) return;
@@ -120,30 +121,38 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
       <div className="order-layout">
         <div className="order-main">
           <Panel title="基本信息" id="basic">
-            <FormRow label="任务名称" htmlFor="task-name">
-              <input id="task-name" name="task-name" autoComplete="off" className="control-wide" value={draft.name} placeholder={defaultTaskName(draft)} maxLength={60} onChange={(event) => update({ name: event.target.value })} />
-            </FormRow>
+            <div className="form-body">
+              <FieldGroup>
+                <Field label="任务名称" htmlFor="task-name">
+                  <input id="task-name" name="task-name" autoComplete="off" value={draft.name} placeholder={defaultTaskName(draft)} maxLength={60} onChange={(event) => update({ name: event.target.value })} />
+                </Field>
+              </FieldGroup>
+            </div>
           </Panel>
 
           <Panel title="场景与算法" id="scenario">
-            <FormRow label="场景" labelId="scenario-label" hint={draft.scenario ? scenarioOf(draft.scenario).summary : undefined}>
-              <Choices
-                labelledBy="scenario-label"
-                value={draft.scenario}
-                options={SCENARIOS.map((item) => ({ value: item.id, label: item.short, disabled: item.status !== "available", badge: item.status === "available" ? undefined : "规划中" }))}
-                onChange={(value) => dispatch({ type: "chooseScenario", scenario: value })}
-              />
-            </FormRow>
-            {draft.scenario ? (
-              <FormRow label="算法" labelId="algorithm-label">
-                <AlgorithmTable scenario={draft.scenario} value={draft.algorithm} onChange={(id) => dispatch({ type: "chooseAlgorithm", algorithm: id })} />
-              </FormRow>
-            ) : null}
-            {algorithm ? (
-              <FormRow label="任务类型" labelId="type-label" hint={`评估指标：${TASK_TYPES[algorithm.accepts[0]].metric}`}>
-                <Choices labelledBy="type-label" value={algorithm.accepts[0]} options={algorithm.accepts.map((type) => ({ value: type, label: TASK_TYPES[type].label }))} onChange={() => undefined} />
-              </FormRow>
-            ) : null}
+            <div className="form-body">
+              <FieldGroup>
+                <Field label="场景" labelId="scenario-label" wide>
+                  <Choices
+                    labelledBy="scenario-label"
+                    value={draft.scenario}
+                    options={SCENARIOS.map((item) => ({ value: item.id, label: item.short, disabled: item.status !== "available", badge: item.status === "available" ? undefined : "规划中" }))}
+                    onChange={(value) => dispatch({ type: "chooseScenario", scenario: value })}
+                  />
+                </Field>
+                {draft.scenario ? (
+                  <Field label="算法" labelId="algorithm-label" wide>
+                    <AlgorithmTable scenario={draft.scenario} value={draft.algorithm} onChange={(id) => dispatch({ type: "chooseAlgorithm", algorithm: id })} />
+                  </Field>
+                ) : null}
+                {algorithm ? (
+                  <Field label="任务类型">
+                    <p className="field-static">{algorithm.accepts.map((type) => TASK_TYPES[type].label).join("、")}</p>
+                  </Field>
+                ) : null}
+              </FieldGroup>
+            </div>
           </Panel>
 
           {algorithm ? (
@@ -155,13 +164,12 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
               flush
             >
               <DataTable state={state} dispatch={dispatch} candidates={candidates} selected={selected} />
-              <p className="panel-note">每个参与方用自己的数据集参加，至少选 {algorithm.minParticipants} 个；数据不离开持有方。</p>
             </Panel>
           ) : null}
 
           {algorithm ? (
             <Panel title="运行配置" id="settings">
-              <RunSettings state={state} draft={draft} update={update} algorithm={algorithm} selected={selected} />
+              <RunSettings state={state} draft={draft} update={update} algorithm={algorithm} />
             </Panel>
           ) : null}
 
@@ -173,11 +181,13 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
             <dl className="summary-list">
               <div><dt>场景</dt><dd>{draft.scenario ? scenarioOf(draft.scenario).short : "—"}</dd></div>
               <div><dt>算法</dt><dd>{algorithm ? algorithm.name : "—"}</dd></div>
-              <div><dt>参与方</dt><dd>{selected.length ? `${selected.length} 个 · ${formatNumber(result?.problems ?? 0)} 条样本` : "—"}</dd></div>
+              <div><dt>参与方</dt><dd>{selected.length ? `${selected.length} 个` : "—"}</dd></div>
               {algorithm ? (
                 <>
-                  <div><dt>运行</dt><dd>{full ? "正式运行" : `试跑（每份前 ${draft.trialCap} 条）`} · {draft.rounds} 轮</dd></div>
+                  <div><dt>样本</dt><dd>{result ? `${formatNumber(result.problems)} 条${full ? "" : `（每份前 ${draft.trialCap} 条）`}` : "—"}</dd></div>
+                  <div><dt>运行</dt><dd>{full ? "正式运行" : "试跑"} · {draft.rounds} 轮</dd></div>
                   <div><dt>模型</dt><dd>{modelSummary(draft, state)}</dd></div>
+                  {overrideCount ? <div><dt>单独指定</dt><dd>{overrideCount} 个参与方</dd></div> : null}
                 </>
               ) : null}
             </dl>
@@ -226,9 +236,9 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
 /** 算法：带单选的表格，列出这个场景下登记的算法，比较它们交换什么、产出什么。 */
 function AlgorithmTable({ scenario, value, onChange }: { scenario: ScenarioId; value: Draft["algorithm"]; onChange: (id: Algorithm["id"]) => void }) {
   const algorithms = algorithmsFor(scenario);
-  if (!algorithms.length) return <p className="form-empty">这个场景的算法待接入。</p>;
+  if (!algorithms.length) return <p className="field-static">这个场景的算法待接入。</p>;
   return (
-    <div className="table-shell control-full">
+    <div className="table-shell">
       <table className="table table--select">
         <caption className="visually-hidden">选择算法</caption>
         <thead>
@@ -350,49 +360,42 @@ const MODES: readonly { value: RunMode; label: string }[] = [
 ];
 
 function RunSettings({
-  state, draft, update, algorithm, selected,
+  state, draft, update, algorithm,
 }: {
   state: State;
   draft: Draft;
   update: (patch: Partial<Draft>) => void;
   algorithm: Algorithm;
-  selected: Dataset[];
 }) {
   const options = modelOptions(state.endpoints);
   const rounds = Array.from({ length: algorithm.maxRounds - algorithm.minRounds + 1 }, (_, index) => algorithm.minRounds + index);
-  const total = selected.reduce((sum, dataset) => sum + dataset.count, 0);
 
   return (
-    <>
-      <FormRow
-        label="运行方式"
-        labelId="mode-label"
-        hint={draft.mode === "trial" ? "每个数据集只取前几条样本，先确认流程和费用" : `使用全部 ${formatNumber(total)} 条样本，调用量大`}
-      >
-        <Choices labelledBy="mode-label" value={draft.mode} options={MODES} onChange={(mode) => update({ mode })} />
-      </FormRow>
-      {draft.mode === "trial" ? (
-        <FormRow label="试跑样本数" htmlFor="trial-cap">
-          <span className="input-unit">
-            <input id="trial-cap" name="trial-cap" type="number" inputMode="numeric" autoComplete="off" min={1} max={50} value={draft.trialCap} onChange={(event) => update({ trialCap: clampInt(event.target.value, 1, 50, draft.trialCap) })} />
-            <span>条 / 数据集</span>
-          </span>
-        </FormRow>
-      ) : null}
-      <FormRow label="轮次" labelId="rounds-label" hint="第 1 轮各方单独作答，作为本地基线">
-        <Choices labelledBy="rounds-label" value={draft.rounds} options={rounds.map((value) => ({ value, label: `${value} 轮` }))} onChange={(value) => update({ rounds: value })} />
-      </FormRow>
-      <FormRow label="参与方模型" htmlFor="client-model">
-        <select id="client-model" name="client-model" className="control-wide" value={draft.clientModel} onChange={(event) => update({ clientModel: event.target.value })}>
-          {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
-        </select>
-      </FormRow>
-      <FormRow label="服务端模型" htmlFor="server-model" hint="服务端每轮要读完各方上传的内容，需要长上下文的模型">
-        <select id="server-model" name="server-model" className="control-wide" value={draft.serverModel} onChange={(event) => update({ serverModel: event.target.value })}>
-          {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
-        </select>
-      </FormRow>
-    </>
+    <div className="form-body">
+      <FieldGroup>
+        <Field label="运行方式" labelId="mode-label">
+          <Choices labelledBy="mode-label" value={draft.mode} options={MODES} onChange={(mode) => update({ mode })} />
+        </Field>
+        {draft.mode === "trial" ? (
+          <Field label="试跑样本数" htmlFor="trial-cap">
+            <UnitInput id="trial-cap" unit="条 / 数据集" name="trial-cap" type="number" inputMode="numeric" autoComplete="off" min={1} max={50} value={draft.trialCap} onChange={(event) => update({ trialCap: clampInt(event.target.value, 1, 50, draft.trialCap) })} />
+          </Field>
+        ) : null}
+        <Field label="轮次" labelId="rounds-label" wide>
+          <Choices labelledBy="rounds-label" value={draft.rounds} options={rounds.map((value) => ({ value, label: `${value} 轮` }))} onChange={(value) => update({ rounds: value })} />
+        </Field>
+        <Field label="参与方模型" htmlFor="client-model">
+          <select id="client-model" name="client-model" value={draft.clientModel} onChange={(event) => update({ clientModel: event.target.value })}>
+            {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
+          </select>
+        </Field>
+        <Field label="服务端模型" htmlFor="server-model">
+          <select id="server-model" name="server-model" value={draft.serverModel} onChange={(event) => update({ serverModel: event.target.value })}>
+            {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
+          </select>
+        </Field>
+      </FieldGroup>
+    </div>
   );
 }
 
@@ -415,52 +418,53 @@ function AdvancedPanel({
       title={<>高级配置{changed ? <Tag tone="info">已改 {changed} 项</Tag> : null}</>}
       sub="可选，默认值即推荐值"
     >
-      <h3 className="form-group-title">{algorithm.name} 算法参数</h3>
-      {algorithm.params.map((def) => <ParamRow key={def.key} def={def} draft={draft} update={update} />)}
-      <h3 className="form-group-title">通用</h3>
-      <FormRow label="并发数" htmlFor="workers" hint="所有参与方共用">
-        <input id="workers" name="workers" type="number" inputMode="numeric" autoComplete="off" min={1} max={64} value={draft.workers} onChange={(event) => update({ workers: clampInt(event.target.value, 1, 64, draft.workers) })} />
-      </FormRow>
-      <FormRow label="随机种子" htmlFor="seed">
-        <input id="seed" name="seed" type="number" inputMode="numeric" autoComplete="off" min={0} value={draft.seed} onChange={(event) => update({ seed: clampInt(event.target.value, 0, 1_000_000, draft.seed) })} />
-      </FormRow>
-      <FormRow label="单独指定模型" labelId="overrides-label">
-        <ModelOverrides state={state} draft={draft} update={update} selected={selected} />
-      </FormRow>
+      <div className="form-body">
+        <FieldGroup title={`${algorithm.name} 算法参数`}>
+          {algorithm.params.map((def) => <ParamField key={def.key} def={def} draft={draft} update={update} />)}
+        </FieldGroup>
+        <FieldGroup title="通用">
+          <Field label="并发数" htmlFor="workers">
+            <input id="workers" name="workers" type="number" inputMode="numeric" autoComplete="off" min={1} max={64} value={draft.workers} onChange={(event) => update({ workers: clampInt(event.target.value, 1, 64, draft.workers) })} />
+          </Field>
+          <Field label="随机种子" htmlFor="seed">
+            <input id="seed" name="seed" type="number" inputMode="numeric" autoComplete="off" min={0} value={draft.seed} onChange={(event) => update({ seed: clampInt(event.target.value, 0, 1_000_000, draft.seed) })} />
+          </Field>
+          <Field label="单独指定模型" labelId="overrides-label" wide>
+            <ModelOverrides state={state} draft={draft} update={update} selected={selected} />
+          </Field>
+        </FieldGroup>
+      </div>
     </Collapsible>
   );
 }
 
-/** 按注册表里的参数定义生成一行：下拉或数字输入。 */
-function ParamRow({ def, draft, update }: { def: ParamDef; draft: Draft; update: (patch: Partial<Draft>) => void }) {
+/** 按注册表里的参数定义生成一个字段：下拉或数字输入。 */
+function ParamField({ def, draft, update }: { def: ParamDef; draft: Draft; update: (patch: Partial<Draft>) => void }) {
   const id = `param-${def.key}`;
   if (def.kind === "number") {
     const value = draft[def.key];
     return (
-      <FormRow label={def.label} htmlFor={id}>
-        <span className="input-unit">
-          <input id={id} name={def.key} type="number" inputMode="numeric" autoComplete="off" min={def.min} max={def.max} value={value} onChange={(event) => update({ [def.key]: clampInt(event.target.value, def.min, def.max, value) })} />
-          <span>{def.unit}</span>
-        </span>
-      </FormRow>
+      <Field label={def.label} htmlFor={id}>
+        <UnitInput id={id} unit={def.unit} name={def.key} type="number" inputMode="numeric" autoComplete="off" min={def.min} max={def.max} value={value} onChange={(event) => update({ [def.key]: clampInt(event.target.value, def.min, def.max, value) })} />
+      </Field>
     );
   }
   if (def.kind === "select-number") {
     const value = draft[def.key];
     return (
-      <FormRow label={def.label} htmlFor={id}>
+      <Field label={def.label} htmlFor={id}>
         <select id={id} name={def.key} value={value ?? ""} onChange={(event) => update({ [def.key]: event.target.value ? Number(event.target.value) : null })}>
           {def.options.map((option) => <option key={String(option.value)} value={option.value ?? ""}>{option.label}</option>)}
         </select>
-      </FormRow>
+      </Field>
     );
   }
   return (
-    <FormRow label={def.label} htmlFor={id}>
+    <Field label={def.label} htmlFor={id}>
       <select id={id} name={def.key} value={draft[def.key]} onChange={(event) => update({ [def.key]: event.target.value } as Partial<Draft>)}>
         {def.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
-    </FormRow>
+    </Field>
   );
 }
 
@@ -480,6 +484,7 @@ function ModelOverrides({
   const nameOf = (dataset: Dataset) => participantOf(state, dataset.participantId)?.name ?? dataset.name;
   const set = (next: Record<string, string>) => update({ clientOverrides: next });
 
+  if (!selected.length) return <p className="field-static">先在“参与方与数据”里选择参与方</p>;
   return (
     <div className="override-editor">
       {entries.length ? (
@@ -500,20 +505,22 @@ function ModelOverrides({
                 >
                   {[dataset, ...free].map((item) => <option key={item.id} value={item.id}>{nameOf(item)}</option>)}
                 </select>
-                <select aria-label={`${nameOf(dataset)} 使用的模型`} value={ref} onChange={(event) => set({ ...overrides, [datasetId]: event.target.value })}>
-                  {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
-                </select>
-                <button
-                  type="button"
-                  className="button button--ghost button--compact"
-                  onClick={() => {
-                    const next = { ...overrides };
-                    delete next[datasetId];
-                    set(next);
-                  }}
-                >
-                  移除
-                </button>
+                <div className="override-model">
+                  <select aria-label={`${nameOf(dataset)} 使用的模型`} value={ref} onChange={(event) => set({ ...overrides, [datasetId]: event.target.value })}>
+                    {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
+                  </select>
+                  <button
+                    type="button"
+                    className="button button--ghost button--compact"
+                    onClick={() => {
+                      const next = { ...overrides };
+                      delete next[datasetId];
+                      set(next);
+                    }}
+                  >
+                    移除
+                  </button>
+                </div>
               </li>
             );
           })}
@@ -524,7 +531,6 @@ function ModelOverrides({
           <Icon name="plus" />为某个参与方指定
         </button>
       ) : null}
-      {!entries.length ? <span className="form-hint">不指定时，所有参与方都用"参与方模型"。</span> : null}
     </div>
   );
 }
@@ -537,9 +543,7 @@ function clampInt(raw: string, min: number, max: number, fallback: number): numb
 function modelSummary(draft: Draft, state: State): string {
   const client = modelLabel(draft.clientModel, state.endpoints);
   const server = modelLabel(draft.serverModel, state.endpoints);
-  const count = Object.keys(activeOverrides(draft)).length;
-  const base = client === server ? client : `参与方 ${client}；服务端 ${server}`;
-  return count ? `${base}（${count} 方单独指定）` : base;
+  return client === server ? client : `参与方 ${client}；服务端 ${server}`;
 }
 
 function EstimateBlock({ result }: { result: Estimate }) {
@@ -547,7 +551,8 @@ function EstimateBlock({ result }: { result: Estimate }) {
     <div className="summary-estimate">
       <h3>预估</h3>
       <dl className="summary-list">
-        <div><dt>模型调用</dt><dd>{formatNumber(result.participantCalls)} 次<small>服务端另至少 {result.serverCalls} 次</small></dd></div>
+        <div><dt>参与方调用</dt><dd>{formatNumber(result.participantCalls)} 次</dd></div>
+        <div><dt>服务端调用</dt><dd>至少 {result.serverCalls} 次</dd></div>
         <div><dt>token</dt><dd>约 {formatTokens(result.participantTokens + result.serverTokens)}</dd></div>
         <div><dt>时长</dt><dd>{formatDuration(result.seconds)}</dd></div>
         <div><dt>费用</dt><dd>{result.cost === null ? <a className="text-link" href={hrefOf({ page: "models" })}>未设置单价</a> : formatYuan(result.cost)}</dd></div>

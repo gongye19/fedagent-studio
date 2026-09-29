@@ -4,7 +4,7 @@ import { libraries, type LibraryVersion, type Task } from "../domain/task";
 import { hrefOf, type AppTab } from "../state/route";
 import type { Published, State } from "../state/store";
 import { CodeBlock, EmptyState, Meta, PageHead, TabLinks, Tag } from "./common";
-import { FormRow, Panel } from "./console";
+import { Field, FieldGroup, Panel } from "./console";
 import { formatDate } from "./format";
 import { Icon } from "./icons";
 import { InsightGroups } from "./InsightGroups";
@@ -96,22 +96,26 @@ function TryPanel({ version, state }: { version: LibraryVersion; state: State })
 
   return (
     <div className="panel-stack">
-      <Panel title="试用" extra="同一个问题，分别不带和带上这个应用回答">
-        <FormRow
-          label="问题"
-          htmlFor="try-question"
-          hint={hasExample ? <button type="button" className="link-button" onClick={fillExample}>填入示例问题</button> : undefined}
-        >
-          <textarea id="try-question" name="question" autoComplete="off" className="control-full" rows={4} value={question} placeholder="输入一道数学题…" onChange={(event) => setQuestion(event.target.value)} />
-        </FormRow>
-        <FormRow label="模型" htmlFor="try-model">
-          <select id="try-model" name="model" className="control-wide" value={model} onChange={(event) => setModel(event.target.value)}>
-            {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
-          </select>
-        </FormRow>
-        <FormRow label="">
-          <button type="button" className="button button--primary" disabled={!question.trim()} onClick={() => setRan(question)}>运行对比</button>
-        </FormRow>
+      <Panel
+        title="试用"
+        extra="同一个问题，分别不带和带上这个应用回答"
+        actions={hasExample ? <button type="button" className="button button--secondary button--compact" onClick={fillExample}>填入示例问题</button> : null}
+      >
+        <div className="form-body">
+          <FieldGroup>
+            <Field label="问题" htmlFor="try-question" wide>
+              <textarea id="try-question" name="question" autoComplete="off" rows={4} value={question} placeholder="输入一道数学题…" onChange={(event) => setQuestion(event.target.value)} />
+            </Field>
+            <Field label="模型" htmlFor="try-model">
+              <select id="try-model" name="model" value={model} onChange={(event) => setModel(event.target.value)}>
+                {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
+              </select>
+            </Field>
+          </FieldGroup>
+          <div className="form-actions">
+            <button type="button" className="button button--primary" disabled={!question.trim()} onClick={() => setRan(question)}>运行对比</button>
+          </div>
+        </div>
       </Panel>
 
       {ran !== null ? (
