@@ -31,10 +31,19 @@ export function stageText(task: Task): string | null {
   return `第 ${cursor.round} / ${task.config.rounds} 轮 · ${stage?.label ?? ""}`;
 }
 
-/** 列表和详情页标题下的摘要：场景、任务类型、算法、参与方数、运行方式。交给 Meta 排版，折行时分隔点不落在行首行尾。 */
-export function taskSummaryParts(task: Task): string[] {
+/**
+ * 列表和详情页标题下的摘要：场景、任务类型、算法、参与方数、运行方式。交给 Meta 排版，折行时分隔点不落在行首行尾。
+ * 任务列表已经按场景分组，传 withScenario: false 省掉场景。
+ */
+export function taskSummaryParts(task: Task, { withScenario = true }: { withScenario?: boolean } = {}): string[] {
   const mode = task.config.mode === "trial" ? "试跑" : "正式运行";
-  return [scenarioOf(task.config.scenario).short, TASK_TYPES[task.config.taskType].label, algorithmOfTask(task).name, `${task.members.length} 个参与方`, mode];
+  return [
+    ...(withScenario ? [scenarioOf(task.config.scenario).short] : []),
+    TASK_TYPES[task.config.taskType].label,
+    algorithmOfTask(task).name,
+    `${task.members.length} 个参与方`,
+    mode,
+  ];
 }
 
 /** 运行中、暂停的任务排在前面，其余按创建时间从新到旧。 */

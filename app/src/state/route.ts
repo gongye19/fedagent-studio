@@ -3,7 +3,7 @@
  *
  * #/                          首页
  * #/tasks                     联邦任务
- * #/tasks/new[/场景]           新建联邦任务
+ * #/tasks/new/场景             新建这个场景的联邦任务（每个场景有自己的配置页，目前只有横向联邦）
  * #/tasks/:id[/标签]           任务详情
  * #/apps                      应用（任务产出发布后的成果）
  * #/apps/:id[/标签]            应用详情
@@ -32,7 +32,7 @@ export type From = "newTask";
 export type Route =
   | { page: "home" }
   | { page: "tasks" }
-  | { page: "newTask"; scenario?: ScenarioId }
+  | { page: "newTask"; scenario: ScenarioId }
   | { page: "task"; id: string; tab?: TaskTab }
   | { page: "apps" }
   | { page: "app"; id: string; tab?: AppTab }
@@ -57,7 +57,11 @@ export function parseHash(hash: string): Route {
   switch (first) {
     case "tasks":
       if (!second) return { page: "tasks" };
-      if (second === "new") return { page: "newTask", scenario: oneOf(SCENARIOS.map((item) => item.id), third) };
+      if (second === "new") {
+        // 新建任务一定先选场景；没带场景的旧地址回到任务列表，在那里按场景新建。
+        const scenario = oneOf(SCENARIOS.map((item) => item.id), third);
+        return scenario ? { page: "newTask", scenario } : { page: "tasks" };
+      }
       return { page: "task", id: second, tab: oneOf(TASK_TABS, third) };
     case "apps":
     case "libraries": // 旧地址
@@ -92,7 +96,7 @@ export function hrefOf(route: Route): string {
     case "tasks":
       return "#/tasks";
     case "newTask":
-      return route.scenario ? `#/tasks/new/${route.scenario}` : "#/tasks/new";
+      return `#/tasks/new/${route.scenario}`;
     case "task":
       return `#/tasks/${part(route.id)}${route.tab ? `/${route.tab}` : ""}`;
     case "apps":
@@ -150,9 +154,12 @@ export function navigate(route: Route, options: { keepScroll?: boolean } = {}): 
   if (!options.keepScroll) window.scrollTo({ top: 0 });
 }
 
-/** 新增、编辑页保存或取消后回到哪里：从新建任务来的回新建任务，否则回列表。 */
-export function backTo(from: From | undefined, list: Route): Route {
-  return from === "newTask" ? { page: "newTask" } : list;
+/**
+ * 新增、编辑页保存或取消后回到哪里：从新建任务来的回到那个场景的新建任务（scenario 是草稿里的场景），否则回列表。
+ */
+export function backTo(from: From | undefined, list: Route, scenario: ScenarioId | null): Route {
+  if (from !== "newTask") return list;
+  return scenario ? { page: "newTask", scenario } : { page: "tasks" };
 }
 
 export function useRoute(): Route {

@@ -3,7 +3,6 @@ import {
   algorithmOf,
   algorithmsFor,
   paramValue,
-  SCENARIOS,
   scenarioOf,
   TASK_TYPES,
   taskTypesFor,
@@ -49,7 +48,10 @@ import { formatDuration, formatNumber, formatTokens, formatYuan } from "./format
 import { Icon } from "./icons";
 import { usageText } from "./labels";
 
-type Props = { state: State; dispatch: Dispatch<Action>; scenario?: ScenarioId };
+type Props = { state: State; dispatch: Dispatch<Action> };
+
+/** 这个配置页只用于横向联邦：每个场景要配置的东西不同，各有自己的配置页。 */
+const SCENARIO: ScenarioId = "horizontal";
 
 /** 从新建任务出发去新增参与方、数据集，配置接口，保存后回到这里。 */
 const NEW_PARTICIPANT: Route = { page: "newParticipant", from: "newTask" };
@@ -60,15 +62,14 @@ type Restored = { kind: "copy"; source: string } | { kind: "draft" } | null;
 type Pending = "full" | "leave" | "restart" | null;
 
 /**
- * 新建联邦任务：按云平台"创建实例"的方式，分区块配置，右侧是配置摘要和预估。
- * 场景、任务类型、算法、参数都来自注册表，页面不针对某个算法写死；每一步都由用户自己选，不替用户默认。
- * 从首页点某个场景进来时，场景已经选好：页面只列这个场景的选项，不再显示场景这一项，标题旁写明场景。
+ * 新建横向联邦任务：按云平台"创建实例"的方式，分区块配置，右侧是配置摘要和预估。
+ * 横向联邦的任务是各方用同类任务、各自的数据协作，所以这里配置任务类型、算法、参与方（每方一份数据集）和运行方式。
+ * 任务类型、算法、参数都来自注册表，页面不针对某个算法写死；每一步都由用户自己选，不替用户默认。
+ * 从首页的横向联邦卡片、或"联邦任务"页横向联邦一栏的"新建联邦任务"进来，都是这一页。
  */
-export default function NewTaskPage({ state, dispatch, scenario }: Props) {
+export default function HorizontalTaskPage({ state, dispatch }: Props) {
   const draft = state.draft;
-  const fixedScenario = scenario && scenarioOf(scenario).status === "available" ? scenario : undefined;
-  const back: Route = fixedScenario ? { page: "home" } : { page: "tasks" };
-  const applied = useRef<ScenarioId | undefined>(undefined);
+  const back: Route = { page: "tasks" };
   // 没动过的草稿不保留：每次打开都按当前的参与方和数据重新选，默认名称也按这次打开的时间生成。
   const resetOnOpen = useRef(!draft.touched);
   const [openedAt] = useState(() => new Date());
@@ -77,7 +78,7 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
   // 打开时草稿里已经有用户的内容：要么是上次没填完，要么是从任务"复制为新任务"带过来的。
   // 从新增参与方、配置接口回来时顶部已经有结果提示，不再重复提示"已恢复"。
   const [restored, setRestored] = useState<Restored>(() => {
-    if (!draft.touched || flashFor({ page: "newTask" })) return null;
+    if (!draft.touched || flashFor({ page: "newTask", scenario: SCENARIO })) return null;
     return draft.name?.endsWith("（副本）") ? { kind: "copy", source: draft.name.slice(0, -"（副本）".length) } : { kind: "draft" };
   });
 
@@ -88,11 +89,9 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
   }, [dispatch]);
 
   useEffect(() => {
-    // 从首页的场景入口进来时预先选好；规划中的场景不能选，直接忽略。
-    if (!scenario || applied.current === scenario) return;
-    applied.current = scenario;
-    if (scenarioOf(scenario).status === "available") dispatch({ type: "chooseScenario", scenario, auto: true });
-  }, [scenario, dispatch]);
+    // 场景就是横向联邦：草稿里记下场景（已经是横向时不变），不算用户动过草稿。
+    dispatch({ type: "chooseScenario", scenario: SCENARIO, auto: true });
+  }, [dispatch]);
 
   const update = (patch: Partial<Draft>) => dispatch({ type: "updateDraft", patch });
   const algorithm = draft.algorithm ? algorithmOf(draft.algorithm) : null;
@@ -127,7 +126,7 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
     dispatch({ type: "resetDraft" });
     setPending(null);
     setRestored(null);
-    if (scenario && scenarioOf(scenario).status === "available") dispatch({ type: "chooseScenario", scenario, auto: true });
+    dispatch({ type: "chooseScenario", scenario: SCENARIO, auto: true });
   }
 
   function leave() {
@@ -181,11 +180,7 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
 
   return (
     <>
-      <PageHead
-        title="新建联邦任务"
-        crumbs={[{ label: fixedScenario ? "首页" : "联邦任务", route: back }]}
-        status={fixedScenario ? <Tag>{scenarioOf(fixedScenario).name}</Tag> : undefined}
-      />
+      <PageHead title="新建横向联邦任务" crumbs={[{ label: "联邦任务", route: back }]} />
       {pending === "restart" ? (
         <Confirm title="清空这次的配置？" confirmLabel="清空" onConfirm={restart} onCancel={() => setPending(null)}>
           已选的参与方和设置都会恢复默认。
@@ -208,19 +203,9 @@ export default function NewTaskPage({ state, dispatch, scenario }: Props) {
             </div>
           </Panel>
 
-          <Panel title={fixedScenario ? "任务类型与算法" : "场景、任务类型与算法"} id="scenario">
+          <Panel title="任务类型与算法" id="scenario">
             <div className="form-body">
               <FieldGroup>
-                {fixedScenario ? null : (
-                  <Field label="场景" labelId="scenario-label" wide>
-                    <Choices
-                      labelledBy="scenario-label"
-                      value={draft.scenario}
-                      options={SCENARIOS.map((item) => ({ value: item.id, label: item.short, disabled: item.status !== "available", badge: item.status === "available" ? undefined : "规划中" }))}
-                      onChange={(value) => dispatch({ type: "chooseScenario", scenario: value })}
-                    />
-                  </Field>
-                )}
                 {draft.scenario ? <TaskTypeChoice scenario={draft.scenario} value={draft.taskType} onChange={(taskType) => dispatch({ type: "chooseTaskType", taskType })} /> : null}
                 {draft.scenario && draft.taskType ? (
                   <AlgorithmField scenario={draft.scenario} taskType={draft.taskType} value={draft.algorithm} onChange={(id) => dispatch({ type: "chooseAlgorithm", algorithm: id })} />

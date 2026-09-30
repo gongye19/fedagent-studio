@@ -36,7 +36,7 @@ function EndpointForm({ state, dispatch, endpoint, from }: { state: State; dispa
     list.length ? null : "模型",
     validPrice ? null : "正确的单价",
   ].filter((item): item is string => Boolean(item));
-  const back = backTo(from, { page: "models" });
+  const back = backTo(from, { page: "models" }, state.draft.scenario);
   const title = endpoint ? `编辑“${endpoint.name}”` : "新增接口";
 
   function save() {

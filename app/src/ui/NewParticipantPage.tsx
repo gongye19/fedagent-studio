@@ -50,12 +50,13 @@ export default function NewParticipantPage({ state, dispatch, from }: Props) {
     if (from === "newTask") {
       const picked = canPickInto(state.draft, participant, dataset);
       if (picked) dispatch({ type: "pickDataset", participantId: id, datasetId: dataset.id });
-      showFlash({ page: "newTask" }, picked
+      const back = backTo(from, { page: "participants" }, state.draft.scenario);
+      showFlash(back, picked
         ? `已添加“${participant.name}”，并选入这个任务。`
         : hosting === "local"
           ? `已添加“${participant.name}”。连上客户端之后才能选入任务。`
           : `已添加“${participant.name}”。它的数据集和这个任务的场景或任务类型不同，没有选入。`);
-      navigate({ page: "newTask" });
+      navigate(back);
       return;
     }
     showFlash({ page: "participants" }, hosting === "platform"
@@ -98,7 +99,7 @@ export default function NewParticipantPage({ state, dispatch, from }: Props) {
           </Panel>
         ) : null}
 
-        <FormActions missing={missing} saveLabel="保存参与方" onCancel={() => navigate(backTo(from, { page: "participants" }))} onSave={save} />
+        <FormActions missing={missing} saveLabel="保存参与方" onCancel={() => navigate(backTo(from, { page: "participants" }, state.draft.scenario))} onSave={save} />
       </div>
     </>
   );

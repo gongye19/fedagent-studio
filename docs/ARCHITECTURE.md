@@ -207,7 +207,7 @@ GET  /v1/tasks/{id}/rounds/{r}/library   POST /v1/tasks/{id}/rounds/{r}/uploads 
   - `domain/`：注册表、参与方与数据集、配置与预估、任务状态机、示例数据、数据集检查。
   - `state/`：页面状态、初始数据、模拟推进、本地保存、路由。
   - `ui/`：各页面；`console.tsx` 是控制台风格的表单组件（面板、表单字段与两栏网格、按需展开的说明、带单位的输入框、选项按钮）；`common.tsx` 有页面标题、确认条、提示条等共用组件。
-  - 路由：参与方与数据是 `#/participants[/场景[/:参与方 id]]`（旧的 `#/datasets` 回到这里）；新增参与方（`#/participants/new`）、新增数据集（`#/datasets/new`，从参与方详情进来时带 `?participant=`）、新增和编辑接口（`#/models/new`、`#/models/:id/edit`）是独立页面；从新建任务过来时带 `?from=new-task`，保存或取消后回到新建任务。
+  - 路由：新建任务是 `#/tasks/new/场景`，每个场景有自己的配置页（目前只有横向联邦 `HorizontalTaskPage`），没有不分场景的配置页；参与方与数据是 `#/participants[/场景[/:参与方 id]]`（旧的 `#/datasets` 回到这里）；新增参与方（`#/participants/new`）、新增数据集（`#/datasets/new`，从参与方详情进来时带 `?participant=`）、新增和编辑接口（`#/models/new`、`#/models/:id/edit`）是独立页面；从新建任务过来时带 `?from=new-task`，保存或取消后回到新建任务。
 - **界面规范**（写在 `styles.css` 开头）：
   - 参考 AWS 控制台：灰色画布上的白色配置面板；表单字段名在上、控件在下，两栏对齐，面板窄时变成一栏；
   - 互斥的少量选项用选项按钮（选中蓝框加右下角标），选项多或次要设置用下拉，选对象用带单选 / 复选的表格；

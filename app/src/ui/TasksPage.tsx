@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { SCENARIOS } from "../domain/catalog";
 import { TASK_STATUS, type TaskStatus } from "../domain/task";
 import { hrefOf } from "../state/route";
 import type { State } from "../state/store";
-import { EmptyState, PageHead, PanelEmpty } from "./common";
+import { PageHead, PanelEmpty, Tag } from "./common";
 import { Panel } from "./console";
 import { Icon } from "./icons";
 import { sortTasks } from "./labels";
@@ -10,33 +11,26 @@ import { TaskTable } from "./TaskTable";
 
 type Filter = "all" | TaskStatus;
 
+/**
+ * 联邦任务：按场景分块（横向、纵向、迁移），每块列出这个场景下的任务，右上角是这个场景的"新建联邦任务"。
+ * 新建时进的是这个场景自己的配置页，和首页点场景卡片进去的是同一页；规划中的场景按钮不可用。
+ * 搜索和状态筛选对所有场景一起生效。
+ */
 export default function TasksPage({ state }: { state: State }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
-  const create = <a className="button button--primary" href={hrefOf({ page: "newTask" })}><Icon name="plus" />新建联邦任务</a>;
   const keyword = query.trim().toLowerCase();
-  const tasks = sortTasks(state.tasks.filter((task) => (
+  const filtered = sortTasks(state.tasks.filter((task) => (
     (filter === "all" || task.status === filter) && (!keyword || task.name.toLowerCase().includes(keyword))
   )));
-
-  // 联邦任务是什么：放在列表页标题下，用户第一次看到这个词的地方。
-  const meta = "每个联邦任务让多个参与方的 Agent 按选定的场景、任务类型和算法协作几轮；完成后对比各方效果，产出可以发布为应用。";
-  if (!state.tasks.length) {
-    return (
-      <>
-        <PageHead title="联邦任务" meta={meta} />
-        <EmptyState title="还没有联邦任务" action={create}>
-          <p>选择场景、算法和参与方，几步就能创建一个任务。</p>
-        </EmptyState>
-      </>
-    );
-  }
+  const filtering = filter !== "all" || Boolean(keyword);
+  const clear = () => { setQuery(""); setFilter("all"); };
 
   return (
     <>
-      <PageHead title="联邦任务" meta={meta} actions={create} />
-      <Panel flush>
-        <div className="panel-toolbar">
+      <PageHead title="联邦任务" meta="每个联邦任务让多个参与方的 Agent 协作几轮，完成后对比各方效果，产出可以发布为应用。" />
+      {state.tasks.length ? (
+        <div className="list-toolbar">
           <input
             type="search"
             name="task-search"
@@ -50,14 +44,36 @@ export default function TasksPage({ state }: { state: State }) {
             <option value="all">全部状态</option>
             {(Object.keys(TASK_STATUS) as TaskStatus[]).map((status) => <option key={status} value={status}>{TASK_STATUS[status]}</option>)}
           </select>
-          <span className="panel-extra">共 {tasks.length} 个</span>
+          {filtering ? <button type="button" className="button button--ghost button--compact" onClick={clear}>清除筛选</button> : null}
         </div>
-        {tasks.length ? <TaskTable tasks={tasks} /> : (
-          <PanelEmpty action={<button type="button" className="button button--secondary button--compact" onClick={() => { setQuery(""); setFilter("all"); }}>清除筛选</button>}>
-            没有符合条件的任务。
-          </PanelEmpty>
-        )}
-      </Panel>
+      ) : null}
+      <div className="panel-stack">
+        {SCENARIOS.map((scenario) => {
+          const available = scenario.status === "available";
+          const all = state.tasks.filter((task) => task.config.scenario === scenario.id);
+          const tasks = filtered.filter((task) => task.config.scenario === scenario.id);
+          return (
+            <Panel
+              key={scenario.id}
+              id={`tasks-${scenario.id}`}
+              title={<>{scenario.name}{available ? null : <Tag>规划中</Tag>}</>}
+              extra={available ? `${all.length} 个任务` : undefined}
+              actions={available
+                ? <a className="button button--primary button--compact" href={hrefOf({ page: "newTask", scenario: scenario.id })}><Icon name="plus" />新建联邦任务</a>
+                : <button type="button" className="button button--secondary button--compact" disabled><Icon name="plus" />新建联邦任务</button>}
+              flush
+            >
+              {tasks.length ? <TaskTable tasks={tasks} withScenario={false} /> : (
+                <PanelEmpty>
+                  {!available
+                    ? `${scenario.short}的算法还在规划中，接入后可以在这里新建任务。`
+                    : all.length ? "没有符合条件的任务。" : `还没有${scenario.short}的任务，点右上角"新建联邦任务"开始。`}
+                </PanelEmpty>
+              )}
+            </Panel>
+          );
+        })}
+      </div>
     </>
   );
 }

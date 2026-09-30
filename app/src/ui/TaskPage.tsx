@@ -28,7 +28,7 @@ export default function TaskPage({ task, state, dispatch, tab }: Props) {
 
   function copy() {
     dispatch({ type: "resetDraft", draft: toDraft(task.config, `${task.name}（副本）`) });
-    navigate({ page: "newTask" });
+    navigate({ page: "newTask", scenario: task.config.scenario });
   }
 
   function cancel() {

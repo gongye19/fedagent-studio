@@ -286,7 +286,8 @@ a { text-underline-offset: 3px; }
 .button--primary:disabled { color: var(--secondary); background: var(--border); }
 .button--secondary { color: var(--foreground); background: var(--background); border-color: var(--border-strong); }
 .button--secondary:hover:not(:disabled) { background: var(--surface-hover); border-color: var(--border-hover); }
-.button--secondary:disabled, .button--ghost:disabled { color: var(--faint); }
+/* 不可用的次要按钮：灰底、灰字（对比度仍在 4.5:1 以上，和不可用的输入框一致），一眼看出不能点 */
+.button--secondary:disabled, .button--ghost:disabled { color: var(--muted); background: var(--surface); border-color: var(--border); }
 .button--ghost { color: var(--secondary); background: transparent; }
 .button--ghost:hover:not(:disabled) { color: var(--foreground); background: var(--surface-hover); }
 /* 删除、取消这类操作：描边按钮 + 红字，点了之后还要二次确认 */
@@ -412,6 +413,10 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 .panel-toolbar { padding: var(--space-3) var(--space-4); display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: center; border-bottom: 1px solid var(--border); }
 .panel-toolbar input[type="search"] { flex: 1 1 200px; width: auto; max-width: 320px; }
 .panel-toolbar select { flex: none; width: auto; min-width: 140px; }
+/* 页面级的筛选条（例如联邦任务按场景分块时，搜索和状态筛选对所有块生效）：不带外框，和下面的面板左对齐 */
+.list-toolbar { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.list-toolbar input[type="search"] { flex: 1 1 240px; max-width: 320px; background: var(--background); }
+.list-toolbar select { flex: none; width: auto; min-width: 140px; background-color: var(--background); }
 .panel-toolbar .panel-extra { margin-left: auto; }
 /* 面板里的空状态：一句话 + 下一步 */
 .panel-empty { padding: var(--space-8) var(--space-5); display: grid; gap: var(--space-3); justify-items: center; color: var(--muted); font-size: var(--text-sm); text-align: center; }

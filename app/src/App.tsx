@@ -4,19 +4,19 @@ import { loadState, saveState } from "./state/persistence";
 import { hrefOf, pageKeyOf, useRoute, type Route } from "./state/route";
 import { useSimulation } from "./state/simulation";
 import { reducer, taskOf, type Action, type State } from "./state/store";
-import { ALGORITHMS } from "./domain/catalog";
+import { ALGORITHMS, scenarioOf, type ScenarioId } from "./domain/catalog";
 import AlgorithmPage from "./ui/AlgorithmPage";
 import AlgorithmsPage from "./ui/AlgorithmsPage";
 import AppPage from "./ui/AppPage";
 import AppsPage from "./ui/AppsPage";
-import { Confirm, NotFound, Notice, Tag } from "./ui/common";
+import { Confirm, EmptyState, NotFound, Notice, PageHead, Tag } from "./ui/common";
 import { Icon } from "./ui/icons";
 import EndpointPage from "./ui/EndpointPage";
 import HomePage from "./ui/HomePage";
 import ModelsPage from "./ui/ModelsPage";
 import NewDatasetPage from "./ui/NewDatasetPage";
 import NewParticipantPage from "./ui/NewParticipantPage";
-import NewTaskPage from "./ui/NewTaskPage";
+import HorizontalTaskPage from "./ui/HorizontalTaskPage";
 import ParticipantsPage from "./ui/ParticipantsPage";
 import TaskPage from "./ui/TaskPage";
 import TasksPage from "./ui/TasksPage";
@@ -122,7 +122,10 @@ function Page({ state, dispatch, route }: { state: State; dispatch: Dispatch<Act
     case "tasks":
       return <TasksPage state={state} />;
     case "newTask":
-      return <NewTaskPage state={state} dispatch={dispatch} scenario={route.scenario} />;
+      // 每个场景有自己的任务配置页（场景不同，要配置的东西不同）；目前只有横向联邦。
+      return route.scenario === "horizontal"
+        ? <HorizontalTaskPage state={state} dispatch={dispatch} />
+        : <PlannedTaskConfig scenario={route.scenario} />;
     case "task": {
       const task = taskOf(state, route.id);
       return task ? <TaskPage key={task.id} task={task} state={state} dispatch={dispatch} tab={route.tab} /> : <NotFound kind="任务" back={{ page: "tasks" }} backLabel="联邦任务" />;
@@ -155,6 +158,19 @@ function Page({ state, dispatch, route }: { state: State; dispatch: Dispatch<Act
     default:
       return <HomePage />;
   }
+}
+
+/** 还没有配置页的场景（算法规划中）：说明原因，回到任务列表。 */
+function PlannedTaskConfig({ scenario }: { scenario: ScenarioId }) {
+  const item = scenarioOf(scenario);
+  return (
+    <>
+      <PageHead title={`新建${item.short}任务`} crumbs={[{ label: "联邦任务", route: { page: "tasks" } }]} />
+      <EmptyState title="暂时不能新建" action={<a className="button button--secondary" href={hrefOf({ page: "tasks" })}>返回联邦任务</a>}>
+        <p>{item.short}的算法还在规划中，接入后在这里配置这个场景的任务。</p>
+      </EmptyState>
+    </>
+  );
 }
 
 /** 重置演示数据：会清掉用户新建的内容，先在原地确认。 */

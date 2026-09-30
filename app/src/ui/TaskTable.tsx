@@ -26,7 +26,8 @@ export function MetricChange({ task }: { task: Task }) {
   );
 }
 
-export function TaskTable({ tasks }: { tasks: readonly Task[] }) {
+/** 任务表格。放在按场景分组的列表里时传 withScenario={false}，摘要里不再重复场景。 */
+export function TaskTable({ tasks, withScenario = true }: { tasks: readonly Task[]; withScenario?: boolean }) {
   return (
     <div className="table-shell">
       <table className="table table--stack">
@@ -45,7 +46,7 @@ export function TaskTable({ tasks }: { tasks: readonly Task[] }) {
               <tr key={task.id}>
                 <th scope="row">
                   <a className="table-link" href={hrefOf({ page: "task", id: task.id })}>{task.name}</a>
-                  <small><Meta parts={taskSummaryParts(task)} /></small>
+                  <small><Meta parts={taskSummaryParts(task, { withScenario })} /></small>
                 </th>
                 <td className="progress-cell" data-label="状态">
                   <div className="progress-line">

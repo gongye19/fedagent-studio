@@ -30,10 +30,11 @@ export default function NewDatasetPage({ state, dispatch, participant, from }: P
     if (from === "newTask") {
       const picked = canPickInto(state.draft, owner, dataset);
       if (picked) dispatch({ type: "pickDataset", participantId: owner.id, datasetId: dataset.id });
-      showFlash({ page: "newTask" }, picked
+      const back = backTo(from, { page: "participants" }, state.draft.scenario);
+      showFlash(back, picked
         ? `已为“${owner.name}”添加数据集“${dataset.name}”，并选入这个任务。`
         : `已为“${owner.name}”添加数据集“${dataset.name}”。`);
-      navigate({ page: "newTask" });
+      navigate(back);
       return;
     }
     showFlash({ page: "participants" }, `已为“${owner.name}”添加数据集“${dataset.name}”。`);
@@ -69,7 +70,7 @@ export default function NewDatasetPage({ state, dispatch, participant, from }: P
           </div>
         </Panel>
 
-        <FormActions missing={missing} saveLabel="保存数据集" onCancel={() => navigate(backTo(from, { page: "participants" }))} onSave={save} />
+        <FormActions missing={missing} saveLabel="保存数据集" onCancel={() => navigate(backTo(from, { page: "participants" }, state.draft.scenario))} onSave={save} />
       </div>
     </>
   );
