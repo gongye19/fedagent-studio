@@ -85,20 +85,19 @@
 
 ## 服务器
 
-实验室服务器已加入 Tailscale：`zhiqikou-ic4078375cc`（100.111.198.54），SSH 端口 10022。2026-09-28 测试：Tailscale 连通（经新加坡中继，约 100 ms），SSH 握手正常；密钥还没加到服务器上，暂时不能免密登录。
+实验室服务器经 Tailscale 访问：`zhiqikou-ic4078375cc`（100.111.198.54），SSH 端口 10022，用密钥登录。
+
+- 服务器没有公网 IP（出口是校园网 NAT），也没有 sudo，不能直接对公网开端口；要公网访问只能走隧道（Cloudflare Tunnel 可以直接用；Tailscale Funnel 要这台机器所属 tailnet 的管理员开启 HTTPS 和 Funnel）。
+- 2026-10-01 起前端部署在服务器上，**只在 Tailscale 内网访问**：<http://100.111.198.54:8880/>。用 Python 自带的静态文件服务，只监听 Tailscale 地址，不对校园网和公网开放；服务器重启后要重新运行 `serve.sh`。部署方法见 [DEVELOPMENT.md](./DEVELOPMENT.md#部署到实验室服务器tailscale-内网)。
 
 ## 最近验证结果
 
 ```text
-npm run lint       PASS
-npm run typecheck  PASS
-npm test           PASS (31 tests, 4 files)
-npm run build      PASS
-质量门禁          22 个页面 × 桌面 1440 / 手机 390，0 个 error
-设计检测器        45 次扫描全部为 0（例外：Geist 字体、吸顶摘要、贴边表格，写在 .impeccable/config.json）
-可访问性脚本      63 个页面组合，没有问题
-断行检查          9 个宽度，只剩首页一处在逗号处的正常换行
-浏览器            桌面 1440、1280、1120、768、730 与手机 390：新建任务（含高级配置、说明、正式运行确认、取消）、从新建任务去新增参与方再回来、参与方详情与删除确认、模型接口新增和编辑、任务详情四个标签（含取消确认、发布为应用）、应用试用 / 重命名 / 撤下、算法详情、404
+npm run check      PASS（lint、类型检查、38 个测试、生产构建）
+质量门禁          改动的页面 × 桌面 / 手机，0 个 error、0 个 warning（例外写在 .impeccable/config.json）
+可访问性脚本      81 个页面组合，没有问题
+断行检查          9 个宽度，只剩上传框提示在"；"处的正常换行
+部署              http://100.111.198.54:8880/（Tailscale）首页、任务概览（含图表）正常，控制台无报错
 ```
 
 任务记录见 [HISTORY.md](./HISTORY.md)。

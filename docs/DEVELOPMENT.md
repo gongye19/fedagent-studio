@@ -91,6 +91,20 @@ app/src/
 
 后端结构、FoT 引擎的拆分方式和参数映射见 [ARCHITECTURE.md](./ARCHITECTURE.md)。
 
+## 部署到实验室服务器（Tailscale 内网）
+
+前端是纯静态文件（hash 路由，不需要服务端路由），构建后放到实验室服务器上，用 Python 自带的静态文件服务。只监听服务器的 Tailscale 地址，校园网和公网都访问不到；本机要先加入 Tailscale，并能用密钥登录服务器（不用密码）。
+
+```bash
+bash deploy/deploy.sh
+```
+
+脚本依次：构建 `app/dist`、同步到服务器的 `~/fedagent-studio/dist`、上传并运行 `deploy/serve.sh`（先停掉旧进程再启动）。打开 <http://100.111.198.54:8880/>。
+
+- 演示数据保存在每个访问者自己的浏览器里，互不影响；
+- 进程在退出 SSH 后继续运行，但服务器重启后要重新运行 `bash ~/fedagent-studio/serve.sh`；
+- 停止：`kill "$(cat ~/fedagent-studio/serve.pid)"`，日志在 `~/fedagent-studio/serve.log`。
+
 ## 测试约定
 
 - `domain/*.test.ts`：配置校验与预估、题库检查、任务状态机和指标。
