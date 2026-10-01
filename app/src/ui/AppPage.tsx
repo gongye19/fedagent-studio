@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type Dispatch } from "react";
-import { TASK_TYPES } from "../domain/catalog";
+import { algorithmOf, scenarioOf, TASK_TYPES } from "../domain/catalog";
 import { DEFAULT_ENDPOINT_ID, DEFAULT_MODEL, isConfigured, modelLabel, modelOptions } from "../domain/resources";
 import { TRY_EXAMPLE } from "../domain/sample";
 import { outputs, type OutputVersion, type Task } from "../domain/task";
@@ -11,7 +11,6 @@ import { Field, FieldGroup, Panel } from "./console";
 import { formatDate } from "./format";
 import { Icon } from "./icons";
 import { OutputGroups } from "./OutputGroups";
-import { algorithmOfTask } from "./labels";
 
 type Props = { item: Published; task: Task | undefined; state: State; dispatch: Dispatch<Action>; tab?: AppTab };
 
@@ -63,13 +62,18 @@ export default function AppPage({ item, task, state, dispatch, tab }: Props) {
   if (!task || !version) {
     return (
       <>
-        <PageHead title={item.name} crumbs={[{ label: "应用", route: { page: "apps" } }]} actions={editing ? null : manage} />
+        <PageHead
+          title={item.name}
+          crumbs={[{ label: "应用", route: { page: "apps" } }]}
+          meta={<Meta parts={[scenarioOf(item.scenario).short, TASK_TYPES[item.taskType].label, algorithmOf(item.algorithm).name]} />}
+          actions={editing ? null : manage}
+        />
         {editor}
         <EmptyState title="来源任务已不存在"><p>演示数据重置后，之前发布的应用会失效，可以撤下。</p></EmptyState>
       </>
     );
   }
-  const algorithm = algorithmOfTask(task);
+  const algorithm = algorithmOf(item.algorithm);
   const active: AppTab = tab ?? "try";
 
   return (
@@ -78,8 +82,10 @@ export default function AppPage({ item, task, state, dispatch, tab }: Props) {
         crumbs={[{ label: "应用", route: { page: "apps" } }]}
         title={item.name}
         meta={<Meta parts={[
-          `${algorithm.output.name} · ${algorithm.name}`,
-          `${version.items.length} 条`,
+          scenarioOf(item.scenario).short,
+          TASK_TYPES[item.taskType].label,
+          algorithm.name,
+          `${algorithm.output.name} ${version.items.length} 条`,
           <>来源任务 <a className="text-link" href={hrefOf({ page: "task", id: task.id, tab: "output" })}>{task.name}</a></>,
           `发布于 ${formatDate(item.publishedAt)}`,
         ]} />}

@@ -33,13 +33,12 @@ export function stageText(task: Task): string | null {
 
 /**
  * 列表和详情页标题下的摘要：场景、任务类型、算法、参与方数、运行方式。交给 Meta 排版，折行时分隔点不落在行首行尾。
- * 任务列表已经按场景分组，传 withScenario: false 省掉场景。
+ * 任务列表已经按场景分块、任务类型单独一列，传 withCategory: false 省掉这两项。
  */
-export function taskSummaryParts(task: Task, { withScenario = true }: { withScenario?: boolean } = {}): string[] {
+export function taskSummaryParts(task: Task, { withCategory = true }: { withCategory?: boolean } = {}): string[] {
   const mode = task.config.mode === "trial" ? "试跑" : "正式运行";
   return [
-    ...(withScenario ? [scenarioOf(task.config.scenario).short] : []),
-    TASK_TYPES[task.config.taskType].label,
+    ...(withCategory ? [scenarioOf(task.config.scenario).short, TASK_TYPES[task.config.taskType].label] : []),
     algorithmOfTask(task).name,
     `${task.members.length} 个参与方`,
     mode,

@@ -139,7 +139,7 @@ function Page({ state, dispatch, route }: { state: State; dispatch: Dispatch<Act
         : <NotFound kind="应用" back={{ page: "apps" }} backLabel="应用" />;
     }
     case "participants":
-      return <ParticipantsPage state={state} dispatch={dispatch} scenario={route.scenario} selectedId={route.id} />;
+      return <ParticipantsPage state={state} dispatch={dispatch} selectedId={route.id} />;
     case "newParticipant":
       return <NewParticipantPage state={state} dispatch={dispatch} from={route.from} />;
     case "newDataset":

@@ -7,7 +7,7 @@
  * #/tasks/:id[/标签]           任务详情
  * #/apps                      应用（任务产出发布后的成果）
  * #/apps/:id[/标签]            应用详情
- * #/participants[/场景[/:id]] 参与方与数据：按场景分标签，标签里按任务类型分组；带 id 时展开这个参与方
+ * #/participants[/场景[/:id]] 参与方与数据：按场景分块；带 id 时展开那一行（数据集 id，或参与方 id）
  * #/participants/new          新增参与方
  * #/datasets/new              新增数据集（?participant=参与方 id 时预先选好参与方）
  * #/algorithms[/:id]          算法：按场景分栏；带 id 时是这个算法的详情页

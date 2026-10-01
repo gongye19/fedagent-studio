@@ -1,58 +1,107 @@
+import { useState } from "react";
+import { algorithmOf, SCENARIOS, TASK_TYPES } from "../domain/catalog";
 import { outputs } from "../domain/task";
 import { hrefOf } from "../state/route";
-import { taskOf, type State } from "../state/store";
-import { EmptyState, PageHead } from "./common";
+import { taskOf, type Published, type State } from "../state/store";
+import { PageHead, PanelEmpty, Tag } from "./common";
 import { Panel } from "./console";
+import { TaskTypeSelect, type TaskTypeFilter } from "./filters";
 import { formatDate } from "./format";
-import { algorithmOfTask } from "./labels";
 
-/** 应用：任务的产出发布后，可以试用或接入自己的 Agent。 */
+/**
+ * 应用：任务的产出发布后的成果，可以直接试用，也可以接入自己的 Agent。
+ * 和联邦任务一样按场景分块（横向、纵向、迁移），任务类型是第二层分类：表格里单独一列，上方可以按任务类型筛选。
+ * 分类来自发布时记下的来源任务，来源任务删掉了也还在原来的类别里。
+ */
 export default function AppsPage({ state }: { state: State }) {
-  if (!state.published.length) {
-    return (
-      <>
-        <PageHead title="应用" />
-        <EmptyState title="还没有应用" action={<a className="button button--secondary" href={hrefOf({ page: "tasks" })}>查看联邦任务</a>}>
-          <p>在任务详情的“产出”里，把任意一版产出发布为应用。</p>
-        </EmptyState>
-      </>
-    );
-  }
+  const [taskType, setTaskType] = useState<TaskTypeFilter>("all");
+  const [query, setQuery] = useState("");
+  const keyword = query.trim().toLowerCase();
+  const filtered = state.published.filter((item) => (
+    (taskType === "all" || item.taskType === taskType) && (!keyword || item.name.toLowerCase().includes(keyword))
+  ));
+  const filtering = taskType !== "all" || Boolean(keyword);
+
   return (
     <>
       <PageHead title="应用" meta="任务的产出发布后成为应用，可以直接试用，也可以接入自己的 Agent。" />
-      <Panel flush>
-        <div className="table-shell">
-          <table className="table table--stack">
-            <thead>
-              <tr>
-                <th scope="col">应用</th>
-                <th scope="col">类型</th>
-                <th scope="col">来源任务</th>
-                <th scope="col" className="numeric">发布时间</th>
-              </tr>
-            </thead>
-            <tbody>
-              {state.published.map((item) => {
-                const task = taskOf(state, item.taskId);
-                const version = task ? outputs(task).find((output) => output.builtAfterRound === item.builtAfterRound) : undefined;
-                const algorithm = task ? algorithmOfTask(task) : null;
-                return (
-                  <tr key={item.id}>
-                    <th scope="row">
-                      <a className="table-link" href={hrefOf({ page: "app", id: item.id })}>{item.name}</a>
-                      <small>{version ? `${version.items.length} 条 · 第 ${item.builtAfterRound} 轮后` : `第 ${item.builtAfterRound} 轮后`}</small>
-                    </th>
-                    <td data-label="类型">{algorithm ? `${algorithm.output.name} · ${algorithm.name}` : "—"}</td>
-                    <td data-label="来源任务">{task ? <a className="text-link" href={hrefOf({ page: "task", id: task.id })}>{task.name}</a> : "任务已删除"}</td>
-                    <td className="numeric nowrap" data-label="发布时间">{formatDate(item.publishedAt)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      {state.published.length ? (
+        <div className="list-toolbar">
+          <input
+            type="search"
+            name="app-search"
+            autoComplete="off"
+            aria-label="搜索应用名称"
+            placeholder="搜索应用名称…"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          <TaskTypeSelect value={taskType} onChange={setTaskType} />
+          {filtering ? <button type="button" className="button button--ghost button--compact" onClick={() => { setQuery(""); setTaskType("all"); }}>清除筛选</button> : null}
         </div>
-      </Panel>
+      ) : null}
+      <div className="panel-stack">
+        {SCENARIOS.map((scenario) => {
+          const available = scenario.status === "available";
+          const all = state.published.filter((item) => item.scenario === scenario.id);
+          const items = filtered.filter((item) => item.scenario === scenario.id);
+          return (
+            <Panel
+              key={scenario.id}
+              id={`apps-${scenario.id}`}
+              title={<>{scenario.name}{available ? null : <Tag>规划中</Tag>}</>}
+              extra={available ? `${all.length} 个应用` : undefined}
+              flush
+            >
+              {items.length ? <AppTable state={state} items={items} /> : (
+                <PanelEmpty>
+                  {!available
+                    ? `${scenario.short}的算法还在规划中，还没有这个场景的应用。`
+                    : all.length ? "没有符合条件的应用。" : `还没有${scenario.short}的应用。在任务详情的"产出"里，把一版产出发布为应用。`}
+                </PanelEmpty>
+              )}
+            </Panel>
+          );
+        })}
+      </div>
     </>
+  );
+}
+
+/** 一个场景下的应用：名称（条数和版本）、任务类型、产出、来源任务、发布时间。 */
+function AppTable({ state, items }: { state: State; items: readonly Published[] }) {
+  return (
+    <div className="table-shell">
+      <table className="table table--stack">
+        <thead>
+          <tr>
+            <th scope="col">应用</th>
+            <th scope="col">任务类型</th>
+            <th scope="col">产出</th>
+            <th scope="col">来源任务</th>
+            <th scope="col" className="numeric">发布时间</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item) => {
+            const task = taskOf(state, item.taskId);
+            const version = task ? outputs(task).find((output) => output.builtAfterRound === item.builtAfterRound) : undefined;
+            const algorithm = algorithmOf(item.algorithm);
+            return (
+              <tr key={item.id}>
+                <th scope="row">
+                  <a className="table-link" href={hrefOf({ page: "app", id: item.id })}>{item.name}</a>
+                  <small>{version ? `${version.items.length} 条 · 第 ${item.builtAfterRound} 轮后` : `第 ${item.builtAfterRound} 轮后`}</small>
+                </th>
+                <td data-label="任务类型">{TASK_TYPES[item.taskType].label}</td>
+                <td data-label="产出">{algorithm.output.name}<small>{algorithm.name}</small></td>
+                <td data-label="来源任务">{task ? <a className="text-link" href={hrefOf({ page: "task", id: task.id })}>{task.name}</a> : "任务已删除"}</td>
+                <td className="numeric nowrap" data-label="发布时间">{formatDate(item.publishedAt)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }

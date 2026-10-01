@@ -46,16 +46,16 @@ app/src/
 ├── ui/
 │   ├── HomePage.tsx         首页：居中的三张场景卡片（可用的点进去新建这个场景的任务）
 │   ├── ScenarioArt.tsx      场景卡片上的示意图（横向按行分、纵向按列分、迁移从已有领域到新领域）
-│   ├── TasksPage.tsx        联邦任务：按场景分块列出任务，每块一个"新建联邦任务"（名称搜索、状态筛选对所有块生效）
+│   ├── TasksPage.tsx        联邦任务：按场景分块列出任务（任务类型是一列），每块一个"新建联邦任务"；名称搜索、任务类型和状态筛选对所有块生效
 │   ├── HorizontalTaskPage.tsx 横向联邦的任务配置页（控制台风格的配置面板 + 右侧配置摘要 + 窄屏吸底操作栏）；每个场景各有自己的配置页
 │   ├── TaskPage.tsx         任务详情（task/ 下是概览、进度、产出、配置四个标签）
-│   ├── AppsPage.tsx         应用列表（任务产出发布后的成果）
+│   ├── AppsPage.tsx         应用列表：和联邦任务一样按场景分块，任务类型是一列；名称搜索、任务类型筛选
 │   ├── AppPage.tsx          应用详情：试用、内容、接入
-│   ├── ParticipantsPage.tsx 参与方与数据：按场景分标签，每个标签一张表（一行一份数据集，任务类型是一列）；详情里有数据集、连接命令、新增和删除
+│   ├── ParticipantsPage.tsx 参与方与数据：按场景分块，每块一张表（一行一份数据集，任务类型是一列）；名称搜索、任务类型筛选；详情里有数据集、连接命令、新增和删除
 │   ├── NewParticipantPage.tsx 新增参与方（独立页面，同时登记第一份数据集）
 │   ├── NewDatasetPage.tsx   新增数据集（独立页面：参与方 → 场景 → 任务类型 → 文件或名称）
 │   ├── DatasetFields.tsx / datasetForm.ts 登记数据集的字段和规则（场景、任务类型、在浏览器里检查文件；新增参与方和新增数据集共用）
-│   ├── AlgorithmsPage.tsx   算法：按场景分三栏的算法卡片，每栏最后是"待接入"的空位
+│   ├── AlgorithmsPage.tsx   算法：按场景分三栏的算法卡片，每栏最后是"待接入"的空位；可以按任务类型筛选
 │   ├── AlgorithmPage.tsx    算法详情：概况、每轮步骤、参数（默认值和说明）、来源
 │   ├── ModelsPage.tsx       模型接口列表
 │   ├── EndpointPage.tsx     新增、编辑模型接口（独立页面）
@@ -63,6 +63,7 @@ app/src/
 │   ├── OutputGroups.tsx     按类别列出产出里的条目（任务产出和应用内容共用）
 │   ├── console.tsx          控制台风格的表单组件：Panel（配置面板）、Field / FieldGroup（字段名在上的表单字段和两栏网格）、UnitInput（带单位的输入框）、Choices（选项按钮组，可以在最后留"待接入"的空位）
 │   ├── common.tsx           共用组件：Tag（唯一的标签）、PageHead（同时设置浏览器标题）、Confirm（页面内的确认条）、Notice、FormActions、Meta（分隔点不落在行首行尾）、CodeBlock、Collapsible、PanelEmpty、Stat、Facts 等
+│   ├── filters.tsx          列表页共用的任务类型筛选（联邦任务、应用、参与方与数据、算法）
 │   ├── TaskTable.tsx / labels.ts / format.ts / icons.tsx
 ├── App.tsx             外框与侧栏导航（四个一级导航；基础管理是可以展开的一组）
 ├── main.tsx
@@ -118,6 +119,7 @@ bash deploy/deploy.sh
   - 决定任务内容的选择（场景、任务类型、算法、参与方、运行位置、数据集的场景和任务类型）即使只有一个选项，也由用户自己选，不预先选好；只有一个取值、又不需要用户决定的字段（例如只有一个模型）直接显示文字；
   - 不可逆的操作一律用 `Confirm` 在原地确认，不用 `window.confirm`；创建、保存、发布、删除之后用 `showFlash(目标页, 文字)` 在目标页顶部提示；
   - 多段元信息一律交给 `Meta`，不要在字符串里拼" · "；
+  - 列表页的分类统一两层：先按场景分块（每个场景一个 `Panel`，规划中的场景标"规划中"），任务类型是表格的一列；上方 `.list-toolbar` 放搜索和 `TaskTypeSelect`，对所有场景一起生效。新的列表页照这个写，不要用标签页切换场景，也不要把任务类型做成分组标题；
   - 互斥的少量选项用 `Choices`，选项多或次要设置用下拉，选对象（算法、参与方）用带单选 / 复选的表格；
   - 标签一律用 `Tag`，折叠一律用 `Collapsible`，代码块一律用 `CodeBlock`；
   - 表单底部一律用 `FormActions`：保存按钮不可用时写明还缺什么（和按钮关联，读屏也能听到）；

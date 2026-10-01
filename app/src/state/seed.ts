@@ -98,7 +98,7 @@ function runningTrialTask(): Task {
 
 export function seedState(): State {
   return {
-    version: 7,
+    version: 8,
     // 新登记的参与方排在前面，内置示例在后。
     participants: [{ ...LOCAL_EXAMPLE }, ...BUILTIN_PARTICIPANTS.map((item) => ({ ...item }))],
     datasets: [{ ...LOCAL_EXAMPLE_DATASET }, ...BUILTIN_DATASETS.map((item) => ({ ...item }))],
@@ -111,6 +111,9 @@ export function seedState(): State {
         builtAfterRound: 3,
         name: "数学推理经验库（8 方）",
         publishedAt: "2026-09-26T14:05:00+08:00",
+        scenario: "horizontal",
+        taskType: "math-reasoning",
+        algorithm: "fot",
       },
     ],
     draft: { ...DEFAULT_DRAFT },

@@ -21,14 +21,21 @@ import { DEFAULT_ENDPOINT_ID, type Dataset, type Endpoint, type Participant } fr
 import { cancel, createTask, pause, resume, tick, type Task } from "../domain/task";
 import { seedState } from "./seed";
 
-export const STATE_VERSION = 7;
+export const STATE_VERSION = 8;
 
+/**
+ * 发布的应用。发布时记下来源任务的场景、任务类型和算法：应用列表按它们分类，
+ * 来源任务以后被删掉、演示数据被重置，应用也还知道自己属于哪一类。
+ */
 export type Published = {
   id: string;
   taskId: string;
   builtAfterRound: number;
   name: string;
   publishedAt: string;
+  scenario: ScenarioId;
+  taskType: TaskType;
+  algorithm: AlgorithmId;
 };
 
 export type State = {
@@ -187,6 +194,9 @@ export function reducer(state: State, action: Action): State {
         builtAfterRound: action.builtAfterRound,
         name: action.name.trim() || task.name,
         publishedAt: action.publishedAt,
+        scenario: task.config.scenario,
+        taskType: task.config.taskType,
+        algorithm: task.config.algorithm,
       };
       return { ...state, published: [item, ...state.published] };
     }

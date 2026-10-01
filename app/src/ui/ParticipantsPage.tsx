@@ -4,33 +4,36 @@ import { HOSTING_LABELS, PARTICIPANT_STATUS, type Dataset, type Participant } fr
 import { showFlash } from "../state/flash";
 import { hrefOf, navigate } from "../state/route";
 import { datasetsOf, type Action, type State } from "../state/store";
-import { CodeBlock, Confirm, EmptyState, Facts, PageHead, TabLinks, Tag } from "./common";
+import { CodeBlock, Confirm, Facts, PageHead, PanelEmpty, Tag } from "./common";
 import { Panel } from "./console";
+import { TaskTypeSelect, type TaskTypeFilter } from "./filters";
 import { formatNumber } from "./format";
 import { Icon } from "./icons";
 
-type Props = { state: State; dispatch: Dispatch<Action>; scenario?: ScenarioId; selectedId?: string };
+/** selectedId：要展开的那一行（数据集 id，或参与方 id 时展开它的每一行）。 */
+type Props = { state: State; dispatch: Dispatch<Action>; selectedId?: string };
 
 /** 表格的一行：一个参与方在这个场景下登记的一份数据集。 */
 type Row = { participant: Participant; dataset: Dataset };
 
 /**
- * 参与方与数据：按场景分标签（横向、纵向、迁移）。每个标签一张表，只写参与方和数据：
+ * 参与方与数据：和联邦任务、应用一样按场景分块（横向、纵向、迁移），每块一张表，只写参与方和数据：
  * 一行是一个参与方在这个场景下登记的一份数据集，列为参与方、数据集、任务类型、样本数。
- * 参加了哪些任务属于联邦任务，不在这里显示。参与方本身不绑定场景：它在几个场景下有数据集，就出现在几个标签里。
+ * 任务类型是第二层分类：表格里单独一列，上方可以按任务类型筛选。参加了哪些任务属于联邦任务，不在这里显示。
+ * 参与方本身不绑定场景：它在几个场景下有数据集，就出现在几块里。
  */
-export default function ParticipantsPage({ state, dispatch, scenario, selectedId }: Props) {
-  // 地址里没写场景时（例如只带了参与方的链接），打开这个参与方的数据集所在的场景，否则打开第一个场景。
-  const active: ScenarioId = scenario
-    ?? state.datasets.find((dataset) => dataset.participantId === selectedId || dataset.id === selectedId)?.scenario
-    ?? SCENARIOS[0].id;
+export default function ParticipantsPage({ state, dispatch, selectedId }: Props) {
+  const [taskType, setTaskType] = useState<TaskTypeFilter>("all");
+  const [query, setQuery] = useState("");
+  const keyword = query.trim().toLowerCase();
   // 新登记的参与方在前（登记时插到最前面），内置示例在后；同一个参与方的几份数据集排在一起。
   const participants = [...state.participants].sort((a, b) => Number(Boolean(a.builtin)) - Number(Boolean(b.builtin)));
-  const rows: Row[] = participants.flatMap((participant) => datasetsOf(state, participant.id)
-    .filter((dataset) => dataset.scenario === active)
+  const rowsOf = (scenario: ScenarioId) => participants.flatMap((participant) => datasetsOf(state, participant.id)
+    .filter((dataset) => dataset.scenario === scenario)
     .map((dataset) => ({ participant, dataset })));
-  const countOf = (id: ScenarioId) => new Set(state.datasets.filter((dataset) => dataset.scenario === id).map((dataset) => dataset.participantId)).size;
-  const current = SCENARIOS.find((item) => item.id === active) ?? SCENARIOS[0];
+  const matches = ({ participant, dataset }: Row) => (taskType === "all" || dataset.taskType === taskType)
+    && (!keyword || participant.name.toLowerCase().includes(keyword) || dataset.name.toLowerCase().includes(keyword));
+  const filtering = taskType !== "all" || Boolean(keyword);
 
   return (
     <>
@@ -44,29 +47,44 @@ export default function ParticipantsPage({ state, dispatch, scenario, selectedId
           </>
         )}
       />
-      <TabLinks
-        label="联邦场景"
-        tabs={SCENARIOS.map((item) => ({
-          id: item.id,
-          label: <>{item.short}<span className="tab-count">{item.status === "available" || countOf(item.id) ? countOf(item.id) : "规划中"}</span></>,
-        }))}
-        active={active}
-        routeOf={(id) => ({ page: "participants", scenario: id })}
-      />
-      <div className="tab-panel">
-        {rows.length ? (
-          <Panel title="参与方" extra={`共 ${new Set(rows.map((row) => row.participant.id)).size} 个，${rows.length} 份数据集`} flush>
-            <DataTable state={state} dispatch={dispatch} scenario={active} rows={rows} selectedId={selectedId} />
-          </Panel>
-        ) : current.status === "available" ? (
-          <EmptyState title="还没有参与方" action={<a className="button button--secondary" href={hrefOf({ page: "newParticipant" })}>新增参与方</a>}>
-            <p>登记了{current.short}数据集的参与方会列在这里。</p>
-          </EmptyState>
-        ) : (
-          <EmptyState title="还没有参与方">
-            <p>{current.short}的算法还在规划中，接入后可以登记这个场景的数据集。</p>
-          </EmptyState>
-        )}
+      <div className="list-toolbar">
+        <input
+          type="search"
+          name="participant-search"
+          autoComplete="off"
+          aria-label="搜索参与方或数据集"
+          placeholder="搜索参与方或数据集…"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+        <TaskTypeSelect value={taskType} onChange={setTaskType} />
+        {filtering ? <button type="button" className="button button--ghost button--compact" onClick={() => { setQuery(""); setTaskType("all"); }}>清除筛选</button> : null}
+      </div>
+      <div className="panel-stack">
+        {SCENARIOS.map((scenario) => {
+          const available = scenario.status === "available";
+          const all = rowsOf(scenario.id);
+          const rows = all.filter(matches);
+          return (
+            <Panel
+              key={scenario.id}
+              id={`participants-${scenario.id}`}
+              title={<>{scenario.name}{available ? null : <Tag>规划中</Tag>}</>}
+              extra={all.length ? `${new Set(all.map((row) => row.participant.id)).size} 个参与方，${all.length} 份数据集` : undefined}
+              flush
+            >
+              {rows.length ? <DataTable state={state} dispatch={dispatch} scenario={scenario.id} rows={rows} selectedId={selectedId} /> : (
+                <PanelEmpty>
+                  {all.length
+                    ? "没有符合条件的参与方。"
+                    : available
+                      ? `还没有参与方登记${scenario.short}的数据集。`
+                      : `${scenario.short}的算法还在规划中，接入后可以登记这个场景的数据集。`}
+                </PanelEmpty>
+              )}
+            </Panel>
+          );
+        })}
       </div>
     </>
   );

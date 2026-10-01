@@ -5,6 +5,7 @@ import { hrefOf } from "../state/route";
 import type { State } from "../state/store";
 import { PageHead, PanelEmpty, Tag } from "./common";
 import { Panel } from "./console";
+import { TaskTypeSelect, type TaskTypeFilter } from "./filters";
 import { Icon } from "./icons";
 import { sortTasks } from "./labels";
 import { TaskTable } from "./TaskTable";
@@ -14,17 +15,20 @@ type Filter = "all" | TaskStatus;
 /**
  * 联邦任务：按场景分块（横向、纵向、迁移），每块列出这个场景下的任务，右上角是这个场景的"新建联邦任务"。
  * 新建时进的是这个场景自己的配置页，和首页点场景卡片进去的是同一页；规划中的场景按钮不可用。
- * 搜索和状态筛选对所有场景一起生效。
+ * 任务类型是第二层分类：表格里单独一列，上方可以按任务类型筛选；搜索和筛选对所有场景一起生效。
  */
 export default function TasksPage({ state }: { state: State }) {
   const [filter, setFilter] = useState<Filter>("all");
+  const [taskType, setTaskType] = useState<TaskTypeFilter>("all");
   const [query, setQuery] = useState("");
   const keyword = query.trim().toLowerCase();
   const filtered = sortTasks(state.tasks.filter((task) => (
-    (filter === "all" || task.status === filter) && (!keyword || task.name.toLowerCase().includes(keyword))
+    (filter === "all" || task.status === filter)
+    && (taskType === "all" || task.config.taskType === taskType)
+    && (!keyword || task.name.toLowerCase().includes(keyword))
   )));
-  const filtering = filter !== "all" || Boolean(keyword);
-  const clear = () => { setQuery(""); setFilter("all"); };
+  const filtering = filter !== "all" || taskType !== "all" || Boolean(keyword);
+  const clear = () => { setQuery(""); setFilter("all"); setTaskType("all"); };
 
   return (
     <>
@@ -40,6 +44,7 @@ export default function TasksPage({ state }: { state: State }) {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
+          <TaskTypeSelect value={taskType} onChange={setTaskType} />
           <select name="task-status" aria-label="按状态筛选" value={filter} onChange={(event) => setFilter(event.target.value as Filter)}>
             <option value="all">全部状态</option>
             {(Object.keys(TASK_STATUS) as TaskStatus[]).map((status) => <option key={status} value={status}>{TASK_STATUS[status]}</option>)}
@@ -63,7 +68,7 @@ export default function TasksPage({ state }: { state: State }) {
                 : <button type="button" className="button button--secondary button--compact" disabled><Icon name="plus" />新建联邦任务</button>}
               flush
             >
-              {tasks.length ? <TaskTable tasks={tasks} withScenario={false} /> : (
+              {tasks.length ? <TaskTable tasks={tasks} /> : (
                 <PanelEmpty>
                   {!available
                     ? `${scenario.short}的算法还在规划中，接入后可以在这里新建任务。`

@@ -1,3 +1,4 @@
+import { TASK_TYPES } from "../domain/catalog";
 import { averageAccuracy, latestScoredRound, progressOf, TASK_STATUS, type Task } from "../domain/task";
 import { hrefOf } from "../state/route";
 import { Meta, ProgressBar, Tag } from "./common";
@@ -26,14 +27,18 @@ export function MetricChange({ task }: { task: Task }) {
   );
 }
 
-/** 任务表格。放在按场景分组的列表里时传 withScenario={false}，摘要里不再重复场景。 */
-export function TaskTable({ tasks, withScenario = true }: { tasks: readonly Task[]; withScenario?: boolean }) {
+/**
+ * 任务表格，放在联邦任务页按场景分好的块里：任务类型单独一列（第二层分类），
+ * 名称下面的摘要只写算法、参与方数和运行方式，不再重复场景和任务类型。
+ */
+export function TaskTable({ tasks }: { tasks: readonly Task[] }) {
   return (
     <div className="table-shell">
       <table className="table table--stack">
         <thead>
           <tr>
             <th scope="col">任务</th>
+            <th scope="col">任务类型</th>
             <th scope="col">状态</th>
             <th scope="col" className="numeric">主要指标（本地 → 联邦）</th>
             <th scope="col" className="numeric">创建时间</th>
@@ -46,8 +51,9 @@ export function TaskTable({ tasks, withScenario = true }: { tasks: readonly Task
               <tr key={task.id}>
                 <th scope="row">
                   <a className="table-link" href={hrefOf({ page: "task", id: task.id })}>{task.name}</a>
-                  <small><Meta parts={taskSummaryParts(task, { withScenario })} /></small>
+                  <small><Meta parts={taskSummaryParts(task, { withCategory: false })} /></small>
                 </th>
+                <td data-label="任务类型">{TASK_TYPES[task.config.taskType].label}</td>
                 <td className="progress-cell" data-label="状态">
                   <div className="progress-line">
                     <TaskStatus task={task} />

@@ -57,6 +57,8 @@ describe("store", () => {
     const action = { type: "publish", id: "lib-r2", taskId: "task-paper-math8", builtAfterRound: 2, name: "第 3 轮版本", publishedAt: NOW } as const;
     const once = reducer(state, action);
     expect(once.published).toHaveLength(2);
+    // 应用记下来源任务的分类
+    expect(once.published[0]).toMatchObject({ id: "lib-r2", scenario: "horizontal", taskType: "math-reasoning", algorithm: "fot" });
     expect(reducer(once, { ...action, id: "lib-r2-again" })).toBe(once);
     expect(reducer(state, { ...action, builtAfterRound: 9 })).toBe(state);
   });

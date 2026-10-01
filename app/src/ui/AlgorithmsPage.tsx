@@ -1,26 +1,35 @@
+import { useState } from "react";
 import { algorithmsFor, SCENARIOS, TASK_TYPES } from "../domain/catalog";
 import { hrefOf } from "../state/route";
 import { PageHead, Tag } from "./common";
+import { TaskTypeSelect, type TaskTypeFilter } from "./filters";
 import { Icon } from "./icons";
 
 /**
  * 算法：按场景分成三栏（横向、纵向、迁移），每栏列出这个场景下的算法，一眼看出每一类有哪些算法。
+ * 任务类型是第二层分类：卡片上写出算法支持的任务类型，上方可以按任务类型筛选（和联邦任务、应用、参与方与数据一样）。
  * 每栏最后留一个"待接入"的空位，表示之后还会接入别的算法。点一个算法打开它的详情页。
  */
 export default function AlgorithmsPage() {
+  const [taskType, setTaskType] = useState<TaskTypeFilter>("all");
   return (
     <>
       <PageHead title="算法" meta="每个算法只属于一个场景。点开一个算法，看它每轮做什么、有哪些参数、出自哪里。" />
+      <div className="list-toolbar">
+        <TaskTypeSelect value={taskType} onChange={setTaskType} />
+        {taskType !== "all" ? <button type="button" className="button button--ghost button--compact" onClick={() => setTaskType("all")}>清除筛选</button> : null}
+      </div>
       {/* 放得下时三栏并排，窄屏上下排，见 styles.css */}
       <div className="algo-board-shell">
         <div className="algo-board">
           {SCENARIOS.map((scenario) => {
-            const algorithms = algorithmsFor(scenario.id);
+            const all = algorithmsFor(scenario.id);
+            const algorithms = taskType === "all" ? all : algorithmsFor(scenario.id, taskType);
             return (
               <section key={scenario.id} className="algo-column" aria-labelledby={`algo-${scenario.id}`}>
                 <header className="algo-column-head">
                   <h2 id={`algo-${scenario.id}`}>{scenario.name}</h2>
-                  {scenario.status === "available" ? <span className="algo-count">{algorithms.length} 个算法</span> : <Tag>规划中</Tag>}
+                  {scenario.status === "available" ? <span className="algo-count">{all.length} 个算法</span> : <Tag>规划中</Tag>}
                 </header>
                 <ul className="algo-list">
                   {algorithms.map((algorithm) => (
@@ -39,6 +48,7 @@ export default function AlgorithmsPage() {
                       </a>
                     </li>
                   ))}
+                  {all.length && !algorithms.length ? <li className="algo-empty">没有支持这个任务类型的算法。</li> : null}
                   <li>
                     <div className="algo-card algo-card--placeholder">
                       <span>{algorithms.length ? "更多算法" : "算法"}</span>
