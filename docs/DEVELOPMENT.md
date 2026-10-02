@@ -4,7 +4,7 @@
 
 - Node.js 20.19+ 或 22.12+
 - npm 10+
-- 以后的后端：Python 3.11+，用 uv 在项目目录内建虚拟环境（`server/.venv`），不全局安装。
+- 以后的后端：Python 3.12，用 uv 在项目目录内建虚拟环境（`server/.venv`），不全局安装；代码结构和开发、测试、部署流程见 [ARCHITECTURE.md](./ARCHITECTURE.md) §17–18。
 
 ```bash
 cd app
@@ -72,7 +72,7 @@ app/src/
 
 ## 增加一个算法
 
-入口是注册表：
+现在算法登记在前端的注册表里。后端实现后，算法是后端的插件（一份清单加每一步的代码，见 [ARCHITECTURE.md](./ARCHITECTURE.md) §4–5），前端改为从 API 读清单，下面第 1–5 步就不用在前端做了。在那之前按下面的步骤登记：
 
 1. 在 `catalog.ts` 的 `ALGORITHMS` 里登记算法：所属场景、适用的任务类型、交换内容（`exchange`）和交换量（`exchangeVolume`：每条样本平均上传几条、最多几条、每条多少 token）、产出（`output`）、参数定义（`params`：键、控件、选项或范围、默认值）、每轮步骤（`stages`，每一步写明在哪一侧、完成后记下什么结果、预估耗时和 token、是否调用模型）、最少参与方和轮次、来源。新建任务的任务类型和算法选择、高级配置、预估、进度页、产出页和算法页都按这些字段生成，不用改页面。
 2. 场景从"规划中"改为"可用"（`SCENARIOS` 的 `status`）。
@@ -83,14 +83,13 @@ app/src/
 
 ## 接入后端
 
-真实后端不直接复用前端状态对象：
+后端按 [ARCHITECTURE.md](./ARCHITECTURE.md) 实现，前端要改的部分（§16）：
 
-1. 前端提交任务草稿，API 重新校验并冻结配置。
-2. 任务调度为任务启动引擎进程，进度和结果写入运行目录。
-3. 前端改为读 API（用 TanStack Query 轮询运行中的任务），删掉 `domain/sample.ts` 和 `tick` 模拟。
-4. 页面、任务状态机和配置校验保持不变。
-
-后端结构、FoT 引擎的拆分方式和参数映射见 [ARCHITECTURE.md](./ARCHITECTURE.md)。
+1. 注册表（场景、任务类型、算法清单）改为从 API 读，替换 `catalog.ts` 里的常量；页面已经按清单字段生成，不用改。
+2. 前端提交任务草稿，API 重新校验并冻结配置；预估改为调用 `POST /v1/tasks/estimate`。
+3. 状态改为读 API（用 TanStack Query 轮询运行中的任务），删掉 `domain/sample.ts` 和 `tick` 模拟；任务多一个"排队中"的状态。
+4. 接口类型由后端的 OpenAPI 生成（openapi-typescript）。
+5. 页面结构、任务状态机和配置校验保持不变。
 
 ## 部署到实验室服务器（Tailscale 内网）
 
@@ -105,6 +104,8 @@ bash deploy/deploy.sh
 - 演示数据保存在每个访问者自己的浏览器里，互不影响；
 - 进程在退出 SSH 后继续运行，但服务器重启后要重新运行 `bash ~/fedagent-studio/serve.sh`；
 - 停止：`kill "$(cat ~/fedagent-studio/serve.pid)"`，日志在 `~/fedagent-studio/serve.log`。
+
+后端实现后，部署脚本扩展为：本地跑完检查、构建前端、同步后端代码、`uv sync --frozen`、数据库迁移、重启 api 和 runner、健康检查。服务器上的目录布局见 [ARCHITECTURE.md](./ARCHITECTURE.md) §18。
 
 ## 测试约定
 
