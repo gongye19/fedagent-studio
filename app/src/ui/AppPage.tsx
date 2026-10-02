@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "../api/client";
 import type { components } from "../api/schema";
@@ -7,6 +8,7 @@ import type { Task } from "../domain/task";
 import { renameApp, withdrawApp } from "../state/actions";
 import { showFlash } from "../state/flash";
 import { hrefOf, navigate, type AppTab } from "../state/route";
+import { keys } from "../state/server";
 import type { Published, State } from "../state/store";
 import { CodeBlock, Confirm, Meta, Notice, PageHead, TabLinks } from "./common";
 import { Field, FieldGroup, Panel } from "./console";
@@ -224,6 +226,9 @@ function IntegratePanel({ item }: { item: Published }) {
   const body = bodyOf(item);
   const preview = JSON.stringify(Object.fromEntries(Object.entries(body).slice(0, 2)), null, 2);
   const origin = window.location.origin;
+  // 平台开了访问令牌才需要带令牌
+  const meta = useQuery({ queryKey: keys.meta, queryFn: api.meta, staleTime: 60_000 });
+  const auth = meta.data?.authRequired ? `  -H "Authorization: Bearer <访问令牌>" \\\n` : "";
   return (
     <div className="panel-stack">
       <Panel title="导出" extra="JSON 格式，放进自己 Agent 的提示词">
@@ -231,8 +236,7 @@ function IntegratePanel({ item }: { item: Published }) {
       </Panel>
       <Panel title="API" extra="带应用、不带应用各回答一次；给了标准答案时一起判分">
         <CodeBlock code={`curl -X POST ${origin}/v1/apps/${item.id}/apply \\
-  -H "Authorization: Bearer <访问令牌>" \\
-  -H "Content-Type: application/json" \\
+${auth}  -H "Content-Type: application/json" \\
   -d '{"input": "…", "model": "default"}'`} />
       </Panel>
     </div>

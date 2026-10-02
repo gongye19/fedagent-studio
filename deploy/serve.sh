@@ -5,6 +5,10 @@
 #   启动或重启：bash ~/fedagent-studio/serve.sh
 #   停止：      bash ~/fedagent-studio/serve.sh stop
 #   状态：      bash ~/fedagent-studio/serve.sh status
+#   访问令牌：  bash ~/fedagent-studio/serve.sh token on | off（改完自动重启）
+#
+# 访问令牌是可选的：data/admin-token 存在时，界面和 API 都要带这个令牌；不存在时不需要令牌，
+# Tailscale 内网里能访问这个地址的人都能使用全部功能。部署不会自动生成令牌。
 #
 # 所有文件都在这个目录里，删掉目录就干净了：
 #   bin/uv          uv（从 GitHub 发布页下载，核对 sha256）
@@ -13,7 +17,7 @@
 #   dist/           前端构建产物
 #   client/         参与方客户端、SDK 和插件的安装包（*.whl），在 /client/ 下提供
 #   server/         后端代码，虚拟环境在 server/.venv
-#   data/           数据库、数据集、运行目录、模型密钥的加密密钥、访问令牌（部署不覆盖）
+#   data/           数据库、数据集、运行目录、模型密钥的加密密钥、访问令牌（开启时才有；部署不覆盖）
 #   logs/  run/     日志和进程号
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -75,29 +79,41 @@ ensure_uv() {
   echo "installed $(bin/uv --version)"
 }
 
-# 访问令牌：第一次启动时生成，只保存在 data/admin-token（只有本用户能读）；浏览器第一次打开时要填。
-ensure_token() {
-  if [ ! -s data/admin-token ]; then
-    (umask 077 && python3 -c 'import secrets; print(secrets.token_urlsafe(32))' > data/admin-token)
-    echo "generated data/admin-token"
-  fi
+token_state() { if [ -s data/admin-token ]; then echo on; else echo off; fi; }
+
+# 开启：生成令牌，只保存在 data/admin-token（只有本用户能读），浏览器第一次打开时要填；关闭：删掉这个文件。
+set_token() {
+  mkdir -p data
+  case "${1:-}" in
+    on)
+      if [ ! -s data/admin-token ]; then
+        (umask 077 && python3 -c 'import secrets; print(secrets.token_urlsafe(32))' > data/admin-token)
+      fi
+      ;;
+    off) rm -f data/admin-token ;;
+    *) echo "usage: $0 token on|off" >&2; exit 2 ;;
+  esac
+  echo "access token: $(token_state)"
 }
 
 start_all() {
   mkdir -p bin data logs run
   stop_all
   ensure_uv
-  ensure_token
   # 按 uv.lock 装依赖（不装开发依赖）；需要时先下载 Python 3.12 到 python/
   (cd server && ../bin/uv sync --frozen --no-dev --python 3.12)
   "$FEDAGENT" db upgrade
-  FEDAGENT_ADMIN_TOKEN="$(cat data/admin-token)" setsid nohup "$FEDAGENT" serve --host "$HOST" --port "$PORT" >> logs/api.log 2>&1 < /dev/null &
+  # 令牌只交给 api 进程
+  (
+    if [ -s data/admin-token ]; then export FEDAGENT_ADMIN_TOKEN; FEDAGENT_ADMIN_TOKEN=$(cat data/admin-token); fi
+    exec setsid nohup "$FEDAGENT" serve --host "$HOST" --port "$PORT" >> logs/api.log 2>&1 < /dev/null
+  ) &
   echo $! > run/api.pid
   setsid nohup "$FEDAGENT" runner >> logs/runner.log 2>&1 < /dev/null &
   echo $! > run/runner.pid
   for _ in $(seq 1 60); do
     if curl -fsS "http://$HOST:$PORT/healthz" > /dev/null 2>&1; then
-      echo "serving on http://$HOST:$PORT/ (api pid $(cat run/api.pid), runner pid $(cat run/runner.pid))"
+      echo "serving on http://$HOST:$PORT/ (api pid $(cat run/api.pid), runner pid $(cat run/runner.pid), access token $(token_state))"
       return 0
     fi
     alive api || break
@@ -113,11 +129,13 @@ status() {
     if alive "$name"; then echo "$name: running (pid $(cat "run/$name.pid"))"; else echo "$name: stopped"; fi
   done
   if curl -fsS "http://$HOST:$PORT/healthz" > /dev/null 2>&1; then echo "health: ok"; else echo "health: unreachable"; fi
+  echo "access token: $(token_state)"
 }
 
 case "${1:-start}" in
   start | restart) start_all ;;
   stop) mkdir -p run && stop_all ;;
   status) status ;;
-  *) echo "usage: $0 [start|stop|status]" >&2; exit 2 ;;
+  token) set_token "${2:-}" && start_all ;;
+  *) echo "usage: $0 [start|stop|status|token on|off]" >&2; exit 2 ;;
 esac

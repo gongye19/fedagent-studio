@@ -14,11 +14,13 @@ from collections.abc import Iterator
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, FastAPI, File, Form, Header, HTTPException, Query, Request, Response, UploadFile
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fedagent_sdk import ModelError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from starlette.types import Scope
 
 from . import __version__, apps, clients, resources, tasks
 from . import models as m
@@ -485,9 +487,20 @@ def client_fail(unit_id: int, body: FailIn, auth: ClientDep, platform: PlatformD
 # —— 组装 ——
 
 
+class FrontendFiles(StaticFiles):
+    """前端构建产物：带哈希的 assets/ 长期缓存；index.html 每次都向服务端确认，部署新版本后马上生效。"""
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable" if path.startswith("assets/") else "no-cache"
+        return response
+
+
 def create_app(platform: Platform) -> FastAPI:
     app = FastAPI(title="FedAgent Studio API", version=__version__)
     app.state.platform = platform
+    # 经 Tailscale 中继访问时带宽有限：页面脚本和较大的 JSON 压缩后再发
+    app.add_middleware(GZipMiddleware, minimum_size=1024)
     app.include_router(public)
     app.include_router(admin)
     app.include_router(client)
@@ -502,5 +515,5 @@ def create_app(platform: Platform) -> FastAPI:
         app.mount("/client", StaticFiles(directory=packages), name="client")
     dist = platform.settings.frontend_dist
     if dist is not None and dist.exists():
-        app.mount("/", StaticFiles(directory=dist, html=True), name="frontend")
+        app.mount("/", FrontendFiles(directory=dist, html=True), name="frontend")
     return app

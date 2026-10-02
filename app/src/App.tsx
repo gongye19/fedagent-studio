@@ -72,7 +72,7 @@ export default function App() {
   const pageKey = pageKeyOf(route);
   const firstPage = useRef(true);
   const flash = useFlash(route);
-  // 先拿注册表（后端安装的场景、任务类型、算法），装好之后才渲染页面；需要访问令牌时先输入令牌。
+  // 注册表（后端安装的场景、任务类型、算法）和数据同时取，都到了才渲染页面；需要访问令牌时先输入令牌。
   const registry = useQuery({
     queryKey: keys.registry,
     queryFn: async () => {
@@ -83,7 +83,9 @@ export default function App() {
     staleTime: Infinity,
     retry: (count, error) => !(error instanceof ApiError && error.status === 401) && count < 2,
   });
-  const server = useServerData(registry.isSuccess);
+  // 不等注册表：数据不依赖它，同时发出能省一次往返（经 Tailscale 中继时每次约 0.3 秒）；没有令牌时不再轮询
+  const unauthorized = registry.error instanceof ApiError && registry.error.status === 401;
+  const server = useServerData(!unauthorized);
   const [draft, setDraft] = useState(loadDraft);
   const datasets = useRef(server.data.datasets);
   useEffect(() => {

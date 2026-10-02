@@ -129,7 +129,7 @@ bash deploy/deploy.sh
 脚本依次：本地跑完前后端的检查 → 停下服务器上的旧进程 → 同步前端构建产物和后端代码 → 在服务器上运行 `serve.sh`（装 uv 和 Python 3.12、按 `uv.lock` 装依赖、迁移数据库、启动 api 和 runner、健康检查）。`SKIP_CHECKS=1` 跳过本地检查。打开 <http://100.111.198.54:8880/>。
 
 - 所有文件都在服务器的 `~/fedagent-studio` 里（目录布局见 [ARCHITECTURE.md](./ARCHITECTURE.md) §18）；数据在 `data/`，部署不覆盖；
-- 访问令牌在第一次启动时生成，保存在服务器的 `~/fedagent-studio/data/admin-token`；浏览器第一次打开时要填，之后记在这个浏览器里；
+- 访问令牌是可选的，现在关闭：Tailscale 内网里能访问这个地址的人都能使用。要开启时运行 `bash ~/fedagent-studio/serve.sh token on`，令牌保存在服务器的 `~/fedagent-studio/data/admin-token`，浏览器第一次打开时要填；`token off` 关闭。部署不会改变开关；
 - 状态、停止、重启：`bash ~/fedagent-studio/serve.sh status | stop | start`；日志在 `~/fedagent-studio/logs/`；
 - 进程在退出 SSH 后继续运行，但服务器重启后要重新运行 `bash ~/fedagent-studio/serve.sh`；
 - 重启时运行中的任务会停下，重启后从检查点继续，已完成的模型调用不重复计费。

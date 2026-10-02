@@ -1,6 +1,6 @@
 # 当前进展
 
-更新时间：2026-10-02
+更新时间：2026-10-03
 版本：前端 0.5.0，后端 0.1.0（联邦 Agent）
 
 ## 一句话状态
@@ -23,7 +23,7 @@
 - **编排**：每一步拆成工作单元，结果写进数据库后才推进；runner 常驻，每个运行中的任务一个子进程；暂停、继续、取消；子进程意外退出时从检查点重启，runner 重启时不会同时跑两个进程。
 - **模型网关**：OpenAI 兼容接口，按接口限并发、自动重试；每次调用记账，续跑时从账本取回已完成的调用，不重复计费；密钥加密保存、只能写入；测试用假模型。
 - **本地客户端**：`fedagent-client` 用同一份插件代码在参与方本地执行，只提交声明可以离开的内容，`--review` 可以逐条确认；安装包由平台在 `/client/` 下提供。
-- **API 和部署**：FastAPI，前端的类型从 OpenAPI 生成；单个访问令牌；一条命令部署到服务器（用户进程，不用 Docker 和 sudo）。
+- **API 和部署**：FastAPI，前端的类型从 OpenAPI 生成；可选的访问令牌（现在关闭）；一条命令部署到服务器（用户进程，不用 Docker 和 sudo）。
 - **测试**：契约测试（数据流和清单一致、能续跑）、接口和完整流程、平台托管和本地客户端混合的任务、真实子进程的 runner。
 
 ## 已完成（前端）
@@ -77,7 +77,7 @@
 | 真实模型试跑 | 待用户配置接口 | 在"模型接口"里配置 OpenAI 兼容的接口，用试跑（每份 1–2 条、2 轮）确认提示词、判分和费用记账 |
 | 参与方 C–H 的题库 | 待导入 | 用 FoT 代码包导入 6 份 LiveMathBench 题库：`fedagent datasets import-fot-bundle <zip>` |
 | FoT 与复现器逐文件核对 | 未做 | 按复现器的格式写插件文件，同一配置下和复现器的产物对比（ARCHITECTURE §20） |
-| 身份、权限 | 单个访问令牌 | 发起人、管理员两种角色起步 |
+| 身份、权限 | 可选的访问令牌，暂时关闭 | 需要时 `serve.sh token on`；之后发起人、管理员两种角色起步 |
 | 服务器重启后自动拉起 | 未做 | 可以用 crontab 的 `@reboot`，加不加由用户决定 |
 | 客户端发布到公共仓库、上传前的过滤规则 | 未做 | 真实跨机构部署时需要 |
 | 纵向、迁移的算法 | 暂不定 | 定下来后作为插件接入 |
@@ -93,7 +93,7 @@
 实验室服务器经 Tailscale 访问：`zhiqikou-ic4078375cc`（100.111.198.54），SSH 端口 10022，用密钥登录。
 
 - 服务器没有公网 IP（出口是校园网 NAT），也没有 sudo，不能直接对公网开端口；要公网访问只能走隧道（Cloudflare Tunnel 可以直接用；Tailscale Funnel 要这台机器所属 tailnet 的管理员开启 HTTPS 和 Funnel）。
-- 2026-10-02 起前端和后端都部署在服务器上，**只在 Tailscale 内网访问**：<http://100.111.198.54:8880/>。api（同时提供前端页面和客户端安装包）和 runner 两个用户进程，只监听 Tailscale 地址，不对校园网和公网开放；访问令牌在服务器的 `~/fedagent-studio/data/admin-token`；服务器重启后要重新运行 `bash ~/fedagent-studio/serve.sh`。部署方法见 [DEVELOPMENT.md](./DEVELOPMENT.md#部署到实验室服务器tailscale-内网)。
+- 2026-10-02 起前端和后端都部署在服务器上，**只在 Tailscale 内网访问**：<http://100.111.198.54:8880/>。api（同时提供前端页面和客户端安装包）和 runner 两个用户进程，只监听 Tailscale 地址，不对校园网和公网开放；访问令牌暂时关闭（用户 2026-10-03 决定），需要时 `bash ~/fedagent-studio/serve.sh token on`；服务器重启后要重新运行 `bash ~/fedagent-studio/serve.sh`。部署方法见 [DEVELOPMENT.md](./DEVELOPMENT.md#部署到实验室服务器tailscale-内网)。
 - 部署目录是 `/home/poly-zhu/fedagent-studio`（家目录权限 700，其他账号看不到）；家目录所在的系统盘还剩约 2.9T。共享盘 `/nfshdd/zhiqikou` 当前账号不能写。
 - 环境（2026-10-02 检查）：Ubuntu 22.04（x86_64，glibc 2.35），系统 Python 3.10，没有 Docker、Podman 和 sudo；部署脚本把 uv 和 Python 3.12 装在 `~/fedagent-studio` 里（见 [ARCHITECTURE.md](./ARCHITECTURE.md) §18）。
 - 网络：OpenAI、Gemini 的官方接口因地区限制被拒绝；DeepSeek、智谱、阿里云百炼、OpenRouter、PyPI、GitHub 可以访问。
@@ -109,7 +109,7 @@ npm run check      PASS（lint、类型检查、20 个测试、生产构建）
 断行检查          只剩上传框提示在"；"处的正常换行
 本地端到端        API 和 runner 分开运行、带访问令牌：假模型任务中途重启 runner 后从检查点跑完；
                   在新的 Python 3.12 环境里用平台提供的安装包装好客户端，本地参与方和平台托管的参与方一起跑完 2 轮
-部署              http://100.111.198.54:8880/（Tailscale）
+部署              http://100.111.198.54:8880/（Tailscale，访问令牌暂时关闭）；首次打开约 2 秒，再次打开约 1 秒
 ```
 
 任务记录见 [HISTORY.md](./HISTORY.md)。

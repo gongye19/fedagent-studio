@@ -190,6 +190,8 @@ def test_token_frontend_and_client_packages(tmp_path: Path) -> None:
     dist = tmp_path / "dist"
     dist.mkdir()
     (dist / "index.html").write_text("<!doctype html><title>FedAgent Studio</title>", encoding="utf-8")
+    (dist / "assets").mkdir()
+    (dist / "assets" / "index-abc123.js").write_text("console.log('fedagent');" * 100, encoding="utf-8")
     packages = tmp_path / "client"
     packages.mkdir()
     wheel = "fedagent_client-0.1.0-py3-none-any.whl"
@@ -203,6 +205,13 @@ def test_token_frontend_and_client_packages(tmp_path: Path) -> None:
         assert client.get("/v1/registry", headers={"Authorization": "Bearer wrong"}).status_code == 401
         assert client.get("/v1/registry", headers={"Authorization": "Bearer secret-token"}).status_code == 200
         # 页面和安装包不需要令牌
-        assert "FedAgent Studio" in client.get("/").text
+        page = client.get("/")
+        assert "FedAgent Studio" in page.text
+        assert page.headers["cache-control"] == "no-cache"
         assert client.get(f"/client/{wheel}").content == b"wheel"
         assert client.get("/healthz").json() == {"ok": True}
+        # 带哈希的脚本长期缓存，并且压缩后发送
+        script = client.get("/assets/index-abc123.js", headers={"Accept-Encoding": "gzip"})
+        assert script.headers["cache-control"] == "public, max-age=31536000, immutable"
+        assert script.headers["content-encoding"] == "gzip"
+        assert script.text == "console.log('fedagent');" * 100
