@@ -1,7 +1,7 @@
 # 系统架构
 
-最后复核：2026-10-02（T51：后端设计改为通用插件体系）
-状态：目标架构。前端原型已完成；后端按本文设计，尚未实现。
+最后复核：2026-10-02（T52：后端第一版实现，前端接入，部署到实验室服务器）
+状态：后端第一版已实现（`server/`），前端已接入，部署在实验室服务器（只在 Tailscale 内网访问）。本文既是设计也是实现说明；还没做的写在各节和 §21。
 
 ![整体架构](./agent-platform-design.png)
 
@@ -95,45 +95,51 @@ api 和 runner 只通过数据库交流（任务状态、命令、工作单元�
 | evaluation | 从哪一步取预测来判分；基线怎么算（第 1 轮不带产出，或单独跑一次本地基线） |
 | params | 参数：键、名称、控件、选项或范围、默认值、说明 |
 
-前端现在的注册表（`app/src/domain/catalog.ts`）就是这份清单的前端版本，接入后端后改为从 API 读。FoT 的清单见 §20。
+前端不写死注册表：启动时从 `GET /v1/registry` 读场景、任务类型、判分方式和算法清单（`app/src/domain/catalog.ts` 的 `installRegistry`），页面按清单生成。FoT 的清单见 §20。
 
 ### 4.3 算法代码
 
-插件继承 SDK 的 `Algorithm`，每一步写一个方法，用 `@step` 对应到清单里的步骤。草案：
+插件继承 SDK 的 `Algorithm`（`server/sdk/fedagent_sdk/algorithm.py`），每一步写一个方法，用 `@step` 对应到清单里的步骤。基类的接口和 FoT 的写法（节选）：
 
 ```python
 class Algorithm:
-    manifest: Manifest                                   # 读自 manifest.yaml
+    manifest: Manifest                                   # 读自插件包里的 manifest.yaml
 
     def validate(self, spec: TaskSpec) -> list[Issue]:   # 插件特有的检查；通用检查由平台做
         return []
     def estimate(self, spec: TaskSpec) -> Estimate:      # 默认按清单里每一步的预估计算，可以覆盖
         ...
-    def plan(self, ctx: PlanContext, round: int) -> list[str]:   # 这一轮执行哪些步骤，默认按清单顺序
+    def plan(self, round: int, rounds: int) -> list[str]:   # 这一轮执行哪些步骤，默认按清单顺序
         ...
     def apply(self, artifact: Artifact | None, request: ApplyRequest, model: Model) -> ApplyResult:
         ...                                              # 使用产出（应用试用、API）；artifact 为 None 是不带产出的对照
-    def export(self, artifact: Artifact, fmt: str) -> bytes:
+    def export(self, artifact: Artifact, fmt: str = "json") -> tuple[str, str, bytes]:
+        ...                                              # 文件名、类型、内容
+    def describe(self, artifact: Artifact) -> list[OutputEntry]:            # 产出在界面上怎么列
         ...
+    def describe_message(self, channel: str, payload: Any) -> OutputEntry:  # 通信记录里一条消息怎么显示
+        ...
+    def fake_reply(self, step_id: str | None, prompt: str, seed: str) -> str | None:
+        ...                                              # 假模型的回答：契约测试和演示不花钱也能跑通
 
 
 class FoT(Algorithm):
     @step("solve")
-    def solve(self, ctx: SiteStep) -> None:
-        answer = ctx.model.chat(prompt_solve(ctx.item, ctx.artifact()))   # 第 1 轮没有产出
-        ctx.keep("answer", answer)       # 留在本方，后面的步骤用
-        ctx.predict(answer)              # 交给判分：在本方执行，只上报答对数
+    def solve(self, ctx: StepContext) -> None:
+        reply = ctx.model.chat(...)        # 第 1 轮没有经验库
+        ctx.keep("solution", reply.text)   # 留在本方，后面的步骤用
+        ctx.predict(reply.text)            # 交给判分：在本方执行，只上报答对数
 
     @step("extract")
-    def extract(self, ctx: SiteStep) -> None:
-        reply = ctx.model.chat(prompt_extract(ctx.item, ctx.recall("answer"), ctx.recall("reflection")))
-        for trace in parse_traces(reply):
-            ctx.send("trace", trace)     # 只有发到声明过的通道的内容会离开本方
+    def extract(self, ctx: StepContext) -> None:
+        ...
+        ctx.send("trace", {"name": name, "description": description})   # 只有发到声明过的通道的内容会离开本方
 
     @step("library")
-    def library(self, ctx: ServerStep) -> None:
-        traces = ctx.inbox("trace")      # 服务端只能读到收到的消息
-        ctx.publish(build_library(ctx.model, traces, ctx.recall("profile"), ctx.artifact()))
+    def library(self, ctx: StepContext) -> None:
+        store = ctx.recall("trace_store")  # 服务端只能读到收到的消息和自己留下的状态，读不到任何数据集
+        ...
+        ctx.publish(library)
 ```
 
 ### 4.4 每一步能用什么
@@ -235,18 +241,18 @@ class Grader:
 
 | | 平台托管 | 本地客户端 |
 |---|---|---|
-| 谁执行这一方的步骤 | 任务子进程（进程内并发） | 参与方环境里的 `fedagent-client`，装同一个插件包 |
+| 谁执行这一方的步骤 | 任务子进程（进程内并发） | 参与方环境里的 `fedagent-client`，装同一个插件包（安装包由平台在 `/client/` 下提供，见 §18） |
 | 数据集 | 存在平台 | 留在本地，只登记描述 |
 | 模型 | 经过平台的模型网关 | 参与方自己的模型和密钥 |
 | 离开这一方的内容 | 平台运营方技术上能看到数据集，只适合公开数据和演示；服务端步骤仍然只读到交换的内容 | 只有声明过的通道里的消息和上报的汇总 |
 
 本地客户端协议（通用，不认具体算法）：
 
-1. **连接**：用平台签发、按参与方和任务授权、可以吊销的令牌连接；上报客户端版本、已装的插件，以及本地数据集的描述（样本数、带标注的样本数、格式哈希），不上传样本。
+1. **连接**：用平台按参与方签发、可以吊销的令牌连接；上报客户端版本、已装的插件，以及本地数据集的描述（样本数、带标注的样本数、格式哈希），不上传样本。
 2. **领取**：领取本方待执行的工作单元，带租约；执行中定时心跳。
 3. **输入**：取这一步需要的输入（发给本方的消息、当前产出版本）。
 4. **执行**：在本地执行插件里这一步的代码，读本地数据，用自己的模型。
-5. **审查**（可选，`--review`）：发出的消息在上传前逐条确认，也可以配置过滤规则。
+5. **审查**（可选，`--review`）：发出的消息在上传前逐条确认；过滤规则以后加。
 6. **提交**：只提交消息和上报值；私有的中间结果留在本地。
 
 以后要加的执行器：
@@ -294,40 +300,44 @@ class Grader:
 - **本地参与方**：用自己的模型，不经过网关；token 用量由客户端上报，仅供参考。
 - **网络现状**（2026-10-02 从实验室服务器测试）：OpenAI、Gemini 的官方接口因地区限制被拒绝；DeepSeek、智谱、阿里云百炼、OpenRouter 可以访问。服务器有 8 张 96GB GPU，与他人共用，以后可以自建 vLLM 作为一个接口。
 
-## 13. API 草案
+## 13. API
 
 ```text
+# 不需要令牌
+GET  /healthz                              GET  /v1/meta               （版本、是否需要访问令牌）
+
 # 注册表（前端按它生成页面）
-GET  /v1/scenarios             GET  /v1/task-types          GET /v1/algorithms?scenario=&task_type=
-GET  /v1/algorithms/{id}       （清单、版本、参数定义）
+GET  /v1/registry                          （场景、任务类型和判分方式、算法清单，一次取全）
+GET  /v1/algorithms/{id}
 
 # 参与方、数据、模型接口
-GET/POST /v1/participants                  GET/PATCH/DELETE /v1/participants/{id}
-POST /v1/participants/{id}/client-tokens   DELETE /v1/client-tokens/{id}
-GET/POST /v1/datasets?participant=&scenario=&task_type=       GET/DELETE /v1/datasets/{id}
+GET/POST /v1/participants                  （POST 用 multipart：参与方和第一份数据集一起创建，要么都成功，要么都不建）
+PATCH/DELETE /v1/participants/{id}
+GET/POST /v1/participants/{id}/client-tokens          DELETE /v1/client-tokens/{id}
+GET/POST /v1/datasets?participant=&scenario=&taskType=          DELETE /v1/datasets/{id}
 POST /v1/datasets/check                    （按任务类型检查文件，不保存）
-GET/POST /v1/endpoints                     PATCH/DELETE /v1/endpoints/{id}       POST /v1/endpoints/{id}/test
+GET/POST /v1/endpoints                     PUT/DELETE /v1/endpoints/{id}           POST /v1/endpoints/{id}/test
 
 # 联邦任务
-POST /v1/tasks/validate                    POST /v1/tasks/estimate               POST /v1/tasks
-GET  /v1/tasks?scenario=&task_type=&status=                       GET /v1/tasks/{id}
+POST /v1/tasks/validate                    POST /v1/tasks/estimate                 POST /v1/tasks
+GET  /v1/tasks?scenario=&taskType=&status= GET  /v1/tasks/{id}            （当前步骤、每轮结果、产出版本都在任务里）
 POST /v1/tasks/{id}/pause | resume | cancel
-GET  /v1/tasks/{id}/progress               （轮次 × 步骤 × 站点的状态和结果）
-GET  /v1/tasks/{id}/metrics                GET /v1/tasks/{id}/messages?round=&step=&site=   （通信记录）
-GET  /v1/tasks/{id}/artifacts              GET /v1/tasks/{id}/artifacts/{version}
-GET  /v1/tasks/{id}/events                 （SSE；先用轮询）
+GET  /v1/tasks/{id}/messages?round=&site=  （通信记录）
+GET  /v1/tasks/{id}/events
 
 # 应用
-POST /v1/apps                              GET /v1/apps?scenario=&task_type=     GET/PATCH/DELETE /v1/apps/{id}
-POST /v1/apps/{id}/apply                   GET /v1/apps/{id}/export?format=
+GET/POST /v1/apps                          GET/PATCH/DELETE /v1/apps/{id}
+POST /v1/apps/{id}/apply                   GET /v1/apps/{id}/export
 
-# 参与方客户端
+# 参与方客户端（用客户端令牌）
 POST /v1/client/hello                      POST /v1/client/units/claim
 GET  /v1/client/units/{id}/inputs          POST /v1/client/units/{id}/heartbeat | complete | fail
 ```
 
-- FastAPI 生成 OpenAPI 定义，前端用 openapi-typescript 生成类型；接口一改，前端类型检查就会报错。
-- 命令行 `fedagent`（如 `fedagent run -f task.yaml`、`fedagent status <task>`、`fedagent apps apply <id>`）调用同一套接口。
+- 设了访问令牌（`FEDAGENT_ADMIN_TOKEN`）时，除了不需要令牌的两个接口和客户端接口，都要带 `Authorization: Bearer <令牌>`；界面第一次打开时让用户填，保存在这个浏览器里。
+- FastAPI 生成 OpenAPI 定义，前端用 openapi-typescript 生成类型（`npm run api:types`）；接口一改，前端类型检查就会报错。
+- 设计里的 `progress`、`metrics`、`artifacts` 三个接口合并进了 `GET /v1/tasks/{id}`；事件先用轮询，以后换 SSE。
+- 命令行 `fedagent` 现在只有运维命令（见 §18）；按配置文件创建任务、查看状态这类命令以后加，调用同一套接口。
 
 ## 14. 存储
 
@@ -336,25 +346,25 @@ GET  /v1/client/units/{id}/inputs          POST /v1/client/units/{id}/heartbeat 
 
 ```text
 <data>/
-├── fedagent.db
-├── datasets/<数据集 id>/<版本>/        平台托管数据集的样本文件
+├── fedagent.db                        工作单元（检查点）、各站点的状态、消息、上报值、调用账本都在数据库里
+├── secret.key                         加密模型密钥用的密钥（只有本用户能读）
+├── datasets/<数据集 id>/<内容哈希>.jsonl  平台托管数据集的样本文件，内容不变，改动就是新文件
 └── runs/<任务 id>/
     ├── task.json                      冻结的配置、参与方快照、插件版本、各种哈希
-    ├── units/r{n}/<步骤>/<站点>.jsonl   工作单元结果（检查点；本地参与方的私有结果不在这里）
-    ├── messages/r{n}/<步骤>.jsonl       跨站点的消息（通信记录）
+    ├── task.log                       任务进程的日志
+    ├── messages/r{n}/<步骤>.jsonl       跨站点的消息（通信记录的副本，便于直接查看）
     ├── artifacts/v{n}.json             产出版本
-    ├── calls.jsonl                     调用账本
-    ├── events.jsonl                    事件
-    ├── metrics.json                    指标
-    └── plugin/                         插件自己的文件（FoT 按复现器的格式写，便于核对）
+    └── events.jsonl                    事件
 ```
+
+设计里还有按复现器格式写的插件文件（`plugin/`），第一版没有写，见 §20。
 
 ## 15. 安全与隐私
 
 - **数据流向**：由清单声明、平台执行（见 §4.4）。服务端步骤读不到数据集，算法步骤默认读不到标注，没声明的通道发不出去，本地参与方只提交消息和上报值。
 - **平台托管的边界**：平台运营方技术上能看到托管的数据集，只用于公开数据和演示；真实的跨机构联邦用本地客户端。
 - **交换内容的风险**：
-  - 文本消息可能带出样本细节：本地客户端支持上传前过滤和逐条确认；
+  - 文本消息可能带出样本细节：本地客户端可以在上传前逐条确认（`--review`），过滤规则以后加；
   - 其他参与方的消息可能夹带指令（提示词注入），或者故意给出坏经验（投毒）：算法把收到的内容当作数据而不是指令；消息都留档、能追溯到来源，可以去掉某一方的消息后重算。
 - **令牌和密钥**：参与方客户端的令牌按参与方和任务授权、可以吊销；模型密钥加密保存，接口只能写入、不能读出；本地参与方的密钥留在本地。
 - **审计**：每个任务记录配置、插件版本、提示词、数据的哈希，以及调用账本和消息记录；把标注交给算法步骤（`labels: true`）也记入审计。
@@ -363,48 +373,57 @@ GET  /v1/client/units/{id}/inputs          POST /v1/client/units/{id}/heartbeat 
 
 ## 16. 前端对接
 
-- 注册表改为从 API 读（场景、任务类型、算法清单），替换 `catalog.ts` 里的常量；页面已经按清单字段生成，不用改。
-- 状态改为读 API，用 TanStack Query 轮询运行中的任务（以后换 SSE）；预估改为调用 `POST /v1/tasks/estimate`。
-- 任务多一个"排队中"的状态；其他状态、配置校验、页面结构不变。
-- 删掉 `domain/sample.ts` 和 `tick` 模拟；演示改用假模型接口跑真实流程。
-- 类型由后端的 OpenAPI 生成（见 §13）。
+已完成（T52）：
 
-前端现有的结构和界面规范见 [DEVELOPMENT.md](./DEVELOPMENT.md)。
+- 注册表从 `GET /v1/registry` 读，页面按清单生成；前端不再有示例数据和模拟推进（删掉了 `sample.ts`、`seed.ts`、`simulation.ts`、`persistence.ts`）。
+- 服务端的状态（参与方、数据集、模型接口、任务、应用）用 TanStack Query 读：有排队中或运行中的任务时每 2 秒刷新任务，否则 15 秒；页面切到后台时暂停。以后换 SSE。
+- 只有没提交的新建任务草稿留在浏览器里（`localStorage`），创建、保存、发布、删除都调用 API，成功后刷新相关的数据。
+- 新建任务时，校验和预估由后端做（配置停下 0.3 秒后调用 `POST /v1/tasks/validate`），插件声明的步骤、接口单价、模型接口是否配置好都算在里面；前端只做即时的必填检查。
+- 任务多了"排队中"的状态；进度页的通信记录、产出页、应用的试用都是真实结果。
+- 类型由后端的 OpenAPI 生成（见 §13）。
+- 设了访问令牌时，界面第一次打开先让用户填令牌。
+
+前端的结构和界面规范见 [DEVELOPMENT.md](./DEVELOPMENT.md)。
 
 ## 17. 代码结构
 
 ```text
 server/                        uv workspace，虚拟环境在 server/.venv
-├── pyproject.toml
-├── fedagent/                  平台核心
-│   ├── api/                   FastAPI 路由，按资源分文件
-│   ├── core/                  核心对象和场景规则
-│   ├── registry/              插件发现、清单校验
-│   ├── engine/                编排：轮次、步骤、工作单元、检查点、消息投递
-│   ├── runner/                任务进程管理：排队、启动、暂停、继续、取消、重启
-│   ├── executors/             平台托管、本地客户端（以后：隔离环境、Agent 服务）
-│   ├── gateway/               模型网关：OpenAI 兼容客户端、限流、重试、调用账本、假模型
-│   ├── data/                  数据集登记、检查、格式适配器、存储后端
-│   └── store/                 数据库模型、Alembic 迁移、运行目录
-├── sdk/                       插件开发包 fedagent-sdk：基类、上下文、契约测试工具
+├── pyproject.toml / uv.lock
+├── fedagent/                  平台核心（第一版代码量不大，按职责分文件，没有再分子包）
+│   ├── api.py                 FastAPI 路由；schemas.py 是请求和响应的结构（camelCase）
+│   ├── registry.py            场景、插件发现（entry points）、清单校验
+│   ├── platform.py            把配置、数据库、注册表、文件存储、模型网关组装在一起
+│   ├── resources.py           参与方、数据集、模型接口的增删改
+│   ├── tasks.py               任务的校验、预估、创建、控制，以及给界面的任务视图
+│   ├── engine.py / units.py   编排：轮次、步骤、工作单元、检查点、消息投递；每一步的读写（StepIO）
+│   ├── runner.py / taskproc.py  任务进程管理：排队、启动、暂停、继续、取消、意外退出后重启
+│   ├── clients.py             本地参与方客户端的令牌、领取、心跳、提交
+│   ├── gateway.py             模型网关：OpenAI 兼容客户端、按接口限流、重试、调用账本、假模型
+│   ├── apps.py                应用：发布、试用、导出
+│   ├── data.py                数据集文件的检查和存取（按内容哈希）
+│   ├── models.py / db.py / migrate.py / migrations/   数据库模型、连接、Alembic 迁移
+│   ├── crypto.py / settings.py / seed.py / cli.py / testing.py
+│   └── builtin/math/          内置的 AIME24、AIME25 题库
+├── sdk/                       插件开发包 fedagent-sdk：清单、基类、步骤上下文、类型
 ├── plugins/
-│   ├── fot/                   FoT 算法插件：manifest.yaml、提示词、六个步骤、apply、export
-│   └── math_reasoning/        数学推理任务类型和判分
+│   ├── fot/                   FoT 算法插件：manifest.yaml、提示词、解析、六个步骤、apply、export、假模型回答
+│   └── math_reasoning/        数学推理任务类型、数据检查和两种判分
 ├── client/                    fedagent-client：本地参与方客户端
 └── tests/
 ```
 
-插件和客户端只依赖 `fedagent-sdk`，不依赖平台核心；客户端装上 SDK 和需要的插件，就能执行参与方的步骤。
+插件和客户端只依赖 `fedagent-sdk`，不依赖平台核心；客户端装上 SDK 和需要的插件，就能执行参与方的步骤。契约测试的实现在 `fedagent/testing.py`（它要用平台的编排），SDK 的 `fedagent_sdk.testing` 转到这里，插件作者照样从 SDK 引用。
 
 ## 18. 开发、测试与部署
 
 流程：本地实现 → 本地测试通过 → 用真实接口小规模试跑 → 部署到实验室服务器 → 在服务器上冒烟测试。
 
-**本地开发**：
+**本地开发**（命令见 [DEVELOPMENT.md](./DEVELOPMENT.md)）：
 
 - Python 3.12，uv 在项目内建虚拟环境（`server/.venv`），不全局安装；
-- SQLite 和数据目录放在本地；
-- 默认用假模型，需要时登记真实接口；
+- `uv run fedagent dev`：API 和 runner 在同一个进程里，数据在 `server/.data`；
+- 内置一个"测试用假模型"接口，不花钱就能跑完整流程；需要时在"模型接口"里配置真实接口；
 - 前端开发服务器把 `/v1` 代理到本地 API。
 
 **测试**：
@@ -424,17 +443,22 @@ server/                        uv workspace，虚拟环境在 server/.venv
 
 ```text
 ~/fedagent-studio/
-├── bin/uv           uv 本身（不装到系统）
+├── serve.sh         启动、停止、状态
+├── bin/uv           uv 本身（从 GitHub 发布页下载，核对 sha256，不装到系统）
 ├── python/          uv 下载的 Python 3.12
-├── dist/            前端静态文件（现在已经在用）
+├── cache/           uv 的下载缓存
+├── dist/            前端静态文件
+├── client/          参与方客户端、SDK 和插件的安装包（wheel），由 api 在 /client/ 下提供
 ├── server/          后端代码，虚拟环境在 server/.venv
-├── data/            数据库、数据集、运行目录（部署不覆盖）
+├── data/            数据库、数据集、运行目录、加密密钥、访问令牌（部署不覆盖）
 └── logs/  run/      日志和进程号
 ```
 
-- `deploy/deploy.sh` 扩展为：本地跑完检查 → 构建前端 → 同步代码 → `uv sync --frozen` → 数据库迁移 → 重启 api 和 runner → 健康检查（`/healthz`）。
-- api 只监听 Tailscale 地址，前端静态文件也由它提供，同一个端口（8880）。
-- 进程用 `setsid nohup` 启动并记下进程号，和现在的 `serve.sh` 一样。服务器重启后要重新运行启动脚本；能不能用 crontab 的 `@reboot` 自动拉起，部署时确认。
+- `deploy/deploy.sh`：本地跑完检查（前端 lint、类型、测试、构建；后端 ruff、pyright、pytest）→ 停下服务器上的旧进程 → 同步前端和后端代码 → 运行 `serve.sh`：装 uv、`uv sync --frozen --no-dev`、`fedagent db upgrade`、启动 api 和 runner、健康检查（`/healthz`）。
+- api 只监听 Tailscale 地址，前端静态文件和客户端安装包也由它提供，同一个端口（8880）。访问令牌在第一次启动时生成，保存在 `data/admin-token`（只有本用户能读）。
+- 客户端安装包由 `deploy.sh` 用 `uv build` 构建。界面上的连接命令用完整地址安装这几个包（`pip install <平台地址>/client/<文件名> …`），不会从公共仓库装到同名的包；还没有发布到公共仓库。
+- 进程用 `setsid nohup` 启动并记下进程号。runner 收到 SIGTERM 时先结束它起的任务进程，任务保持"运行中"，重启后从检查点继续；如果 runner 是被强行结束的，新 runner 会先结束遗留的任务进程再续跑，同一个任务不会有两个进程。
+- 服务器重启后要重新运行 `bash ~/fedagent-studio/serve.sh`。服务器上可以用 crontab，`@reboot` 自动拉起要不要加，由用户决定（会改服务器上的定时任务配置）。
 - 资源：一台普通 CPU 服务器就够（4 核 8 GB 起）。平台不需要 GPU（模型调用走接口；自建模型服务另算）。
 
 ## 19. 技术选型
@@ -448,7 +472,7 @@ server/                        uv workspace，虚拟环境在 server/.venv
 | 插件 | Python entry points + YAML 清单 | Python 打包的标准做法；清单可以单独校验，前端直接用 |
 | 环境与打包 | uv（workspace） | 依赖锁定；虚拟环境放在项目目录里 |
 | 测试与检查 | pytest、ruff、pyright | 主流 |
-| 前端 | React 19 + TypeScript + Vite、ECharts；接后端后加 TanStack Query、openapi-typescript | 沿用现有前端 |
+| 前端 | React 19 + TypeScript + Vite、ECharts、TanStack Query、openapi-typescript | 沿用现有前端；服务端状态交给 TanStack Query，类型从 OpenAPI 生成 |
 | 部署 | 用户进程 + 部署脚本 | 实验室服务器没有 Docker 和 sudo |
 
 没采用的方案和理由见 [DECISIONS.md](./DECISIONS.md) D47：Celery、RQ 一类任务队列；Temporal、Prefect 一类工作流引擎；Flower 一类联邦学习框架；Docker Compose 和 K8s。
@@ -511,7 +535,7 @@ steps:
 | 汇总重试上限 | `--aggregation-max-attempts` | 5 | 复现器默认 0（一直重试到合法），平台改为有限次，超过后暂停任务 |
 | 随机种子、并发数 | `--seed`、`--workers` | 0、8 | 复现器的并发是所有参与方共用的线程池；平台里是任务内同时执行的工作单元上限，同时受接口的并发上限约束 |
 
-- **插件文件**：平台托管的参与方，FoT 插件在运行目录的 `plugin/` 下按复现器的格式写 `solve_r{n}.jsonl`、`reflection_r{n}.jsonl`、`trace_r{n}.jsonl`、`aggregation_r{n}_profile.json`、`aggregation_r{n}.json`、`library_r{n+1}.json`，便于和复现器逐个核对；本地参与方的解答和反思留在参与方本地。
+- **插件文件**（还没做）：设计是平台托管的参与方在运行目录的 `plugin/` 下按复现器的格式写 `solve_r{n}.jsonl`、`reflection_r{n}.jsonl`、`trace_r{n}.jsonl`、`aggregation_r{n}_profile.json`、`aggregation_r{n}.json`、`library_r{n+1}.json`，便于和复现器逐个核对。第一版的这些内容都在数据库里（各站点的状态、消息、产出版本），经验库可以从应用导出（和 `library_r{n}.json` 同格式）；逐文件核对时再加导出。本地参与方的解答和反思留在参与方本地。
 - **试用和导出**：带库时按解题提示词（Prompt 1）把整份经验库放进上下文，不带库时只给题目；导出与 `library_r{n}.json` 同格式（经验名 → 描述）。
 - **成本**：完整复现一次约 2,700 次参与方调用，每轮另有至少 2 次服务端调用，token 估计在千万量级；默认先试跑。
 - **界面用语**：论文里的 trace 在界面上叫"解题经验"，insight / insight library 叫"经验 / 经验库"，profile 这一步叫"归类"；代码、命令行参数和检查点文件沿用论文的英文名（trace、insight、library）。
@@ -521,6 +545,8 @@ steps:
 
 - 纵向和迁移采用哪些算法（暂不定）；第一个算法接入时，按 §6 补齐角色、对齐和配置页。
 - 本地参与方超时：默认等多久；是否允许跳过某一方继续（由算法声明）。
-- 用哪个模型服务：OpenAI、Gemini 的官方接口从服务器访问不了；可选 DeepSeek（论文用过）、智谱、阿里云百炼、OpenRouter，或者在实验室 GPU 上自建 vLLM。
-- 服务器重启后自动拉起：crontab 能不能用，部署时确认。
-- 身份与权限：先用单个管理员令牌，之后再定。
+- 用哪个模型服务：由用户在"模型接口"里配置任意 OpenAI 兼容的接口。OpenAI、Gemini 的官方接口从服务器访问不了；可选 DeepSeek（论文用过）、智谱、阿里云百炼、OpenRouter，或者在实验室 GPU 上自建 vLLM。配好后先用试跑做一次真实模型冒烟（§18 的测试表）。
+- 参与方 C–H 的 6 份 LiveMathBench 题库：要从 FoT 代码包导入（`fedagent datasets import-fot-bundle <zip>`），导入前这几个参与方显示"样本待导入"，不能选入任务。
+- 服务器重启后自动拉起：crontab 可以用，加不加 `@reboot` 由用户决定。
+- 身份与权限：先用单个访问令牌，之后再定。
+- 还没做：FoT 按复现器格式写的插件文件（§20）、SSE、按配置文件创建任务的命令行、本地客户端上传前的过滤规则、把客户端发布到公共仓库。

@@ -1,15 +1,17 @@
-import { useEffect, useReducer, useRef, useState, type Dispatch } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useCallback, useEffect, useRef, useState, type Dispatch, type FormEvent } from "react";
+import { api, ApiError, getToken, setToken } from "./api/client";
 import { clearFlash, useFlash } from "./state/flash";
-import { loadState, saveState } from "./state/persistence";
+import { loadDraft, saveDraft } from "./state/draft";
 import { hrefOf, pageKeyOf, useRoute, type Route } from "./state/route";
-import { useSimulation } from "./state/simulation";
-import { reducer, taskOf, type Action, type State } from "./state/store";
-import { ALGORITHMS, scenarioOf, type ScenarioId } from "./domain/catalog";
+import { keys, queryClient, useServerData } from "./state/server";
+import { reducer, taskOf, withoutMissing, type Action, type State } from "./state/store";
+import { ALGORITHMS, installRegistry, scenarioOf, type ScenarioId } from "./domain/catalog";
 import AlgorithmPage from "./ui/AlgorithmPage";
 import AlgorithmsPage from "./ui/AlgorithmsPage";
 import AppPage from "./ui/AppPage";
 import AppsPage from "./ui/AppsPage";
-import { Confirm, EmptyState, NotFound, Notice, PageHead, Tag } from "./ui/common";
+import { EmptyState, NotFound, Notice, PageHead } from "./ui/common";
 import { Icon } from "./ui/icons";
 import EndpointPage from "./ui/EndpointPage";
 import HomePage from "./ui/HomePage";
@@ -66,13 +68,29 @@ const MANAGE: readonly NavItem[] = [
 ];
 
 export default function App() {
-  const [state, dispatch] = useReducer(reducer, undefined, loadState);
   const route = useRoute();
   const pageKey = pageKeyOf(route);
   const firstPage = useRef(true);
   const flash = useFlash(route);
-  useSimulation(state, dispatch);
-  useEffect(() => saveState(state), [state]);
+  // 先拿注册表（后端安装的场景、任务类型、算法），装好之后才渲染页面；需要访问令牌时先输入令牌。
+  const registry = useQuery({
+    queryKey: keys.registry,
+    queryFn: async () => {
+      const data = await api.registry();
+      installRegistry(data);
+      return data;
+    },
+    staleTime: Infinity,
+    retry: (count, error) => !(error instanceof ApiError && error.status === 401) && count < 2,
+  });
+  const server = useServerData(registry.isSuccess);
+  const [draft, setDraft] = useState(loadDraft);
+  const datasets = useRef(server.data.datasets);
+  useEffect(() => {
+    datasets.current = server.data.datasets;
+  });
+  const dispatch = useCallback((action: Action) => setDraft((previous) => reducer(previous, action, datasets.current)), []);
+  useEffect(() => saveDraft(draft), [draft]);
 
   useEffect(() => {
     // 换页后焦点移到主内容，读屏软件从新页面开头读起；同一页里展开行、切换标签不算换页。
@@ -88,14 +106,16 @@ export default function App() {
     if (!flash) clearFlash();
   }, [pageKey, flash]);
 
-  const reset = () => dispatch({ type: "resetDemo" });
+  const error = registry.error ?? server.error;
+  if (error instanceof ApiError && error.status === 401) return <TokenGate />;
+  const state: State | null = registry.isSuccess && server.ready ? { ...server.data, draft: withoutMissing(draft, server.data.datasets) } : null;
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main" onClick={(event) => {
         event.preventDefault();
         document.getElementById("main")?.focus();
       }}>跳到主要内容</a>
-      <Sidebar route={route} state={state} onReset={reset} />
+      <Sidebar route={route} state={state} />
       <main className="main" id="main" tabIndex={-1}>
         <div className="page">
           {flash ? (
@@ -106,14 +126,50 @@ export default function App() {
               {flash.text}
             </Notice>
           ) : null}
-          <Page state={state} dispatch={dispatch} route={route} />
-          {/* 窄屏时侧栏变成顶栏，"重置演示数据"放到页面底部，不和导航挤在一起 */}
-          <div className="page-foot">
-            <ResetDemo onReset={reset} />
-          </div>
+          {state ? <Page state={state} dispatch={dispatch} route={route} /> : error ? <Unavailable error={error} /> : <Loading />}
         </div>
       </main>
     </div>
+  );
+}
+
+function Loading() {
+  return <p className="page-loading" role="status">正在读取…</p>;
+}
+
+/** 连不上后端，或者后端返回了错误。 */
+function Unavailable({ error }: { error: Error }) {
+  return (
+    <EmptyState
+      title={error instanceof ApiError && error.status === 0 ? "连不上后端服务" : "读取数据失败"}
+      action={<button type="button" className="button button--secondary" onClick={() => queryClient.invalidateQueries()}>重试</button>}
+    >
+      <p>{error.message}</p>
+    </EmptyState>
+  );
+}
+
+/** 部署设置了访问令牌：先输入令牌（保存在这个浏览器里）。 */
+function TokenGate() {
+  const [value, setValue] = useState("");
+  const [failed, setFailed] = useState(Boolean(getToken()));
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    if (!value.trim()) return;
+    setToken(value.trim());
+    setFailed(false);
+    void queryClient.resetQueries();
+  }
+  return (
+    <main className="token-gate" id="main">
+      <form className="token-gate-card" onSubmit={submit}>
+        <h1>FedAgent Studio</h1>
+        <label className="field-label" htmlFor="access-token">访问令牌</label>
+        <input id="access-token" name="access-token" type="password" autoComplete="current-password" value={value} onChange={(event) => setValue(event.target.value)} />
+        {failed ? <p className="field-error" role="alert">令牌不对或已过期，请重新输入</p> : null}
+        <button type="submit" className="button button--primary" disabled={!value.trim()}>进入</button>
+      </form>
+    </main>
   );
 }
 
@@ -135,11 +191,11 @@ function Page({ state, dispatch, route }: { state: State; dispatch: Dispatch<Act
     case "app": {
       const item = state.published.find((entry) => entry.id === route.id);
       return item
-        ? <AppPage key={item.id} item={item} task={taskOf(state, item.taskId)} state={state} dispatch={dispatch} tab={route.tab} />
+        ? <AppPage key={item.id} item={item} task={taskOf(state, item.taskId)} state={state} tab={route.tab} />
         : <NotFound kind="应用" back={{ page: "apps" }} backLabel="应用" />;
     }
     case "participants":
-      return <ParticipantsPage state={state} dispatch={dispatch} selectedId={route.id} />;
+      return <ParticipantsPage state={state} selectedId={route.id} />;
     case "newParticipant":
       return <NewParticipantPage state={state} dispatch={dispatch} from={route.from} />;
     case "newDataset":
@@ -152,9 +208,9 @@ function Page({ state, dispatch, route }: { state: State; dispatch: Dispatch<Act
     case "models":
       return <ModelsPage state={state} />;
     case "newEndpoint":
-      return <EndpointPage state={state} dispatch={dispatch} from={route.from} />;
+      return <EndpointPage state={state} from={route.from} />;
     case "editEndpoint":
-      return <EndpointPage state={state} dispatch={dispatch} id={route.id} from={route.from} />;
+      return <EndpointPage state={state} id={route.id} from={route.from} />;
     default:
       return <HomePage />;
   }
@@ -173,22 +229,9 @@ function PlannedTaskConfig({ scenario }: { scenario: ScenarioId }) {
   );
 }
 
-/** 重置演示数据：会清掉用户新建的内容，先在原地确认。 */
-function ResetDemo({ onReset }: { onReset: () => void }) {
-  const [confirming, setConfirming] = useState(false);
-  if (confirming) {
-    return (
-      <Confirm title="重置演示数据？" confirmLabel="重置" onConfirm={() => { setConfirming(false); onReset(); }} onCancel={() => setConfirming(false)} className="confirm--compact">
-        新建的任务、参与方、数据集、接口和发布记录都会清除。
-      </Confirm>
-    );
-  }
-  return <button type="button" className="link-button" onClick={() => setConfirming(true)}>重置演示数据</button>;
-}
-
-function Sidebar({ route, state, onReset }: { route: Route; state: State; onReset: () => void }) {
+function Sidebar({ route, state }: { route: Route; state: State | null }) {
   const active = navKeyOf(route);
-  const running = state.tasks.filter((task) => task.status === "running").length;
+  const running = state?.tasks.filter((task) => task.status === "running" || task.status === "queued").length ?? 0;
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
   // 基础管理：在它下面的页面时默认展开，否则收起；用户点过就按用户的来，换到另一组页面时再回到默认。
@@ -210,7 +253,7 @@ function Sidebar({ route, state, onReset }: { route: Route; state: State; onRese
       onClick={close}
     >
       <span>{item.label}</span>
-      {item.key === "tasks" && running ? <span className="nav-count" aria-label={`${running} 个运行中`}>{running}</span> : null}
+      {item.key === "tasks" && running ? <span className="nav-count" aria-label={`${running} 个运行中或排队中`}>{running}</span> : null}
     </a>
   );
 
@@ -233,11 +276,6 @@ function Sidebar({ route, state, onReset }: { route: Route; state: State; onRese
     <aside className={`sidebar${open ? " sidebar--open" : ""}`} aria-label="侧栏">
       <div className="sidebar-top">
         <a className="wordmark" href={hrefOf({ page: "home" })} onClick={close} translate="no">FedAgent Studio</a>
-        {/* 品牌位置只放有用的状态：这是前端原型，数据都是示例。 */}
-        <span className="env" title="任务运行、结果和应用都是示例数据，后端尚未接入">
-          {/* 宽屏时标签前面由样式补上"前端原型 · "，标签里只有文字 */}
-          <Tag tone="warning">示例数据</Tag>
-        </span>
         <button type="button" className="menu-button" aria-expanded={open} aria-controls="main-nav" onClick={() => setOpen((value) => !value)}>
           {open ? "收起" : "菜单"}
         </button>
@@ -258,9 +296,6 @@ function Sidebar({ route, state, onReset }: { route: Route; state: State; onRese
           {MANAGE.map((item) => link(item, true))}
         </div>
       </nav>
-      <div className="sidebar-foot">
-        <ResetDemo onReset={onReset} />
-      </div>
     </aside>
   );
 }

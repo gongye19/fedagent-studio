@@ -1,13 +1,15 @@
 import { useState, type Dispatch } from "react";
+import { ApiError } from "../api/client";
 import { canPickInto } from "../domain/config";
 import { HOSTING_LABELS } from "../domain/resources";
+import { createDataset } from "../state/actions";
 import { showFlash } from "../state/flash";
 import { backTo, navigate, type From } from "../state/route";
 import { participantOf, type Action, type State } from "../state/store";
 import { FormActions, PageHead } from "./common";
 import { Field, FieldGroup, Panel } from "./console";
 import { DatasetFields } from "./DatasetFields";
-import { buildDataset, datasetMissing, EMPTY_DATASET_FORM, type DatasetForm } from "./datasetForm";
+import { appendDataset, datasetMissing, EMPTY_DATASET_FORM, type DatasetForm } from "./datasetForm";
 
 type Props = { state: State; dispatch: Dispatch<Action>; participant?: string; from?: From };
 
@@ -21,24 +23,35 @@ export default function NewDatasetPage({ state, dispatch, participant, from }: P
   const owner = participantOf(state, ownerId);
   const missing = owner ? datasetMissing(form, owner.hosting) : ["参与方"];
 
-  function save() {
-    if (!owner || missing.length) return;
-    const dataset = buildDataset(form, owner.hosting, owner.id);
-    if (!dataset) return;
-    dispatch({ type: "addDataset", dataset });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    if (from === "newTask") {
-      const picked = canPickInto(state.draft, owner, dataset);
-      if (picked) dispatch({ type: "pickDataset", participantId: owner.id, datasetId: dataset.id });
-      const back = backTo(from, { page: "participants" }, state.draft.scenario);
-      showFlash(back, picked
-        ? `已为“${owner.name}”添加数据集“${dataset.name}”，并选入这个任务。`
-        : `已为“${owner.name}”添加数据集“${dataset.name}”。`);
-      navigate(back);
-      return;
+  async function save() {
+    if (!owner || missing.length) return;
+    const data = new FormData();
+    data.set("participantId", owner.id);
+    if (!appendDataset(data, form, owner.hosting, { name: "name", description: "description" })) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const dataset = await createDataset(data);
+      if (from === "newTask") {
+        const picked = canPickInto(state.draft, owner, dataset);
+        if (picked) dispatch({ type: "pickDataset", participantId: owner.id, datasetId: dataset.id });
+        const back = backTo(from, { page: "participants" }, state.draft.scenario);
+        showFlash(back, picked
+          ? `已为“${owner.name}”添加数据集“${dataset.name}”，并选入这个任务。`
+          : `已为“${owner.name}”添加数据集“${dataset.name}”。`);
+        navigate(back);
+        return;
+      }
+      showFlash({ page: "participants" }, `已为“${owner.name}”添加数据集“${dataset.name}”。`);
+      navigate({ page: "participants", scenario: dataset.scenario, id: owner.id });
+    } catch (failure) {
+      setError(failure instanceof ApiError ? failure.message : "保存失败，稍后再试");
+    } finally {
+      setSaving(false);
     }
-    showFlash({ page: "participants" }, `已为“${owner.name}”添加数据集“${dataset.name}”。`);
-    navigate({ page: "participants", scenario: dataset.scenario, id: owner.id });
   }
 
   return (
@@ -70,7 +83,7 @@ export default function NewDatasetPage({ state, dispatch, participant, from }: P
           </div>
         </Panel>
 
-        <FormActions missing={missing} saveLabel="保存数据集" onCancel={() => navigate(backTo(from, { page: "participants" }, state.draft.scenario))} onSave={save} />
+        <FormActions missing={missing} saving={saving} error={error} saveLabel="保存数据集" onCancel={() => navigate(backTo(from, { page: "participants" }, state.draft.scenario))} onSave={() => void save()} />
       </div>
     </>
   );

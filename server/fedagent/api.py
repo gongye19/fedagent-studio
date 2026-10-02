@@ -105,7 +105,12 @@ def healthz(session: SessionDep) -> dict[str, bool]:
 
 @public.get("/v1/meta", response_model=MetaOut, tags=["system"])
 def meta(platform: PlatformDep) -> MetaOut:
-    return MetaOut(version=__version__, auth_required=bool(platform.settings.admin_token))
+    packages = platform.settings.client_dist
+    return MetaOut(
+        version=__version__,
+        auth_required=bool(platform.settings.admin_token),
+        client_packages=sorted(path.name for path in packages.glob("*.whl")) if packages and packages.is_dir() else [],
+    )
 
 
 # —— 注册表 ——
@@ -491,6 +496,10 @@ def create_app(platform: Platform) -> FastAPI:
     async def _model_error(_request: Request, error: ModelError) -> JSONResponse:
         return JSONResponse(status_code=502, content={"detail": f"模型调用失败：{error}"})
 
+    packages = platform.settings.client_dist
+    if packages is not None and packages.is_dir():
+        # 安装包里只有代码，不需要令牌；要挂在前端之前，否则会被 "/" 接走
+        app.mount("/client", StaticFiles(directory=packages), name="client")
     dist = platform.settings.frontend_dist
     if dist is not None and dist.exists():
         app.mount("/", StaticFiles(directory=dist, html=True), name="frontend")

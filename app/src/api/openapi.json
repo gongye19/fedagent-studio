@@ -1,0 +1,4990 @@
+{
+ "openapi": "3.1.0",
+ "info": {
+  "title": "FedAgent Studio API",
+  "version": "0.1.0"
+ },
+ "paths": {
+  "/v1/meta": {
+   "get": {
+    "tags": [
+     "system"
+    ],
+    "summary": "Meta",
+    "operationId": "meta_v1_meta_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MetaOut"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/registry": {
+   "get": {
+    "tags": [
+     "registry"
+    ],
+    "summary": "Registry",
+    "operationId": "registry_v1_registry_get",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RegistryOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/algorithms/{algorithm_id}": {
+   "get": {
+    "tags": [
+     "registry"
+    ],
+    "summary": "Algorithm",
+    "operationId": "algorithm_v1_algorithms__algorithm_id__get",
+    "parameters": [
+     {
+      "name": "algorithm_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Algorithm Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AlgorithmOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/participants": {
+   "get": {
+    "tags": [
+     "participants"
+    ],
+    "summary": "List Participants",
+    "operationId": "list_participants_v1_participants_get",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/ParticipantOut"
+         },
+         "title": "Response List Participants V1 Participants Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "participants"
+    ],
+    "summary": "Create Participant",
+    "description": "新增参与方，同时登记它的第一份数据集（同一个事务：数据集检查不通过时什么都不保存）。",
+    "operationId": "create_participant_v1_participants_post",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_create_participant_v1_participants_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ParticipantOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/participants/{participant_id}": {
+   "patch": {
+    "tags": [
+     "participants"
+    ],
+    "summary": "Update Participant",
+    "operationId": "update_participant_v1_participants__participant_id__patch",
+    "parameters": [
+     {
+      "name": "participant_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Participant Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ParticipantPatch"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ParticipantOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "participants"
+    ],
+    "summary": "Delete Participant",
+    "operationId": "delete_participant_v1_participants__participant_id__delete",
+    "parameters": [
+     {
+      "name": "participant_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Participant Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/participants/{participant_id}/client-tokens": {
+   "post": {
+    "tags": [
+     "participants"
+    ],
+    "summary": "Issue Client Token",
+    "operationId": "issue_client_token_v1_participants__participant_id__client_tokens_post",
+    "parameters": [
+     {
+      "name": "participant_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Participant Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ClientTokenOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "get": {
+    "tags": [
+     "participants"
+    ],
+    "summary": "List Client Tokens",
+    "operationId": "list_client_tokens_v1_participants__participant_id__client_tokens_get",
+    "parameters": [
+     {
+      "name": "participant_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Participant Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/ClientTokenOut"
+         },
+         "title": "Response List Client Tokens V1 Participants  Participant Id  Client Tokens Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/client-tokens/{token_id}": {
+   "delete": {
+    "tags": [
+     "participants"
+    ],
+    "summary": "Revoke Client Token",
+    "operationId": "revoke_client_token_v1_client_tokens__token_id__delete",
+    "parameters": [
+     {
+      "name": "token_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Token Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/datasets": {
+   "get": {
+    "tags": [
+     "datasets"
+    ],
+    "summary": "List Datasets",
+    "operationId": "list_datasets_v1_datasets_get",
+    "parameters": [
+     {
+      "name": "participant",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Participant"
+      }
+     },
+     {
+      "name": "scenario",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Scenario"
+      }
+     },
+     {
+      "name": "taskType",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Tasktype"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/DatasetOut"
+         },
+         "title": "Response List Datasets V1 Datasets Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "datasets"
+    ],
+    "summary": "Create Dataset",
+    "operationId": "create_dataset_v1_datasets_post",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_create_dataset_v1_datasets_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DatasetOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/datasets/check": {
+   "post": {
+    "tags": [
+     "datasets"
+    ],
+    "summary": "Check Dataset",
+    "operationId": "check_dataset_v1_datasets_check_post",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_check_dataset_v1_datasets_check_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DatasetCheckOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/datasets/{dataset_id}": {
+   "delete": {
+    "tags": [
+     "datasets"
+    ],
+    "summary": "Delete Dataset",
+    "operationId": "delete_dataset_v1_datasets__dataset_id__delete",
+    "parameters": [
+     {
+      "name": "dataset_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Dataset Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/endpoints": {
+   "get": {
+    "tags": [
+     "endpoints"
+    ],
+    "summary": "List Endpoints",
+    "operationId": "list_endpoints_v1_endpoints_get",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/EndpointOut"
+         },
+         "title": "Response List Endpoints V1 Endpoints Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "endpoints"
+    ],
+    "summary": "Create Endpoint",
+    "operationId": "create_endpoint_v1_endpoints_post",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/EndpointIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/EndpointOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/endpoints/{endpoint_id}": {
+   "put": {
+    "tags": [
+     "endpoints"
+    ],
+    "summary": "Update Endpoint",
+    "operationId": "update_endpoint_v1_endpoints__endpoint_id__put",
+    "parameters": [
+     {
+      "name": "endpoint_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Endpoint Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/EndpointIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/EndpointOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "endpoints"
+    ],
+    "summary": "Delete Endpoint",
+    "operationId": "delete_endpoint_v1_endpoints__endpoint_id__delete",
+    "parameters": [
+     {
+      "name": "endpoint_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Endpoint Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/endpoints/{endpoint_id}/test": {
+   "post": {
+    "tags": [
+     "endpoints"
+    ],
+    "summary": "Test Endpoint",
+    "description": "发一条很短的请求，看接口能不能用（会产生极少量费用）。",
+    "operationId": "test_endpoint_v1_endpoints__endpoint_id__test_post",
+    "parameters": [
+     {
+      "name": "endpoint_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Endpoint Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/EndpointTestOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/tasks/validate": {
+   "post": {
+    "tags": [
+     "tasks"
+    ],
+    "summary": "Validate Task",
+    "operationId": "validate_task_v1_tasks_validate_post",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TaskConfigIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ValidateOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/tasks/estimate": {
+   "post": {
+    "tags": [
+     "tasks"
+    ],
+    "summary": "Estimate Task",
+    "operationId": "estimate_task_v1_tasks_estimate_post",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TaskConfigIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/EstimateOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/tasks": {
+   "post": {
+    "tags": [
+     "tasks"
+    ],
+    "summary": "Create Task",
+    "operationId": "create_task_v1_tasks_post",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TaskConfigIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TaskOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "get": {
+    "tags": [
+     "tasks"
+    ],
+    "summary": "List Tasks",
+    "operationId": "list_tasks_v1_tasks_get",
+    "parameters": [
+     {
+      "name": "scenario",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Scenario"
+      }
+     },
+     {
+      "name": "taskType",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Tasktype"
+      }
+     },
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Status"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/TaskOut"
+         },
+         "title": "Response List Tasks V1 Tasks Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/tasks/{task_id}": {
+   "get": {
+    "tags": [
+     "tasks"
+    ],
+    "summary": "Get Task",
+    "operationId": "get_task_v1_tasks__task_id__get",
+    "parameters": [
+     {
+      "name": "task_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Task Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TaskOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/tasks/{task_id}/{action}": {
+   "post": {
+    "tags": [
+     "tasks"
+    ],
+    "summary": "Control Task",
+    "operationId": "control_task_v1_tasks__task_id___action__post",
+    "parameters": [
+     {
+      "name": "task_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Task Id"
+      }
+     },
+     {
+      "name": "action",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Action"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TaskOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/tasks/{task_id}/messages": {
+   "get": {
+    "tags": [
+     "tasks"
+    ],
+    "summary": "Task Messages",
+    "operationId": "task_messages_v1_tasks__task_id__messages_get",
+    "parameters": [
+     {
+      "name": "task_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Task Id"
+      }
+     },
+     {
+      "name": "round",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Round"
+      }
+     },
+     {
+      "name": "site",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Site"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 1000,
+       "minimum": 1,
+       "default": 200,
+       "title": "Limit"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/MessageOut"
+         },
+         "title": "Response Task Messages V1 Tasks  Task Id  Messages Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/tasks/{task_id}/events": {
+   "get": {
+    "tags": [
+     "tasks"
+    ],
+    "summary": "Task Events",
+    "operationId": "task_events_v1_tasks__task_id__events_get",
+    "parameters": [
+     {
+      "name": "task_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Task Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/EventOut"
+         },
+         "title": "Response Task Events V1 Tasks  Task Id  Events Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/apps": {
+   "get": {
+    "tags": [
+     "apps"
+    ],
+    "summary": "List Apps",
+    "operationId": "list_apps_v1_apps_get",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/AppOut"
+         },
+         "title": "Response List Apps V1 Apps Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "apps"
+    ],
+    "summary": "Publish App",
+    "operationId": "publish_app_v1_apps_post",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AppIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AppOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/apps/{app_id}": {
+   "get": {
+    "tags": [
+     "apps"
+    ],
+    "summary": "Get App",
+    "operationId": "get_app_v1_apps__app_id__get",
+    "parameters": [
+     {
+      "name": "app_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "App Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AppOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "tags": [
+     "apps"
+    ],
+    "summary": "Rename App",
+    "operationId": "rename_app_v1_apps__app_id__patch",
+    "parameters": [
+     {
+      "name": "app_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "App Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AppPatch"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AppOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "apps"
+    ],
+    "summary": "Withdraw App",
+    "operationId": "withdraw_app_v1_apps__app_id__delete",
+    "parameters": [
+     {
+      "name": "app_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "App Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/apps/{app_id}/apply": {
+   "post": {
+    "tags": [
+     "apps"
+    ],
+    "summary": "Apply App",
+    "operationId": "apply_app_v1_apps__app_id__apply_post",
+    "parameters": [
+     {
+      "name": "app_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "App Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ApplyIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ApplyOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/apps/{app_id}/export": {
+   "get": {
+    "tags": [
+     "apps"
+    ],
+    "summary": "Export App",
+    "operationId": "export_app_v1_apps__app_id__export_get",
+    "parameters": [
+     {
+      "name": "app_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "App Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/client/hello": {
+   "post": {
+    "tags": [
+     "client"
+    ],
+    "summary": "Client Hello",
+    "operationId": "client_hello_v1_client_hello_post",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ClientHelloIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ClientHelloOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/client/units/claim": {
+   "post": {
+    "tags": [
+     "client"
+    ],
+    "summary": "Client Claim",
+    "operationId": "client_claim_v1_client_units_claim_post",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ClaimIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/ClientUnitOut"
+         },
+         "title": "Response Client Claim V1 Client Units Claim Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/client/units/{unit_id}/inputs": {
+   "get": {
+    "tags": [
+     "client"
+    ],
+    "summary": "Client Inputs",
+    "operationId": "client_inputs_v1_client_units__unit_id__inputs_get",
+    "parameters": [
+     {
+      "name": "unit_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Unit Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/UnitInputsOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/client/units/{unit_id}/heartbeat": {
+   "post": {
+    "tags": [
+     "client"
+    ],
+    "summary": "Client Heartbeat",
+    "operationId": "client_heartbeat_v1_client_units__unit_id__heartbeat_post",
+    "parameters": [
+     {
+      "name": "unit_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Unit Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/client/units/{unit_id}/complete": {
+   "post": {
+    "tags": [
+     "client"
+    ],
+    "summary": "Client Complete",
+    "operationId": "client_complete_v1_client_units__unit_id__complete_post",
+    "parameters": [
+     {
+      "name": "unit_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Unit Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CompleteIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/client/units/{unit_id}/fail": {
+   "post": {
+    "tags": [
+     "client"
+    ],
+    "summary": "Client Fail",
+    "operationId": "client_fail_v1_client_units__unit_id__fail_post",
+    "parameters": [
+     {
+      "name": "unit_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Unit Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/FailIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "AlgorithmOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "version": {
+      "type": "string",
+      "title": "Version"
+     },
+     "scenario": {
+      "type": "string",
+      "title": "Scenario"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "fullName": {
+      "type": "string",
+      "title": "Fullname"
+     },
+     "summary": {
+      "type": "string",
+      "title": "Summary"
+     },
+     "exchange": {
+      "type": "string",
+      "title": "Exchange"
+     },
+     "output": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/OutputDef"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "stages": {
+      "items": {
+       "$ref": "#/components/schemas/StageOut"
+      },
+      "type": "array",
+      "title": "Stages"
+     },
+     "accepts": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Accepts"
+     },
+     "roles": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/RoleOut"
+      },
+      "type": "object",
+      "title": "Roles"
+     },
+     "params": {
+      "items": {
+       "$ref": "#/components/schemas/ParamOut"
+      },
+      "type": "array",
+      "title": "Params"
+     },
+     "minParticipants": {
+      "type": "integer",
+      "title": "Minparticipants"
+     },
+     "minRounds": {
+      "type": "integer",
+      "title": "Minrounds"
+     },
+     "maxRounds": {
+      "type": "integer",
+      "title": "Maxrounds"
+     },
+     "defaultRounds": {
+      "type": "integer",
+      "title": "Defaultrounds"
+     },
+     "source": {
+      "$ref": "#/components/schemas/SourceOut"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "version",
+     "scenario",
+     "name",
+     "fullName",
+     "summary",
+     "exchange",
+     "output",
+     "stages",
+     "accepts",
+     "roles",
+     "params",
+     "minParticipants",
+     "minRounds",
+     "maxRounds",
+     "defaultRounds",
+     "source"
+    ],
+    "title": "AlgorithmOut"
+   },
+   "AppIn": {
+    "properties": {
+     "taskId": {
+      "type": "string",
+      "title": "Taskid"
+     },
+     "builtAfterRound": {
+      "type": "integer",
+      "title": "Builtafterround"
+     },
+     "name": {
+      "type": "string",
+      "maxLength": 60,
+      "minLength": 1,
+      "title": "Name"
+     }
+    },
+    "type": "object",
+    "required": [
+     "taskId",
+     "builtAfterRound",
+     "name"
+    ],
+    "title": "AppIn"
+   },
+   "AppOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "taskId": {
+      "type": "string",
+      "title": "Taskid"
+     },
+     "builtAfterRound": {
+      "type": "integer",
+      "title": "Builtafterround"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "publishedAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Publishedat"
+     },
+     "scenario": {
+      "type": "string",
+      "title": "Scenario"
+     },
+     "taskType": {
+      "type": "string",
+      "title": "Tasktype"
+     },
+     "algorithm": {
+      "type": "string",
+      "title": "Algorithm"
+     },
+     "pluginVersion": {
+      "type": "string",
+      "title": "Pluginversion"
+     },
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/OutputItem"
+      },
+      "type": "array",
+      "title": "Items"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "taskId",
+     "builtAfterRound",
+     "name",
+     "publishedAt",
+     "scenario",
+     "taskType",
+     "algorithm",
+     "pluginVersion",
+     "items"
+    ],
+    "title": "AppOut"
+   },
+   "AppPatch": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "maxLength": 60,
+      "minLength": 1,
+      "title": "Name"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name"
+    ],
+    "title": "AppPatch"
+   },
+   "ApplyIn": {
+    "properties": {
+     "input": {
+      "type": "string",
+      "maxLength": 20000,
+      "minLength": 1,
+      "title": "Input"
+     },
+     "answer": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Answer"
+     },
+     "model": {
+      "type": "string",
+      "title": "Model",
+      "default": "default"
+     }
+    },
+    "type": "object",
+    "required": [
+     "input"
+    ],
+    "title": "ApplyIn"
+   },
+   "ApplyOut": {
+    "properties": {
+     "without": {
+      "$ref": "#/components/schemas/ApplySide"
+     },
+     "with": {
+      "$ref": "#/components/schemas/ApplySide"
+     }
+    },
+    "type": "object",
+    "required": [
+     "without",
+     "with"
+    ],
+    "title": "ApplyOut"
+   },
+   "ApplySide": {
+    "properties": {
+     "output": {
+      "type": "string",
+      "title": "Output"
+     },
+     "correct": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Correct"
+     },
+     "tokens": {
+      "type": "integer",
+      "title": "Tokens"
+     }
+    },
+    "type": "object",
+    "required": [
+     "output",
+     "correct",
+     "tokens"
+    ],
+    "title": "ApplySide"
+   },
+   "Body_check_dataset_v1_datasets_check_post": {
+    "properties": {
+     "taskType": {
+      "type": "string",
+      "title": "Tasktype"
+     },
+     "file": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "File"
+     }
+    },
+    "type": "object",
+    "required": [
+     "taskType",
+     "file"
+    ],
+    "title": "Body_check_dataset_v1_datasets_check_post"
+   },
+   "Body_create_dataset_v1_datasets_post": {
+    "properties": {
+     "participantId": {
+      "type": "string",
+      "title": "Participantid"
+     },
+     "name": {
+      "type": "string",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Name"
+     },
+     "scenario": {
+      "type": "string",
+      "title": "Scenario"
+     },
+     "taskType": {
+      "type": "string",
+      "title": "Tasktype"
+     },
+     "description": {
+      "type": "string",
+      "maxLength": 120,
+      "title": "Description",
+      "default": ""
+     },
+     "file": {
+      "anyOf": [
+       {
+        "type": "string",
+        "contentMediaType": "application/octet-stream"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "File"
+     }
+    },
+    "type": "object",
+    "required": [
+     "participantId",
+     "name",
+     "scenario",
+     "taskType"
+    ],
+    "title": "Body_create_dataset_v1_datasets_post"
+   },
+   "Body_create_participant_v1_participants_post": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Name"
+     },
+     "hosting": {
+      "type": "string",
+      "pattern": "^(platform|local)$",
+      "title": "Hosting"
+     },
+     "datasetName": {
+      "type": "string",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Datasetname"
+     },
+     "scenario": {
+      "type": "string",
+      "title": "Scenario"
+     },
+     "taskType": {
+      "type": "string",
+      "title": "Tasktype"
+     },
+     "org": {
+      "type": "string",
+      "maxLength": 40,
+      "title": "Org",
+      "default": ""
+     },
+     "intro": {
+      "type": "string",
+      "maxLength": 120,
+      "title": "Intro",
+      "default": ""
+     },
+     "datasetDescription": {
+      "type": "string",
+      "maxLength": 120,
+      "title": "Datasetdescription",
+      "default": ""
+     },
+     "file": {
+      "anyOf": [
+       {
+        "type": "string",
+        "contentMediaType": "application/octet-stream"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "File"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "hosting",
+     "datasetName",
+     "scenario",
+     "taskType"
+    ],
+    "title": "Body_create_participant_v1_participants_post"
+   },
+   "CheckProblem": {
+    "properties": {
+     "line": {
+      "type": "integer",
+      "title": "Line"
+     },
+     "message": {
+      "type": "string",
+      "title": "Message"
+     }
+    },
+    "type": "object",
+    "required": [
+     "line",
+     "message"
+    ],
+    "title": "CheckProblem"
+   },
+   "ClaimIn": {
+    "properties": {
+     "limit": {
+      "type": "integer",
+      "maximum": 64.0,
+      "minimum": 1.0,
+      "title": "Limit",
+      "default": 4
+     }
+    },
+    "type": "object",
+    "title": "ClaimIn"
+   },
+   "ClientArtifact": {
+    "properties": {
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "round": {
+      "type": "integer",
+      "title": "Round"
+     },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "content": {
+      "title": "Content"
+     }
+    },
+    "type": "object",
+    "required": [
+     "version",
+     "round",
+     "kind",
+     "content"
+    ],
+    "title": "ClientArtifact"
+   },
+   "ClientDataset": {
+    "properties": {
+     "datasetId": {
+      "type": "string",
+      "title": "Datasetid"
+     },
+     "count": {
+      "type": "integer",
+      "title": "Count"
+     },
+     "answered": {
+      "type": "integer",
+      "title": "Answered"
+     },
+     "itemIds": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Itemids"
+     }
+    },
+    "type": "object",
+    "required": [
+     "datasetId",
+     "count",
+     "answered",
+     "itemIds"
+    ],
+    "title": "ClientDataset"
+   },
+   "ClientHelloIn": {
+    "properties": {
+     "clientVersion": {
+      "type": "string",
+      "title": "Clientversion"
+     },
+     "plugins": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object",
+      "title": "Plugins",
+      "default": {}
+     },
+     "datasets": {
+      "items": {
+       "$ref": "#/components/schemas/ClientDataset"
+      },
+      "type": "array",
+      "title": "Datasets",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "clientVersion"
+    ],
+    "title": "ClientHelloIn"
+   },
+   "ClientHelloOut": {
+    "properties": {
+     "participantId": {
+      "type": "string",
+      "title": "Participantid"
+     },
+     "participant": {
+      "type": "string",
+      "title": "Participant"
+     },
+     "datasets": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Datasets"
+     }
+    },
+    "type": "object",
+    "required": [
+     "participantId",
+     "participant",
+     "datasets"
+    ],
+    "title": "ClientHelloOut"
+   },
+   "ClientMessage": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "channel": {
+      "type": "string",
+      "title": "Channel"
+     },
+     "round": {
+      "type": "integer",
+      "title": "Round"
+     },
+     "step": {
+      "type": "string",
+      "title": "Step"
+     },
+     "sender": {
+      "type": "string",
+      "title": "Sender"
+     },
+     "senderRole": {
+      "type": "string",
+      "title": "Senderrole"
+     },
+     "payload": {
+      "title": "Payload"
+     },
+     "itemId": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Itemid"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "channel",
+     "round",
+     "step",
+     "sender",
+     "senderRole",
+     "payload",
+     "itemId"
+    ],
+    "title": "ClientMessage"
+   },
+   "ClientTokenOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "token": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Token"
+     },
+     "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Createdat"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "token",
+     "createdAt"
+    ],
+    "title": "ClientTokenOut"
+   },
+   "ClientUnitOut": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "taskId": {
+      "type": "string",
+      "title": "Taskid"
+     },
+     "round": {
+      "type": "integer",
+      "title": "Round"
+     },
+     "rounds": {
+      "type": "integer",
+      "title": "Rounds"
+     },
+     "step": {
+      "type": "string",
+      "title": "Step"
+     },
+     "siteId": {
+      "type": "string",
+      "title": "Siteid"
+     },
+     "role": {
+      "type": "string",
+      "title": "Role"
+     },
+     "unitKey": {
+      "type": "string",
+      "title": "Unitkey"
+     },
+     "datasetId": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Datasetid"
+     },
+     "algorithm": {
+      "type": "string",
+      "title": "Algorithm"
+     },
+     "pluginVersion": {
+      "type": "string",
+      "title": "Pluginversion"
+     },
+     "taskType": {
+      "type": "string",
+      "title": "Tasktype"
+     },
+     "grader": {
+      "type": "string",
+      "title": "Grader"
+     },
+     "params": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Params"
+     },
+     "leaseUntil": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Leaseuntil"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "taskId",
+     "round",
+     "rounds",
+     "step",
+     "siteId",
+     "role",
+     "unitKey",
+     "datasetId",
+     "algorithm",
+     "pluginVersion",
+     "taskType",
+     "grader",
+     "params",
+     "leaseUntil"
+    ],
+    "title": "ClientUnitOut"
+   },
+   "CompleteIn": {
+    "properties": {
+     "sent": {
+      "items": {
+       "$ref": "#/components/schemas/SentIn"
+      },
+      "type": "array",
+      "title": "Sent",
+      "default": []
+     },
+     "reports": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Reports",
+      "default": {}
+     },
+     "graded": {
+      "items": {
+       "$ref": "#/components/schemas/GradedIn"
+      },
+      "type": "array",
+      "title": "Graded",
+      "default": []
+     }
+    },
+    "type": "object",
+    "title": "CompleteIn"
+   },
+   "CursorOut": {
+    "properties": {
+     "round": {
+      "type": "integer",
+      "title": "Round"
+     },
+     "stage": {
+      "type": "string",
+      "title": "Stage"
+     },
+     "done": {
+      "additionalProperties": {
+       "type": "integer"
+      },
+      "type": "object",
+      "title": "Done"
+     },
+     "ticks": {
+      "type": "integer",
+      "title": "Ticks",
+      "default": 0
+     }
+    },
+    "type": "object",
+    "required": [
+     "round",
+     "stage",
+     "done"
+    ],
+    "title": "CursorOut"
+   },
+   "DatasetCheckOut": {
+    "properties": {
+     "ok": {
+      "type": "boolean",
+      "title": "Ok"
+     },
+     "count": {
+      "type": "integer",
+      "title": "Count"
+     },
+     "answered": {
+      "type": "integer",
+      "title": "Answered"
+     },
+     "problems": {
+      "items": {
+       "$ref": "#/components/schemas/CheckProblem"
+      },
+      "type": "array",
+      "title": "Problems"
+     },
+     "problemCount": {
+      "type": "integer",
+      "title": "Problemcount"
+     },
+     "sample": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/SampleOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "type": "object",
+    "required": [
+     "ok",
+     "count",
+     "answered",
+     "problems",
+     "problemCount",
+     "sample"
+    ],
+    "title": "DatasetCheckOut"
+   },
+   "DatasetOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "participantId": {
+      "type": "string",
+      "title": "Participantid"
+     },
+     "description": {
+      "type": "string",
+      "title": "Description"
+     },
+     "origin": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Origin"
+     },
+     "scenario": {
+      "type": "string",
+      "title": "Scenario"
+     },
+     "taskType": {
+      "type": "string",
+      "title": "Tasktype"
+     },
+     "count": {
+      "type": "integer",
+      "title": "Count"
+     },
+     "answered": {
+      "type": "integer",
+      "title": "Answered"
+     },
+     "source": {
+      "type": "string",
+      "enum": [
+       "builtin",
+       "upload",
+       "local"
+      ],
+      "title": "Source"
+     },
+     "sample": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/SampleOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "ready": {
+      "type": "boolean",
+      "title": "Ready"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "participantId",
+     "description",
+     "origin",
+     "scenario",
+     "taskType",
+     "count",
+     "answered",
+     "source",
+     "sample",
+     "ready"
+    ],
+    "title": "DatasetOut"
+   },
+   "EndpointIn": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Name"
+     },
+     "baseUrl": {
+      "type": "string",
+      "maxLength": 400,
+      "title": "Baseurl",
+      "default": ""
+     },
+     "models": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Models",
+      "default": []
+     },
+     "concurrency": {
+      "type": "integer",
+      "maximum": 256.0,
+      "minimum": 1.0,
+      "title": "Concurrency",
+      "default": 8
+     },
+     "price": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price"
+     },
+     "apiKey": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 400
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Apikey"
+     },
+     "timeout": {
+      "type": "number",
+      "maximum": 3600.0,
+      "minimum": 5.0,
+      "title": "Timeout",
+      "default": 600.0
+     },
+     "maxRetries": {
+      "type": "integer",
+      "maximum": 20.0,
+      "minimum": 0.0,
+      "title": "Maxretries",
+      "default": 8
+     }
+    },
+    "type": "object",
+    "required": [
+     "name"
+    ],
+    "title": "EndpointIn"
+   },
+   "EndpointOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "openai",
+       "fake"
+      ],
+      "title": "Kind"
+     },
+     "baseUrl": {
+      "type": "string",
+      "title": "Baseurl"
+     },
+     "models": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Models"
+     },
+     "concurrency": {
+      "type": "integer",
+      "title": "Concurrency"
+     },
+     "price": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price"
+     },
+     "hasKey": {
+      "type": "boolean",
+      "title": "Haskey"
+     },
+     "builtin": {
+      "type": "boolean",
+      "title": "Builtin"
+     },
+     "configured": {
+      "type": "boolean",
+      "title": "Configured"
+     },
+     "timeout": {
+      "type": "number",
+      "title": "Timeout"
+     },
+     "maxRetries": {
+      "type": "integer",
+      "title": "Maxretries"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "kind",
+     "baseUrl",
+     "models",
+     "concurrency",
+     "price",
+     "hasKey",
+     "builtin",
+     "configured",
+     "timeout",
+     "maxRetries"
+    ],
+    "title": "EndpointOut"
+   },
+   "EndpointTestOut": {
+    "properties": {
+     "ok": {
+      "type": "boolean",
+      "title": "Ok"
+     },
+     "model": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Model"
+     },
+     "latencyMs": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Latencyms"
+     },
+     "message": {
+      "type": "string",
+      "title": "Message"
+     }
+    },
+    "type": "object",
+    "required": [
+     "ok",
+     "model",
+     "latencyMs",
+     "message"
+    ],
+    "title": "EndpointTestOut"
+   },
+   "EstimateOut": {
+    "properties": {
+     "problems": {
+      "type": "integer",
+      "title": "Problems"
+     },
+     "participantCalls": {
+      "type": "integer",
+      "title": "Participantcalls"
+     },
+     "serverCalls": {
+      "type": "integer",
+      "title": "Servercalls"
+     },
+     "participantTokens": {
+      "type": "integer",
+      "title": "Participanttokens"
+     },
+     "serverTokens": {
+      "type": "integer",
+      "title": "Servertokens"
+     },
+     "seconds": {
+      "type": "integer",
+      "title": "Seconds"
+     },
+     "cost": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cost"
+     }
+    },
+    "type": "object",
+    "required": [
+     "problems",
+     "participantCalls",
+     "serverCalls",
+     "participantTokens",
+     "serverTokens",
+     "seconds",
+     "cost"
+    ],
+    "title": "EstimateOut"
+   },
+   "EventOut": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "message": {
+      "type": "string",
+      "title": "Message"
+     },
+     "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Createdat"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "kind",
+     "message",
+     "createdAt"
+    ],
+    "title": "EventOut"
+   },
+   "FailIn": {
+    "properties": {
+     "error": {
+      "type": "string",
+      "maxLength": 4000,
+      "title": "Error"
+     },
+     "pause": {
+      "type": "boolean",
+      "title": "Pause",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "error"
+    ],
+    "title": "FailIn"
+   },
+   "GradedIn": {
+    "properties": {
+     "itemId": {
+      "type": "string",
+      "title": "Itemid"
+     },
+     "labeled": {
+      "type": "boolean",
+      "title": "Labeled"
+     },
+     "correct": {
+      "type": "boolean",
+      "title": "Correct"
+     }
+    },
+    "type": "object",
+    "required": [
+     "itemId",
+     "labeled",
+     "correct"
+    ],
+    "title": "GradedIn"
+   },
+   "GraderOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "detail": {
+      "type": "string",
+      "title": "Detail"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "label",
+     "detail"
+    ],
+    "title": "GraderOut"
+   },
+   "GroupOut": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "uploads": {
+      "additionalProperties": {
+       "type": "integer"
+      },
+      "type": "object",
+      "title": "Uploads"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "uploads"
+    ],
+    "title": "GroupOut"
+   },
+   "HTTPValidationError": {
+    "properties": {
+     "detail": {
+      "items": {
+       "$ref": "#/components/schemas/ValidationError"
+      },
+      "type": "array",
+      "title": "Detail"
+     }
+    },
+    "type": "object",
+    "title": "HTTPValidationError"
+   },
+   "IssueOut": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "message": {
+      "type": "string",
+      "title": "Message"
+     }
+    },
+    "type": "object",
+    "required": [
+     "field",
+     "message"
+    ],
+    "title": "IssueOut"
+   },
+   "MemberOut": {
+    "properties": {
+     "participantId": {
+      "type": "string",
+      "title": "Participantid"
+     },
+     "participant": {
+      "type": "string",
+      "title": "Participant"
+     },
+     "datasetId": {
+      "type": "string",
+      "title": "Datasetid"
+     },
+     "dataset": {
+      "type": "string",
+      "title": "Dataset"
+     },
+     "hosting": {
+      "type": "string",
+      "enum": [
+       "platform",
+       "local"
+      ],
+      "title": "Hosting"
+     },
+     "problems": {
+      "type": "integer",
+      "title": "Problems"
+     },
+     "answered": {
+      "type": "integer",
+      "title": "Answered"
+     },
+     "model": {
+      "type": "string",
+      "title": "Model"
+     }
+    },
+    "type": "object",
+    "required": [
+     "participantId",
+     "participant",
+     "datasetId",
+     "dataset",
+     "hosting",
+     "problems",
+     "answered",
+     "model"
+    ],
+    "title": "MemberOut"
+   },
+   "MessageOut": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "round": {
+      "type": "integer",
+      "title": "Round"
+     },
+     "step": {
+      "type": "string",
+      "title": "Step"
+     },
+     "channel": {
+      "type": "string",
+      "title": "Channel"
+     },
+     "sender": {
+      "type": "string",
+      "title": "Sender"
+     },
+     "itemId": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Itemid"
+     },
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text"
+     },
+     "size": {
+      "type": "integer",
+      "title": "Size"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "round",
+     "step",
+     "channel",
+     "sender",
+     "itemId",
+     "key",
+     "text",
+     "size"
+    ],
+    "title": "MessageOut"
+   },
+   "MetaOut": {
+    "properties": {
+     "version": {
+      "type": "string",
+      "title": "Version"
+     },
+     "authRequired": {
+      "type": "boolean",
+      "title": "Authrequired"
+     },
+     "clientPackages": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Clientpackages",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "version",
+     "authRequired"
+    ],
+    "title": "MetaOut"
+   },
+   "OutputDef": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "unit": {
+      "type": "string",
+      "title": "Unit"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "unit"
+    ],
+    "title": "OutputDef"
+   },
+   "OutputItem": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text"
+     },
+     "category": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Category"
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "text"
+    ],
+    "title": "OutputItem"
+   },
+   "OutputVersionOut": {
+    "properties": {
+     "builtAfterRound": {
+      "type": "integer",
+      "title": "Builtafterround"
+     },
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/OutputItem"
+      },
+      "type": "array",
+      "title": "Items"
+     },
+     "uploadCount": {
+      "type": "integer",
+      "title": "Uploadcount"
+     }
+    },
+    "type": "object",
+    "required": [
+     "builtAfterRound",
+     "items",
+     "uploadCount"
+    ],
+    "title": "OutputVersionOut"
+   },
+   "ParamOptionOut": {
+    "properties": {
+     "value": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "integer"
+       },
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Value"
+     },
+     "label": {
+      "type": "string",
+      "title": "Label"
+     }
+    },
+    "type": "object",
+    "required": [
+     "value",
+     "label"
+    ],
+    "title": "ParamOptionOut"
+   },
+   "ParamOut": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "help": {
+      "type": "string",
+      "title": "Help"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "select",
+       "select-number",
+       "number"
+      ],
+      "title": "Kind"
+     },
+     "options": {
+      "items": {
+       "$ref": "#/components/schemas/ParamOptionOut"
+      },
+      "type": "array",
+      "title": "Options"
+     },
+     "min": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Min"
+     },
+     "max": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Max"
+     },
+     "unit": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unit"
+     },
+     "default": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "integer"
+       },
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Default"
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "label",
+     "help",
+     "kind",
+     "options",
+     "min",
+     "max",
+     "unit",
+     "default"
+    ],
+    "title": "ParamOut"
+   },
+   "ParticipantOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "org": {
+      "type": "string",
+      "title": "Org"
+     },
+     "intro": {
+      "type": "string",
+      "title": "Intro"
+     },
+     "hosting": {
+      "type": "string",
+      "enum": [
+       "platform",
+       "local"
+      ],
+      "title": "Hosting"
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "online",
+       "offline",
+       "waiting"
+      ],
+      "title": "Status"
+     },
+     "builtin": {
+      "type": "boolean",
+      "title": "Builtin"
+     },
+     "lastSeenAt": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Lastseenat"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "org",
+     "intro",
+     "hosting",
+     "status",
+     "builtin",
+     "lastSeenAt"
+    ],
+    "title": "ParticipantOut"
+   },
+   "ParticipantPatch": {
+    "properties": {
+     "name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 40,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "org": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 40
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Org"
+     },
+     "intro": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 120
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Intro"
+     }
+    },
+    "type": "object",
+    "title": "ParticipantPatch"
+   },
+   "RegistryOut": {
+    "properties": {
+     "scenarios": {
+      "items": {
+       "$ref": "#/components/schemas/ScenarioOut"
+      },
+      "type": "array",
+      "title": "Scenarios"
+     },
+     "taskTypes": {
+      "items": {
+       "$ref": "#/components/schemas/TaskTypeOut"
+      },
+      "type": "array",
+      "title": "Tasktypes"
+     },
+     "algorithms": {
+      "items": {
+       "$ref": "#/components/schemas/AlgorithmOut"
+      },
+      "type": "array",
+      "title": "Algorithms"
+     }
+    },
+    "type": "object",
+    "required": [
+     "scenarios",
+     "taskTypes",
+     "algorithms"
+    ],
+    "title": "RegistryOut"
+   },
+   "RoleOut": {
+    "properties": {
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "min": {
+      "type": "integer",
+      "title": "Min"
+     },
+     "max": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Max"
+     },
+     "evaluated": {
+      "type": "boolean",
+      "title": "Evaluated"
+     }
+    },
+    "type": "object",
+    "required": [
+     "label",
+     "min",
+     "max",
+     "evaluated"
+    ],
+    "title": "RoleOut"
+   },
+   "RoundOut": {
+    "properties": {
+     "round": {
+      "type": "integer",
+      "title": "Round"
+     },
+     "correct": {
+      "anyOf": [
+       {
+        "additionalProperties": {
+         "type": "integer"
+        },
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Correct"
+     },
+     "uploads": {
+      "anyOf": [
+       {
+        "additionalProperties": {
+         "type": "integer"
+        },
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Uploads"
+     },
+     "groups": {
+      "anyOf": [
+       {
+        "items": {
+         "$ref": "#/components/schemas/GroupOut"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Groups"
+     },
+     "tokens": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tokens"
+     },
+     "output": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/OutputVersionOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "type": "object",
+    "required": [
+     "round"
+    ],
+    "title": "RoundOut"
+   },
+   "SampleOut": {
+    "properties": {
+     "question": {
+      "type": "string",
+      "title": "Question"
+     },
+     "answer": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Answer"
+     }
+    },
+    "type": "object",
+    "required": [
+     "question"
+    ],
+    "title": "SampleOut"
+   },
+   "ScenarioOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "short": {
+      "type": "string",
+      "title": "Short"
+     },
+     "summary": {
+      "type": "string",
+      "title": "Summary"
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "available",
+       "planned"
+      ],
+      "title": "Status"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "short",
+     "summary",
+     "status"
+    ],
+    "title": "ScenarioOut"
+   },
+   "SentIn": {
+    "properties": {
+     "channel": {
+      "type": "string",
+      "title": "Channel"
+     },
+     "payload": {
+      "title": "Payload"
+     },
+     "itemId": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Itemid"
+     },
+     "to": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "To"
+     }
+    },
+    "type": "object",
+    "required": [
+     "channel",
+     "payload"
+    ],
+    "title": "SentIn"
+   },
+   "SourceOut": {
+    "properties": {
+     "paper": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Paper"
+     },
+     "paperUrl": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Paperurl"
+     },
+     "code": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Code"
+     },
+     "codeUrl": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Codeurl"
+     }
+    },
+    "type": "object",
+    "required": [
+     "paper",
+     "paperUrl",
+     "code",
+     "codeUrl"
+    ],
+    "title": "SourceOut"
+   },
+   "StageOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "side": {
+      "type": "string",
+      "enum": [
+       "participant",
+       "server"
+      ],
+      "title": "Side"
+     },
+     "role": {
+      "type": "string",
+      "title": "Role"
+     },
+     "per": {
+      "type": "string",
+      "enum": [
+       "item",
+       "site"
+      ],
+      "title": "Per"
+     },
+     "result": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "metric",
+         "uploads",
+         "received",
+         "groups",
+         "output"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Result"
+     },
+     "seconds": {
+      "type": "number",
+      "title": "Seconds"
+     },
+     "tokens": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tokens"
+     },
+     "model": {
+      "type": "boolean",
+      "title": "Model"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "label",
+     "side",
+     "role",
+     "per",
+     "result",
+     "seconds",
+     "tokens",
+     "model"
+    ],
+    "title": "StageOut"
+   },
+   "TaskConfigIn": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "maxLength": 120,
+      "title": "Name",
+      "default": ""
+     },
+     "scenario": {
+      "type": "string",
+      "title": "Scenario"
+     },
+     "taskType": {
+      "type": "string",
+      "title": "Tasktype"
+     },
+     "algorithm": {
+      "type": "string",
+      "title": "Algorithm"
+     },
+     "participants": {
+      "items": {
+       "$ref": "#/components/schemas/TaskParticipantIn"
+      },
+      "type": "array",
+      "title": "Participants"
+     },
+     "clientModel": {
+      "type": "string",
+      "title": "Clientmodel",
+      "default": "default"
+     },
+     "clientOverrides": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object",
+      "title": "Clientoverrides",
+      "default": {}
+     },
+     "serverModel": {
+      "type": "string",
+      "title": "Servermodel",
+      "default": "default"
+     },
+     "rounds": {
+      "type": "integer",
+      "title": "Rounds"
+     },
+     "mode": {
+      "type": "string",
+      "enum": [
+       "trial",
+       "full"
+      ],
+      "title": "Mode",
+      "default": "trial"
+     },
+     "trialCap": {
+      "type": "integer",
+      "title": "Trialcap",
+      "default": 5
+     },
+     "params": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Params",
+      "default": {}
+     },
+     "seed": {
+      "type": "integer",
+      "title": "Seed",
+      "default": 0
+     },
+     "workers": {
+      "type": "integer",
+      "maximum": 64.0,
+      "minimum": 1.0,
+      "title": "Workers",
+      "default": 8
+     },
+     "grader": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Grader"
+     },
+     "budget": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Budget"
+     }
+    },
+    "type": "object",
+    "required": [
+     "scenario",
+     "taskType",
+     "algorithm",
+     "participants",
+     "rounds"
+    ],
+    "title": "TaskConfigIn"
+   },
+   "TaskOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Createdat"
+     },
+     "startedAt": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Startedat"
+     },
+     "finishedAt": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Finishedat"
+     },
+     "config": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Config"
+     },
+     "members": {
+      "items": {
+       "$ref": "#/components/schemas/MemberOut"
+      },
+      "type": "array",
+      "title": "Members"
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "queued",
+       "running",
+       "paused",
+       "completed",
+       "canceled"
+      ],
+      "title": "Status"
+     },
+     "error": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Error"
+     },
+     "cursor": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/CursorOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "rounds": {
+      "items": {
+       "$ref": "#/components/schemas/RoundOut"
+      },
+      "type": "array",
+      "title": "Rounds"
+     },
+     "fake": {
+      "type": "boolean",
+      "title": "Fake"
+     },
+     "cost": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cost"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "createdAt",
+     "startedAt",
+     "finishedAt",
+     "config",
+     "members",
+     "status",
+     "error",
+     "cursor",
+     "rounds",
+     "fake",
+     "cost"
+    ],
+    "title": "TaskOut"
+   },
+   "TaskParticipantIn": {
+    "properties": {
+     "participantId": {
+      "type": "string",
+      "title": "Participantid"
+     },
+     "datasetId": {
+      "type": "string",
+      "title": "Datasetid"
+     }
+    },
+    "type": "object",
+    "required": [
+     "participantId",
+     "datasetId"
+    ],
+    "title": "TaskParticipantIn"
+   },
+   "TaskTypeOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "metric": {
+      "type": "string",
+      "title": "Metric"
+     },
+     "grader": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Grader"
+     },
+     "graders": {
+      "items": {
+       "$ref": "#/components/schemas/GraderOut"
+      },
+      "type": "array",
+      "title": "Graders"
+     },
+     "format": {
+      "type": "string",
+      "title": "Format"
+     },
+     "unlabeledNote": {
+      "type": "string",
+      "title": "Unlabelednote"
+     },
+     "placeholder": {
+      "type": "string",
+      "title": "Placeholder"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "label",
+     "metric",
+     "grader",
+     "graders",
+     "format",
+     "unlabeledNote",
+     "placeholder"
+    ],
+    "title": "TaskTypeOut"
+   },
+   "UnitInputsOut": {
+    "properties": {
+     "inbox": {
+      "additionalProperties": {
+       "items": {
+        "$ref": "#/components/schemas/ClientMessage"
+       },
+       "type": "array"
+      },
+      "type": "object",
+      "title": "Inbox"
+     },
+     "artifact": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ClientArtifact"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "type": "object",
+    "required": [
+     "inbox",
+     "artifact"
+    ],
+    "title": "UnitInputsOut"
+   },
+   "ValidateOut": {
+    "properties": {
+     "issues": {
+      "items": {
+       "$ref": "#/components/schemas/IssueOut"
+      },
+      "type": "array",
+      "title": "Issues"
+     },
+     "estimate": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/EstimateOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "type": "object",
+    "required": [
+     "issues",
+     "estimate"
+    ],
+    "title": "ValidateOut"
+   },
+   "ValidationError": {
+    "properties": {
+     "loc": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "integer"
+        }
+       ]
+      },
+      "type": "array",
+      "title": "Location"
+     },
+     "msg": {
+      "type": "string",
+      "title": "Message"
+     },
+     "type": {
+      "type": "string",
+      "title": "Error Type"
+     },
+     "input": {
+      "title": "Input"
+     },
+     "ctx": {
+      "type": "object",
+      "title": "Context"
+     }
+    },
+    "type": "object",
+    "required": [
+     "loc",
+     "msg",
+     "type"
+    ],
+    "title": "ValidationError"
+   }
+  }
+ }
+}

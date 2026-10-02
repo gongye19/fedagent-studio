@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     """加密模型密钥用的 Fernet 密钥；不设置时在数据目录里生成 secret.key。"""
     frontend_dist: Path | None = None
     """前端构建产物目录；设置后由 API 进程一起提供。"""
+    client_dist: Path | None = None
+    """参与方客户端和插件的安装包（*.whl）目录；设置后在 /client/ 下提供，界面上的连接命令从这里安装。"""
     max_running_tasks: int = 1
     client_lease_seconds: int = 600
     client_offline_seconds: int = 120

@@ -1,30 +1,38 @@
-import { useState, type Dispatch } from "react";
+import { useState } from "react";
+import { api, ApiError } from "../api/client";
 import { DEFAULT_ENDPOINT_ID, type Endpoint } from "../domain/resources";
+import { deleteEndpoint, saveEndpoint } from "../state/actions";
 import { showFlash } from "../state/flash";
 import { backTo, navigate, type From } from "../state/route";
-import type { Action, State } from "../state/store";
-import { Confirm, FormActions, NotFound, PageHead } from "./common";
+import type { State } from "../state/store";
+import { Confirm, FormActions, NotFound, Notice, PageHead } from "./common";
 import { Field, FieldGroup, Panel, UnitInput } from "./console";
 
-type Props = { state: State; dispatch: Dispatch<Action>; id?: string; from?: From };
+type Props = { state: State; id?: string; from?: From };
 
 /**
- * 新增或编辑模型接口，独立页面。接口地址和模型都要填：没有它们，新建任务时选不到这个接口的模型。
- * API 密钥只在服务端保存，前端不收集。
+ * 新增或编辑模型接口（OpenAI 兼容），独立页面。接口地址和模型都要填：没有它们，新建任务时选不到这个接口的模型。
+ * API 密钥交给后端加密保存，只能写入、不能读出；前端不保存，编辑时留空表示不修改。
  */
-export default function EndpointPage({ state, dispatch, id, from }: Props) {
+export default function EndpointPage({ state, id, from }: Props) {
   const endpoint = id ? state.endpoints.find((item) => item.id === id) : undefined;
-  if (id && !endpoint) return <NotFound kind="接口" back={{ page: "models" }} backLabel="模型接口" />;
-  return <EndpointForm key={id ?? "new"} state={state} dispatch={dispatch} endpoint={endpoint} from={from} />;
+  if (id && (!endpoint || endpoint.kind === "fake")) return <NotFound kind="接口" back={{ page: "models" }} backLabel="模型接口" />;
+  return <EndpointForm key={id ?? "new"} state={state} endpoint={endpoint} from={from} />;
 }
 
-function EndpointForm({ state, dispatch, endpoint, from }: { state: State; dispatch: Dispatch<Action>; endpoint?: Endpoint; from?: From }) {
+function EndpointForm({ state, endpoint, from }: { state: State; endpoint?: Endpoint; from?: From }) {
   const [name, setName] = useState(endpoint?.name ?? "");
   const [baseUrl, setBaseUrl] = useState(endpoint?.baseUrl ?? "");
   const [models, setModels] = useState(endpoint?.models.join(", ") ?? "");
+  const [apiKey, setApiKey] = useState("");
+  const [clearKey, setClearKey] = useState(false);
   const [concurrency, setConcurrency] = useState(endpoint?.concurrency ?? 8);
   const [price, setPrice] = useState(endpoint?.price === null || endpoint?.price === undefined ? "" : String(endpoint.price));
   const [removing, setRemoving] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [testing, setTesting] = useState(false);
+  const [tested, setTested] = useState<{ ok: boolean; message: string } | null>(null);
   const list = models.split(/[\n,，]/).map((item) => item.trim()).filter(Boolean);
   const url = baseUrl.trim();
   const validUrl = url === "" || /^https?:\/\/\S+$/.test(url);
@@ -39,39 +47,70 @@ function EndpointForm({ state, dispatch, endpoint, from }: { state: State; dispa
   const back = backTo(from, { page: "models" }, state.draft.scenario);
   const title = endpoint ? `编辑“${endpoint.name}”` : "新增接口";
 
-  function save() {
+  async function save() {
     if (missing.length) return;
-    const fields = { name: name.trim(), baseUrl: url, models: list, concurrency, price: priceValue };
-    if (endpoint) {
-      dispatch({ type: "updateEndpoint", id: endpoint.id, patch: fields });
-      showFlash(back, `已保存“${fields.name}”。`);
-    } else {
-      const base = fields.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "endpoint";
-      let next = base;
-      for (let index = 2; state.endpoints.some((item) => item.id === next) || next === DEFAULT_ENDPOINT_ID; index += 1) next = `${base}-${index}`;
-      dispatch({ type: "addEndpoint", endpoint: { id: next, ...fields } });
-      showFlash(back, `已添加“${fields.name}”，新建任务时可以选它的模型。`);
+    setSaving(true);
+    setError(null);
+    try {
+      const saved = await saveEndpoint(endpoint?.id ?? null, {
+        name: name.trim(),
+        baseUrl: url,
+        models: list,
+        concurrency,
+        price: priceValue,
+        // 留空：不修改已保存的密钥；勾了清除：清掉
+        apiKey: clearKey ? "" : apiKey.trim() ? apiKey.trim() : null,
+        timeout: endpoint?.timeout ?? 600,
+        maxRetries: endpoint?.maxRetries ?? 8,
+      });
+      showFlash(back, endpoint ? `已保存“${saved.name}”。` : `已添加“${saved.name}”，新建任务时可以选它的模型。`);
+      navigate(back);
+    } catch (failure) {
+      setError(failure instanceof ApiError ? failure.message : "保存失败，稍后再试");
+    } finally {
+      setSaving(false);
     }
-    navigate(back);
   }
 
-  function remove() {
+  async function remove() {
     if (!endpoint) return;
-    dispatch({ type: "removeEndpoint", id: endpoint.id });
-    showFlash({ page: "models" }, `已删除“${endpoint.name}”。`);
-    navigate({ page: "models" });
+    try {
+      await deleteEndpoint(endpoint.id);
+      showFlash({ page: "models" }, `已删除“${endpoint.name}”。`);
+      navigate({ page: "models" });
+    } catch (failure) {
+      setRemoving(false);
+      setError(failure instanceof ApiError ? failure.message : "删除失败，稍后再试");
+    }
   }
 
-  const deletable = endpoint && endpoint.id !== DEFAULT_ENDPOINT_ID;
+  async function test() {
+    if (!endpoint) return;
+    setTesting(true);
+    setTested(null);
+    try {
+      const result = await api.testEndpoint(endpoint.id);
+      setTested({ ok: result.ok, message: result.message });
+    } catch (failure) {
+      setTested({ ok: false, message: failure instanceof ApiError ? failure.message : "测试失败" });
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  const deletable = endpoint && endpoint.id !== DEFAULT_ENDPOINT_ID && !endpoint.builtin;
+  const actions = endpoint && !removing ? (
+    <>
+      {endpoint.configured ? <button type="button" className="button button--secondary" disabled={testing} onClick={() => void test()}>{testing ? "正在测试…" : "测试连接"}</button> : null}
+      {deletable ? <button type="button" className="button button--secondary button--danger" onClick={() => setRemoving(true)}>删除接口</button> : null}
+    </>
+  ) : null;
   return (
     <>
-      <PageHead
-        title={title}
-        crumbs={[{ label: "模型接口", route: { page: "models" } }]}
-        actions={deletable && !removing ? <button type="button" className="button button--secondary button--danger" onClick={() => setRemoving(true)}>删除接口</button> : null}
-      />
+      <PageHead title={title} crumbs={[{ label: "模型接口", route: { page: "models" } }]} actions={actions} />
+      {tested ? <Notice tone={tested.ok ? "info" : "warning"} onDismiss={() => setTested(null)}>{tested.ok ? tested.message : `连接失败：${tested.message}`}</Notice> : null}
       {removing && endpoint ? (
-        <Confirm title={`删除“${endpoint.name}”？`} confirmLabel="删除" onConfirm={remove} onCancel={() => setRemoving(false)}>
+        <Confirm title={`删除“${endpoint.name}”？`} confirmLabel="删除" onConfirm={() => void remove()} onCancel={() => setRemoving(false)}>
           已有任务的配置不受影响；新建任务时不能再选它的模型。
         </Confirm>
       ) : null}
@@ -88,8 +127,18 @@ function EndpointForm({ state, dispatch, endpoint, from }: { state: State; dispa
               <Field label="接口地址" htmlFor="endpoint-url" error={validUrl ? undefined : "地址要以 http:// 或 https:// 开头"}>
                 <input id="endpoint-url" name="endpoint-url" type="url" inputMode="url" autoComplete="off" spellCheck={false} value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} placeholder="OpenAI 兼容地址，例如 https://…/v1" aria-invalid={!validUrl} aria-describedby={validUrl ? undefined : "endpoint-url-error"} />
               </Field>
-              <Field label="API 密钥">
-                <p className="field-static">接入后端后在服务端填写，前端不保存密钥</p>
+              <Field label="API 密钥" optional htmlFor="endpoint-key">
+                <input
+                  id="endpoint-key"
+                  name="endpoint-key"
+                  type="password"
+                  autoComplete="new-password"
+                  spellCheck={false}
+                  value={apiKey}
+                  disabled={clearKey}
+                  onChange={(event) => setApiKey(event.target.value)}
+                  placeholder={endpoint?.hasKey ? "已保存，留空表示不修改" : "加密保存在服务端，不会再显示"}
+                />
               </Field>
               <Field label="并发上限" htmlFor="endpoint-concurrency">
                 <input id="endpoint-concurrency" name="endpoint-concurrency" type="number" inputMode="numeric" autoComplete="off" min={1} max={256} value={concurrency} onChange={(event) => setConcurrency(Math.max(1, Math.min(256, Number.parseInt(event.target.value, 10) || 1)))} />
@@ -97,10 +146,18 @@ function EndpointForm({ state, dispatch, endpoint, from }: { state: State; dispa
               <Field label="单价" optional htmlFor="endpoint-price" error={validPrice ? undefined : "单价不能小于 0"}>
                 <UnitInput id="endpoint-price" unit="元 / 百万 token" name="endpoint-price" type="number" inputMode="decimal" autoComplete="off" min={0} step="0.1" value={price} placeholder="未设置" aria-invalid={!validPrice} aria-describedby={validPrice ? undefined : "endpoint-price-error"} onChange={(event) => setPrice(event.target.value)} />
               </Field>
+              {endpoint?.hasKey ? (
+                <Field label="已保存的密钥" htmlFor="endpoint-clear-key">
+                  <label className="check-line">
+                    <input id="endpoint-clear-key" name="endpoint-clear-key" type="checkbox" checked={clearKey} onChange={(event) => setClearKey(event.target.checked)} />
+                    保存时清除
+                  </label>
+                </Field>
+              ) : null}
             </FieldGroup>
           </div>
         </Panel>
-        <FormActions missing={missing} saveLabel={endpoint ? "保存修改" : "保存接口"} onCancel={() => navigate(back)} onSave={save} />
+        <FormActions missing={missing} saving={saving} error={error} saveLabel={endpoint ? "保存修改" : "保存接口"} onCancel={() => navigate(back)} onSave={() => void save()} />
       </div>
     </>
   );

@@ -29,7 +29,7 @@ export function DatasetFields({ form, hosting, onChange }: { form: DatasetForm; 
     }
     const check = checkJsonl(await selected.text());
     // 读文件期间用户可能改了别的字段，只更新文件这一项。
-    onChange((current) => ({ ...current, file: { name: selected.name, size: selected.size, check } }));
+    onChange((current) => ({ ...current, file: { name: selected.name, size: selected.size, check, blob: selected } }));
   }
 
   function choose() {

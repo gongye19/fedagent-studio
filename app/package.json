@@ -1,19 +1,20 @@
 {
   "name": "fedagent-studio",
   "private": true,
-  "version": "0.4.0",
+  "version": "0.5.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "dev:demo": "vite --host 127.0.0.1 --port 8880",
+    "dev": "vite --host 127.0.0.1 --port 8880",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc -b --noEmit",
-    "check": "npm run lint && npm run typecheck && npm test && npm run build"
+    "check": "npm run lint && npm run typecheck && npm test && npm run build",
+    "api:types": "cd ../server && uv run fedagent openapi > ../app/src/api/openapi.json && cd ../app && npx --yes openapi-typescript@7.13.0 src/api/openapi.json -o src/api/schema.d.ts"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.104.1",
     "echarts": "^6.1.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"

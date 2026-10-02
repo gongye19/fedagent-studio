@@ -1,26 +1,29 @@
 import { useState, type Dispatch } from "react";
+import { ApiError } from "../api/client";
 import { canPickInto } from "../domain/config";
-import { HOSTING_LABELS, type Hosting, type Participant } from "../domain/resources";
+import { HOSTING_LABELS, type Dataset, type Hosting } from "../domain/resources";
+import { createParticipant } from "../state/actions";
 import { showFlash } from "../state/flash";
-import { newId } from "../state/ids";
 import { backTo, navigate, type From } from "../state/route";
+import { keys, queryClient } from "../state/server";
 import type { Action, State } from "../state/store";
 import { FormActions, PageHead } from "./common";
 import { Choices, Field, FieldGroup, Panel } from "./console";
 import { DatasetFields } from "./DatasetFields";
-import { buildDataset, datasetMissing, EMPTY_DATASET_FORM, type DatasetForm } from "./datasetForm";
+import { appendDataset, datasetMissing, EMPTY_DATASET_FORM, type DatasetForm } from "./datasetForm";
 
 type Props = { state: State; dispatch: Dispatch<Action>; from?: From };
 
 /** 选了运行位置之后，这一方的数据怎么处理；两种都写，让用户知道平台能看到什么。 */
 const HOSTING_ALERT: Record<Hosting, string> = {
   platform: "数据集上传到平台，由平台代这一方运行 Agent，平台能看到数据内容。",
-  local: "数据和模型密钥留在参与方本地，只上传交换内容。保存后，在参与方详情里查看连接命令。",
+  local: "数据和模型密钥留在参与方本地，只上传交换内容。保存后，在参与方详情里签发客户端令牌、查看连接命令。",
 };
 
 /**
  * 新增参与方：和 AWS 的创建页一样是独立页面。参与方是一个机构或节点，登记时一起登记它的第一份数据集，
- * 运行位置、数据集的场景和任务类型都由用户选。以后再加数据集，在"数据集"页新增。
+ * 运行位置、数据集的场景和任务类型都由用户选。平台托管的数据文件先在浏览器里检查，保存时交给后端再查一次；
+ * 后端检查不通过时什么都不保存。以后再加数据集，在参与方详情里新增。
  * 从新建任务过来时，保存后回到新建任务；数据集和任务的场景、任务类型一致时直接选入。
  */
 export default function NewParticipantPage({ state, dispatch, from }: Props) {
@@ -32,37 +35,43 @@ export default function NewParticipantPage({ state, dispatch, from }: Props) {
   const missing = [name.trim() ? null : "名称", hosting ? null : "运行位置", ...(hosting ? datasetMissing(form, hosting) : [])]
     .filter((item): item is string => Boolean(item));
 
-  function save() {
-    if (missing.length || !hosting) return;
-    const id = newId("p");
-    const participant: Participant = {
-      id,
-      name: name.trim(),
-      org: org.trim(),
-      intro: intro.trim(),
-      hosting,
-      status: hosting === "platform" ? "online" : "waiting",
-    };
-    const dataset = buildDataset(form, hosting, id);
-    if (!dataset) return;
-    dispatch({ type: "addParticipant", participant, dataset });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    if (from === "newTask") {
-      const picked = canPickInto(state.draft, participant, dataset);
-      if (picked) dispatch({ type: "pickDataset", participantId: id, datasetId: dataset.id });
-      const back = backTo(from, { page: "participants" }, state.draft.scenario);
-      showFlash(back, picked
-        ? `已添加“${participant.name}”，并选入这个任务。`
-        : hosting === "local"
-          ? `已添加“${participant.name}”。连上客户端之后才能选入任务。`
-          : `已添加“${participant.name}”。它的数据集和这个任务的场景或任务类型不同，没有选入。`);
-      navigate(back);
-      return;
+  async function save() {
+    if (missing.length || !hosting) return;
+    const data = new FormData();
+    data.set("name", name.trim());
+    data.set("org", org.trim());
+    data.set("intro", intro.trim());
+    data.set("hosting", hosting);
+    if (!appendDataset(data, form, hosting, { name: "datasetName", description: "datasetDescription" })) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const participant = await createParticipant(data);
+      const dataset = (queryClient.getQueryData<Dataset[]>(keys.datasets) ?? []).find((item) => item.participantId === participant.id);
+      if (from === "newTask") {
+        const picked = Boolean(dataset && canPickInto(state.draft, participant, dataset));
+        if (picked && dataset) dispatch({ type: "pickDataset", participantId: participant.id, datasetId: dataset.id });
+        const back = backTo(from, { page: "participants" }, state.draft.scenario);
+        showFlash(back, picked
+          ? `已添加“${participant.name}”，并选入这个任务。`
+          : hosting === "local"
+            ? `已添加“${participant.name}”。连上客户端之后才能选入任务。`
+            : `已添加“${participant.name}”。它的数据集和这个任务的场景或任务类型不同，没有选入。`);
+        navigate(back);
+        return;
+      }
+      showFlash({ page: "participants" }, hosting === "platform"
+        ? `已添加“${participant.name}”和它的数据集“${dataset?.name ?? ""}”。`
+        : `已添加“${participant.name}”，详情里可以签发客户端令牌、查看连接命令；连上之前显示“等待连接”。`);
+      navigate({ page: "participants", scenario: dataset?.scenario ?? form.scenario ?? undefined, id: participant.id });
+    } catch (failure) {
+      setError(failure instanceof ApiError ? failure.message : "保存失败，稍后再试");
+    } finally {
+      setSaving(false);
     }
-    showFlash({ page: "participants" }, hosting === "platform"
-      ? `已添加“${participant.name}”和它的数据集“${dataset.name}”。`
-      : `已添加“${participant.name}”，详情里有连接命令；连上之前显示“等待连接”。`);
-    navigate({ page: "participants", scenario: dataset.scenario, id });
   }
 
   return (
@@ -99,7 +108,7 @@ export default function NewParticipantPage({ state, dispatch, from }: Props) {
           </Panel>
         ) : null}
 
-        <FormActions missing={missing} saveLabel="保存参与方" onCancel={() => navigate(backTo(from, { page: "participants" }, state.draft.scenario))} onSave={save} />
+        <FormActions missing={missing} saving={saving} error={error} saveLabel="保存参与方" onCancel={() => navigate(backTo(from, { page: "participants" }, state.draft.scenario))} onSave={() => void save()} />
       </div>
     </>
   );

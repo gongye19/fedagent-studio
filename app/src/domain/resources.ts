@@ -7,51 +7,24 @@
  *   参与方本地 = 数据和模型密钥留在参与方自己的环境，由参与方运行客户端，只上传算法需要交换的内容。
  * - 数据集：只属于一个参与方。登记时选定场景和任务类型，只能用于同一场景、同一任务类型的联邦任务；
  *   本地参与方的数据集只登记名称和说明，样本数由客户端连上后上报。
- * 内置的 8 个数学题库来自 FoT 复现包，分给 8 个平台托管的示例参与方（参与方 A–H），每方一份。
+ * 内置的 8 个数学题库分给 8 个平台托管的示例参与方（参与方 A–H），每方一份；它们由后端初始化。
  */
+import type { components } from "../api/schema";
 import type { ScenarioId, TaskType } from "./catalog";
 
 export type Hosting = "platform" | "local";
 export type ParticipantStatus = "online" | "offline" | "waiting";
 
-export type Participant = {
-  id: string;
-  name: string;
-  org: string;
-  intro: string;
-  hosting: Hosting;
-  status: ParticipantStatus;
-  builtin?: boolean;
-};
+export type Participant = components["schemas"]["ParticipantOut"];
 
-export type Dataset = {
-  id: string;
-  name: string;
-  participantId: string;
-  description: string;
-  /** 样本来源，例如 LiveMathBench 202412；上传的数据集可以没有。 */
-  origin?: string;
-  /** 登记时选定：用在哪个场景、哪种任务。 */
-  scenario: ScenarioId;
-  taskType: TaskType;
-  /** 样本数；本地数据集在客户端连上之前是 0（未上报）。 */
-  count: number;
-  /** 带标注的样本数；没有标注的样本只参与联邦，不计指标。 */
-  answered: number;
-  /** builtin：内置示例；upload：上传到平台；local：留在参与方本地，只登记名称和说明。 */
-  source: "builtin" | "upload" | "local";
-  sample?: { question: string; answer?: string };
-};
+/**
+ * 数据集：source 为 builtin（内置示例）、upload（上传到平台）、local（留在参与方本地，只登记名称和说明）。
+ * ready：平台托管的已有样本文件；本地的已由客户端上报样本数。没有 ready 的不能选入任务。
+ */
+export type Dataset = components["schemas"]["DatasetOut"];
 
-export type Endpoint = {
-  id: string;
-  name: string;
-  baseUrl: string;
-  models: string[];
-  concurrency: number;
-  /** 元 / 百万 token；未设置时不估算费用。 */
-  price: number | null;
-};
+/** 模型接口：OpenAI 兼容（kind 为 openai）或测试用的假模型（fake）。密钥只能写入、不能读出，这里只有 hasKey。 */
+export type Endpoint = components["schemas"]["EndpointOut"];
 
 export const HOSTING_LABELS: Record<Hosting, string> = {
   platform: "平台托管",
@@ -64,66 +37,16 @@ export const PARTICIPANT_STATUS: Record<ParticipantStatus, string> = {
   waiting: "等待连接",
 };
 
-/** 内置示例：8 份数学题库，依次分给参与方 A–H。 */
-const BUILTIN = [
-  { key: "aime24", name: "AIME24", description: "美国数学邀请赛", origin: "AIME 2024", count: 30,
-    sample: { question: "Find the largest possible real part of \\[(75+117i)z+\\frac{96+144i}{z}\\]where $z$ is a complex number with $|z|=4$.", answer: "540" } },
-  { key: "aime25", name: "AIME25", description: "美国数学邀请赛", origin: "AIME 2025", count: 30,
-    sample: { question: "Find the sum of all integer bases $b>9$ for which $17_b$ is a divisor of $97_b.$", answer: "70" } },
-  { key: "amc", name: "AMC", description: "美国数学竞赛", origin: "LiveMathBench 202412", count: 46,
-    sample: { question: "What is $10! - 7! \\cdot 6!$", answer: "0" } },
-  { key: "ccee", name: "CCEE", description: "中国高考数学", origin: "LiveMathBench 202412", count: 44,
-    sample: { question: "The mode of the data $2,3,5,5,4$ is ?", answer: "5" } },
-  { key: "cnmo", name: "CNMO", description: "中国数学奥林匹克", origin: "LiveMathBench 202412", count: 18,
-    sample: { question: "What is the minimum value of $y=\\frac{4^x+1}{2^x+1}$?", answer: "2\\sqrt{2}-2" } },
-  { key: "wlpmc", name: "WLPMC", description: "普特南数学竞赛", origin: "LiveMathBench 202412", count: 11,
-    sample: { question: "For a positive integer $n$, let $f_n(x) = \\cos(x) \\cos(2x) \\cos(3x) \\cdots \\cos(nx)$. Find the smallest $n$ such that $|f_n''(0)| > 2023$.", answer: "n=18" } },
-  { key: "v202412hard", name: "V202412Hard", description: "竞赛难题", origin: "LiveMathBench 202412", count: 21,
-    sample: { question: "Given the data 5, 6, $x$, $x$, 8, 9 with an average of 7, then the 40% percentile of this data set is?", answer: "7" } },
-  { key: "v202505hard", name: "V202505Hard", description: "竞赛难题", origin: "LiveMathBench 202505", count: 100,
-    sample: { question: "For two numbers $a > b$ from the list $3, 9, 15, 21, 27$, what can you say for certain?" } },
-] as const;
-
-const LETTERS = "ABCDEFGH";
-
-export const BUILTIN_PARTICIPANTS: readonly Participant[] = BUILTIN.map((_, index) => ({
-  id: `p-${LETTERS[index].toLowerCase()}`,
-  name: `参与方 ${LETTERS[index]}`,
-  org: "内置示例",
-  intro: "",
-  hosting: "platform",
-  status: "online",
-  builtin: true,
-}));
-
-export const BUILTIN_DATASETS: readonly Dataset[] = BUILTIN.map((item, index) => ({
-  id: `ds-${item.key}`,
-  name: item.name,
-  participantId: BUILTIN_PARTICIPANTS[index].id,
-  description: item.description,
-  origin: item.origin,
-  scenario: "horizontal",
-  taskType: "math-reasoning",
-  count: item.count,
-  answered: item.count,
-  source: "builtin",
-  sample: item.sample,
-}));
-
 /**
- * 预留的默认 LLM 接口：OpenAI 兼容，具体服务和模型之后再配置。
+ * 预留的默认 LLM 接口：OpenAI 兼容，具体服务和模型由用户在"模型接口"里配置。
  * 任务默认用它（模型引用写作 DEFAULT_MODEL）；需要时可以另外登记接口，给某些参与方单独指定。
  */
 export const DEFAULT_ENDPOINT_ID = "default";
 export const DEFAULT_MODEL = "default";
 
-export const DEFAULT_ENDPOINTS: readonly Endpoint[] = [
-  { id: DEFAULT_ENDPOINT_ID, name: "默认 LLM 接口", baseUrl: "", models: [], concurrency: 8, price: null },
-];
-
-/** 填了地址和模型才算配置好；预留的默认接口在接入后端前是未配置状态。 */
+/** 填了地址和模型才算配置好；测试用的假模型总是可用。 */
 export function isConfigured(endpoint: Endpoint): boolean {
-  return endpoint.baseUrl.trim() !== "" && endpoint.models.length > 0;
+  return endpoint.configured;
 }
 
 /** 默认接口的显示名跟着接口名称走，改名后各处一起变。 */
@@ -173,10 +96,15 @@ export function endpointOf(ref: string, endpoints: readonly Endpoint[]): Endpoin
   return parsed ? endpoints.find((item) => item.id === parsed.endpointId) : undefined;
 }
 
-/** 持有方在线的数据才能参加任务（本地参与方连上客户端之前是"等待连接"）。 */
+/** 持有方在线、样本已就绪的数据才能参加任务（本地参与方连上客户端之前是"等待连接"）。 */
 export function usable(dataset: Dataset, participants: readonly Participant[]): boolean {
   const owner = participants.find((item) => item.id === dataset.participantId);
-  return owner?.status === "online";
+  return owner?.status === "online" && dataset.ready;
+}
+
+/** 样本还没就绪的数据集在等什么：本地的等客户端连上后上报，平台托管的等导入样本文件。 */
+export function pendingNote(dataset: Dataset): string {
+  return dataset.source === "local" ? "待上报" : "待导入";
 }
 
 /** 数据集能不能用于某个场景、某种任务类型的联邦任务。 */

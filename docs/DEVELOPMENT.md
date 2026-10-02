@@ -2,19 +2,36 @@
 
 ## 环境
 
-- Node.js 20.19+ 或 22.12+
-- npm 10+
-- 以后的后端：Python 3.12，用 uv 在项目目录内建虚拟环境（`server/.venv`），不全局安装；代码结构和开发、测试、部署流程见 [ARCHITECTURE.md](./ARCHITECTURE.md) §17–18。
+- Node.js 20.19+ 或 22.12+，npm 10+
+- Python 3.12 和 uv：虚拟环境建在项目目录里（`server/.venv`），不全局安装
+
+## 本地运行
+
+后端（API 和 runner 在同一个进程里，数据在 `server/.data`，删掉这个目录就回到初始数据）：
+
+```bash
+cd server
+uv sync
+uv run fedagent dev --port 8000
+```
+
+前端（另开一个终端）：
 
 ```bash
 cd app
 npm install
-npm run dev:demo
+npm run dev
 ```
 
-Demo 固定监听 `127.0.0.1:8880`。普通 Vite 开发模式仍可使用 `npm run dev`。
+打开 <http://127.0.0.1:8880/>。前端开发服务器把 `/v1` 和 `/healthz` 转给 `127.0.0.1:8000`，要换地址时设环境变量 `FEDAGENT_API`。
+
+- 内置一个"测试用假模型"接口，不花钱就能从新建任务跑到发布应用；真实模型在"模型接口"里配置（OpenAI 兼容）。
+- 第一次启动时写入初始数据：参与方 A–H 和它们的数据集（A、B 的 AIME 题库随代码一起；C–H 的 6 份 LiveMathBench 题库要从 FoT 代码包导入：`uv run fedagent datasets import-fot-bundle <zip>`）、一个等待连接的本地参与方示例、默认 LLM 接口（待配置）和假模型。
+- 后端的其他命令：`uv run fedagent --help`（`serve`、`runner` 分开启动、`db upgrade`、`seed`、`openapi`、`contract` 等）。
 
 ## 常用命令
+
+前端（在 `app/`）：
 
 ```bash
 npm run lint
@@ -22,97 +39,115 @@ npm run typecheck
 npm test
 npm run build
 npm run check
+npm run api:types
 ```
 
-`check` 按顺序执行 lint、类型检查、测试和生产构建，提交前应完整通过。
+- `check` 按顺序执行 lint、类型检查、测试和生产构建，提交前应完整通过；
+- `api:types` 从后端导出 OpenAPI 定义（`src/api/openapi.json`），再生成前端类型（`src/api/schema.d.ts`）。改了后端的接口或结构就运行一次，前端类型检查会指出要改的地方。
+
+后端（在 `server/`）：
+
+```bash
+uv run pytest
+uv run ruff check .
+uv run ruff format --check .
+uv run pyright
+uv run fedagent contract fot
+```
+
+`contract` 在内置题库的前几题上用假模型把算法跑完，检查只用了声明的通道、标注没有离开持有方、每轮都有产出、暂停后续跑和不中断的结果一致。
 
 ## 代码结构
 
+后端见 [ARCHITECTURE.md](./ARCHITECTURE.md) §17。前端：
+
 ```text
 app/src/
+├── api/
+│   ├── client.ts       调用后端的函数和错误类型（ApiError 带后端写明的原因）；访问令牌保存在这个浏览器里
+│   ├── openapi.json    后端导出的 OpenAPI 定义
+│   └── schema.d.ts     由 openapi.json 生成的类型（npm run api:types），不要手改
 ├── domain/
-│   ├── catalog.ts      场景、任务类型与算法注册表：每个算法的交换内容和交换量、产出、参数定义与默认值、每轮步骤
-│   ├── resources.ts    参与方（两种运行位置）、数据集（登记时选定场景和任务类型）、模型接口，内置示例参与方 A–H 和 8 个题库
-│   ├── config.ts       任务配置：默认值、草稿校验、选场景 / 任务类型 / 算法 / 参与方（每方一份数据集）、调用量与费用预估
-│   ├── task.ts         任务状态机：创建、按算法的步骤逐轮推进（每一步按结果类型记下结果）、暂停 / 继续 / 取消、指标
-│   ├── sample.ts       示例数据：各算法登记的示例运行（产出条目池、每轮产出多少条），以及指标、上传条数、token（确定性生成）
-│   └── validate.ts     数据集 JSONL 检查
+│   ├── catalog.ts      场景、任务类型和算法注册表：启动时从 GET /v1/registry 读（installRegistry），页面按清单生成
+│   ├── resources.ts    参与方、数据集、模型接口的类型和规则（能不能选入任务、模型引用、显示名）
+│   ├── config.ts       新建任务的草稿：默认值、即时的必填检查、选场景 / 任务类型 / 算法 / 参与方（每方一份数据集）
+│   ├── task.ts         任务的类型、状态（含"排队中"）和显示用的计算
+│   └── validate.ts     数据集 JSONL 检查（和后端同一套规则，上传前先在浏览器里查一遍）
 ├── state/
-│   ├── store.ts        页面状态与 reducer
-│   ├── seed.ts         初始数据：示例参与方、模型接口、已完成的示例任务、正在试跑的任务
-│   ├── simulation.ts   有运行中的任务时定时推进
-│   ├── persistence.ts  浏览器本地保存与恢复
-│   └── route.ts        hash 路由
+│   ├── server.ts       TanStack Query：读参与方、数据集、模型接口、任务、应用；有运行中的任务时每 2 秒刷新
+│   ├── actions.ts      写操作（创建任务、暂停 / 继续 / 取消、发布、登记参与方和数据集、保存接口……），成功后刷新相关数据
+│   ├── store.ts / draft.ts  新建任务的草稿（reducer），保存在浏览器里
+│   ├── route.ts        hash 路由
+│   └── flash.ts / ids.ts
 ├── ui/
 │   ├── HomePage.tsx         首页：居中的三张场景卡片（可用的点进去新建这个场景的任务）
 │   ├── ScenarioArt.tsx      场景卡片上的示意图（横向按行分、纵向按列分、迁移从已有领域到新领域）
 │   ├── TasksPage.tsx        联邦任务：按场景分块列出任务（任务类型是一列），每块一个"新建联邦任务"；名称搜索、任务类型和状态筛选对所有块生效
-│   ├── HorizontalTaskPage.tsx 横向联邦的任务配置页（控制台风格的配置面板 + 右侧配置摘要 + 窄屏吸底操作栏）；每个场景各有自己的配置页
+│   ├── HorizontalTaskPage.tsx 横向联邦的任务配置页（控制台风格的配置面板 + 右侧配置摘要 + 窄屏吸底操作栏）；校验和预估由后端做
 │   ├── TaskPage.tsx         任务详情（task/ 下是概览、进度、产出、配置四个标签）
 │   ├── AppsPage.tsx         应用列表：和联邦任务一样按场景分块，任务类型是一列；名称搜索、任务类型筛选
-│   ├── AppPage.tsx          应用详情：试用、内容、接入
-│   ├── ParticipantsPage.tsx 参与方与数据：按场景分块，每块一张表（一行一份数据集，任务类型是一列）；名称搜索、任务类型筛选；详情里有数据集、连接命令、新增和删除
+│   ├── AppPage.tsx          应用详情：试用（真实调用，带 / 不带应用对比并判分）、内容、接入（导出 JSON、API）
+│   ├── ParticipantsPage.tsx 参与方与数据：按场景分块，每块一张表（一行一份数据集）；详情里有数据集、本地客户端的连接令牌和命令、新增和删除
 │   ├── NewParticipantPage.tsx 新增参与方（独立页面，同时登记第一份数据集）
 │   ├── NewDatasetPage.tsx   新增数据集（独立页面：参与方 → 场景 → 任务类型 → 文件或名称）
-│   ├── DatasetFields.tsx / datasetForm.ts 登记数据集的字段和规则（场景、任务类型、在浏览器里检查文件；新增参与方和新增数据集共用）
+│   ├── DatasetFields.tsx / datasetForm.ts 登记数据集的字段和规则（新增参与方和新增数据集共用）
 │   ├── AlgorithmsPage.tsx   算法：按场景分三栏的算法卡片，每栏最后是"待接入"的空位；可以按任务类型筛选
 │   ├── AlgorithmPage.tsx    算法详情：概况、每轮步骤、参数（默认值和说明）、来源
 │   ├── ModelsPage.tsx       模型接口列表
-│   ├── EndpointPage.tsx     新增、编辑模型接口（独立页面）
+│   ├── EndpointPage.tsx     新增、编辑模型接口（独立页面；密钥只能写入，可以测试连接）
 │   ├── Chart.tsx            ECharts 封装（按需加载，概览页的哑铃图）
 │   ├── OutputGroups.tsx     按类别列出产出里的条目（任务产出和应用内容共用）
-│   ├── console.tsx          控制台风格的表单组件：Panel（配置面板）、Field / FieldGroup（字段名在上的表单字段和两栏网格）、UnitInput（带单位的输入框）、Choices（选项按钮组，可以在最后留"待接入"的空位）
-│   ├── common.tsx           共用组件：Tag（唯一的标签）、PageHead（同时设置浏览器标题）、Confirm（页面内的确认条）、Notice、FormActions、Meta（分隔点不落在行首行尾）、CodeBlock、Collapsible、PanelEmpty、Stat、Facts 等
-│   ├── filters.tsx          列表页共用的任务类型筛选（联邦任务、应用、参与方与数据、算法）
+│   ├── console.tsx          控制台风格的表单组件：Panel、Field / FieldGroup、UnitInput、Choices
+│   ├── common.tsx           共用组件：Tag、PageHead、Confirm、Notice、FormActions、Meta、CodeBlock、Collapsible、PanelEmpty、Stat、Facts 等
+│   ├── filters.tsx          列表页共用的任务类型筛选
 │   ├── TaskTable.tsx / labels.ts / format.ts / icons.tsx
-├── App.tsx             外框与侧栏导航（四个一级导航；基础管理是可以展开的一组）
+├── test/               测试用的注册表和数据（registry.json 是后端注册表的快照）
+├── App.tsx             外框与侧栏导航；读不到数据时的加载、出错和填访问令牌的页面
 ├── main.tsx
 └── styles.css
 ```
 
 ## 增加一个算法
 
-现在算法登记在前端的注册表里。后端实现后，算法是后端的插件（一份清单加每一步的代码，见 [ARCHITECTURE.md](./ARCHITECTURE.md) §4–5），前端改为从 API 读清单，下面第 1–5 步就不用在前端做了。在那之前按下面的步骤登记：
+算法是后端的插件，前端不用改：注册表、新建任务的选项、高级配置里的参数、预估、进度页、产出页和算法页都按插件的清单生成。
 
-1. 在 `catalog.ts` 的 `ALGORITHMS` 里登记算法：所属场景、适用的任务类型、交换内容（`exchange`）和交换量（`exchangeVolume`：每条样本平均上传几条、最多几条、每条多少 token）、产出（`output`）、参数定义（`params`：键、控件、选项或范围、默认值）、每轮步骤（`stages`，每一步写明在哪一侧、完成后记下什么结果、预估耗时和 token、是否调用模型）、最少参与方和轮次、来源。新建任务的任务类型和算法选择、高级配置、预估、进度页、产出页和算法页都按这些字段生成，不用改页面。
-2. 场景从"规划中"改为"可用"（`SCENARIOS` 的 `status`）。
-3. 新的任务类型或评分方式，在 `TASK_TYPES`、`GRADERS` 里补充（任务类型决定数据格式和评估指标）；登记在同一场景、同一任务类型下的数据集，就会出现在新建任务的参与方表格里。
-4. 参数只在 `params` 里声明，任务配置按键保存取值（`config.params`），不用改配置类型；没有设置的按默认值（`paramsOf`）。
-5. `task.ts` 的状态机按任务所选算法的 `stages` 推进，每一步按声明的结果类型（`result`）记下结果，不用改。前端原型的示例运行在 `sample.ts` 的 `DEMO_RUNS` 里为新算法登记（产出条目池、每轮产出多少条）；接入后端后改为读取运行结果。
-6. 验证桌面、768 和手机三种宽度，以及从创建到完成的全过程。
-
-## 接入后端
-
-后端按 [ARCHITECTURE.md](./ARCHITECTURE.md) 实现，前端要改的部分（§16）：
-
-1. 注册表（场景、任务类型、算法清单）改为从 API 读，替换 `catalog.ts` 里的常量；页面已经按清单字段生成，不用改。
-2. 前端提交任务草稿，API 重新校验并冻结配置；预估改为调用 `POST /v1/tasks/estimate`。
-3. 状态改为读 API（用 TanStack Query 轮询运行中的任务），删掉 `domain/sample.ts` 和 `tick` 模拟；任务多一个"排队中"的状态。
-4. 接口类型由后端的 OpenAPI 生成（openapi-typescript）。
-5. 页面结构、任务状态机和配置校验保持不变。
+1. 在 `server/plugins/<名称>/` 建一个包：`pyproject.toml` 里用 entry point 登记（组名 `fedagent.algorithms`），包里放 `manifest.yaml`（角色、每轮步骤、交换通道、产出、评估、参数、轮次）和继承 `fedagent_sdk.Algorithm` 的类，每一步一个方法，用 `@step` 对应到清单。写法见 [ARCHITECTURE.md](./ARCHITECTURE.md) §4，FoT 插件（`server/plugins/fot`）是完整的例子。
+2. 把包加进 `server/pyproject.toml` 的 workspace 成员和依赖，运行 `uv sync`。
+3. 运行 `uv run fedagent contract <算法 id>` 和 `uv run pytest`。契约测试通过，说明数据流向和清单一致、可以续跑。
+4. 新的任务类型或判分方式同样是插件（组名 `fedagent.task_types`、`fedagent.graders`），数学推理在 `server/plugins/math_reasoning`。
+5. 新场景的第一个算法：场景从"规划中"改为"可用"（`server/fedagent/registry.py` 的 `SCENARIOS`），再按 §6 做这个场景的配置页。
+6. 前端运行 `npm run api:types`（接口有变化时），验证桌面、768 和手机三种宽度，以及从创建到完成的全过程。
 
 ## 部署到实验室服务器（Tailscale 内网）
 
-前端是纯静态文件（hash 路由，不需要服务端路由），构建后放到实验室服务器上，用 Python 自带的静态文件服务。只监听服务器的 Tailscale 地址，校园网和公网都访问不到；本机要先加入 Tailscale，并能用密钥登录服务器（不用密码）。
+前端和后端都部署在实验室服务器上，只监听服务器的 Tailscale 地址，校园网和公网都访问不到；本机要先加入 Tailscale，并能用密钥登录服务器（不用密码）。
 
 ```bash
 bash deploy/deploy.sh
 ```
 
-脚本依次：构建 `app/dist`、同步到服务器的 `~/fedagent-studio/dist`、上传并运行 `deploy/serve.sh`（先停掉旧进程再启动）。打开 <http://100.111.198.54:8880/>。
+脚本依次：本地跑完前后端的检查 → 停下服务器上的旧进程 → 同步前端构建产物和后端代码 → 在服务器上运行 `serve.sh`（装 uv 和 Python 3.12、按 `uv.lock` 装依赖、迁移数据库、启动 api 和 runner、健康检查）。`SKIP_CHECKS=1` 跳过本地检查。打开 <http://100.111.198.54:8880/>。
 
-- 演示数据保存在每个访问者自己的浏览器里，互不影响；
+- 所有文件都在服务器的 `~/fedagent-studio` 里（目录布局见 [ARCHITECTURE.md](./ARCHITECTURE.md) §18）；数据在 `data/`，部署不覆盖；
+- 访问令牌在第一次启动时生成，保存在服务器的 `~/fedagent-studio/data/admin-token`；浏览器第一次打开时要填，之后记在这个浏览器里；
+- 状态、停止、重启：`bash ~/fedagent-studio/serve.sh status | stop | start`；日志在 `~/fedagent-studio/logs/`；
 - 进程在退出 SSH 后继续运行，但服务器重启后要重新运行 `bash ~/fedagent-studio/serve.sh`；
-- 停止：`kill "$(cat ~/fedagent-studio/serve.pid)"`，日志在 `~/fedagent-studio/serve.log`。
-
-后端实现后，部署脚本扩展为：本地跑完检查、构建前端、同步后端代码、`uv sync --frozen`、数据库迁移、重启 api 和 runner、健康检查。服务器上的目录布局见 [ARCHITECTURE.md](./ARCHITECTURE.md) §18。
+- 重启时运行中的任务会停下，重启后从检查点继续，已完成的模型调用不重复计费。
 
 ## 测试约定
 
-- `domain/*.test.ts`：配置校验与预估、题库检查、任务状态机和指标。
-- `state/*.test.ts`：reducer、初始数据和路由。
-- 示例数据要自洽：例如归类后各类的上传条数之和等于上传总数，后一版产出包含前一版。
-- 页面结构变化时，至少做一次桌面和手机端的浏览器验证。
+- 前端：
+  - `domain/*.test.ts`：草稿的检查和参与方的选择规则、任务状态和显示用的计算、数据集文件检查；
+  - `state/*.test.ts`：草稿的 reducer 和路由；
+  - 测试用 `src/test/registry.json`（后端注册表的快照）和 `src/test/fixtures.ts`，不连后端。
+- 后端（`server/tests/`）：
+  - `test_fot_prompts.py`：FoT 的提示词和上游逐字一致（用指纹固定）、经验库条数的几种算法、经验提取量的校准；
+  - `test_math.py`：两种判分和数据检查（和前端同一套规则）；
+  - `test_gateway.py`：重试、不该重试的错误、费用记账、续跑时从账本取回已完成的调用（不重复计费）、默认接口没配置时的提示；
+  - `test_contract.py`：FoT 的契约测试；
+  - `test_api.py`：各个接口，以及平台托管和本地客户端混合的完整流程；
+  - `test_runner.py`：用真实子进程跑任务，以及 runner 重启后不会同时跑两个进程。
+- 页面结构变化时，至少做一次桌面和手机端的浏览器验证（接上本地后端，用假模型跑一遍）。
 - 界面规范写在 `styles.css` 开头，新增界面前先看一遍（T40 起表单按 AWS 控制台的写法：面板 + 字段名在上的两栏表单 + 选项按钮 + 带单选 / 复选的表格）：
   - 页面标题一律用 `PageHead`（它同时设置浏览器标题）；新增、编辑是独立的路由和页面（包在 `.form-page` 里），不在列表页上展开表单；
   - 配置区块一律用 `Panel`；表单字段一律用 `Field`，放进 `FieldGroup` 的两栏网格，选项按钮组、表格、长文本用 `wide` 占满一行；

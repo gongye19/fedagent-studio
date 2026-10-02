@@ -11,21 +11,26 @@ export function OutputGroups({
   level?: 2 | 3;
 }) {
   const Heading = level === 2 ? "h2" : "h3";
-  const categories = [...new Set(items.map((item) => item.category))];
+  const list = (entries: readonly OutputItem[]) => (
+    <ol className="output-list">
+      {entries.map((item) => (
+        <li key={item.key}>
+          <p lang="en">{item.text}{isNew?.(item.key) ? <> <Tag tone="info">新增</Tag></> : null}</p>
+        </li>
+      ))}
+    </ol>
+  );
+  // 算法没有给条目分类（例如 FoT 的经验库）时直接列出，不加类别标题。
+  if (items.every((item) => !item.category)) return <div className="output-groups">{list(items)}</div>;
+  const categories = [...new Set(items.map((item) => item.category || "未分类"))];
   return (
     <div className="output-groups">
       {categories.map((category) => {
-        const inCategory = items.filter((item) => item.category === category);
+        const inCategory = items.filter((item) => (item.category || "未分类") === category);
         return (
           <section key={category} className="output-group" aria-label={category}>
             <Heading className="output-heading">{category}<span className="output-count">{inCategory.length}</span></Heading>
-            <ol className="output-list">
-              {inCategory.map((item) => (
-                <li key={item.key}>
-                  <p lang="en">{item.text}{isNew?.(item.key) ? <> <Tag tone="info">新增</Tag></> : null}</p>
-                </li>
-              ))}
-            </ol>
+            {list(inCategory)}
           </section>
         );
       })}

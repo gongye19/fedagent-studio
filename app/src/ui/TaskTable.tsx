@@ -60,7 +60,7 @@ export function TaskTable({ tasks }: { tasks: readonly Task[] }) {
                     {stage ? <small>{stage}</small> : null}
                   </div>
                   {task.cursor && task.status !== "canceled" ? (
-                    <ProgressBar value={progressOf(task)} label={`${task.name} 的进度`} tone={task.status === "running" ? "info" : "warning"} />
+                    <ProgressBar value={progressOf(task)} label={`${task.name} 的进度`} tone={task.status === "paused" ? "warning" : "info"} />
                   ) : null}
                 </td>
                 <td className="numeric" data-label="主要指标"><MetricChange task={task} /></td>

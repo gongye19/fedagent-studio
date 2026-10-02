@@ -1,20 +1,24 @@
-import { useEffect, useRef, useState, type Dispatch } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ApiError } from "../../api/client";
 import { outputs, type Task } from "../../domain/task";
+import { publish as publishApp } from "../../state/actions";
 import { showFlash } from "../../state/flash";
 import { hrefOf } from "../../state/route";
-import { publishedOf, type Action, type State } from "../../state/store";
-import { EmptyState, Tag } from "../common";
+import { publishedOf, type State } from "../../state/store";
+import { EmptyState, Notice, Tag } from "../common";
 import { Panel } from "../console";
 import { formatNumber } from "../format";
 import { OutputGroups } from "../OutputGroups";
 import { algorithmOfTask, versionLabel } from "../labels";
 
 /** 任务的产出：由算法决定（FoT 产出经验库）。每轮一版，任意一版都可以发布为应用。 */
-export function OutputTab({ task, state, dispatch }: { task: Task; state: State; dispatch: Dispatch<Action> }) {
+export function OutputTab({ task, state }: { task: Task; state: State }) {
   const output = algorithmOfTask(task).output;
   const versions = outputs(task);
   const [chosen, setChosen] = useState<number | null>(null);
   const [naming, setNaming] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
   const nameInput = useRef<HTMLInputElement>(null);
   const isNaming = naming !== null;
   useEffect(() => {
@@ -32,13 +36,19 @@ export function OutputTab({ task, state, dispatch }: { task: Task; state: State;
   const final = task.status === "completed" && current.builtAfterRound === task.config.rounds;
   const suggested = final ? `${task.name} ${output.name}` : `${task.name} 第 ${current.builtAfterRound} 轮后${output.name}`;
 
-  function publish(name: string) {
-    const round = current.builtAfterRound;
-    const id = `app-${task.id}-r${round}`;
+  async function publish(name: string) {
     const title = name.trim() || suggested;
-    dispatch({ type: "publish", id, taskId: task.id, builtAfterRound: round, name: title, publishedAt: new Date().toISOString() });
-    setNaming(null);
-    showFlash({ page: "task", id: task.id }, `已发布为应用“${title}”。`, { label: "查看应用", route: { page: "app", id } });
+    setSaving(true);
+    setProblem(null);
+    try {
+      const app = await publishApp(task.id, current.builtAfterRound, title);
+      setNaming(null);
+      showFlash({ page: "task", id: task.id }, `已发布为应用“${app.name}”。`, { label: "查看应用", route: { page: "app", id: app.id } });
+    } catch (error) {
+      setProblem(error instanceof ApiError ? error.message : "发布失败，稍后再试");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -69,7 +79,7 @@ export function OutputTab({ task, state, dispatch }: { task: Task; state: State;
           aria-label="发布为应用"
           onSubmit={(event) => {
             event.preventDefault();
-            publish(naming);
+            void publish(naming);
           }}
           onKeyDown={(event) => {
             if (event.key === "Escape") setNaming(null);
@@ -81,10 +91,11 @@ export function OutputTab({ task, state, dispatch }: { task: Task; state: State;
           </div>
           <div className="confirm-actions">
             <button type="button" className="button button--secondary" onClick={() => setNaming(null)}>取消</button>
-            <button type="submit" className="button button--primary">发布</button>
+            <button type="submit" className="button button--primary" disabled={saving}>发布</button>
           </div>
         </form>
       ) : null}
+      {problem ? <Notice tone="warning" onDismiss={() => setProblem(null)}>{problem}</Notice> : null}
       <OutputGroups items={current.items} isNew={previous ? (key) => !previousKeys.has(key) : undefined} />
     </Panel>
   );

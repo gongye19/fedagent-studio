@@ -1,6 +1,8 @@
+import { useQuery } from "@tanstack/react-query";
 import { useRef, useState, type KeyboardEvent } from "react";
+import { api } from "../../api/client";
 import type { Stage } from "../../domain/catalog";
-import { DEMO_RUNS, sampleUploadTexts } from "../../domain/sample";
+import { keys } from "../../state/server";
 import { averageAccuracy, roundOf, stageSeconds, stepState, type RoundRecord, type StepState, type Task } from "../../domain/task";
 import { ProgressBar } from "../common";
 import { Panel } from "../console";
@@ -8,9 +10,10 @@ import { formatDuration, formatNumber, formatPercent } from "../format";
 import { Icon } from "../icons";
 import { algorithmOfTask, metricOf } from "../labels";
 
-const SHOWN = 3;
+/** 一格最多列出的上传条数（再多就只写总数）。 */
+const SHOWN = 200;
 
-function sum(values: Record<string, number> | undefined): number {
+function sum(values: Record<string, number> | null | undefined): number {
   return Object.values(values ?? {}).reduce((total, value) => total + value, 0);
 }
 
@@ -210,7 +213,6 @@ function Uploads({ task }: { task: Task }) {
   const active = cell ?? { participantId: task.members[0].participantId, round: rounds[rounds.length - 1] };
   const member = task.members.find((item) => item.participantId === active.participantId) ?? task.members[0];
   const count = task.rounds.find((record) => record.round === active.round)?.uploads?.[member.participantId] ?? 0;
-  const pool = DEMO_RUNS[task.config.algorithm].pool;
   const allRounds = Array.from({ length: task.config.rounds }, (_, index) => index + 1).filter((round) => round <= Math.max(...rounds));
 
   function move(event: KeyboardEvent<HTMLButtonElement>, row: number, column: number) {
@@ -266,13 +268,30 @@ function Uploads({ task }: { task: Task }) {
       </div>
       <div className="trace-panel" aria-live="polite">
         <h3>{member.participant} · 第 {active.round} 轮</h3>
-        <p className="section-meta">共 {formatNumber(count)} 条，这里展示 {Math.min(SHOWN, count)} 条示例</p>
-        <ol className="trace-list">
-          {sampleUploadTexts(pool, member.datasetId, active.round, Math.min(SHOWN, count)).map((upload) => (
-            <li key={upload.key} lang="en">{upload.text}</li>
-          ))}
-        </ol>
+        <UploadList task={task} round={active.round} participantId={member.participantId} count={count} />
       </div>
     </div>
+  );
+}
+
+/** 某个参与方某一轮实际上传的内容（服务端收到的消息），由算法插件决定每条怎么显示。 */
+function UploadList({ task, round, participantId, count }: { task: Task; round: number; participantId: string; count: number }) {
+  const messages = useQuery({
+    queryKey: keys.messages(task.id, round, participantId),
+    queryFn: () => api.taskMessages(task.id, { round, site: participantId, limit: SHOWN }),
+    enabled: count > 0,
+    staleTime: 60_000,
+  });
+  if (!count) return <p className="section-meta">这一轮没有上传</p>;
+  return (
+    <>
+      <p className="section-meta">{count > SHOWN ? `共 ${formatNumber(count)} 条，这里列出前 ${SHOWN} 条` : `共 ${formatNumber(count)} 条`}</p>
+      {messages.isError ? <p className="section-meta">读取失败，稍后再试</p> : null}
+      <ol className="trace-list">
+        {(messages.data ?? []).map((message) => (
+          <li key={message.id} lang="en">{message.text}</li>
+        ))}
+      </ol>
+    </>
   );
 }

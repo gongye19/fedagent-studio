@@ -35,12 +35,16 @@ def _serve(with_runner: bool, host: str | None, port: int | None) -> None:
     platform = _platform()
     seed(platform)
     stop = threading.Event()
-    if with_runner:
-        threading.Thread(target=Runner(platform).run, args=(stop,), daemon=True, name="runner").start()
+    thread = threading.Thread(target=Runner(platform).run, args=(stop,), daemon=True, name="runner") if with_runner else None
+    if thread:
+        thread.start()
     try:
         uvicorn.run(create_app(platform), host=host or platform.settings.host, port=port or platform.settings.port, log_level="info")
     finally:
         stop.set()
+        if thread:
+            # 等 runner 结束它起的任务进程再退出
+            thread.join(timeout=15)
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -60,6 +64,7 @@ def main(argv: list[str] | None = None) -> None:
     datasets = commands.add_parser("datasets").add_subparsers(dest="action", required=True)
     bundle = datasets.add_parser("import-fot-bundle")
     bundle.add_argument("path", type=Path)
+    commands.add_parser("openapi", help="打印 API 的 OpenAPI 定义（前端据此生成类型）")
     contract = commands.add_parser("contract")
     contract.add_argument("algorithm")
     contract.add_argument("--per-dataset", type=int, default=2)
@@ -70,9 +75,15 @@ def main(argv: list[str] | None = None) -> None:
     elif args.command == "serve":
         _serve(False, args.host, args.port)
     elif args.command == "runner":
+        import signal
+
         from .runner import Runner
 
-        Runner(_platform()).run()
+        # 收到 SIGTERM（部署时重启）也和 Ctrl-C 一样：结束任务进程后退出，任务下次从检查点继续
+        stop = threading.Event()
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            signal.signal(sig, lambda *_: stop.set())
+        Runner(_platform()).run(stop)
     elif args.command == "seed":
         from .seed import seed
 
@@ -90,6 +101,10 @@ def main(argv: list[str] | None = None) -> None:
         seed(platform)
         imported = import_fot_bundle(platform, args.path)
         print("已导入：" + "、".join(imported) if imported else "包里没有找到题库文件")
+    elif args.command == "openapi":
+        from .api import create_app
+
+        print(json.dumps(create_app(_platform()).openapi(), ensure_ascii=False, indent=1))
     elif args.command == "contract":
         from .seed import BUILTIN_DIR
         from .testing import run_contract

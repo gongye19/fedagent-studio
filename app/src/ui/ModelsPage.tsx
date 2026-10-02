@@ -41,11 +41,16 @@ export default function ModelsPage({ state }: { state: State }) {
                     <th scope="row">
                       <span className="cell-title">
                         {endpoint.name}
-                        {isConfigured(endpoint) ? null : <Tag tone="warning">待配置</Tag>}
+                        {endpoint.kind === "fake" ? <Tag>测试用</Tag> : isConfigured(endpoint) ? null : <Tag tone="warning">待配置</Tag>}
                       </span>
-                      {endpoint.baseUrl || fallback ? (
+                      {endpoint.baseUrl || fallback || endpoint.kind === "fake" ? (
                         <small>
-                          <Meta parts={[endpoint.baseUrl ? <code key="url">{endpoint.baseUrl}</code> : null, fallback ? "未指定模型的调用都走这里" : null]} />
+                          <Meta parts={[
+                            endpoint.baseUrl ? <code key="url">{endpoint.baseUrl}</code> : null,
+                            fallback ? "未指定模型的调用都走这里" : null,
+                            endpoint.kind === "fake" ? "不调用真实模型，只用来跑通流程" : null,
+                            endpoint.hasKey ? "已保存密钥" : null,
+                          ]} />
                         </small>
                       ) : null}
                     </th>
@@ -54,7 +59,9 @@ export default function ModelsPage({ state }: { state: State }) {
                     <td className="numeric" data-label="单价（元 / 百万 token）">{endpoint.price === null ? "—" : endpoint.price}</td>
                     <td className="numeric" data-label="使用">{used ? `${used} 个任务` : "—"}</td>
                     <td className="numeric cell-action">
-                      <a className="button button--secondary button--compact" href={hrefOf({ page: "editEndpoint", id: endpoint.id })} aria-label={`编辑“${endpoint.name}”`}>编辑</a>
+                      {endpoint.kind === "fake" ? null : (
+                        <a className="button button--secondary button--compact" href={hrefOf({ page: "editEndpoint", id: endpoint.id })} aria-label={`编辑“${endpoint.name}”`}>编辑</a>
+                      )}
                     </td>
                   </tr>
                 );

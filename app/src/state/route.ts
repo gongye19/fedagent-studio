@@ -18,7 +18,10 @@
  * 新增、编辑页和 AWS 控制台一样是独立页面。从新建任务过来时地址带 ?from=new-task，保存或取消后回到新建任务。
  */
 import { useEffect, useState } from "react";
-import { SCENARIOS, type ScenarioId } from "../domain/catalog";
+import type { ScenarioId } from "../domain/catalog";
+
+/** 三种场景是平台内置的（后端核心里的规则），地址里只认这三个；注册表还没读到时也能解析地址。 */
+const SCENARIO_IDS: readonly ScenarioId[] = ["horizontal", "vertical", "transfer"];
 
 export const TASK_TABS = ["overview", "progress", "output", "config"] as const;
 export type TaskTab = (typeof TASK_TABS)[number];
@@ -59,7 +62,7 @@ export function parseHash(hash: string): Route {
       if (!second) return { page: "tasks" };
       if (second === "new") {
         // 新建任务一定先选场景；没带场景的旧地址回到任务列表，在那里按场景新建。
-        const scenario = oneOf(SCENARIOS.map((item) => item.id), third);
+        const scenario = oneOf(SCENARIO_IDS, third);
         return scenario ? { page: "newTask", scenario } : { page: "tasks" };
       }
       return { page: "task", id: second, tab: oneOf(TASK_TABS, third) };
@@ -68,7 +71,7 @@ export function parseHash(hash: string): Route {
       return second ? { page: "app", id: second, tab: oneOf(APP_TABS, third) } : { page: "apps" };
     case "participants": {
       if (second === "new") return withFrom({ page: "newParticipant" as const });
-      const scenario = oneOf(SCENARIOS.map((item) => item.id), second);
+      const scenario = oneOf(SCENARIO_IDS, second);
       if (scenario) return third ? { page: "participants", scenario, id: third } : { page: "participants", scenario };
       // 旧地址 #/participants/:id：由页面按这个参与方的数据集决定打开哪个场景
       return second ? { page: "participants", id: second } : { page: "participants" };

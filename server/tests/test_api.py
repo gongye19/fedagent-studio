@@ -181,3 +181,28 @@ def test_local_participant_runs_through_client(client: TestClient, platform: Pla
     with platform.db.session() as session:
         private_rows = session.query(m.SiteState).filter_by(task_id=task_id, site_id=participant_id).count()
     assert private_rows == 0
+
+
+def test_token_frontend_and_client_packages(tmp_path: Path) -> None:
+    from fedagent.api import create_app
+    from fedagent.settings import Settings
+
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    (dist / "index.html").write_text("<!doctype html><title>FedAgent Studio</title>", encoding="utf-8")
+    packages = tmp_path / "client"
+    packages.mkdir()
+    wheel = "fedagent_client-0.1.0-py3-none-any.whl"
+    (packages / wheel).write_bytes(b"wheel")
+    settings = Settings(data_dir=tmp_path / "data", admin_token="secret-token", frontend_dist=dist, client_dist=packages)
+    with TestClient(create_app(Platform.create(settings))) as client:
+        meta = client.get("/v1/meta").json()
+        assert meta["authRequired"] is True
+        assert meta["clientPackages"] == [wheel]
+        assert client.get("/v1/registry").status_code == 401
+        assert client.get("/v1/registry", headers={"Authorization": "Bearer wrong"}).status_code == 401
+        assert client.get("/v1/registry", headers={"Authorization": "Bearer secret-token"}).status_code == 200
+        # 页面和安装包不需要令牌
+        assert "FedAgent Studio" in client.get("/").text
+        assert client.get(f"/client/{wheel}").content == b"wheel"
+        assert client.get("/healthz").json() == {"ok": True}

@@ -6,7 +6,7 @@ export type Tone = "neutral" | "info" | "success" | "warning" | "danger";
 
 /**
  * 全站唯一的标签样式（胶囊）。颜色只按含义选：
- * warning 黄色 = 需要处理或示例数据（等待连接、待配置、已暂停、示例数据）；
+ * warning 黄色 = 需要处理（等待连接、待配置、已暂停）；
  * info 蓝色 = 进行中或新增；neutral 灰色 = 普通属性（参与方本地、规划中、无答案）。
  */
 export function Tag({ tone = "neutral", children, live = false }: { tone?: Tone; children: ReactNode; live?: boolean }) {
@@ -130,9 +130,17 @@ export function CodeBlock({
 }
 
 /** 页面顶部的一行提示：已恢复草稿、已保存、已发布等。可以带一个操作链接和"知道了"。 */
-export function Notice({ children, action, onDismiss }: { children: ReactNode; action?: ReactNode; onDismiss?: () => void }) {
+export function Notice({
+  children, action, onDismiss, tone = "info",
+}: {
+  children: ReactNode;
+  action?: ReactNode;
+  onDismiss?: () => void;
+  /** warning：需要处理的情况（任务暂停的原因、操作失败）。 */
+  tone?: "info" | "warning";
+}) {
   return (
-    <div className="notice" role="status">
+    <div className={`notice${tone === "warning" ? " notice--warning" : ""}`} role={tone === "warning" ? "alert" : "status"}>
       <span>{children}</span>
       {action}
       {onDismiss ? <button type="button" className="link-button notice-dismiss" onClick={onDismiss}>知道了</button> : null}
@@ -192,7 +200,7 @@ export function Confirm({
  * 缺项说明和保存按钮关联（aria-describedby），读屏用户按到按钮时也能听到。
  */
 export function FormActions({
-  missing, onCancel, onSave, saveLabel = "保存", compact = false, cancelLabel = "取消",
+  missing, onCancel, onSave, saveLabel = "保存", compact = false, cancelLabel = "取消", saving = false, error,
 }: {
   missing: readonly string[];
   onCancel: () => void;
@@ -200,16 +208,21 @@ export function FormActions({
   saveLabel?: string;
   compact?: boolean;
   cancelLabel?: string;
+  /** 正在提交：保存按钮不可用，状态里写"正在保存…"。 */
+  saving?: boolean;
+  /** 提交失败的原因（后端写明的），写在状态里。 */
+  error?: string | null;
 }) {
   const id = useId();
   const size = compact ? " button--compact" : "";
+  const status = saving ? "正在保存…" : error ? error : missing.length ? `还需填写：${missing.join("、")}` : "";
   return (
     <div className="form-actions">
       {/* 始终保留这个区域，读屏软件才能在缺项变化时播报 */}
-      <span className="form-status" id={id} aria-live="polite">{missing.length ? `还需填写：${missing.join("、")}` : ""}</span>
+      <span className={`form-status${error && !saving ? " form-status--error" : ""}`} id={id} aria-live="polite">{status}</span>
       <div className="form-buttons">
         <button type="button" className={`button button--secondary${size}`} onClick={onCancel}>{cancelLabel}</button>
-        <button type="button" className={`button button--primary${size}`} disabled={missing.length > 0} aria-describedby={missing.length ? id : undefined} onClick={onSave}>{saveLabel}</button>
+        <button type="button" className={`button button--primary${size}`} disabled={missing.length > 0 || saving} aria-describedby={status ? id : undefined} onClick={onSave}>{saveLabel}</button>
       </div>
     </div>
   );
@@ -301,7 +314,7 @@ export function NotFound({ kind, back, backLabel }: { kind: string; back: Route;
   return (
     <>
       <PageHead title={`没有找到这个${kind}`} crumbs={[{ label: backLabel, route: back }]} />
-      <EmptyState title="可能已被删除，或者演示数据已重置" action={<a className="button button--secondary" href={hrefOf(back)}>返回{backLabel}</a>} />
+      <EmptyState title="可能已被删除" action={<a className="button button--secondary" href={hrefOf(back)}>返回{backLabel}</a>} />
     </>
   );
 }

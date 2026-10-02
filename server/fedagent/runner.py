@@ -3,18 +3,23 @@
 - 领取排队的任务（同时运行的任务数不超过配置），每个任务起一个子进程（python -m fedagent.taskproc）；
 - 任务进程正常结束时，任务状态已经由进程自己写好（完成、暂停、取消）；
 - 意外退出（状态还是运行中）时从检查点自动重启，连续超过上限就暂停并写明原因；
-- 发了暂停 / 取消命令、进程 60 秒还没停下的，直接结束进程（下次续跑时正在执行的单元重新排队）。
+- 发了暂停 / 取消命令、进程 60 秒还没停下的，直接结束进程（下次续跑时正在执行的单元重新排队）；
+- runner 停下（部署、重启）时一起结束任务进程，任务保持"运行中"，下一个 runner 起来后从检查点继续。
+  任务进程在自己的会话里，runner 被强行结束时它们不会跟着退出：新 runner 先结束这些遗留进程，再重新排队，
+  免得同一个任务有两个进程同时跑、重复调用模型。
 """
 
 from __future__ import annotations
 
 import logging
 import os
+import signal
 import subprocess
 import sys
 import threading
 import time
 from dataclasses import dataclass
+from pathlib import Path
 
 from sqlalchemy import select
 
@@ -24,6 +29,7 @@ from .units import add_event
 
 log = logging.getLogger("fedagent.runner")
 STOP_GRACE_SECONDS = 60
+SHUTDOWN_GRACE_SECONDS = 10
 
 
 @dataclass
@@ -33,10 +39,33 @@ class Child:
     command_seen: float | None = None
 
 
+def leftover_process(pid: int | None, task_id: str) -> bool:
+    """这个进程号是不是还在跑的、这个任务的任务进程（核对命令行，进程号被别的进程复用时不算）。"""
+    if not pid:
+        return False
+    try:
+        os.kill(pid, 0)
+    except (ProcessLookupError, PermissionError):
+        return False
+    proc = Path(f"/proc/{pid}/cmdline")
+    if proc.exists():
+        try:
+            args = proc.read_bytes().decode(errors="replace").split("\0")
+        except OSError:
+            return False
+    else:
+        # 没有 /proc（macOS 本地开发）
+        found = subprocess.run(["ps", "-p", str(pid), "-o", "command="], capture_output=True, text=True, check=False)
+        args = found.stdout.split()
+    return "fedagent.taskproc" in args and task_id in args
+
+
 class Runner:
     def __init__(self, platform: Platform) -> None:
         self.platform = platform
         self.children: dict[str, Child] = {}
+        self.leftovers: dict[str, float] = {}
+        """上一个 runner 留下、已经叫它停下的任务进程：任务 id → 发出信号的时间。"""
 
     def _spawn(self, task_id: str) -> subprocess.Popen[bytes]:
         run_dir = self.platform.settings.runs_dir / task_id
@@ -64,11 +93,18 @@ class Runner:
         db = self.platform.db
         settings = self.platform.settings
         with db.session() as session:
-            # 标为运行中、却没有本 runner 管的进程（例如 runner 重启过）：重新排队，从检查点继续
+            # 标为运行中、却没有本 runner 管的进程（例如 runner 重启过）：重新排队，从检查点继续。
+            # 上一个 runner 留下的进程还在跑时，先结束它，等它退出后再排队。
             for task in session.scalars(select(m.Task).where(m.Task.status == "running")):
-                if task.id not in self.children:
-                    task.status = "queued"
-                    add_event(session, task.id, "requeue", "运行进程不在了，重新排队，从检查点继续")
+                if task.id in self.children:
+                    continue
+                if task.pid and leftover_process(task.pid, task.id):
+                    self._stop_leftover(task.id, task.pid)
+                    continue
+                self.leftovers.pop(task.id, None)
+                task.status = "queued"
+                task.pid = None
+                add_event(session, task.id, "requeue", "运行进程不在了，重新排队，从检查点继续")
             slots = settings.max_running_tasks - len(self.children)
             if slots > 0:
                 queued = session.scalars(select(m.Task).where(m.Task.status == "queued").order_by(m.Task.created_at).limit(slots)).all()
@@ -102,6 +138,18 @@ class Runner:
                     task.status = "queued"
                     add_event(session, task_id, "restart", f"任务进程意外退出（退出码 {code}），从检查点重启")
 
+    def _stop_leftover(self, task_id: str, pid: int) -> None:
+        signaled = self.leftovers.get(task_id)
+        try:
+            if signaled is None:
+                log.warning("task %s: stopping leftover process %s from a previous runner", task_id, pid)
+                os.kill(pid, signal.SIGTERM)
+                self.leftovers[task_id] = time.monotonic()
+            elif time.monotonic() - signaled > SHUTDOWN_GRACE_SECONDS:
+                os.kill(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+
     def _watch_command(self, task_id: str, child: Child) -> None:
         with self.platform.db.session() as session:
             task = session.get(m.Task, task_id)
@@ -116,11 +164,26 @@ class Runner:
 
     def run(self, stop: threading.Event | None = None, interval: float = 1.0) -> None:
         log.info("runner started")
-        while stop is None or not stop.is_set():
+        stop = stop or threading.Event()
+        while not stop.is_set():
             try:
                 self.tick()
             except Exception:
                 log.exception("runner tick failed")
-            time.sleep(interval)
+            stop.wait(interval)
+        self.shutdown()
+
+    def shutdown(self, grace: float = SHUTDOWN_GRACE_SECONDS) -> None:
+        """结束本 runner 起的任务进程。任务保持"运行中"，下一个 runner 起来后从检查点继续。"""
         for child in self.children.values():
             child.process.terminate()
+        deadline = time.monotonic() + grace
+        for task_id, child in self.children.items():
+            try:
+                child.process.wait(timeout=max(0.0, deadline - time.monotonic()))
+            except subprocess.TimeoutExpired:
+                child.process.kill()
+                child.process.wait()
+            log.info("stopped task %s (pid %s)", task_id, child.process.pid)
+        self.children.clear()
+        log.info("runner stopped")

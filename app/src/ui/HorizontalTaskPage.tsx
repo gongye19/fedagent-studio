@@ -1,4 +1,6 @@
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState, type Dispatch, type MouseEvent } from "react";
+import { api, ApiError, type TaskConfigIn } from "../api/client";
 import {
   algorithmOf,
   algorithmsFor,
@@ -19,11 +21,10 @@ import {
   DEFAULT_DRAFT,
   defaultTaskName,
   draftIssues,
-  estimate,
   joinable,
-  toConfig,
   type Draft,
   type Estimate,
+  type Issue,
   type RunMode,
 } from "../domain/config";
 import {
@@ -35,11 +36,12 @@ import {
   modelLabel,
   modelOptions,
   PARTICIPANT_STATUS,
+  pendingNote,
   type Dataset,
   type Participant,
 } from "../domain/resources";
+import { createTask, taskRequest } from "../state/actions";
 import { flashFor, showFlash } from "../state/flash";
-import { newId } from "../state/ids";
 import { hrefOf, navigate, type Route } from "../state/route";
 import { datasetsOf, participantOf, type Action, type State } from "../state/store";
 import { Collapsible, Confirm, Meta, Notice, PageHead, PanelEmpty, Tag } from "./common";
@@ -105,21 +107,43 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
     })
     : [];
   const joined = joinable(draft, state.datasets, state.participants);
-  const issues = draftIssues(draft, state.datasets, state.participants, state.endpoints);
-  const config = toConfig({ ...draft, participants: joined });
-  const result = config && joined.length ? estimate(config, state.datasets, state.endpoints) : null;
+  const localIssues = draftIssues(draft, state.datasets, state.participants, state.endpoints);
+  // 预估和最终的检查由后端做（插件声明的步骤、接口单价、模型接口是否配置好）；配置改动停下 0.3 秒后再问一次。
+  const request = useDebounced(taskRequest(draft, "", state.datasets, state.participants), 300);
+  const check = useQuery({
+    queryKey: ["task-validate", request],
+    queryFn: () => api.validateTask(request as TaskConfigIn),
+    enabled: Boolean(request && request.participants.length),
+    placeholderData: keepPreviousData,
+    staleTime: 15_000,
+  });
+  const serverIssues = localIssues.length || !request?.participants.length ? [] : (check.data?.issues ?? []);
+  const issues: Issue[] = [...localIssues, ...serverIssues.map((issue) => issue as Issue).filter((issue) => !localIssues.some((item) => item.message === issue.message))];
+  const result: Estimate | null = joined.length ? check.data?.estimate ?? null : null;
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const full = draft.mode === "full";
   const autoName = defaultTaskName(draft, openedAt);
   const overrideCount = Object.keys(activeOverrides(draft)).length;
   const priceEndpoint = endpointOf(draft.clientModel, state.endpoints)?.id ?? DEFAULT_ENDPOINT_ID;
 
-  function create() {
-    if (issues.length) return;
-    const id = newId("task");
-    const name = draft.name?.trim() || autoName;
-    dispatch({ type: "createTask", id, createdAt: new Date().toISOString(), name: autoName });
-    showFlash({ page: "task", id }, full ? `已创建“${name}”，开始正式运行。` : `已创建“${name}”，开始试跑。`);
-    navigate({ page: "task", id, tab: "progress" });
+  async function create() {
+    if (issues.length || creating) return;
+    const body = taskRequest(draft, draft.name?.trim() || autoName, state.datasets, state.participants);
+    if (!body) return;
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const task = await createTask(body);
+      dispatch({ type: "resetDraft" });
+      showFlash({ page: "task", id: task.id }, full ? `已创建“${task.name}”，开始正式运行。` : `已创建“${task.name}”，开始试跑。`);
+      navigate({ page: "task", id: task.id, tab: "progress" });
+    } catch (error) {
+      setPending(null);
+      setCreateError(error instanceof ApiError ? error.message : "创建失败，稍后再试");
+    } finally {
+      setCreating(false);
+    }
   }
 
   function restart() {
@@ -138,7 +162,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
   function start() {
     if (issues.length) return;
     if (full) setPending("full");
-    else create();
+    else void create();
   }
 
   /** 动过的草稿要确认才放弃；没动过的直接离开。 */
@@ -164,7 +188,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
       confirmLabel: "确认开始",
       cancelLabel: "取消",
       tone: "primary" as const,
-      onConfirm: create,
+      onConfirm: () => void create(),
     }
     : pending === "leave"
       ? {
@@ -181,6 +205,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
   return (
     <>
       <PageHead title="新建横向联邦任务" crumbs={[{ label: "联邦任务", route: back }]} />
+      {createError ? <Notice tone="warning" onDismiss={() => setCreateError(null)}>没有创建：{createError}</Notice> : null}
       {pending === "restart" ? (
         <Confirm title="清空这次的配置？" confirmLabel="清空" onConfirm={restart} onCancel={() => setPending(null)}>
           已选的参与方和设置都会恢复默认。
@@ -267,7 +292,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
               </Confirm>
             ) : (
               <div className="summary-actions">
-                <button type="button" className="button button--primary button--block summary-start" disabled={issues.length > 0} aria-describedby={issues.length ? issuesId : undefined} onClick={start}>{startLabel}</button>
+                <button type="button" className="button button--primary button--block summary-start" disabled={issues.length > 0 || creating} aria-describedby={issues.length ? issuesId : undefined} onClick={start}>{creating ? "正在创建…" : startLabel}</button>
                 <button type="button" className="button button--ghost button--block" onClick={cancel}>取消</button>
               </div>
             )}
@@ -288,7 +313,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
           </div>
           <div className="order-bar-actions">
             <button type="button" className="button button--ghost order-bar-cancel" onClick={cancel}>取消</button>
-            <button type="button" className="button button--primary" disabled={issues.length > 0} onClick={start}>{startLabel}</button>
+            <button type="button" className="button button--primary" disabled={issues.length > 0 || creating} onClick={start}>{creating ? "正在创建…" : startLabel}</button>
           </div>
         </div>
       )}
@@ -372,17 +397,22 @@ type Candidate = { participant: Participant; datasets: Dataset[] };
 
 /**
  * 参与方：带复选框的表格，一行一个参与方，表头可以全选。每个参与方出一份数据集，
- * 名下有几份能用的数据集时在行里选用哪一份。还不能参加的（等待连接、离线）写明状态，并能点进去查看。
+ * 名下有几份能用的数据集时在行里选用哪一份。还不能参加的（等待连接、离线、样本还没就绪）写明原因，并能点进去查看。
  */
 function ParticipantTable({ draft, dispatch, candidates }: { draft: Draft; dispatch: Dispatch<Action>; candidates: readonly Candidate[] }) {
   const head = useRef<HTMLInputElement>(null);
   const picks = new Map(draft.participants.map((item) => [item.participantId, item.datasetId]));
-  const online = candidates.filter((item) => item.participant.status === "online");
-  const chosen = online.filter((item) => picks.has(item.participant.id)).length;
-  const all = online.length > 0 && chosen === online.length;
+  // 能选的数据集：参与方在线、样本已就绪。能参加的排在前面，还不能参加的放在后面。
+  const rows = candidates
+    .map(({ participant, datasets }) => {
+      const ready = participant.status === "online" ? datasets.filter((dataset) => dataset.ready) : [];
+      return { participant, datasets, ready, picked: ready.find((dataset) => dataset.id === picks.get(participant.id)) };
+    })
+    .sort((a, b) => Number(!a.ready.length) - Number(!b.ready.length));
+  const open = rows.filter((row) => row.ready.length);
+  const chosen = open.filter((row) => row.picked).length;
+  const all = open.length > 0 && chosen === open.length;
   const some = !all && chosen > 0;
-  // 能选的排在前面，还不能参加的放在后面。
-  const rows = [...candidates].sort((a, b) => Number(a.participant.status !== "online") - Number(b.participant.status !== "online"));
 
   useEffect(() => {
     if (head.current) head.current.indeterminate = some;
@@ -391,7 +421,7 @@ function ParticipantTable({ draft, dispatch, candidates }: { draft: Draft; dispa
   function selectAll() {
     dispatch({
       type: "setParticipants",
-      participants: all ? [] : online.map(({ participant, datasets }) => ({ participantId: participant.id, datasetId: picks.get(participant.id) ?? datasets[0].id })),
+      participants: all ? [] : open.map(({ participant, ready, picked }) => ({ participantId: participant.id, datasetId: (picked ?? ready[0]).id })),
     });
   }
 
@@ -402,7 +432,7 @@ function ParticipantTable({ draft, dispatch, candidates }: { draft: Draft; dispa
         <thead>
           <tr>
             <th scope="col" className="select-cell">
-              <input ref={head} type="checkbox" aria-label="全选" checked={all} disabled={!online.length} onChange={selectAll} />
+              <input ref={head} type="checkbox" aria-label="全选" checked={all} disabled={!open.length} onChange={selectAll} />
             </th>
             <th scope="col">参与方</th>
             {/* 手机上也要看得到、选得了数据集，收起的是样本数和运行位置 */}
@@ -413,11 +443,11 @@ function ParticipantTable({ draft, dispatch, candidates }: { draft: Draft; dispa
           </tr>
         </thead>
         <tbody>
-          {rows.map(({ participant, datasets }) => {
-            const enabled = participant.status === "online";
-            const pickedId = picks.get(participant.id);
-            const checked = enabled && pickedId !== undefined;
-            const shown = datasets.find((dataset) => dataset.id === pickedId) ?? datasets[0];
+          {rows.map(({ participant, datasets, ready, picked }) => {
+            const enabled = ready.length > 0;
+            const checked = picked !== undefined;
+            const choices = enabled ? ready : datasets;
+            const shown = picked ?? choices[0];
             const toggle = () => dispatch({ type: "pickDataset", participantId: participant.id, datasetId: checked ? null : shown.id });
             const inputId = `pick-${participant.id}`;
             return (
@@ -425,7 +455,7 @@ function ParticipantTable({ draft, dispatch, candidates }: { draft: Draft; dispa
                 <td className="select-cell"><input id={inputId} type="checkbox" checked={checked} disabled={!enabled} onChange={toggle} /></td>
                 <th scope="row"><label htmlFor={inputId}>{participant.name}</label></th>
                 <td>
-                  {datasets.length > 1 ? (
+                  {choices.length > 1 ? (
                     <select
                       className="cell-select"
                       name={`dataset-${participant.id}`}
@@ -435,17 +465,18 @@ function ParticipantTable({ draft, dispatch, candidates }: { draft: Draft; dispa
                       // 选了数据集就是要让这个参与方参加。
                       onChange={(event) => dispatch({ type: "pickDataset", participantId: participant.id, datasetId: event.target.value })}
                     >
-                      {datasets.map((dataset) => <option key={dataset.id} value={dataset.id}>{dataset.name}</option>)}
+                      {choices.map((dataset) => <option key={dataset.id} value={dataset.id}>{dataset.name}</option>)}
                     </select>
                   ) : shown.name}
                 </td>
-                <td className="numeric col-optional">{shown.source === "local" ? "—" : formatNumber(shown.count)}</td>
+                <td className="numeric col-optional">{shown.ready ? formatNumber(shown.count) : "—"}</td>
                 <td className="col-optional">{HOSTING_LABELS[participant.hosting]}</td>
                 <td>
                   {enabled ? <span className="status-text">可用</span> : (
                     <span className="cell-title">
-                      <Tag tone="warning">{PARTICIPANT_STATUS[participant.status]}</Tag>
-                      <a className="text-link" href={hrefOf({ page: "participants", scenario: draft.scenario ?? undefined, id: participant.id })}>查看</a>
+                      <Tag tone="warning">{participant.status === "online" ? `样本${pendingNote(shown)}` : PARTICIPANT_STATUS[participant.status]}</Tag>
+                      {/* 手机上状态列窄，只留状态，免得"查看"单独折到下一行 */}
+                      <a className="text-link wide-only" href={hrefOf({ page: "participants", scenario: draft.scenario ?? undefined, id: participant.id })}>查看</a>
                     </span>
                   )}
                 </td>
@@ -695,4 +726,15 @@ function EstimateBlock({ result, priceHref }: { result: Estimate; priceHref: str
       </dl>
     </div>
   );
+}
+
+/** 值停止变化 delay 毫秒后才更新（配置改动时不用每敲一个字就请求一次后端）。 */
+function useDebounced<T>(value: T, delay: number): T {
+  const [current, setCurrent] = useState(value);
+  const serialized = JSON.stringify(value);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setCurrent(JSON.parse(serialized) as T), delay);
+    return () => window.clearTimeout(timer);
+  }, [serialized, delay]);
+  return current;
 }

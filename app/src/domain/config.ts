@@ -1,12 +1,13 @@
 /**
- * 任务配置：默认值、校验和调用量预估。
+ * 任务配置：默认值和页面上的即时检查。
  *
  * 新建任务依次选场景 → 任务类型 → 算法 → 参与方，每一步都由用户选，页面不替用户默认。
  * 参与方只能用登记在同一场景、同一任务类型下的数据集，每方出一份。
- * 算法参数按注册表的定义保存（键和默认值由算法声明）；预估按算法声明的步骤和交换量计算，平台不认具体的算法，
- * 只负责按接口单价算费用。
+ * 算法参数按注册表的定义保存（键和默认值由算法声明）。调用量预估和最终的校验由后端做（POST /v1/tasks/validate），
+ * 预估按算法插件声明的步骤和交换量计算，费用按接口单价算。
  */
 import { algorithmOf, defaultParams, paramsOf, scenarioOf, TASK_TYPES, type AlgorithmId, type Params, type ScenarioId, type TaskType } from "./catalog";
+import type { components } from "../api/schema";
 import { DEFAULT_MODEL, endpointOf, fits, usable, type Dataset, type Endpoint, type Participant } from "./resources";
 
 export type RunMode = "trial" | "full";
@@ -86,56 +87,8 @@ export function selectedDatasets(config: Pick<TaskConfig, "participants">, datas
     .filter((dataset): dataset is Dataset => Boolean(dataset));
 }
 
-export type Estimate = {
-  problems: number;
-  participantCalls: number;
-  /** 服务端调用模型的步骤每轮各一次；结果不合法时会重试，所以是下限。 */
-  serverCalls: number;
-  participantTokens: number;
-  serverTokens: number;
-  seconds: number;
-  /** 用到的接口都设置了单价才估算，单位：元。 */
-  cost: number | null;
-};
-
-/**
- * 调用量预估，全部由算法的注册表定义得出：
- * - 参与方：每条样本在每个参与方步骤调用一次模型；
- * - 服务端：调用模型的步骤每轮一次，读入各方这一轮上传的全部内容；
- * - 耗时：并发数是所有参与方共用的线程池，参与方步骤按全部样本分批排队，服务端步骤各自计时。
- */
-export function estimate(config: TaskConfig, datasets: readonly Dataset[], endpoints: readonly Endpoint[]): Estimate {
-  const algorithm = algorithmOf(config.algorithm);
-  const params = paramsOf(algorithm, config.params);
-  const problems = selectedDatasets(config, datasets).map((dataset) => problemsOf(config, dataset)).reduce((sum, value) => sum + value, 0);
-  const participantStages = algorithm.stages.filter((stage) => stage.side === "participant");
-  const serverModelStages = algorithm.stages.filter((stage) => stage.side === "server" && stage.model);
-  const volume = algorithm.exchangeVolume;
-  const perSample = Math.min(volume.perSample(params), volume.maxPerSample?.(params) ?? Infinity);
-  const uploadTokens = problems * perSample * volume.tokens;
-  const batches = Math.ceil(problems / Math.max(1, config.workers));
-  const perRoundSeconds = algorithm.stages.reduce((sum, stage) => sum + (stage.side === "participant" ? batches * stage.seconds : stage.seconds), 0);
-  const participantTokens = Math.round(problems * participantStages.reduce((sum, stage) => sum + (stage.tokens ?? 0), 0) * config.rounds);
-  const serverTokens = Math.round(serverModelStages.reduce((sum, stage) => sum + uploadTokens + (stage.tokens ?? 0), 0) * config.rounds);
-
-  const clientPrice = endpointOf(config.clientModel, endpoints)?.price ?? null;
-  // 服务端不调用模型的算法用不到服务端模型，也就不需要它的单价。
-  const serverPrice = serverModelStages.length ? endpointOf(config.serverModel, endpoints)?.price ?? null : 0;
-  const overridesPriced = Object.values(activeOverrides(config)).every((ref) => endpointOf(ref, endpoints)?.price != null);
-  const cost = clientPrice != null && serverPrice != null && overridesPriced
-    ? (participantTokens * clientPrice + serverTokens * serverPrice) / 1_000_000
-    : null;
-
-  return {
-    problems,
-    participantCalls: problems * participantStages.length * config.rounds,
-    serverCalls: serverModelStages.length * config.rounds,
-    participantTokens,
-    serverTokens,
-    seconds: Math.round(perRoundSeconds * config.rounds),
-    cost,
-  };
-}
+/** 后端的调用量预估：服务端调用模型的步骤每轮各一次（结果不合法时会重试，所以是下限）；用到的接口都设置了单价才估算费用，单位：元。 */
+export type Estimate = components["schemas"]["EstimateOut"];
 
 export type Issue = { field: "scenario" | "taskType" | "algorithm" | "participants" | "models" | "rounds"; message: string };
 
@@ -279,11 +232,11 @@ export function pickDataset(draft: Draft, participantId: string, datasetId: stri
 
 /**
  * 从新建任务出发新登记的数据集，能不能直接选入任务：任务已经选好算法，数据集的场景和任务类型一致，
- * 持有方在线，而且这个参与方在任务里还没有选数据集（已经选了的不替用户换掉）。
+ * 持有方在线、样本已就绪，而且这个参与方在任务里还没有选数据集（已经选了的不替用户换掉）。
  */
 export function canPickInto(draft: Draft, owner: Participant, dataset: Dataset): boolean {
   if (!draft.algorithm || !draft.scenario || !draft.taskType) return false;
-  if (owner.status !== "online" || !fits(dataset, draft.scenario, draft.taskType)) return false;
+  if (!usable(dataset, [owner]) || !fits(dataset, draft.scenario, draft.taskType)) return false;
   return !draft.participants.some((item) => item.participantId === owner.id);
 }
 

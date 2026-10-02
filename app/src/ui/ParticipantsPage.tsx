@@ -1,17 +1,21 @@
-import { Fragment, useState, type Dispatch } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Fragment, useState } from "react";
+import { api, ApiError } from "../api/client";
 import { SCENARIOS, TASK_TYPES, type ScenarioId } from "../domain/catalog";
-import { HOSTING_LABELS, PARTICIPANT_STATUS, type Dataset, type Participant } from "../domain/resources";
+import { HOSTING_LABELS, PARTICIPANT_STATUS, pendingNote, type Dataset, type Participant } from "../domain/resources";
+import { deleteDataset, deleteParticipant } from "../state/actions";
 import { showFlash } from "../state/flash";
 import { hrefOf, navigate } from "../state/route";
-import { datasetsOf, type Action, type State } from "../state/store";
-import { CodeBlock, Confirm, Facts, PageHead, PanelEmpty, Tag } from "./common";
+import { keys } from "../state/server";
+import { datasetsOf, type State } from "../state/store";
+import { CodeBlock, Confirm, Facts, Notice, PageHead, PanelEmpty, Tag } from "./common";
 import { Panel } from "./console";
 import { TaskTypeSelect, type TaskTypeFilter } from "./filters";
 import { formatNumber } from "./format";
 import { Icon } from "./icons";
 
 /** selectedId：要展开的那一行（数据集 id，或参与方 id 时展开它的每一行）。 */
-type Props = { state: State; dispatch: Dispatch<Action>; selectedId?: string };
+type Props = { state: State; selectedId?: string };
 
 /** 表格的一行：一个参与方在这个场景下登记的一份数据集。 */
 type Row = { participant: Participant; dataset: Dataset };
@@ -22,7 +26,7 @@ type Row = { participant: Participant; dataset: Dataset };
  * 任务类型是第二层分类：表格里单独一列，上方可以按任务类型筛选。参加了哪些任务属于联邦任务，不在这里显示。
  * 参与方本身不绑定场景：它在几个场景下有数据集，就出现在几块里。
  */
-export default function ParticipantsPage({ state, dispatch, selectedId }: Props) {
+export default function ParticipantsPage({ state, selectedId }: Props) {
   const [taskType, setTaskType] = useState<TaskTypeFilter>("all");
   const [query, setQuery] = useState("");
   const keyword = query.trim().toLowerCase();
@@ -73,7 +77,7 @@ export default function ParticipantsPage({ state, dispatch, selectedId }: Props)
               extra={all.length ? `${new Set(all.map((row) => row.participant.id)).size} 个参与方，${all.length} 份数据集` : undefined}
               flush
             >
-              {rows.length ? <DataTable state={state} dispatch={dispatch} scenario={scenario.id} rows={rows} selectedId={selectedId} /> : (
+              {rows.length ? <DataTable state={state} scenario={scenario.id} rows={rows} selectedId={selectedId} /> : (
                 <PanelEmpty>
                   {all.length
                     ? "没有符合条件的参与方。"
@@ -95,10 +99,9 @@ export default function ParticipantsPage({ state, dispatch, selectedId }: Props)
  * 点开一行看运行位置、这份数据集的详情和操作；手机上每行变成一张卡片，字段名写在值上面。
  */
 function DataTable({
-  state, dispatch, scenario, rows, selectedId,
+  state, scenario, rows, selectedId,
 }: {
   state: State;
-  dispatch: Dispatch<Action>;
   scenario: ScenarioId;
   rows: readonly Row[];
   selectedId?: string;
@@ -145,12 +148,12 @@ function DataTable({
                     {dataset.description && dataset.description !== dataset.name ? <small>{dataset.description}</small> : null}
                   </td>
                   <td data-label="任务类型">{TASK_TYPES[dataset.taskType].label}</td>
-                  <td className="numeric" data-label="样本数">{dataset.source === "local" ? "连上后上报" : formatNumber(dataset.count)}</td>
+                  <td className="numeric" data-label="样本数">{dataset.ready ? formatNumber(dataset.count) : pendingNote(dataset)}</td>
                 </tr>
                 {open ? (
                   <tr className="detail-row">
                     <td colSpan={4}>
-                      <RowDetail state={state} participant={participant} dataset={dataset} scenario={scenario} dispatch={dispatch} />
+                      <RowDetail state={state} participant={participant} dataset={dataset} scenario={scenario} />
                     </td>
                   </tr>
                 ) : null}
@@ -174,27 +177,28 @@ function sourceText(dataset: Dataset): string {
  * 自己登记的数据集可以删，但参与方至少留一份：只有一份时不能单独删，要删就删除参与方。
  */
 function RowDetail({
-  state, participant, dataset, scenario, dispatch,
+  state, participant, dataset, scenario,
 }: {
   state: State;
   participant: Participant;
   dataset: Dataset;
   scenario: ScenarioId;
-  dispatch: Dispatch<Action>;
 }) {
   const [pending, setPending] = useState<"dataset" | "participant" | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
   const removable = dataset.source !== "builtin" && datasetsOf(state, participant.id).length > 1;
 
-  function removeDataset() {
-    dispatch({ type: "removeDataset", id: dataset.id });
-    showFlash({ page: "participants" }, `已删除数据集“${dataset.name}”。`);
-    navigate({ page: "participants", scenario }, { keepScroll: true });
-  }
-
-  function removeParticipant() {
-    dispatch({ type: "removeParticipant", id: participant.id });
-    showFlash({ page: "participants" }, `已删除“${participant.name}”。`);
-    navigate({ page: "participants", scenario }, { keepScroll: true });
+  async function remove(kind: "dataset" | "participant") {
+    setPending(null);
+    setProblem(null);
+    try {
+      if (kind === "dataset") await deleteDataset(dataset.id);
+      else await deleteParticipant(participant.id);
+      showFlash({ page: "participants" }, kind === "dataset" ? `已删除数据集“${dataset.name}”。` : `已删除“${participant.name}”。`);
+      navigate({ page: "participants", scenario }, { keepScroll: true });
+    } catch (error) {
+      setProblem(error instanceof ApiError ? error.message : "删除失败，稍后再试");
+    }
   }
 
   return (
@@ -203,8 +207,8 @@ function RowDetail({
         ["运行位置", HOSTING_LABELS[participant.hosting]],
         ["状态", PARTICIPANT_STATUS[participant.status]],
         ["来源", sourceText(dataset)],
-        ["标注", dataset.source === "local"
-          ? "连上客户端后上报"
+        ["标注", !dataset.ready
+          ? (dataset.source === "local" ? "连上客户端后上报" : "导入样本后统计")
           : dataset.answered === dataset.count
             ? `${formatNumber(dataset.count)} 条都有标注`
             : `${formatNumber(dataset.count)} 条中 ${formatNumber(dataset.answered)} 条有标注`],
@@ -217,13 +221,14 @@ function RowDetail({
         </div>
       ) : null}
       {participant.intro ? <p className="detail-lede">{participant.intro}</p> : null}
-      {participant.hosting === "local" ? <LocalConnect /> : null}
+      {participant.hosting === "local" ? <LocalConnect participantId={participant.id} datasetIds={datasetsOf(state, participant.id).map((item) => item.id)} /> : null}
+      {problem ? <Notice tone="warning" onDismiss={() => setProblem(null)}>{problem}</Notice> : null}
       {pending === "dataset" ? (
-        <Confirm title={`删除数据集“${dataset.name}”？`} confirmLabel="删除" onConfirm={removeDataset} onCancel={() => setPending(null)}>
+        <Confirm title={`删除数据集“${dataset.name}”？`} confirmLabel="删除" onConfirm={() => void remove("dataset")} onCancel={() => setPending(null)}>
           删除后不能再选入新任务；已有任务里的记录不受影响。
         </Confirm>
       ) : pending === "participant" ? (
-        <Confirm title={`删除“${participant.name}”？`} confirmLabel="删除" onConfirm={removeParticipant} onCancel={() => setPending(null)}>
+        <Confirm title={`删除“${participant.name}”？`} confirmLabel="删除" onConfirm={() => void remove("participant")} onCancel={() => setPending(null)}>
           它的数据集会一起删除；已有任务里的记录不受影响。
         </Confirm>
       ) : (
@@ -237,18 +242,56 @@ function RowDetail({
   );
 }
 
-/** 本地参与方的连接步骤。客户端还没发布，令牌接入后端后才签发，所以命令只展示、不提供复制。 */
-function LocalConnect() {
+/**
+ * 本地参与方的连接步骤：签发客户端令牌（只显示这一次，平台只存哈希），在参与方的环境里装好客户端和算法插件后运行。
+ * 令牌和模型密钥都放进环境变量，不写在命令行里。
+ */
+function LocalConnect({ participantId, datasetIds }: { participantId: string; datasetIds: string[] }) {
+  const [token, setToken] = useState<string | null>(null);
+  const [issuing, setIssuing] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const meta = useQuery({ queryKey: keys.meta, queryFn: api.meta, staleTime: 60_000 });
+  const origin = window.location.origin;
+  const datasets = datasetIds.map((id) => `  --dataset ${id}=./${id}.jsonl \\`).join("\n");
+  // 客户端、SDK 和插件的安装包由平台提供（部署时构建），写全地址安装，不会从公共仓库装到同名的包
+  const packages = meta.data?.clientPackages ?? [];
+  const install = packages.length
+    ? `pip install \\\n${packages.map((name) => `  ${origin}/client/${name}`).join(" \\\n")}`
+    : "# 安装包在部署时生成，这里还没有";
+
+  async function issue() {
+    setIssuing(true);
+    setProblem(null);
+    try {
+      setToken((await api.issueClientToken(participantId)).token ?? null);
+    } catch (error) {
+      setProblem(error instanceof ApiError ? error.message : "签发失败，稍后再试");
+    } finally {
+      setIssuing(false);
+    }
+  }
+
   return (
     <div className="connect-steps">
       <h2 className="detail-title">在参与方的环境里连接</h2>
-      <CodeBlock copyable={false} code={`pip install fedagent-client
-fedagent-client connect \\
-  --server https://<平台地址> \\
-  --token <接入后端后签发> \\
-  --data ./dataset.jsonl \\
-  --review`} />
-      <p className="connect-foot"><Tag>客户端尚未发布</Tag>连上之前不能加入任务；加 <code>--review</code> 可以在上传前逐条确认。</p>
+      <CodeBlock code={`# 需要 Python 3.12 或更高版本
+${install}
+export FEDAGENT_TOKEN=${token ?? "<客户端令牌>"}
+export MODEL_KEY=<本方模型的密钥>
+fedagent-client run --server ${origin} \\
+${datasets}
+  --model-base-url https://<本方模型的地址>/v1 --model <模型名> \\
+  --api-key-env MODEL_KEY --review`} />
+      {token ? (
+        <p className="connect-foot"><Tag tone="warning">只显示这一次</Tag><span>令牌已经填进上面的命令，复制保存好；丢了可以重新签发。</span></p>
+      ) : (
+        <p className="connect-foot">
+          <button type="button" className="button button--secondary button--compact" disabled={issuing} onClick={() => void issue()}>签发客户端令牌</button>
+          {/* 说明包成一个整体：窄屏时整句换到按钮下面，不在中间断开 */}
+          <span>加 <code>--review</code> 可以在上传前逐条确认；连上之前不能加入任务。</span>
+        </p>
+      )}
+      {problem ? <Notice tone="warning" onDismiss={() => setProblem(null)}>{problem}</Notice> : null}
     </div>
   );
 }

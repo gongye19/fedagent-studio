@@ -45,9 +45,9 @@ export function taskSummaryParts(task: Task, { withCategory = true }: { withCate
   ];
 }
 
-/** 运行中、暂停的任务排在前面，其余按创建时间从新到旧。 */
+/** 运行中、排队中、暂停的任务排在前面，其余按创建时间从新到旧。 */
 export function sortTasks(tasks: readonly Task[]): Task[] {
-  const rank = (task: Task) => (task.status === "running" ? 0 : task.status === "paused" ? 1 : 2);
+  const rank = (task: Task) => (task.status === "running" ? 0 : task.status === "queued" ? 1 : task.status === "paused" ? 2 : 3);
   return [...tasks].sort((a, b) => rank(a) - rank(b) || b.createdAt.localeCompare(a.createdAt));
 }
 

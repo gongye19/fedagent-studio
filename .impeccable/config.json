@@ -10,6 +10,12 @@
         "reason": "Agent: refinement keeps the incumbent Geist family (impeccable EXISTING_VISUAL_SYSTEM; DECISIONS D33)"
       },
       {
+        "rule": "overused-font",
+        "value": "geist mono",
+        "createdAt": "2026-10-02T11:40:00.000Z",
+        "reason": "Agent: monospace companion of the incumbent Geist family, used only for code blocks and commands (DECISIONS D33)"
+      },
+      {
         "rule": "first-viewport-column-overflow",
         "value": "*",
         "files": [

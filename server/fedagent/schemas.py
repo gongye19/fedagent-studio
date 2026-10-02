@@ -2,11 +2,19 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any, Literal
+from datetime import UTC, datetime
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
+
+
+def _utc(value: datetime) -> datetime:
+    """数据库（SQLite）读回来的时间不带时区，存的是 UTC：补上时区，前端按本地时间显示才对。"""
+    return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+
+
+Time = Annotated[datetime, AfterValidator(_utc)]
 
 
 class Model(BaseModel):
@@ -118,6 +126,8 @@ class RegistryOut(Model):
 class MetaOut(Model):
     version: str
     auth_required: bool
+    client_packages: list[str] = []
+    """/client/ 下能下载的安装包文件名（客户端、SDK 和插件）；没有构建时为空。"""
 
 
 # —— 参与方、数据集、模型接口 ——
@@ -144,7 +154,7 @@ class ParticipantOut(Model):
     hosting: Literal["platform", "local"]
     status: Literal["online", "offline", "waiting"]
     builtin: bool
-    last_seen_at: datetime | None
+    last_seen_at: Time | None
 
 
 class SampleOut(Model):
@@ -310,9 +320,9 @@ class RoundOut(Model):
 class TaskOut(Model):
     id: str
     name: str
-    created_at: datetime
-    started_at: datetime | None
-    finished_at: datetime | None
+    created_at: Time
+    started_at: Time | None
+    finished_at: Time | None
     config: dict[str, Any]
     members: list[MemberOut]
     status: Literal["queued", "running", "paused", "completed", "canceled"]
@@ -339,7 +349,7 @@ class EventOut(Model):
     id: int
     kind: str
     message: str
-    created_at: datetime
+    created_at: Time
 
 
 # —— 应用 ——
@@ -360,7 +370,7 @@ class AppOut(Model):
     task_id: str
     built_after_round: int
     name: str
-    published_at: datetime
+    published_at: Time
     scenario: str
     task_type: str
     algorithm: str
@@ -392,7 +402,7 @@ class ClientTokenOut(Model):
     id: str
     token: str | None
     """只在签发时返回一次。"""
-    created_at: datetime
+    created_at: Time
 
 
 class ClientDataset(Model):
@@ -429,7 +439,7 @@ class ClientUnitOut(Model):
     task_type: str
     grader: str
     params: dict[str, Any]
-    lease_until: datetime
+    lease_until: Time
 
 
 class ClaimIn(Model):

@@ -1,9 +1,11 @@
 import { useState, type Dispatch } from "react";
+import { ApiError } from "../api/client";
 import { toDraft } from "../domain/config";
 import { progressOf, scoredRounds, type Task } from "../domain/task";
+import { controlTask } from "../state/actions";
 import { navigate, type TaskTab } from "../state/route";
 import type { Action, State } from "../state/store";
-import { Confirm, Meta, PageHead, ProgressBar, TabLinks } from "./common";
+import { Confirm, Meta, Notice, PageHead, ProgressBar, TabLinks, Tag } from "./common";
 import { formatDate } from "./format";
 import { Icon } from "./icons";
 import { stageText, taskSummaryParts } from "./labels";
@@ -17,6 +19,8 @@ type Props = { task: Task; state: State; dispatch: Dispatch<Action>; tab?: TaskT
 
 export default function TaskPage({ task, state, dispatch, tab }: Props) {
   const [canceling, setCanceling] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
   // 有结果就先看概览；还没有结果时看进度。
   const active: TaskTab = tab ?? (scoredRounds(task).length ? "overview" : "progress");
   const tabs: { id: TaskTab; label: string }[] = [
@@ -31,17 +35,30 @@ export default function TaskPage({ task, state, dispatch, tab }: Props) {
     navigate({ page: "newTask", scenario: task.config.scenario });
   }
 
-  function cancel() {
-    setCanceling(false);
-    dispatch({ type: "cancelTask", id: task.id, now: new Date().toISOString() });
+  async function control(action: "pause" | "resume" | "cancel") {
+    setBusy(true);
+    setProblem(null);
+    try {
+      await controlTask(task.id, action);
+    } catch (error) {
+      setProblem(error instanceof ApiError ? error.message : "操作失败，稍后再试");
+    } finally {
+      setBusy(false);
+    }
   }
 
-  const running = task.status === "running";
+  function cancel() {
+    setCanceling(false);
+    void control("cancel");
+  }
+
+  // 排队中的任务也可以暂停、取消；暂停命令发出后，任务做完手上的样本才停下。
+  const running = task.status === "running" || task.status === "queued";
   const paused = task.status === "paused";
   const actions = (
     <>
-      {running ? <button type="button" className="button button--secondary" onClick={() => dispatch({ type: "pauseTask", id: task.id })}><Icon name="pause" />暂停</button> : null}
-      {paused ? <button type="button" className="button button--secondary" onClick={() => dispatch({ type: "resumeTask", id: task.id })}><Icon name="play" />继续</button> : null}
+      {running ? <button type="button" className="button button--secondary" disabled={busy} onClick={() => void control("pause")}><Icon name="pause" />暂停</button> : null}
+      {paused ? <button type="button" className="button button--secondary" disabled={busy} onClick={() => void control("resume")}><Icon name="play" />继续</button> : null}
       <button type="button" className="button button--secondary" onClick={copy}><Icon name="copy" />复制为新任务</button>
       {(running || paused) && !canceling ? <button type="button" className="button button--secondary button--danger" onClick={() => setCanceling(true)}>取消任务</button> : null}
     </>
@@ -52,7 +69,7 @@ export default function TaskPage({ task, state, dispatch, tab }: Props) {
       <PageHead
         crumbs={[{ label: "联邦任务", route: { page: "tasks" } }]}
         title={task.name}
-        status={<TaskStatus task={task} />}
+        status={<>{task.fake ? <Tag>假模型</Tag> : null}<TaskStatus task={task} /></>}
         meta={<Meta parts={[
           ...taskSummaryParts(task),
           `${task.config.rounds} 轮`,
@@ -61,6 +78,8 @@ export default function TaskPage({ task, state, dispatch, tab }: Props) {
         ]} />}
         actions={actions}
       />
+      {paused && task.error ? <Notice tone="warning">任务已暂停：{task.error}</Notice> : null}
+      {problem ? <Notice tone="warning" onDismiss={() => setProblem(null)}>{problem}</Notice> : null}
       {canceling && (running || paused) ? (
         <Confirm title="取消这个任务？" confirmLabel="取消任务" cancelLabel="返回" onConfirm={cancel} onCancel={() => setCanceling(false)}>
           取消后任务停在当前步骤，不能再继续；已经生成的结果和产出会保留。
@@ -71,7 +90,7 @@ export default function TaskPage({ task, state, dispatch, tab }: Props) {
       <div className="tab-panel">
         {active === "overview" ? <OverviewTab task={task} state={state} /> : null}
         {active === "progress" ? <ProgressTab key={task.id} task={task} /> : null}
-        {active === "output" ? <OutputTab key={task.id} task={task} state={state} dispatch={dispatch} /> : null}
+        {active === "output" ? <OutputTab key={task.id} task={task} state={state} /> : null}
         {active === "config" ? <ConfigTab task={task} state={state} /> : null}
       </div>
     </>
@@ -83,9 +102,10 @@ function LiveBanner({ task }: { task: Task }) {
   const progress = progressOf(task);
   const stage = stageText(task);
   const paused = task.status === "paused";
+  const queued = task.status === "queued";
   return (
     <div className={`live-banner live-banner--${task.status}`}>
-      <strong className="live-copy">{stage}{paused ? " · 已暂停" : ""}</strong>
+      <strong className="live-copy">{queued ? "排队中，等前面的任务完成后开始" : `${stage}${paused ? " · 已暂停" : ""}`}</strong>
       <ProgressBar value={progress} label="整体进度" tone={paused ? "warning" : "info"} />
       <span className="live-percent" aria-hidden="true">{Math.round(progress * 100)}%</span>
       <span className="visually-hidden" aria-live="polite">{stage}</span>
