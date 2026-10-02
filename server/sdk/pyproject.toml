@@ -1,0 +1,13 @@
+[project]
+name = "fedagent-sdk"
+version = "0.1.0"
+description = "FedAgent Studio 插件开发包：算法、任务类型、判分插件的基类和每一步的上下文"
+requires-python = ">=3.12"
+dependencies = ["pydantic>=2.7", "pyyaml>=6.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["fedagent_sdk"]
