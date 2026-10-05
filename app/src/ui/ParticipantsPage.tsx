@@ -224,11 +224,11 @@ function RowDetail({
       {participant.hosting === "local" ? <LocalConnect participantId={participant.id} datasetIds={datasetsOf(state, participant.id).map((item) => item.id)} /> : null}
       {problem ? <Notice tone="warning" onDismiss={() => setProblem(null)}>{problem}</Notice> : null}
       {pending === "dataset" ? (
-        <Confirm title={`删除数据集“${dataset.name}”？`} confirmLabel="删除" onConfirm={() => void remove("dataset")} onCancel={() => setPending(null)}>
+        <Confirm title={`删除数据集“${dataset.name}”？`} confirmLabel="删除" onConfirm={() => remove("dataset")} onCancel={() => setPending(null)}>
           删除后不能再选入新任务；已有任务里的记录不受影响。
         </Confirm>
       ) : pending === "participant" ? (
-        <Confirm title={`删除“${participant.name}”？`} confirmLabel="删除" onConfirm={() => void remove("participant")} onCancel={() => setPending(null)}>
+        <Confirm title={`删除“${participant.name}”？`} confirmLabel="删除" onConfirm={() => remove("participant")} onCancel={() => setPending(null)}>
           它的数据集会一起删除；已有任务里的记录不受影响。
         </Confirm>
       ) : (

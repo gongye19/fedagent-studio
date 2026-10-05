@@ -71,11 +71,19 @@ export function parseModelRef(ref: string): { endpointId: string; model: string 
 /** 可选的模型。默认接口的第一个模型就是"默认"那一项，不再重复列出。 */
 export function modelOptions(endpoints: readonly Endpoint[]): { ref: string; label: string }[] {
   return [
-    { ref: DEFAULT_MODEL, label: defaultModelLabel(endpoints) },
+    ...(endpoints.some((endpoint) => endpoint.id === DEFAULT_ENDPOINT_ID) ? [{ ref: DEFAULT_MODEL, label: defaultModelLabel(endpoints) }] : []),
     ...endpoints.flatMap((endpoint) => endpoint.models
       .filter((_, index) => !(endpoint.id === DEFAULT_ENDPOINT_ID && index === 0))
       .map((model) => ({ ref: modelRef(endpoint.id, model), label: `${model} · ${endpoint.name}` }))),
   ];
+}
+
+/** 试用只使用已配置接口，默认接口缺失或未配置时不会误选它。 */
+export function usableModelOptions(endpoints: readonly Endpoint[]) {
+  return modelOptions(endpoints).filter((option) => {
+    const endpoint = endpointOf(option.ref, endpoints);
+    return endpoint && isConfigured(endpoint);
+  });
 }
 
 /**

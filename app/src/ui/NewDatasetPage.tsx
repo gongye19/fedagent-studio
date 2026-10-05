@@ -27,7 +27,7 @@ export default function NewDatasetPage({ state, dispatch, participant, from }: P
   const [error, setError] = useState<string | null>(null);
 
   async function save() {
-    if (!owner || missing.length) return;
+    if (!owner || missing.length || saving) return;
     const data = new FormData();
     data.set("participantId", owner.id);
     if (!appendDataset(data, form, owner.hosting, { name: "name", description: "description" })) return;

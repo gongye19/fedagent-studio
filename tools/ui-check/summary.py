@@ -23,11 +23,15 @@ print(f"a11y: {len(r)} combos, {bad} with new issues")
 try:
     w = json.load(open(wrap_path))
 except FileNotFoundError:
-    print("wrap: not finished"); sys.exit()
+    print("wrap: not finished"); sys.exit(1)
 lines = {}
 for k, items in w.items():
     for item in items:
+        # 上传提示在分号后断行正常；仅过滤已核实的这一条，不隐藏其他短文字问题。
+        if item.replace('\u00a0', ' ') == 'SHORT SPAN | ；不超过 20 MB | 末行: 不超过 20 MB':
+            continue
         lines.setdefault(item, []).append(k)
 for item, where in sorted(lines.items(), key=lambda x: -len(x[1])):
     print("WRAP", item, "|", len(where), "处:", ", ".join(where[:4]) + (" …" if len(where) > 4 else ""))
 print(f"wrap: {len(w)} page-width combos with findings, {len(lines)} distinct texts")
+sys.exit(1 if bad or lines else 0)

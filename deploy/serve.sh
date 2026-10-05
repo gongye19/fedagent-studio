@@ -5,6 +5,7 @@
 #   启动或重启：bash ~/fedagent-studio/serve.sh
 #   停止：      bash ~/fedagent-studio/serve.sh stop
 #   状态：      bash ~/fedagent-studio/serve.sh status
+#   备份：      bash ~/fedagent-studio/serve.sh stop && bash ~/fedagent-studio/serve.sh backup
 #   访问令牌：  bash ~/fedagent-studio/serve.sh token on | off（改完自动重启）
 #
 # 访问令牌是可选的：data/admin-token 存在时，界面和 API 都要带这个令牌；不存在时不需要令牌，
@@ -34,9 +35,20 @@ export UV_NO_PROGRESS=1
 export FEDAGENT_DATA_DIR="$ROOT/data"
 export FEDAGENT_FRONTEND_DIST="$ROOT/dist"
 export FEDAGENT_CLIENT_DIST="$ROOT/client"
+export FEDAGENT_FAKE_ENDPOINT=0
 FEDAGENT="$ROOT/server/.venv/bin/fedagent"
 
-alive() { [ -f "run/$1.pid" ] && kill -0 "$(cat "run/$1.pid")" 2>/dev/null; }
+alive() {
+  local pid command=$1 line
+  [ -f "run/$1.pid" ] || return 1
+  pid=$(cat "run/$1.pid")
+  [[ "$pid" =~ ^[1-9][0-9]*$ ]] || return 1
+  kill -0 "$pid" 2>/dev/null || return 1
+  [ -r "/proc/$pid/cmdline" ] || return 1
+  [ "$command" = api ] && command=serve
+  line=$(tr '\0' ' ' < "/proc/$pid/cmdline")
+  [[ "$line" == *"$FEDAGENT $command "* ]]
+}
 
 # 结束一个进程并等它退出。runner 收到 SIGTERM 后先结束它起的任务进程（最多 10 秒），
 # 任务保持"运行中"，下次启动后从检查点继续。
@@ -56,13 +68,6 @@ stop_one() {
 stop_all() {
   stop_one runner
   stop_one api
-  # 之前只部署了前端时，用的是 Python 自带的静态文件服务
-  if [ -f serve.pid ]; then
-    kill "$(cat serve.pid)" 2>/dev/null || true
-    sleep 1
-    rm -f serve.pid serve.log
-    echo "stopped the old static file server"
-  fi
 }
 
 ensure_uv() {
@@ -105,6 +110,7 @@ start_all() {
   "$FEDAGENT" db upgrade
   # 令牌只交给 api 进程
   (
+    unset FEDAGENT_ADMIN_TOKEN
     if [ -s data/admin-token ]; then export FEDAGENT_ADMIN_TOKEN; FEDAGENT_ADMIN_TOKEN=$(cat data/admin-token); fi
     exec setsid nohup "$FEDAGENT" serve --host "$HOST" --port "$PORT" >> logs/api.log 2>&1 < /dev/null
   ) &
@@ -112,7 +118,7 @@ start_all() {
   setsid nohup "$FEDAGENT" runner >> logs/runner.log 2>&1 < /dev/null &
   echo $! > run/runner.pid
   for _ in $(seq 1 60); do
-    if curl -fsS "http://$HOST:$PORT/healthz" > /dev/null 2>&1; then
+    if curl -fsS "http://$HOST:$PORT/healthz" > /dev/null 2>&1 && alive runner; then
       echo "serving on http://$HOST:$PORT/ (api pid $(cat run/api.pid), runner pid $(cat run/runner.pid), access token $(token_state))"
       return 0
     fi
@@ -136,6 +142,7 @@ case "${1:-start}" in
   start | restart) start_all ;;
   stop) mkdir -p run && stop_all ;;
   status) status ;;
+  backup) python3 "$ROOT/backup.py" "$ROOT" ;;
   token) set_token "${2:-}" && start_all ;;
-  *) echo "usage: $0 [start|stop|status|token on|off]" >&2; exit 2 ;;
+  *) echo "usage: $0 [start|stop|status|backup|token on|off]" >&2; exit 2 ;;
 esac

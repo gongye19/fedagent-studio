@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from collections.abc import Callable
+from contextlib import contextmanager
 from dataclasses import dataclass, field
+from datetime import datetime
 from importlib.metadata import entry_points
 from pathlib import Path
 from typing import Any
 
 import httpx
-from fedagent_sdk import Algorithm, Artifact, Grader, Message, Model, SiteInfo, StepContext, TaskType
+from fedagent_sdk import Algorithm, Artifact, Grader, Message, Model, SiteInfo, StepContext, StepFailed, TaskType
 
 from . import __version__
 from .local import ClientStepIO, FakeModel, LocalModel, LocalState, load_jsonl
@@ -37,7 +40,6 @@ class ClientConfig:
     fake_model: bool = False
     review: Review | None = None
     poll: float = 3.0
-    batch: int = 4
 
 
 @dataclass
@@ -74,7 +76,7 @@ class Worker:
             rows = load_jsonl(path)
             records = {str(row["id"]): row for row in rows}
             self.records[dataset_id] = records
-            answered = sum(1 for row in rows if str(row.get("answer") or "").strip())
+            answered = sum(1 for row in rows if row.get("answer") is not None and str(row["answer"]).strip())
             reported.append({"datasetId": dataset_id, "count": len(rows), "answered": answered, "itemIds": list(records)})
         plugins = {name: plugin.version for name, plugin in self.algorithms.items()}
         return self._request("POST", "/v1/client/hello", json={"clientVersion": __version__, "plugins": plugins, "datasets": reported}).json()
@@ -86,21 +88,49 @@ class Worker:
             raise RuntimeError("没有配置本地模型（--model-base-url、--model）")
         return LocalModel(self.config.model_base_url, self.config.model, self.config.api_key)
 
+    @contextmanager
+    def _lease(self, unit: dict[str, Any]):
+        """慢模型调用和人工审查期间续租，工作单元一次只领取一个，避免排队时过期。"""
+        stop = threading.Event()
+        remaining = (datetime.fromisoformat(unit["leaseUntil"]) - datetime.now().astimezone()).total_seconds()
+        interval = max(0.05, min(30.0, remaining / 3))
+
+        def heartbeat() -> None:
+            while not stop.wait(interval):
+                try:
+                    self._request("POST", f"/v1/client/units/{unit['id']}/heartbeat", headers={"X-Fedagent-Attempt": str(unit["attempt"])})
+                except (httpx.HTTPError, RuntimeError):
+                    log.warning("工作单元 %s 续租失败，将在提交时确认租约", unit["id"])
+
+        thread = threading.Thread(target=heartbeat, daemon=True)
+        thread.start()
+        try:
+            yield
+        finally:
+            stop.set()
+            thread.join(timeout=1)
+
     def run_unit(self, unit: dict[str, Any]) -> None:
+        with self._lease(unit):
+            self._run_unit(unit)
+
+    def _run_unit(self, unit: dict[str, Any]) -> None:
         unit_id = unit["id"]
+        headers = {"X-Fedagent-Attempt": str(unit["attempt"])}
         plugin = self.algorithms.get(unit["algorithm"])
         if plugin is None or plugin.version != unit["pluginVersion"]:
             have = plugin.version if plugin else "没有安装"
             error = f"本地的算法插件 {unit['algorithm']} 版本是 {have}，任务要求 {unit['pluginVersion']}"
-            self._request("POST", f"/v1/client/units/{unit_id}/fail", json={"error": error, "pause": True})
+            self._request("POST", f"/v1/client/units/{unit_id}/fail", headers=headers, json={"error": error, "pause": True})
             return
         manifest = plugin.manifest
         step = manifest.step(unit["step"])
         task_type = self.task_types[unit["taskType"]]
         grader = self.graders[unit["grader"]]
         records = self.records.get(unit["datasetId"] or "", {})
+        records = {item_id: records[item_id] for item_id in unit["itemIds"] if item_id in records}
         try:
-            inputs = self._request("GET", f"/v1/client/units/{unit_id}/inputs").json()
+            inputs = self._request("GET", f"/v1/client/units/{unit_id}/inputs", headers=headers).json()
             inbox = {
                 channel: [
                     Message(
@@ -145,7 +175,8 @@ class Worker:
             plugin.run_step(ctx)
         except Exception as error:
             log.exception("unit %s failed", unit_id)
-            self._request("POST", f"/v1/client/units/{unit_id}/fail", json={"error": f"{type(error).__name__}: {error}"})
+            self._request("POST", f"/v1/client/units/{unit_id}/fail", headers=headers,
+                          json={"error": f"{type(error).__name__}: {error}"[:4000], "pause": isinstance(error, StepFailed) and error.pause})
             return
         result = ctx.result
         for key, item_id, value in result.kept:
@@ -161,10 +192,15 @@ class Worker:
                 log.info("unit %s: 审查时没有通过的消息，不上传", unit_id)
                 continue
             sent.append({"channel": outgoing.channel, "payload": outgoing.payload, "itemId": outgoing.item_id, "to": outgoing.to})
-        self._request("POST", f"/v1/client/units/{unit_id}/complete", json={"sent": sent, "reports": result.reports, "graded": graded})
+        body = {"sent": sent, "reports": result.reports, "graded": graded}
+        # 完成请求的响应丢失时可重发，同一次领取只会保存一次。
+        try:
+            self._request("POST", f"/v1/client/units/{unit_id}/complete", headers=headers, json=body)
+        except httpx.TransportError:
+            self._request("POST", f"/v1/client/units/{unit_id}/complete", headers=headers, json=body)
 
     def run_once(self) -> int:
-        units = self._request("POST", "/v1/client/units/claim", json={"limit": self.config.batch}).json()
+        units = self._request("POST", "/v1/client/units/claim", json={"limit": 1}).json()
         for unit in units:
             self.run_unit(unit)
         return len(units)

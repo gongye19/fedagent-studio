@@ -1,6 +1,6 @@
 [project]
 name = "fedagent-client"
-version = "0.1.0"
+version = "0.1.1"
 description = "FedAgent Studio 参与方本地客户端：领取本方的工作单元，在本地执行，只提交声明可以离开的内容"
 requires-python = ">=3.12"
 dependencies = ["fedagent-sdk", "httpx>=0.27"]

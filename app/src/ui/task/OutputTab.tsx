@@ -37,6 +37,7 @@ export function OutputTab({ task, state }: { task: Task; state: State }) {
   const suggested = final ? `${task.name} ${output.name}` : `${task.name} 第 ${current.builtAfterRound} 轮后${output.name}`;
 
   async function publish(name: string) {
+    if (saving) return;
     const title = name.trim() || suggested;
     setSaving(true);
     setProblem(null);
@@ -58,7 +59,7 @@ export function OutputTab({ task, state }: { task: Task; state: State }) {
       actions={(
         <>
           {versions.length > 1 ? (
-            <select name="version" aria-label="版本" value={current.builtAfterRound} onChange={(event) => { setChosen(Number(event.target.value)); setNaming(null); }}>
+            <select name="version" aria-label="版本" disabled={saving} value={current.builtAfterRound} onChange={(event) => { setChosen(Number(event.target.value)); setNaming(null); }}>
               {versions.map((version) => <option key={version.builtAfterRound} value={version.builtAfterRound}>{versionLabel(task, version)}</option>)}
             </select>
           ) : null}
@@ -82,16 +83,16 @@ export function OutputTab({ task, state }: { task: Task; state: State }) {
             void publish(naming);
           }}
           onKeyDown={(event) => {
-            if (event.key === "Escape") setNaming(null);
+            if (event.key === "Escape" && !saving) setNaming(null);
           }}
         >
           <div className="confirm-copy">
             <label className="field-label" htmlFor="publish-name">应用名称</label>
-            <input ref={nameInput} id="publish-name" name="publish-name" autoComplete="off" value={naming} maxLength={60} onChange={(event) => setNaming(event.target.value)} />
+            <input ref={nameInput} id="publish-name" name="publish-name" autoComplete="off" disabled={saving} value={naming} maxLength={60} onChange={(event) => setNaming(event.target.value)} />
           </div>
           <div className="confirm-actions">
-            <button type="button" className="button button--secondary" onClick={() => setNaming(null)}>取消</button>
-            <button type="submit" className="button button--primary" disabled={saving}>发布</button>
+            <button type="button" className="button button--secondary" disabled={saving} onClick={() => setNaming(null)}>取消</button>
+            <button type="submit" className="button button--primary" disabled={saving}>{saving ? "正在发布…" : "发布"}</button>
           </div>
         </form>
       ) : null}

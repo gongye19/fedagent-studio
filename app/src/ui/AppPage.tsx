@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "../api/client";
 import type { components } from "../api/schema";
 import { algorithmOf, scenarioOf, TASK_TYPES } from "../domain/catalog";
-import { DEFAULT_ENDPOINT_ID, DEFAULT_MODEL, isConfigured, modelLabel, modelOptions } from "../domain/resources";
+import { DEFAULT_ENDPOINT_ID, modelLabel, usableModelOptions } from "../domain/resources";
 import type { Task } from "../domain/task";
 import { renameApp, withdrawApp } from "../state/actions";
 import { showFlash } from "../state/flash";
@@ -28,15 +28,20 @@ function bodyOf(item: Published): Record<string, string> {
 export default function AppPage({ item, task, state, tab }: Props) {
   const [editing, setEditing] = useState<"rename" | "unpublish" | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
+  const [managing, setManaging] = useState(false);
   const algorithm = algorithmOf(item.algorithm);
   const active: AppTab = tab ?? "try";
 
   async function run(action: () => Promise<void>) {
+    if (managing) return;
+    setManaging(true);
     setProblem(null);
     try {
       await action();
     } catch (error) {
       setProblem(error instanceof ApiError ? error.message : "操作失败，稍后再试");
+    } finally {
+      setManaging(false);
     }
   }
 
@@ -48,19 +53,19 @@ export default function AppPage({ item, task, state, tab }: Props) {
 
   const manage = (
     <>
-      <button type="button" className="button button--secondary" onClick={() => void run(() => api.exportApp(item.id))}><Icon name="download" />导出 JSON</button>
-      <button type="button" className="button button--secondary" onClick={() => setEditing("rename")}>重命名</button>
-      <button type="button" className="button button--secondary button--danger" onClick={() => setEditing("unpublish")}>撤下应用</button>
+      <button type="button" className="button button--secondary" disabled={managing} onClick={() => void run(() => api.exportApp(item.id))}><Icon name="download" />导出 JSON</button>
+      <button type="button" className="button button--secondary" disabled={managing} onClick={() => setEditing("rename")}>重命名</button>
+      <button type="button" className="button button--secondary button--danger" disabled={managing} onClick={() => setEditing("unpublish")}>撤下应用</button>
     </>
   );
   const editor = editing === "rename" ? (
-    <RenameForm name={item.name} onCancel={() => setEditing(null)} onSave={(name) => void run(async () => {
+    <RenameForm name={item.name} saving={managing} onCancel={() => setEditing(null)} onSave={(name) => void run(async () => {
       await renameApp(item.id, name);
       setEditing(null);
       showFlash({ page: "app", id: item.id }, `已改名为“${name}”。`);
     })} />
   ) : editing === "unpublish" ? (
-    <Confirm title={`撤下“${item.name}”？`} confirmLabel="撤下" onConfirm={() => void unpublish()} onCancel={() => setEditing(null)}>
+    <Confirm title={`撤下“${item.name}”？`} confirmLabel="撤下" onConfirm={unpublish} onCancel={() => setEditing(null)}>
       撤下后不能再试用和接入；产出还在任务里，可以重新发布。
     </Confirm>
   ) : null;
@@ -106,7 +111,7 @@ export default function AppPage({ item, task, state, tab }: Props) {
 }
 
 /** 重命名：在页面标题下方展开一行，和发布时填名称的样式一样。 */
-function RenameForm({ name, onSave, onCancel }: { name: string; onSave: (name: string) => void; onCancel: () => void }) {
+function RenameForm({ name, saving, onSave, onCancel }: { name: string; saving: boolean; onSave: (name: string) => void; onCancel: () => void }) {
   const [value, setValue] = useState(name);
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -118,19 +123,19 @@ function RenameForm({ name, onSave, onCancel }: { name: string; onSave: (name: s
       aria-label="重命名应用"
       onSubmit={(event) => {
         event.preventDefault();
-        if (value.trim()) onSave(value.trim());
+        if (value.trim() && !saving) onSave(value.trim());
       }}
       onKeyDown={(event) => {
-        if (event.key === "Escape") onCancel();
+        if (event.key === "Escape" && !saving) onCancel();
       }}
     >
       <div className="confirm-copy">
         <label className="field-label" htmlFor="app-name">应用名称</label>
-        <input ref={input} id="app-name" name="app-name" autoComplete="off" value={value} maxLength={60} onChange={(event) => setValue(event.target.value)} />
+        <input ref={input} id="app-name" name="app-name" autoComplete="off" disabled={saving} value={value} maxLength={60} onChange={(event) => setValue(event.target.value)} />
       </div>
       <div className="confirm-actions">
-        <button type="button" className="button button--secondary" onClick={onCancel}>取消</button>
-        <button type="submit" className="button button--primary" disabled={!value.trim()}>保存</button>
+        <button type="button" className="button button--secondary" disabled={saving} onClick={onCancel}>取消</button>
+        <button type="submit" className="button button--primary" disabled={!value.trim() || saving}>{saving ? "正在保存…" : "保存"}</button>
       </div>
     </form>
   );
@@ -138,23 +143,26 @@ function RenameForm({ name, onSave, onCancel }: { name: string; onSave: (name: s
 
 /** 试用：同一个问题分别"不带应用""带应用"各问一次，并排对比；填了标准答案时自动判分。 */
 function TryPanel({ item, state }: { item: Published; state: State }) {
-  const options = modelOptions(state.endpoints);
-  const [model, setModel] = useState(options[0]?.ref ?? DEFAULT_MODEL);
+  const options = usableModelOptions(state.endpoints);
+  const [chosenModel, setModel] = useState(options[0]?.ref ?? "");
+  const model = options.some((option) => option.ref === chosenModel) ? chosenModel : options[0]?.ref ?? "";
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<{ comparison: Comparison; answer: string } | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const type = TASK_TYPES[item.taskType];
-  const endpoint = state.endpoints.find((entry) => entry.id === DEFAULT_ENDPOINT_ID);
-  const missing = question.trim() ? "" : "还需填写：问题";
+  const missing = !model ? "还需配置可用的模型接口" : question.trim() ? "" : "还需填写：问题";
 
   async function compare() {
+    if (missing || running) return;
+    const submitted = { input: question.trim(), answer: answer.trim() || null, model };
     setRunning(true);
     setProblem(null);
+    setResult(null);
     try {
-      const comparison = await api.applyApp(item.id, { input: question.trim(), answer: answer.trim() || null, model });
-      setResult({ comparison, answer: answer.trim() });
+      const comparison = await api.applyApp(item.id, submitted);
+      setResult({ comparison, answer: submitted.answer ?? "" });
     } catch (error) {
       setProblem(error instanceof ApiError ? error.message : "运行失败，稍后再试");
     } finally {
@@ -168,22 +176,22 @@ function TryPanel({ item, state }: { item: Published; state: State }) {
         <div className="form-body">
           <FieldGroup>
             <Field label="问题" htmlFor="try-question" wide>
-              <textarea id="try-question" name="question" autoComplete="off" rows={4} value={question} placeholder={type?.placeholder} onChange={(event) => setQuestion(event.target.value)} />
+              <textarea id="try-question" name="question" autoComplete="off" rows={4} maxLength={20000} disabled={running} value={question} placeholder={type?.placeholder} onChange={(event) => setQuestion(event.target.value)} />
             </Field>
             <Field label="标准答案" optional htmlFor="try-answer">
-              <input id="try-answer" name="answer" autoComplete="off" value={answer} onChange={(event) => setAnswer(event.target.value)} />
+              <input id="try-answer" name="answer" autoComplete="off" disabled={running} value={answer} onChange={(event) => setAnswer(event.target.value)} />
             </Field>
             {options.length > 1 ? (
               <Field label="模型" htmlFor="try-model">
-                <select id="try-model" name="model" value={model} onChange={(event) => setModel(event.target.value)}>
+                <select id="try-model" name="model" disabled={running} value={model} onChange={(event) => setModel(event.target.value)}>
                   {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
                 </select>
               </Field>
             ) : (
               <Field label="模型">
                 <p className="field-static">
-                  <span>{modelLabel(DEFAULT_MODEL, state.endpoints)}</span>
-                  {endpoint && !isConfigured(endpoint) ? <a className="text-link" href={hrefOf({ page: "editEndpoint", id: endpoint.id })}>去配置</a> : null}
+                  <span>{model ? modelLabel(model, state.endpoints) : "没有可用的模型接口"}</span>
+                  {!model ? <a className="text-link" href={hrefOf(state.endpoints.some((endpoint) => endpoint.id === DEFAULT_ENDPOINT_ID) ? { page: "editEndpoint", id: DEFAULT_ENDPOINT_ID } : { page: "newEndpoint" })}>去配置</a> : null}
                 </p>
               </Field>
             )}
@@ -191,7 +199,7 @@ function TryPanel({ item, state }: { item: Published; state: State }) {
           <div className="form-actions">
             <span className="form-status" id="try-status" aria-live="polite">{running ? "正在运行，两次调用需要一些时间…" : missing}</span>
             <div className="form-buttons">
-              <button type="button" className="button button--primary" disabled={!question.trim() || running} aria-describedby="try-status" onClick={() => void compare()}>运行对比</button>
+              <button type="button" className="button button--primary" disabled={Boolean(missing) || running} aria-describedby="try-status" onClick={() => void compare()}>{running ? "正在运行…" : "运行对比"}</button>
             </div>
           </div>
         </div>
@@ -232,7 +240,7 @@ function IntegratePanel({ item }: { item: Published }) {
   return (
     <div className="panel-stack">
       <Panel title="导出" extra="JSON 格式，放进自己 Agent 的提示词">
-        <CodeBlock wrap code={`${preview.slice(0, -2)},\n  …\n}`} copyText={`${JSON.stringify(body, null, 2)}\n`} copyLabel="复制完整 JSON" />
+        <CodeBlock wrap code={Object.keys(body).length > 2 ? `${preview.slice(0, -2)},\n  …\n}` : preview} copyText={`${JSON.stringify(body, null, 2)}\n`} copyLabel="复制完整 JSON" />
       </Panel>
       <Panel title="API" extra="带应用、不带应用各回答一次；给了标准答案时一起判分">
         <CodeBlock code={`curl -X POST ${origin}/v1/apps/${item.id}/apply \\

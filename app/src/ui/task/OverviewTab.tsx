@@ -184,7 +184,7 @@ function DumbbellChart({ task, latest }: { task: Task; latest: number }) {
     };
   }, [rows, latest]);
 
-  const height = rows.length * 40 + (latest > 1 ? 64 : 40);
+  const height = Math.max(200, rows.length * 52 + (latest > 1 ? 80 : 48));
   return (
     <Suspense fallback={<div className="chart chart--loading" style={{ height }}>正在加载图表…</div>}>
       <EChart option={option} height={height} label={latest > 1 ? `各参与方第 1 轮与第 ${latest} 轮的准确率对比` : "各参与方第 1 轮的准确率"} />

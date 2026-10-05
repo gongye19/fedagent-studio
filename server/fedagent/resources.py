@@ -5,6 +5,7 @@ from __future__ import annotations
 import secrets
 from datetime import timedelta
 from typing import Any
+from urllib.parse import urlsplit
 
 from fastapi import HTTPException
 from sqlalchemy import func, select
@@ -33,6 +34,15 @@ def new_id(prefix: str) -> str:
 
 def not_found(what: str) -> HTTPException:
     return HTTPException(404, f"{what}不存在")
+
+
+def require_unused(session: Session, column: Any, value: str, label: str) -> None:
+    active = session.scalar(
+        select(m.Task.name).join(m.TaskSite, m.TaskSite.task_id == m.Task.id)
+        .where(m.Task.status.in_(("queued", "running", "paused")), column == value).limit(1)
+    )
+    if active is not None:
+        raise HTTPException(409, f"{label}仍被任务“{active}”使用，请先完成或取消任务")
 
 
 # —— 参与方 ——
@@ -84,6 +94,7 @@ def delete_participant(session: Session, participant_id: str) -> None:
         raise not_found("参与方")
     if participant.builtin:
         raise HTTPException(409, "内置示例参与方不能删除")
+    require_unused(session, m.TaskSite.participant_id, participant_id, "参与方")
     session.delete(participant)
 
 
@@ -151,6 +162,8 @@ def create_dataset(
     if participant is None:
         raise not_found("参与方")
     validate_category(platform, scenario, task_type)
+    if not name.strip() or len(name.strip()) > 80:
+        raise HTTPException(422, "数据集名称应为 1–80 个字符")
     dataset_id = new_id("ds")
     if participant.hosting == "local":
         dataset = m.Dataset(
@@ -198,6 +211,7 @@ def delete_dataset(session: Session, dataset_id: str) -> None:
         raise not_found("数据集")
     if dataset.source == "builtin":
         raise HTTPException(409, "内置示例数据集不能删除")
+    require_unused(session, m.TaskSite.dataset_id, dataset_id, "数据集")
     remaining = session.scalar(select(func.count()).where(m.Dataset.participant_id == dataset.participant_id)) or 0
     if remaining <= 1:
         raise HTTPException(409, "每个参与方至少留一份数据集；要删最后一份，就删除参与方")
@@ -245,11 +259,21 @@ def save_endpoint(platform: Platform, session: Session, body: EndpointIn, endpoi
         if endpoint.kind == "fake":
             raise HTTPException(409, "测试用假模型不能修改")
     base_url = body.base_url.strip()
-    if base_url and not base_url.startswith(("http://", "https://")):
+    try:
+        url = urlsplit(base_url)
+        valid_url = url.scheme in ("http", "https") and bool(url.hostname) and not url.username and not url.password and not url.query and not url.fragment
+        if url.port is not None and not 1 <= url.port <= 65535:
+            valid_url = False
+    except ValueError:
+        valid_url = False
+    if base_url and (not valid_url or any(char.isspace() for char in base_url)):
         raise HTTPException(422, "接口地址要以 http:// 或 https:// 开头")
+    models = _clean_models(body.models)
+    if len(models) > 1:
+        raise HTTPException(422, "每个接口只能选用一个模型；使用其他模型请另登记一个接口")
     endpoint.name = body.name.strip()
     endpoint.base_url = base_url
-    endpoint.models = _clean_models(body.models)
+    endpoint.models = models
     endpoint.concurrency = body.concurrency
     endpoint.price = body.price
     endpoint.timeout = body.timeout
@@ -266,4 +290,12 @@ def delete_endpoint(session: Session, endpoint_id: str) -> None:
         raise not_found("模型接口")
     if endpoint.builtin or endpoint.id == FAKE_ENDPOINT:
         raise HTTPException(409, "预留的接口不能删除")
+    active = session.scalar(
+        select(m.Task.name).join(m.TaskSite, m.TaskSite.task_id == m.Task.id)
+        .where(m.Task.status.in_(("queued", "running", "paused")),
+               (m.TaskSite.model_ref == endpoint_id) | m.TaskSite.model_ref.startswith(f"{endpoint_id}:"))
+        .limit(1)
+    )
+    if active is not None:
+        raise HTTPException(409, f"模型接口仍被任务“{active}”使用，请先完成或取消任务")
     session.delete(endpoint)

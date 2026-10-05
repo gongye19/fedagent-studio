@@ -106,3 +106,11 @@ describe("models", () => {
     expect(modelOptions(ENDPOINTS).map((option) => option.ref)).toEqual(["default", "fake:fake", "ep-1:m1", "ep-1:m2"]);
   });
 });
+
+it("does not invent a default endpoint and only offers configured models for application trials", async () => {
+  const { usableModelOptions } = await import("./resources");
+  const custom = { ...ENDPOINTS[0], id: "custom", name: "自定义接口", models: ["model"], configured: true };
+  expect(modelOptions([custom]).map((option) => option.ref)).toEqual(["custom:model"]);
+  expect(usableModelOptions([ENDPOINTS[0], custom]).map((option) => option.ref)).toEqual(["custom:model"]);
+  expect(usableModelOptions([])).toEqual([]);
+});

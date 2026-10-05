@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints
 from pydantic.alias_generators import to_camel
 
 
@@ -18,7 +18,7 @@ Time = Annotated[datetime, AfterValidator(_utc)]
 
 
 class Model(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, serialize_by_alias=True)
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, serialize_by_alias=True, allow_inf_nan=False)
 
 
 # —— 注册表 ——
@@ -134,14 +134,14 @@ class MetaOut(Model):
 
 
 class ParticipantIn(Model):
-    name: str = Field(min_length=1, max_length=40)
+    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)]
     org: str = Field(default="", max_length=40)
     intro: str = Field(default="", max_length=120)
     hosting: Literal["platform", "local"]
 
 
 class ParticipantPatch(Model):
-    name: str | None = Field(default=None, min_length=1, max_length=40)
+    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)] | None = None
     org: str | None = Field(default=None, max_length=40)
     intro: str | None = Field(default=None, max_length=120)
 
@@ -193,7 +193,7 @@ class DatasetCheckOut(Model):
 
 
 class EndpointIn(Model):
-    name: str = Field(min_length=1, max_length=40)
+    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)]
     base_url: str = Field(default="", max_length=400)
     models: list[str] = []
     concurrency: int = Field(default=8, ge=1, le=256)
@@ -381,11 +381,11 @@ class EventOut(Model):
 class AppIn(Model):
     task_id: str
     built_after_round: int
-    name: str = Field(min_length=1, max_length=60)
+    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=60)]
 
 
 class AppPatch(Model):
-    name: str = Field(min_length=1, max_length=60)
+    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=60)]
 
 
 class AppOut(Model):
@@ -402,7 +402,7 @@ class AppOut(Model):
 
 
 class ApplyIn(Model):
-    input: str = Field(min_length=1, max_length=20000)
+    input: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=20000)]
     answer: str | None = None
     model: str = "default"
 
@@ -430,8 +430,8 @@ class ClientTokenOut(Model):
 
 class ClientDataset(Model):
     dataset_id: str
-    count: int
-    answered: int
+    count: int = Field(ge=0)
+    answered: int = Field(ge=0)
     item_ids: list[str]
 
 
@@ -449,6 +449,8 @@ class ClientHelloOut(Model):
 
 class ClientUnitOut(Model):
     id: int
+    attempt: int
+    item_ids: list[str]
     task_id: str
     round: int
     rounds: int

@@ -1,7 +1,7 @@
 """模型网关：平台侧的模型调用都经过这里。
 
 - 接口：OpenAI 兼容的 /chat/completions（DeepSeek、智谱、阿里云百炼、OpenRouter、自建 vLLM 都可以接）；
-- 限流：每个接口按并发上限排队（进程内）；失败按接口的重试次数指数退避重试；
+- 限流：同一台主机上的 API 和任务进程共用接口并发上限；失败按接口的重试次数指数退避重试；
 - 调用账本：每次调用记一行（任务、站点、步骤、工作单元、token、耗时、费用、请求哈希、结果）。
   同一个工作单元里的第 n 次调用如果请求哈希没变，续跑时直接取账本里的结果，不重复计费；
 - 假模型：kind 为 fake 的接口不发请求，按请求哈希返回固定内容；插件可以为自己的步骤给出格式正确的假回答。
@@ -9,12 +9,16 @@
 
 from __future__ import annotations
 
+import fcntl
 import hashlib
 import json
 import random
 import threading
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, replace
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -139,6 +143,32 @@ class Gateway:
 
     def client(self, endpoint: EndpointConfig) -> httpx.Client:
         return httpx.Client(timeout=httpx.Timeout(endpoint.timeout, connect=30.0), transport=self._transport)
+
+    @contextmanager
+    def slot(self, endpoint: EndpointConfig) -> Iterator[None]:
+        """文件锁在进程退出时自动释放；SQLite 部署的所有进程共享同一组槽位。"""
+        database = self.db.engine.url.database
+        if self.db.engine.url.get_backend_name() != "sqlite" or not database or database == ":memory:":
+            with self.semaphore(endpoint):
+                yield
+            return
+        directory = Path(database).parent / ".model-slots"
+        directory.mkdir(mode=0o700, exist_ok=True)
+        prefix = hashlib.sha256(endpoint.id.encode()).hexdigest()
+        while True:
+            for index in range(endpoint.concurrency):
+                handle = (directory / f"{prefix}-{index}").open("a")
+                try:
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except BlockingIOError:
+                    handle.close()
+                    continue
+                try:
+                    yield
+                finally:
+                    handle.close()
+                return
+            time.sleep(0.05)
 
     def list_models(self, endpoint_id: str) -> list[str]:
         """接口提供的模型（OpenAI 兼容的 GET /models）。"""
@@ -309,10 +339,12 @@ class GatewayModel:
             headers["Authorization"] = f"Bearer {endpoint.api_key}"
         stream = True
         last_error = ""
-        with self.gateway.semaphore(endpoint), self.gateway.client(endpoint) as client:
-            for attempt in range(endpoint.max_retries + 1):
+        with self.gateway.slot(endpoint), self.gateway.client(endpoint) as client:
+            attempt = 0
+            while attempt <= endpoint.max_retries:
                 if attempt:
                     time.sleep(min(2 ** (attempt - 1), 30) + random.random())
+                attempt += 1
                 try:
                     with client.stream("POST", url, json=streaming(body) if stream else body, headers=headers) as response:
                         content_type = response.headers.get("content-type", "")
@@ -321,6 +353,7 @@ class GatewayModel:
                             last_error = f"接口返回 {response.status_code}：{reason}"
                             if stream and response.status_code in (400, 422) and "stream" in reason.lower():
                                 stream = False  # 不支持流式参数的接口：改用普通请求
+                                attempt -= 1  # 协议兼容回退不消耗失败重试次数。
                                 continue
                             if retryable(response.status_code):
                                 continue

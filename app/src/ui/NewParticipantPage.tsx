@@ -39,7 +39,7 @@ export default function NewParticipantPage({ state, dispatch, from }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   async function save() {
-    if (missing.length || !hosting) return;
+    if (missing.length || saving || !hosting) return;
     const data = new FormData();
     data.set("name", name.trim());
     data.set("org", org.trim());
@@ -91,7 +91,7 @@ export default function NewParticipantPage({ state, dispatch, from }: Props) {
                 <input id="participant-intro" name="participant-intro" autoComplete="off" value={intro} maxLength={120} onChange={(event) => setIntro(event.target.value)} placeholder="这个参与方是谁、数据来自哪里…" />
               </Field>
               <Field label="运行位置" labelId="hosting-label" wide>
-                <Choices labelledBy="hosting-label" value={hosting} options={[{ value: "platform", label: HOSTING_LABELS.platform }, { value: "local", label: HOSTING_LABELS.local, badge: "客户端未发布" }]} onChange={setHosting} />
+                <Choices labelledBy="hosting-label" value={hosting} options={[{ value: "platform", label: HOSTING_LABELS.platform }, { value: "local", label: HOSTING_LABELS.local }]} onChange={(value) => { setHosting(value); setForm((current) => ({ ...current, file: null })); }} />
               </Field>
             </FieldGroup>
             {hosting ? <p className="form-alert">{HOSTING_ALERT[hosting]}</p> : null}

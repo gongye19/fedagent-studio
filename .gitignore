@@ -1,6 +1,8 @@
 .DS_Store
 .idea/
 .vscode/
+.backups/
+__pycache__/
 
 app/node_modules/
 app/dist/

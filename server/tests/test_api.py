@@ -230,3 +230,72 @@ def test_token_frontend_and_client_packages(tmp_path: Path) -> None:
         assert script.headers["cache-control"] == "public, max-age=31536000, immutable"
         assert script.headers["content-encoding"] == "gzip"
         assert script.text == "console.log('fedagent');" * 100
+
+
+def test_names_models_and_preview_do_not_leak_saved_key(client: TestClient, platform: Platform, monkeypatch) -> None:
+    base = {"name": "测试接口", "baseUrl": "https://original.example/v1", "models": ["model"]}
+    assert client.post('/v1/endpoints', json={**base, 'name': '   '}).status_code == 422
+    assert client.post('/v1/endpoints', json={**base, 'models': ['a', 'b']}).status_code == 422
+    endpoint = client.post('/v1/endpoints', json={**base, 'apiKey': 'test-secret'}).json()['id']
+    seen = []
+    monkeypatch.setattr(platform.gateway, 'list_models_at', lambda url, key: seen.append((url, key)) or ['model'])
+    for url, key in [('https://original.example/v1/', None), ('https://different.example/v1', None), ('https://original.example/v1', '')]:
+        assert client.post('/v1/endpoints/models', json={'baseUrl': url, 'endpointId': endpoint, 'apiKey': key}).status_code == 200
+    assert [key for _, key in seen] == ['test-secret', None, '']
+
+
+def test_active_resources_cannot_be_deleted(client: TestClient, platform: Platform) -> None:
+    participant = client.post('/v1/participants', data={'name': '临时方', 'hosting': 'platform', 'datasetName': '题库',
+        'scenario': 'horizontal', 'taskType': 'math-reasoning'},
+        files={'file': ('d.jsonl', b'{"id":"1","question":"1+1?","answer":"2"}\n')}).json()['id']
+    dataset = client.get('/v1/datasets', params={'participant': participant}).json()[0]['id']
+    other = client.post('/v1/datasets', data={'participantId': participant, 'name': '备用题库',
+        'scenario': 'horizontal', 'taskType': 'math-reasoning'},
+        files={'file': ('d.jsonl', b'{"id":"2","question":"2+2?","answer":"4"}\n')})
+    assert other.status_code == 201, other.text
+    endpoint = client.post('/v1/endpoints', json={'name': '自定义接口', 'baseUrl': 'http://example.test/v1', 'models': ['model']}).json()['id']
+    task = client.post('/v1/tasks', json=config([{'participantId':'p-a','datasetId':'ds-aime24'},
+        {'participantId':participant,'datasetId':dataset}], serverModel=f'{endpoint}:model')).json()['id']
+    for path in [f'/v1/participants/{participant}', f'/v1/datasets/{dataset}', f'/v1/endpoints/{endpoint}']:
+        assert client.delete(path).status_code == 409
+    client.post(f'/v1/tasks/{task}/cancel')
+    assert client.delete(f'/v1/endpoints/{endpoint}').status_code == 204
+    assert client.delete(f'/v1/datasets/{dataset}').status_code == 204
+    assert client.delete(f'/v1/participants/{participant}').status_code == 204
+
+
+def test_corrupt_frozen_data_is_reported_and_budget_requires_price(client: TestClient, platform: Platform) -> None:
+    chosen = [{'participantId': 'p-a', 'datasetId': 'ds-aime24'}, {'participantId': 'p-b', 'datasetId': 'ds-aime25'}]
+    endpoint = client.post('/v1/endpoints', json={'name':'未定价接口','baseUrl':'http://example.test/v1','models':['model']}).json()['id']
+    checked = client.post('/v1/tasks/validate', json=config(chosen, serverModel=f'{endpoint}:model', budget=1)).json()
+    assert any('单价' in issue['message'] for issue in checked['issues'])
+    with platform.db.session() as session:
+        path = platform.settings.datasets_dir/session.get(m.Dataset, 'ds-aime24').content_path
+    path.write_text('{"id":"changed","question":"tampered"}\n')
+    checked = client.post('/v1/tasks/validate', json=config(chosen))
+    assert checked.status_code == 200
+    assert any('备份' in issue['message'] for issue in checked.json()['issues'])
+
+
+def test_write_is_committed_before_response_and_api_is_not_cached(platform: Platform):
+    from fedagent.api import create_app
+
+    app = create_app(platform)
+    committed = []
+
+    async def wrapped(scope, receive, send):
+        async def check(message):
+            if scope.get('path') == '/v1/participants' and message['type'] == 'http.response.start' and message['status'] == 201:
+                # 真正发送响应之前，另一个连接必须已经看得到这次写入。
+                with platform.db.session() as session:
+                    committed.append(session.query(m.Participant).filter_by(name='事务提交检查').count() == 1)
+            await send(message)
+        await app(scope, receive, check)
+
+    with TestClient(wrapped) as http:
+        response = http.post('/v1/participants', data={'name':'事务提交检查','hosting':'local','datasetName':'本地数据',
+            'scenario':'horizontal','taskType':'math-reasoning'})
+        assert response.status_code == 201, response.text
+        assert committed == [True]
+        assert response.headers['cache-control'] == 'no-store'
+        assert http.get('/v1/apps').headers['cache-control'] == 'no-store'

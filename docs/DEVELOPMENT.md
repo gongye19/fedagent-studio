@@ -126,15 +126,33 @@ app/src/
 bash deploy/deploy.sh
 ```
 
-脚本依次：本地跑完前后端的检查 → 停下服务器上的旧进程 → 同步前端构建产物和后端代码 → 在服务器上运行 `serve.sh`（装 uv 和 Python 3.12、按 `uv.lock` 装依赖、迁移数据库、启动 api 和 runner、健康检查）。`SKIP_CHECKS=1` 跳过本地检查。打开 <http://100.111.198.54:8880/>。
+脚本依次：本地检查 → 停下旧进程 → 完整数据备份并下载到 Mac → 同步代码 → 安装依赖、迁移、启动和健康检查。备份失败会重启旧服务并中止部署。`SKIP_CHECKS=1` 跳过本地检查。打开 <http://100.111.198.54:8880/>。
 
 - 所有文件都在服务器的 `~/fedagent-studio` 里（目录布局见 [ARCHITECTURE.md](./ARCHITECTURE.md) §18）；数据在 `data/`，部署不覆盖；
 - 访问令牌是可选的，现在关闭：Tailscale 内网里能访问这个地址的人都能使用。要开启时运行 `bash ~/fedagent-studio/serve.sh token on`，令牌保存在服务器的 `~/fedagent-studio/data/admin-token`，浏览器第一次打开时要填；`token off` 关闭。部署不会改变开关；
 - 状态、停止、重启：`bash ~/fedagent-studio/serve.sh status | stop | start`；日志在 `~/fedagent-studio/logs/`；
 - 进程在退出 SSH 后继续运行，但服务器重启后要重新运行 `bash ~/fedagent-studio/serve.sh`；
 - 重启时运行中的任务会停下，重启后从检查点继续，已完成的模型调用不重复计费。
+- 部署中的 SSH 操作复用同一条已认证连接，结束后关闭，减少 Tailscale 中继下的握手开销；断连由保活检测中止。
+- 前端部署保留旧的带哈希资源，避免已打开页面懒加载图表时遇到 404；`index.html` 更新到新版本。旧资源不自动清理，需要维护时检查磁盘空间。
+
+## 数据备份与恢复（T58）
+
+每次部署前先停止 API 和 runner，再用 SQLite backup API 生成独立的数据库快照，复制整个 `data/`。快照包含 `secret.key`、题库、运行检查点和可选访问令牌；服务运行时拒绝手动完整备份，避免文件与数据库不一致。备份目录权限 700，不进入 Git。
+
+- 服务器：`~/fedagent-studio/backups/<UTC时间>/data/`；Mac：仓库 `.backups/<UTC时间>/data/`。
+- 手动备份：依次运行 `bash ~/fedagent-studio/serve.sh stop`、`bash ~/fedagent-studio/serve.sh backup`、`bash ~/fedagent-studio/serve.sh`。手动备份不自动下载，可用 SSH/rsync 另存。
+- 恢复：停止服务，选定快照；把当前 `data/` 改名保留，再完整复制快照的 `data/` 为新的 `data/`，不要把旧 WAL 文件混进去；确认后端代码与快照数据库版本兼容，再启动并检查任务、应用及模型连接。
+- 必须一起恢复数据库、数据文件和匹配的 `secret.key`；只恢复数据库会无法解密接口密钥。若使用环境变量 `FEDAGENT_SECRET_KEY`，另行保管该密钥。
+- 备份不自动清理，不承诺持续定时备份；重要实验结束后应手动备份并下载，定期检查两台机器的磁盘空间。
+
+客户端升级：T58 起提供 `fedagent-client` 0.1.1。旧客户端不能提交新协议的工作结果；停止旧客户端，在原环境使用平台给的安装命令加 `--upgrade`，保持本地状态和数据文件，再运行原连接命令。自写客户端必须把领取结果的 `attempt` 放在 `X-Fedagent-Attempt` 请求头里。
+
+预算限制按已记账费用在工作单元边界检查，不是模型供应商的硬消费限额；在途请求仍可能超出。未填写参与调用的模型单价时不能设置预算。
 
 ## 测试约定
+
+当前回归：前端 25 项、后端 51 项。`test_client_leases.py` 验证领取次数、过期结果、幂等提交、慢调用续租和实际标注数；`test_maintenance.py` 验证 WAL 数据备份恢复、匹配的解密密钥和并发首次启动；`test_gateway.py` 包括真实多进程共享并发上限和零重试时的流式兼容回退；`test_api.py` 验证事务在响应前提交，前端 `actions.test.ts` 覆盖旧列表缓存和动态请求禁用缓存。
 
 - 前端：
   - `domain/*.test.ts`：草稿的检查和参与方的选择规则、任务状态和显示用的计算、数据集文件检查；

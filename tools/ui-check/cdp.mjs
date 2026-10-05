@@ -3,7 +3,7 @@
 // 地址里可以写 {task}、{app}，换成平台上已有的一个任务、一个应用。
 // 环境变量：CDP_PORT（默认 9333）、CDP_PROFILE（浏览器配置目录）、CDP_OUT（输出目录）
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { evaluate, launch, sampleIds, sleep, viewport } from "./lib.mjs";
+import { evaluate, launch, ready, sampleIds, sleep, viewport, WAIT } from "./lib.mjs";
 
 const port = Number(process.env.CDP_PORT ?? 9333);
 const profile = process.env.CDP_PROFILE ?? "/tmp/fedagent-cdp-profile";
@@ -30,9 +30,10 @@ try {
     await send("Page.navigate", { url: "about:blank" });
     await sleep(80);
     await send("Page.navigate", { url: shot.url });
-    await sleep(shot.wait ?? 1300);
+    await sleep(shot.wait ?? WAIT);
+    await ready(send);
     if (shot.script) {
-      try { await evaluate(send, shot.script); } catch (error) { console.error(shot.name, "script error", error.message); }
+      await evaluate(send, shot.script);
       await sleep(shot.after ?? 600);
     }
     if (shot.fullPage === false) {

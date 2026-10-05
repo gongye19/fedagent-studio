@@ -7,7 +7,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 HOST=poly-zhu@100.111.198.54
-SSH=(ssh -p 10022 -o BatchMode=yes -o ConnectTimeout=12)
+SSH=(ssh -p 10022 -o BatchMode=yes -o ConnectTimeout=12 -o ServerAliveInterval=15 -o ServerAliveCountMax=2)
 
 # 1. 本地检查：前端 lint、类型、测试、构建；后端 lint、类型、测试
 if [ "${SKIP_CHECKS:-}" = 1 ]; then
@@ -19,17 +19,35 @@ fi
 
 # 参与方客户端的安装包（客户端、SDK、插件），平台在 /client/ 下提供，界面上的连接命令从这里安装
 PACKAGES=$(mktemp -d)
-trap 'rm -rf "$PACKAGES"' EXIT
+# 同一次部署复用已认证连接，减少 Tailscale 中继下的重复握手。
+SSH+=(-o ControlMaster=auto -o ControlPersist=60 -o "ControlPath=${SSH_CONTROL_PATH:-$PACKAGES/ssh.sock}")
+trap '"${SSH[@]}" -O exit "$HOST" >/dev/null 2>&1 || true; rm -rf "$PACKAGES"' EXIT
 for package in fedagent-sdk fedagent-client fedagent-fot fedagent-math-reasoning; do
   (cd server && uv build --package "$package" --wheel --out-dir "$PACKAGES" -q)
 done
 rm -f "$PACKAGES/.gitignore"
 
 # 2. 先停下旧进程，再同步代码，免得旧进程读到一半新代码
-"${SSH[@]}" "$HOST" 'mkdir -p ~/fedagent-studio'
-rsync -az -e "${SSH[*]}" deploy/serve.sh "$HOST":fedagent-studio/serve.sh
+"${SSH[@]}" "$HOST" true
+"${SSH[@]}" "$HOST" 'mkdir -p ~/fedagent-studio/backups && chmod 700 ~/fedagent-studio/backups'
+rsync -az -e "${SSH[*]}" deploy/serve.sh deploy/backup.py "$HOST":fedagent-studio/
 "${SSH[@]}" "$HOST" 'bash ~/fedagent-studio/serve.sh stop'
-rsync -az --delete -e "${SSH[*]}" app/dist/ "$HOST":fedagent-studio/dist/
+# 数据和解密密钥必须一起备份；备份失败时不覆盖服务器代码。
+if ! "${SSH[@]}" "$HOST" 'bash ~/fedagent-studio/serve.sh backup'; then
+  "${SSH[@]}" "$HOST" 'bash ~/fedagent-studio/serve.sh'
+  echo 'backup failed; existing service restarted, deployment aborted' >&2
+  exit 1
+fi
+# 保留一份在这台 Mac，避免服务器磁盘故障时所有副本一起丢失。
+mkdir -p .backups
+chmod 700 .backups
+if ! rsync -az -e "${SSH[*]}" "$HOST":fedagent-studio/backups/ .backups/; then
+  "${SSH[@]}" "$HOST" 'bash ~/fedagent-studio/serve.sh'
+  echo 'backup download failed; existing service restarted, deployment aborted' >&2
+  exit 1
+fi
+# 保留旧的带哈希资源：已经打开的页面稍后懒加载图表时仍需要旧文件。
+rsync -az -e "${SSH[*]}" app/dist/ "$HOST":fedagent-studio/dist/
 rsync -az --delete -e "${SSH[*]}" "$PACKAGES"/ "$HOST":fedagent-studio/client/
 # 虚拟环境和数据不同步；--delete 不会删掉被排除的文件
 rsync -az --delete -e "${SSH[*]}" \

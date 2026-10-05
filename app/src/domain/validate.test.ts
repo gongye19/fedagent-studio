@@ -38,3 +38,7 @@ describe("checkJsonl", () => {
     expect(result.problems[0].message).toBe("文件里没有题目");
   });
 });
+
+it("accepts UTF-8 BOM as the server does", () => {
+  expect(checkJsonl('\uFEFF{"id":"1","question":"1+1?","answer":0}\n').ok).toBe(true);
+});

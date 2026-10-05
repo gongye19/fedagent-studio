@@ -18,14 +18,18 @@ from fedagent_sdk import CheckReport, Item, Row, TaskType
 MAX_FILE_BYTES = 20 * 1024 * 1024
 
 
+def _reject_constant(value: str) -> None:
+    raise ValueError(f"JSON 不支持 {value}")
+
+
 def parse_jsonl(text: str) -> list[Row]:
     rows: list[Row] = []
     for index, raw in enumerate(text.splitlines(), start=1):
         if not raw.strip():
             continue
         try:
-            value = json.loads(raw)
-        except json.JSONDecodeError:
+            value = json.loads(raw, parse_constant=_reject_constant)
+        except ValueError:
             rows.append(Row(index, None, "不是合法的 JSON，检查引号和逗号"))
             continue
         if not isinstance(value, dict):
@@ -53,7 +57,7 @@ class DatasetFiles:
 
     def __init__(self, root: Path) -> None:
         self.root = root
-        self._cache: dict[str, list[dict[str, Any]]] = {}
+        self._cache: dict[str, tuple[int, int, list[dict[str, Any]]]] = {}
         self._lock = threading.Lock()
 
     def save(self, dataset_id: str, items: list[dict[str, Any]]) -> tuple[str, str]:
@@ -67,14 +71,23 @@ class DatasetFiles:
         return str(path.relative_to(self.root)), digest
 
     def load(self, relative: str) -> list[dict[str, Any]]:
+        path = (self.root / relative).resolve()
+        if not path.is_relative_to(self.root.resolve()) or not path.is_file():
+            raise ValueError("数据文件不存在或超出数据目录")
+        stamp = path.stat()
         with self._lock:
             cached = self._cache.get(relative)
-        if cached is not None:
-            return cached
-        text = (self.root / relative).read_text(encoding="utf-8")
+        if cached is not None and cached[:2] == (stamp.st_mtime_ns, stamp.st_size):
+            return cached[2]
+        raw = path.read_bytes()
+        if len(path.stem) == 64 and hashlib.sha256(raw).hexdigest() != path.stem:
+            raise ValueError("数据文件的内容哈希不匹配")
+        text = raw.decode("utf-8")
         items = [json.loads(line) for line in text.splitlines() if line.strip()]
         with self._lock:
-            self._cache[relative] = items
+            if len(self._cache) >= 16:
+                self._cache.pop(next(iter(self._cache)))
+            self._cache[relative] = (stamp.st_mtime_ns, stamp.st_size, items)
         return items
 
 

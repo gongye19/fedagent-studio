@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { api, ApiError } from "../api/client";
 import type { components } from "../api/schema";
 import { DEFAULT_ENDPOINT_ID, type Endpoint } from "../domain/resources";
@@ -31,6 +31,8 @@ function EndpointForm({ state, endpoint, from }: { state: State; endpoint?: Endp
   const [baseUrl, setBaseUrl] = useState(endpoint?.baseUrl ?? "");
   const [model, setModel] = useState(endpoint?.models[0] ?? "");
   const [apiKey, setApiKey] = useState("");
+  const [keyRevision, setKeyRevision] = useState(0);
+  const formId = useId();
   const [clearKey, setClearKey] = useState(false);
   const [concurrency, setConcurrency] = useState(endpoint?.concurrency ?? 8);
   const [price, setPrice] = useState(endpoint?.price === null || endpoint?.price === undefined ? "" : String(endpoint.price));
@@ -43,13 +45,15 @@ function EndpointForm({ state, endpoint, from }: { state: State; endpoint?: Endp
   const url = baseUrl.trim();
   const validUrl = url === "" || /^https?:\/\/\S+$/.test(url);
   // 接口提供的模型：地址、密钥停下 0.5 秒后读一次；没填密钥时用已经保存的
-  const listRequest = useDebounced({ baseUrl: url, apiKey: clearKey ? null : apiKey.trim() || null, endpointId: endpoint?.id ?? null }, 500);
+  const listRequest = useDebounced({ baseUrl: url, apiKey: clearKey ? "" : apiKey.trim() || null, endpointId: endpoint?.id ?? null, keyRevision, clearKey }, 500);
   const available = useQuery({
-    queryKey: ["endpoint-models", listRequest],
+    // 密钥不能进入查询键，离开表单时销毁请求闭包。
+    queryKey: ["endpoint-models", formId, listRequest.baseUrl, listRequest.endpointId, listRequest.keyRevision, listRequest.clearKey],
     queryFn: () => api.previewModels(listRequest),
     enabled: listRequest.baseUrl !== "" && /^https?:\/\/\S+$/.test(listRequest.baseUrl),
     retry: false,
     staleTime: 60_000,
+    gcTime: 0,
   });
   const choices = available.data?.models ?? [];
   const listError = available.error ? (available.error instanceof ApiError ? available.error.message : "读不到模型列表") : null;
@@ -65,7 +69,7 @@ function EndpointForm({ state, endpoint, from }: { state: State; endpoint?: Endp
   const title = endpoint ? `编辑“${endpoint.name}”` : "新增接口";
 
   async function save() {
-    if (missing.length) return;
+    if (missing.length || saving) return;
     setSaving(true);
     setError(null);
     try {
@@ -127,8 +131,8 @@ function EndpointForm({ state, endpoint, from }: { state: State; endpoint?: Endp
       <PageHead title={title} crumbs={[{ label: "模型接口", route: { page: "models" } }]} actions={actions} />
       {testError ? <Notice tone="warning" onDismiss={() => setTestError(null)}>{`测试失败：${testError}`}</Notice> : null}
       {removing && endpoint ? (
-        <Confirm title={`删除“${endpoint.name}”？`} confirmLabel="删除" onConfirm={() => void remove()} onCancel={() => setRemoving(false)}>
-          已有任务的配置不受影响；新建任务时不能再选它的模型。
+        <Confirm title={`删除“${endpoint.name}”？`} confirmLabel="删除" onConfirm={() => remove()} onCancel={() => setRemoving(false)}>
+          排队、运行或暂停的任务使用此接口时不能删除；删除后，新建任务不能再选它的模型。
         </Confirm>
       ) : null}
       <div className="form-page">
@@ -151,7 +155,7 @@ function EndpointForm({ state, endpoint, from }: { state: State; endpoint?: Endp
                   spellCheck={false}
                   value={apiKey}
                   disabled={clearKey}
-                  onChange={(event) => setApiKey(event.target.value)}
+                  onChange={(event) => { setApiKey(event.target.value); setKeyRevision((value) => value + 1); }}
                   placeholder={endpoint?.hasKey ? "已保存，留空表示不修改" : "加密保存在服务端，不会再显示"}
                 />
               </Field>
@@ -172,7 +176,6 @@ function EndpointForm({ state, endpoint, from }: { state: State; endpoint?: Endp
                     value={model}
                     onChange={(event) => setModel(event.target.value)}
                     placeholder={available.isFetching ? "正在读取模型列表…" : url ? "例如：gpt-5.6-luna" : "填好接口地址后从列表里选"}
-                    aria-invalid={listError ? true : undefined}
                     aria-describedby={listError ? "endpoint-model-error" : undefined}
                   />
                 )}

@@ -58,6 +58,16 @@ export async function evaluate(send, expression) {
   return result.result.value;
 }
 
+/** 等到应用主内容已显示，避免把加载页或白屏当成验证结果。 */
+export async function ready(send, timeout = 30_000) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    if (await evaluate(send, "Boolean(document.querySelector('main h1'))")) return;
+    await sleep(200);
+  }
+  throw new Error("页面主内容在 30 秒内未加载完成");
+}
+
 /** 打开一个地址：先回空白页，保证每次都是完整加载，而不是同一页里换 hash。 */
 export async function open(send, url, wait = WAIT, { reset = true } = {}) {
   await send("Page.navigate", { url: "about:blank" });
@@ -66,6 +76,7 @@ export async function open(send, url, wait = WAIT, { reset = true } = {}) {
   if (reset) await send("Storage.clearDataForOrigin", { origin: new URL(url).origin, storageTypes: "local_storage,session_storage" });
   await send("Page.navigate", { url });
   await sleep(wait);
+  await ready(send);
 }
 
 // 页面上的常用操作（在页面里执行的脚本）

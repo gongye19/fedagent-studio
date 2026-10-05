@@ -14,14 +14,14 @@ from datetime import timedelta
 
 from fastapi import HTTPException
 from fedagent_sdk import OutgoingMessage, UnitResult
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from . import models as m
 from .platform import Platform
 from .resources import new_id, not_found
 from .schemas import ClientArtifact, ClientHelloIn, ClientMessage, ClientUnitOut, CompleteIn, FailIn, UnitInputsOut
-from .units import Graded, inbox, latest_artifact, load_sites, store_result
+from .units import Graded, inbox, latest_artifact, load_sites, resolve_receiver, store_result
 
 MAX_MESSAGE_BYTES = 1_000_000
 
@@ -65,8 +65,10 @@ def hello(session: Session, participant: m.Participant, body: ClientHelloIn) -> 
         if dataset is None or dataset.participant_id != participant.id or dataset.source != "local":
             raise HTTPException(422, f"数据集 {item.dataset_id} 不是这个参与方登记的本地数据集")
         ids = [str(value) for value in item.item_ids]
-        if len(ids) != item.count or len(set(ids)) != len(ids):
+        if len(ids) != item.count or len(set(ids)) != len(ids) or any(not value.strip() for value in ids):
             raise HTTPException(422, f"数据集 {item.dataset_id} 的样本 id 数量不对或有重复")
+        if item.answered > item.count:
+            raise HTTPException(422, "带标注的样本数不能大于总样本数")
         dataset.count = item.count
         dataset.answered = min(item.answered, item.count)
         dataset.item_ids = ids
@@ -81,6 +83,8 @@ def _unit_out(platform: Platform, session: Session, unit: m.WorkUnit) -> ClientU
     config = task.config
     return ClientUnitOut(
         id=unit.id,
+        attempt=unit.attempts,
+        item_ids=[str(item) for item in site.items],
         task_id=task.id,
         round=unit.round,
         rounds=int(config["rounds"]),
@@ -104,6 +108,7 @@ def claim(platform: Platform, session: Session, token: m.ClientToken, participan
         .join(m.Task, m.Task.id == m.WorkUnit.task_id)
         .where(
             m.Task.status == "running",
+            m.Task.command.is_(None),
             m.WorkUnit.executor == "client",
             m.WorkUnit.site_id == participant.id,
             m.WorkUnit.status == "pending",
@@ -112,27 +117,39 @@ def claim(platform: Platform, session: Session, token: m.ClientToken, participan
         .limit(limit)
     ).all()
     lease = m.now() + timedelta(seconds=platform.settings.client_lease_seconds)
+    claimed = []
     for unit in units:
-        unit.status = "claimed"
-        unit.claimed_by = token.id
-        unit.lease_until = lease
-        unit.attempts += 1
-        unit.started_at = m.now()
-    session.flush()
-    return [_unit_out(platform, session, unit) for unit in units]
+        owned = session.execute(
+            update(m.WorkUnit).where(m.WorkUnit.id == unit.id, m.WorkUnit.status == "pending")
+            .values(status="claimed", claimed_by=token.id, lease_until=lease, attempts=m.WorkUnit.attempts + 1, started_at=m.now()),
+            execution_options={"synchronize_session": False},
+        )
+        if owned.rowcount:  # type: ignore[attr-defined]
+            session.refresh(unit)
+            claimed.append(unit)
+    return [_unit_out(platform, session, unit) for unit in claimed]
 
 
-def _claimed(session: Session, participant: m.Participant, unit_id: int) -> m.WorkUnit:
+def _claimed(
+    session: Session, token: m.ClientToken, participant: m.Participant, unit_id: int, attempt: int, *, allow_done: bool = False,
+) -> m.WorkUnit:
     unit = session.get(m.WorkUnit, unit_id)
     if unit is None or unit.site_id != participant.id or unit.executor != "client":
         raise not_found("工作单元")
-    if unit.status != "claimed":
+    if unit.claimed_by != token.id or unit.attempts != attempt:
+        raise HTTPException(409, "这次领取已过期，或者属于其他客户端")
+    if allow_done and unit.status == "done":
+        return unit  # 网络超时后重复提交同一次完成结果，确认成功但不重复保存。
+    task = session.get(m.Task, unit.task_id)
+    if unit.status != "claimed" or unit.lease_until is None or m.aware(unit.lease_until) <= m.now():
         raise HTTPException(409, "这个工作单元没有被领取，或者租约已经过期")
+    if task is None or task.status != "running" or task.command is not None:
+        raise HTTPException(409, "任务已暂停、取消，或者正在停止")
     return unit
 
 
-def inputs(platform: Platform, session: Session, participant: m.Participant, unit_id: int) -> UnitInputsOut:
-    unit = _claimed(session, participant, unit_id)
+def inputs(platform: Platform, session: Session, token: m.ClientToken, participant: m.Participant, unit_id: int, attempt: int) -> UnitInputsOut:
+    unit = _claimed(session, token, participant, unit_id, attempt)
     task = session.get(m.Task, unit.task_id)
     assert task is not None
     manifest = platform.registry.algorithm(task.algorithm).manifest
@@ -148,32 +165,47 @@ def inputs(platform: Platform, session: Session, participant: m.Participant, uni
     return UnitInputsOut(inbox=boxes, artifact=artifact)
 
 
-def heartbeat(platform: Platform, session: Session, participant: m.Participant, unit_id: int) -> None:
-    unit = _claimed(session, participant, unit_id)
+def heartbeat(platform: Platform, session: Session, token: m.ClientToken, participant: m.Participant, unit_id: int, attempt: int) -> None:
+    unit = _claimed(session, token, participant, unit_id, attempt)
     unit.lease_until = m.now() + timedelta(seconds=platform.settings.client_lease_seconds)
 
 
-def complete(platform: Platform, session: Session, participant: m.Participant, unit_id: int, body: CompleteIn) -> None:
-    unit = _claimed(session, participant, unit_id)
+def complete(platform: Platform, session: Session, token: m.ClientToken, participant: m.Participant, unit_id: int, attempt: int, body: CompleteIn) -> None:
+    unit = _claimed(session, token, participant, unit_id, attempt, allow_done=True)
+    if unit.status == "done":
+        return
     task = session.get(m.Task, unit.task_id)
     assert task is not None
     algorithm = platform.registry.algorithm(task.algorithm)
     manifest = algorithm.manifest
     step = manifest.step(unit.step)
     assert step is not None
+    sites = {site.id: site for site in load_sites(session, task.id)}
     for sent in body.sent:
         if sent.channel not in step.sends:
             raise HTTPException(422, f"这一步没有声明发送通道 {sent.channel}")
-        if len(json.dumps(sent.payload, ensure_ascii=False).encode()) > MAX_MESSAGE_BYTES:
+        try:
+            payload = json.dumps(sent.payload, ensure_ascii=False, allow_nan=False)
+            resolve_receiver(manifest, sent.channel, sent.to, sites)
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from error
+        if len(payload.encode()) > MAX_MESSAGE_BYTES:
             raise HTTPException(413, "单条消息超过 1 MB")
         if step.per == "item" and sent.item_id not in (None, unit.unit_key):
             raise HTTPException(422, "消息对应的样本和工作单元不一致")
+    if any(name in body.reports for name in ("labeled", "correct")):
+        raise HTTPException(422, "判分汇总只能通过 graded 提交")
+    grade_ids = [grade.item_id for grade in body.graded]
+    if len(grade_ids) != len(set(grade_ids)) or any(grade.correct and not grade.labeled for grade in body.graded):
+        raise HTTPException(422, "每条样本只能提交一次有效的判分结果")
     evaluation = manifest.evaluation
     if body.graded and (evaluation is None or evaluation.step != step.id):
         raise HTTPException(422, "这一步不是评估用的步骤")
-    if any(grade.item_id != unit.unit_key for grade in body.graded):
+    site = session.get(m.TaskSite, (task.id, unit.site_id))
+    assert site is not None
+    allowed = {unit.unit_key} if step.per == "item" else set(site.items)
+    if any(grade.item_id not in allowed for grade in body.graded):
         raise HTTPException(422, "判分结果对应的样本和工作单元不一致")
-    sites = {site.id: site for site in load_sites(session, task.id)}
     result = UnitResult(
         sent=[
             OutgoingMessage(channel=sent.channel, payload=sent.payload, item_id=sent.item_id or (unit.unit_key if step.per == "item" else None), to=sent.to)
@@ -194,11 +226,12 @@ def complete(platform: Platform, session: Session, participant: m.Participant, u
         keep_private=False,
         run_dir=platform.settings.runs_dir / task.id,
         expected="claimed",
+        attempt=attempt,
     )
 
 
-def fail(platform: Platform, session: Session, participant: m.Participant, unit_id: int, body: FailIn) -> None:
-    unit = _claimed(session, participant, unit_id)
+def fail(platform: Platform, session: Session, token: m.ClientToken, participant: m.Participant, unit_id: int, attempt: int, body: FailIn) -> None:
+    unit = _claimed(session, token, participant, unit_id, attempt)
     task = session.get(m.Task, unit.task_id)
     assert task is not None
     step = platform.registry.algorithm(task.algorithm).manifest.step(unit.step)

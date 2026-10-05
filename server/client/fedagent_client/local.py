@@ -110,9 +110,11 @@ class LocalModel:
         stream = True
         last = ""
         with httpx.Client(timeout=self.timeout) as client:
-            for attempt in range(self.retries + 1):
+            attempt = 0
+            while attempt <= self.retries:
                 if attempt:
                     time.sleep(min(2 ** (attempt - 1), 30))
+                attempt += 1
                 try:
                     with client.stream("POST", f"{self.base_url}/chat/completions", json=streaming(body) if stream else body, headers=headers) as response:
                         content_type = response.headers.get("content-type", "")
@@ -121,6 +123,7 @@ class LocalModel:
                             last = f"HTTP {response.status_code}：{reason}"
                             if stream and response.status_code in (400, 422) and "stream" in reason.lower():
                                 stream = False  # 不支持流式参数的模型服务：改用普通请求
+                                attempt -= 1
                                 continue
                             if retryable(response.status_code):
                                 continue

@@ -2319,6 +2319,16 @@
       }
      },
      {
+      "name": "X-Fedagent-Attempt",
+      "in": "header",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "minimum": 1,
+       "title": "X-Fedagent-Attempt"
+      }
+     },
+     {
       "name": "authorization",
       "in": "header",
       "required": false,
@@ -2377,6 +2387,16 @@
       }
      },
      {
+      "name": "X-Fedagent-Attempt",
+      "in": "header",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "minimum": 1,
+       "title": "X-Fedagent-Attempt"
+      }
+     },
+     {
       "name": "authorization",
       "in": "header",
       "required": false,
@@ -2425,6 +2445,16 @@
       "schema": {
        "type": "integer",
        "title": "Unit Id"
+      }
+     },
+     {
+      "name": "X-Fedagent-Attempt",
+      "in": "header",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "minimum": 1,
+       "title": "X-Fedagent-Attempt"
       }
      },
      {
@@ -2486,6 +2516,16 @@
       "schema": {
        "type": "integer",
        "title": "Unit Id"
+      }
+     },
+     {
+      "name": "X-Fedagent-Attempt",
+      "in": "header",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "minimum": 1,
+       "title": "X-Fedagent-Attempt"
       }
      },
      {
@@ -3025,10 +3065,12 @@
      },
      "count": {
       "type": "integer",
+      "minimum": 0.0,
       "title": "Count"
      },
      "answered": {
       "type": "integer",
+      "minimum": 0.0,
       "title": "Answered"
      },
      "itemIds": {
@@ -3194,6 +3236,17 @@
       "type": "integer",
       "title": "Id"
      },
+     "attempt": {
+      "type": "integer",
+      "title": "Attempt"
+     },
+     "itemIds": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Itemids"
+     },
      "taskId": {
       "type": "string",
       "title": "Taskid"
@@ -3263,6 +3316,8 @@
     "type": "object",
     "required": [
      "id",
+     "attempt",
+     "itemIds",
      "taskId",
      "round",
      "rounds",

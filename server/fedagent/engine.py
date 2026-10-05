@@ -84,7 +84,10 @@ class TaskEngine:
         self.params = self.manifest.params_of(self.config.get("params"))
         self.rounds = int(self.config["rounds"])
         self.site_by_id = {site.id: site for site in self.sites}
-        self.records = self._load_records()
+        try:
+            self.records = self._load_records()
+        except (OSError, ValueError) as error:
+            return self._pause(f"冻结的数据文件无法读取，请恢复备份后继续（{type(error).__name__}）")
         self._event("start", "任务开始运行" if self.cursor_round == 1 else f"从第 {self.cursor_round} 轮继续运行")
         try:
             for round in range(self.cursor_round, self.rounds + 1):
@@ -392,8 +395,8 @@ class TaskEngine:
             if task is None or task.budget is None:
                 return
             spent = session.scalar(select(func.coalesce(func.sum(m.CallRecord.cost), 0.0)).where(m.CallRecord.task_id == self.task_id)) or 0.0
-        if spent > task.budget:
-            raise TaskStopped(self._pause(f"费用 {spent:.2f} 元超过了上限 {task.budget:.2f} 元"))
+        if spent >= task.budget:
+            raise TaskStopped(self._pause(f"费用 {spent:.2f} 元已达到上限 {task.budget:.2f} 元"))
 
     def _pause(self, reason: str) -> str:
         with self.db.session() as session:
@@ -436,5 +439,6 @@ class TaskEngine:
             if site.kind != "participant" or site.executor != "platform" or not site.dataset_hash:
                 continue
             rows = self.platform.files.load(f"{site.dataset_id}/{site.dataset_hash}.jsonl")
-            records[site.id] = {self.task_type.item_id(row): row for row in rows}
+            selected = set(site.items)
+            records[site.id] = {self.task_type.item_id(row): row for row in rows if self.task_type.item_id(row) in selected}
         return records

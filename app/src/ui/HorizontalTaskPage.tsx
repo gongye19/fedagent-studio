@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState, type Dispatch, type MouseEvent } from "react";
 import { api, ApiError, type TaskConfigIn } from "../api/client";
 import {
@@ -110,17 +110,24 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
   const joined = joinable(draft, state.datasets, state.participants);
   const localIssues = draftIssues(draft, state.datasets, state.participants, state.endpoints);
   // 预估和最终的检查由后端做（插件声明的步骤、接口单价、模型接口是否配置好）；配置改动停下 0.3 秒后再问一次。
-  const request = useDebounced(taskRequest(draft, "", state.datasets, state.participants), 300);
+  const currentRequest = taskRequest(draft, "", state.datasets, state.participants);
+  const request = useDebounced(currentRequest, 300);
+  const requestCurrent = JSON.stringify(request) === JSON.stringify(currentRequest);
   const check = useQuery({
     queryKey: ["task-validate", request],
     queryFn: () => api.validateTask(request as TaskConfigIn),
     enabled: Boolean(request && request.participants.length),
-    placeholderData: keepPreviousData,
     staleTime: 15_000,
   });
-  const serverIssues = localIssues.length || !request?.participants.length ? [] : (check.data?.issues ?? []);
+  const validationPending = !localIssues.length && (!requestCurrent || check.isPending || check.isFetching);
+  const validationError = !localIssues.length && requestCurrent && check.error
+    ? (check.error instanceof ApiError ? check.error.message : "无法检查配置，请稍后重试") : null;
+  const serverIssues = localIssues.length || !requestCurrent || !request?.participants.length ? [] : (check.data?.issues ?? []);
   const issues: Issue[] = [...localIssues, ...serverIssues.map((issue) => issue as Issue).filter((issue) => !localIssues.some((item) => item.message === issue.message))];
-  const result: Estimate | null = joined.length ? check.data?.estimate ?? null : null;
+  const result: Estimate | null = joined.length && requestCurrent && !check.error ? check.data?.estimate ?? null : null;
+  const canCreate = !issues.length && !validationPending && !validationError && Boolean(result);
+  const statusText = issues.length ? `还需要：${issues.map((issue) => issue.message).join("；")}`
+    : validationError ? `检查失败：${validationError}` : validationPending ? "正在检查配置和预估用量…" : "";
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const full = draft.mode === "full";
@@ -129,8 +136,8 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
   const priceEndpoint = endpointOf(draft.clientModel, state.endpoints)?.id ?? DEFAULT_ENDPOINT_ID;
 
   async function create() {
-    if (issues.length || creating) return;
-    const body = taskRequest(draft, draft.name?.trim() || autoName, state.datasets, state.participants);
+    if (!canCreate || creating) return;
+    const body = taskRequest(draft, draft.name?.trim() || defaultTaskName(draft, new Date()), state.datasets, state.participants);
     if (!body) return;
     setCreating(true);
     setCreateError(null);
@@ -161,7 +168,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
 
   /** 正式运行调用量大，先确认一次；试跑直接开始。 */
   function start() {
-    if (issues.length) return;
+    if (!canCreate || creating) return;
     if (full) setPending("full");
     else void create();
   }
@@ -175,7 +182,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
   const startLabel = full ? "创建并正式运行" : "创建并试跑";
   const cost = result ? (result.cost === null ? "费用无法估算（没有设置单价）" : `费用${formatYuan(result.cost)}`) : "";
   // 确认条里的数字按段排版（Meta），不会把"3 轮"拆成两行。
-  const confirm = pending === "full" && result && !issues.length
+  const confirm = pending === "full" && result && canCreate
     ? {
       title: "开始正式运行？",
       text: (
@@ -185,11 +192,11 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
           <span>创建后配置不能修改，运行中可以暂停或取消。</span>
         </>
       ),
-      short: <Meta parts={[`${formatNumber(result.participantCalls)} 次调用`, formatDuration(result.seconds), result.cost === null ? "费用无法估算" : formatYuan(result.cost)]} />,
+      short: <Meta parts={[`至少 ${formatNumber(result.participantCalls + result.serverCalls)} 次调用`, formatDuration(result.seconds), result.cost === null ? "费用无法估算" : formatYuan(result.cost)]} />,
       confirmLabel: "确认开始",
       cancelLabel: "取消",
       tone: "primary" as const,
-      onConfirm: () => void create(),
+      onConfirm: create,
     }
     : pending === "leave"
       ? {
@@ -293,11 +300,12 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
               </Confirm>
             ) : (
               <div className="summary-actions">
-                <button type="button" className="button button--primary button--block summary-start" disabled={issues.length > 0 || creating} aria-describedby={issues.length ? issuesId : undefined} onClick={start}>{creating ? "正在创建…" : startLabel}</button>
+                <button type="button" className="button button--primary button--block summary-start" disabled={!canCreate || creating} aria-describedby={statusText ? issuesId : undefined} onClick={start}>{creating ? "正在创建…" : startLabel}</button>
                 <button type="button" className="button button--ghost button--block" onClick={cancel}>取消</button>
               </div>
             )}
-            <p className="summary-issues" id={issuesId} aria-live="polite">{issues.length ? `还需要：${issues.map((issue) => issue.message).join("；")}` : ""}</p>
+            <p className="summary-issues" id={issuesId} aria-live="polite">{statusText}</p>
+            {validationError ? <button type="button" className="link-button" onClick={() => void check.refetch()}>重新检查</button> : null}
           </Panel>
         </aside>
       </div>
@@ -309,12 +317,12 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
       ) : (
         <div className="order-bar" aria-label="创建任务">
           <div>
-            <strong className={issues.length ? "order-bar-issue" : undefined}>{issues.length ? `还需要：${issues[0].message}` : `${joined.length} 个参与方 · 约 ${formatNumber(result?.participantCalls ?? 0)} 次调用`}</strong>
+            <strong className={issues.length || validationError ? "order-bar-issue" : undefined}>{statusText || `${joined.length} 个参与方 · 至少 ${formatNumber((result?.participantCalls ?? 0) + (result?.serverCalls ?? 0))} 次调用`}</strong>
             {result && !issues.length ? <small>{formatDuration(result.seconds)}</small> : null}
           </div>
           <div className="order-bar-actions">
             <button type="button" className="button button--ghost order-bar-cancel" onClick={cancel}>取消</button>
-            <button type="button" className="button button--primary" disabled={issues.length > 0 || creating} onClick={start}>{creating ? "正在创建…" : startLabel}</button>
+            <button type="button" className="button button--primary" disabled={!canCreate || creating} onClick={start}>{creating ? "正在创建…" : startLabel}</button>
           </div>
         </div>
       )}
@@ -595,7 +603,7 @@ function AdvancedPanel({
           <Field label="并发数" htmlFor="workers" info="同时发出的模型调用数，所有参与方共用。">
             <input id="workers" name="workers" type="number" inputMode="numeric" autoComplete="off" min={1} max={64} value={draft.workers} onChange={(event) => update({ workers: clampInt(event.target.value, 1, 64, draft.workers) })} />
           </Field>
-          <Field label="随机种子" htmlFor="seed" info="固定种子后，同样的配置可以复现同样的结果。">
+          <Field label="随机种子" htmlFor="seed" info="记录在任务配置中；能否复现取决于算法和模型服务是否支持固定种子。">
             <input id="seed" name="seed" type="number" inputMode="numeric" autoComplete="off" min={0} value={draft.seed} onChange={(event) => update({ seed: clampInt(event.target.value, 0, 1_000_000, draft.seed) })} />
           </Field>
           {canOverride ? (

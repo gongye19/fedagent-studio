@@ -106,13 +106,36 @@ export function CodeBlock({
   copyable?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState(false);
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
   async function copy() {
+    const text = copyText ?? code;
+    setCopyError(false);
     try {
-      await navigator.clipboard.writeText(copyText ?? code);
+      if (window.isSecureContext && navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        // Tailscale 的 HTTP 地址没有 Clipboard API，仍允许通过用户点击复制。
+        const active = document.activeElement as HTMLElement | null;
+        const input = document.createElement("textarea");
+        input.value = text;
+        input.style.cssText = "position:fixed;left:-9999px;top:0";
+        input.setAttribute("aria-hidden", "true");
+        document.body.append(input);
+        try {
+          input.select();
+          if (!document.execCommand("copy")) throw new Error("copy failed");
+        } finally {
+          input.remove();
+          active?.focus({ preventScroll: true });
+        }
+      }
       setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
+      window.clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => setCopied(false), 1500);
     } catch {
-      // 浏览器不允许写剪贴板时不做处理，用户仍可手动选中复制。
+      setCopyError(true);
     }
   }
   return (
@@ -125,6 +148,7 @@ export function CodeBlock({
         </div>
       ) : null}
       <pre className={`code-block${wrap ? " code-block--wrap" : ""}`} translate="no">{code}</pre>
+      {copyError ? <p className="field-error" role="status">浏览器未允许复制，请选中代码手动复制。</p> : null}
     </div>
   );
 }
@@ -160,17 +184,30 @@ export function Confirm({
   confirmLabel: string;
   cancelLabel?: string;
   tone?: "danger" | "primary";
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   onCancel: () => void;
   className?: string;
 }) {
   const id = useId();
   const confirmRef = useRef<HTMLButtonElement>(null);
+  const [busy, setBusy] = useState(false);
+  const submitting = useRef(false);
   useEffect(() => {
-    confirmRef.current?.focus();
+    if (confirmRef.current?.getClientRects().length) confirmRef.current.focus();
   }, []);
+  async function submit() {
+    if (submitting.current) return;
+    submitting.current = true;
+    setBusy(true);
+    try {
+      await onConfirm();
+    } finally {
+      submitting.current = false;
+      setBusy(false);
+    }
+  }
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key === "Escape") {
+    if (event.key === "Escape" && !busy) {
       event.stopPropagation();
       onCancel();
     }
@@ -188,8 +225,8 @@ export function Confirm({
         {children ? <div id={`${id}-text`} className="confirm-text">{children}</div> : null}
       </div>
       <div className="confirm-actions">
-        <button type="button" className="button button--secondary" onClick={onCancel}>{cancelLabel}</button>
-        <button ref={confirmRef} type="button" className={`button ${tone === "danger" ? "button--danger-solid" : "button--primary"}`} onClick={onConfirm}>{confirmLabel}</button>
+        <button type="button" className="button button--secondary" disabled={busy} onClick={onCancel}>{cancelLabel}</button>
+        <button ref={confirmRef} type="button" className={`button ${tone === "danger" ? "button--danger-solid" : "button--primary"}`} disabled={busy} onClick={() => void submit()}>{busy ? "正在处理…" : confirmLabel}</button>
       </div>
     </div>
   );

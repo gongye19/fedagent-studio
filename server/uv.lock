@@ -280,7 +280,7 @@ dev = [
 requires-dist = [
     { name = "alembic", specifier = ">=1.13" },
     { name = "cryptography", specifier = ">=42" },
-    { name = "fastapi", specifier = ">=0.115" },
+    { name = "fastapi", specifier = ">=0.142.2" },
     { name = "fedagent-fot", editable = "plugins/fot" },
     { name = "fedagent-math-reasoning", editable = "plugins/math_reasoning" },
     { name = "fedagent-sdk", editable = "sdk" },
@@ -303,7 +303,7 @@ dev = [
 
 [[package]]
 name = "fedagent-client"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "client" }
 dependencies = [
     { name = "fedagent-sdk" },

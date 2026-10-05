@@ -6,6 +6,7 @@ import { activeOverrides, joinable, toConfig, type Draft } from "../domain/confi
 import type { Dataset, Participant } from "../domain/resources";
 import { toTask, type Task } from "../domain/task";
 import { keys, queryClient } from "./server";
+import type { Published } from "./store";
 
 function refresh(...queries: readonly (readonly unknown[])[]): Promise<void> {
   return Promise.all(queries.map((queryKey) => queryClient.invalidateQueries({ queryKey }))).then(() => undefined);
@@ -21,6 +22,7 @@ export function taskRequest(draft: Draft, name: string, datasets: readonly Datas
 export async function createTask(body: TaskConfigIn): Promise<Task> {
   const task = toTask(await api.createTask(body));
   await refresh(keys.tasks);
+  queryClient.setQueryData<Task[]>(keys.tasks, (previous = []) => previous.some((item) => item.id === task.id) ? previous : [task, ...previous]);
   return task;
 }
 
@@ -32,6 +34,7 @@ export async function controlTask(id: string, action: "pause" | "resume" | "canc
 export async function publish(taskId: string, builtAfterRound: number, name: string) {
   const app = await api.publish({ taskId, builtAfterRound, name });
   await refresh(keys.apps);
+  queryClient.setQueryData<Published[]>(keys.apps, (previous = []) => previous.some((item) => item.id === app.id) ? previous : [app, ...previous]);
   return app;
 }
 

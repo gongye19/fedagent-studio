@@ -40,7 +40,7 @@ export function checkJsonl(text: string): JsonlCheck {
   let answered = 0;
   let sample: JsonlCheck["sample"];
 
-  text.split(/\r?\n/).forEach((raw, index) => {
+  text.replace(/^\uFEFF/, "").split(/\r?\n/).forEach((raw, index) => {
     const line = index + 1;
     if (!raw.trim()) return;
     let row: unknown;

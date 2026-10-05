@@ -216,6 +216,8 @@ def test_falls_back_to_plain_request_when_streaming_is_rejected(tmp_path, monkey
         )
 
     platform = make(tmp_path, handler)
+    with platform.db.session() as session:
+        session.get(m.Endpoint, "ep-test").max_retries = 0
     assert platform.gateway.model("ep-test:m1").chat("hi").text == "OK"
     assert [body.get("stream") for body in sent] == [True, None]
 
@@ -254,3 +256,66 @@ def test_local_client_model_streams_and_retries_empty(monkeypatch) -> None:
     reply = LocalModel("https://local.example/v1", "m", None, retries=2).chat("hi")
     assert reply.text == "OK"
     assert reply.usage == {"prompt_tokens": 2, "completion_tokens": 1}
+
+
+def _hold_shared_slot(url, key, barrier, counter, peak):
+    import time
+
+    from fedagent.crypto import SecretBox
+    from fedagent.db import Database
+    from fedagent.gateway import Gateway
+
+    gateway = Gateway(Database(url), SecretBox(key))
+    endpoint = gateway.endpoint("ep-test")
+    barrier.wait(timeout=15)
+    with gateway.slot(endpoint):
+        with counter.get_lock():
+            counter.value += 1
+            peak.value = max(peak.value, counter.value)
+        time.sleep(0.2)
+        with counter.get_lock():
+            counter.value -= 1
+
+
+def test_concurrency_limit_is_shared_across_processes(tmp_path):
+    import multiprocessing
+
+    platform = make(tmp_path, lambda _: httpx.Response(500))
+    with platform.db.session() as session:
+        session.get(m.Endpoint, "ep-test").concurrency = 1
+    context = multiprocessing.get_context("spawn")
+    barrier = context.Barrier(4)
+    counter, peak = context.Value("i", 0), context.Value("i", 0)
+    args = (platform.db.url, (tmp_path / "secret.key").read_bytes(), barrier, counter, peak)
+    workers = [context.Process(target=_hold_shared_slot, args=args) for _ in range(3)]
+    try:
+        for worker in workers:
+            worker.start()
+        barrier.wait(timeout=15)
+        for worker in workers:
+            worker.join(timeout=15)
+            assert worker.exitcode == 0
+        assert peak.value == 1
+    finally:
+        for worker in workers:
+            if worker.is_alive():
+                worker.terminate()
+                worker.join()
+
+
+def test_local_model_fallback_works_without_retries(monkeypatch):
+    from fedagent_client.local import LocalModel
+
+    original = httpx.Client
+    sent = []
+
+    def handler(request):
+        body = json.loads(request.content)
+        sent.append(body)
+        if body.get("stream"):
+            return httpx.Response(400, json={"error": {"message": "stream unsupported"}})
+        return httpx.Response(200, json={"choices": [{"message": {"content": "OK"}}]})
+
+    monkeypatch.setattr("fedagent_client.local.httpx.Client", lambda **kwargs: original(transport=httpx.MockTransport(handler), **kwargs))
+    assert LocalModel("https://local.example/v1", "m", None, retries=0).chat("hi").text == "OK"
+    assert [body.get("stream") for body in sent] == [True, None]

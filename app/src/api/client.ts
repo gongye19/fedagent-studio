@@ -7,16 +7,18 @@ import type { components } from "./schema";
 type S = components["schemas"];
 
 const TOKEN_KEY = "fedagent-studio:token";
+let sessionToken: string | null = null;
 
 export function getToken(): string | null {
   try {
     return window.localStorage.getItem(TOKEN_KEY);
   } catch {
-    return null;
+    return sessionToken;
   }
 }
 
 export function setToken(token: string | null): void {
+  sessionToken = token;
   try {
     if (token) window.localStorage.setItem(TOKEN_KEY, token);
     else window.localStorage.removeItem(TOKEN_KEY);
@@ -75,7 +77,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   }
   let response: Response;
   try {
-    response = await fetch(path, { method, headers, body: payload });
+    response = await fetch(path, { method, headers, body: payload, cache: "no-store" });
   } catch {
     throw new ApiError(0, null);
   }

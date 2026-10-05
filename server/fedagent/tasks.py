@@ -125,7 +125,11 @@ def validate(platform: Platform, session: Session, body: TaskConfigIn) -> tuple[
         if status != "online":
             issue("participants", f"{participant.name} {STATUS_LABELS.get(status, status)}，连上后才能加入任务")
             continue
-        items, labeled = _items_of(platform, dataset, cap)
+        try:
+            items, labeled = _items_of(platform, dataset, cap)
+        except (OSError, ValueError) as error:
+            issue("participants", f"{dataset.name} 的数据文件无法读取，请恢复数据备份（{type(error).__name__}）")
+            continue
         if not items:
             issue("participants", f"{dataset.name} 没有可用的样本")
             continue
@@ -139,7 +143,9 @@ def validate(platform: Platform, session: Session, body: TaskConfigIn) -> tuple[
         refs.add(body.server_model)
     for ref in sorted(refs):
         try:
-            platform.gateway.resolve(ref)
+            endpoint, _ = platform.gateway.resolve(ref)
+            if body.budget is not None and endpoint.kind != "fake" and endpoint.price is None:
+                issue("models", f"设置费用上限前，请先登记接口“{endpoint.name}”的单价")
         except ModelError as error:
             issue("models", str(error))
     return issues, prepared
@@ -361,6 +367,13 @@ def task_out(platform: Platform, session: Session, task: m.Task) -> TaskOut:
         select(m.Report.round, m.Report.step, m.Report.site_id, m.Report.name, m.Report.value).where(m.Report.task_id == task.id)
     ).all():
         reports[(round, step, name)].append((site_id, value))
+    if manifest is not None and manifest.evaluation is not None and complete(1, manifest.evaluation.step):
+        # 本地客户端的试跑标注数在创建时只能估计；第 1 轮判分后改用实际汇总。
+        labeled: dict[str, int] = defaultdict(int)
+        for site_id, value in reports[(1, manifest.evaluation.step, "labeled")]:
+            labeled[site_id] += int(value or 0)
+        for member in members:
+            member.answered = labeled[member.participant_id]
     to_server = {name for name, channel in (manifest.channels.items() if manifest else []) if channel.to == SERVER}
     uploads: dict[int, dict[str, int]] = defaultdict(dict)
     for round, sender, channel, count in session.execute(

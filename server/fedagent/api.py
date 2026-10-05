@@ -83,7 +83,8 @@ def require_admin(request: Request, authorization: Annotated[str | None, Header(
 
 
 PlatformDep = Annotated[Platform, Depends(platform_of)]
-SessionDep = Annotated[Session, Depends(db_session)]
+# 写事务必须先提交再返回响应，否则立即刷新列表可能读到提交前的状态。
+SessionDep = Annotated[Session, Depends(db_session, scope="function")]
 
 admin = APIRouter(prefix="/v1", dependencies=[Depends(require_admin)])
 public = APIRouter()
@@ -306,10 +307,13 @@ def delete_endpoint(endpoint_id: str, session: SessionDep) -> Response:
 def preview_models(body: ModelListIn, platform: PlatformDep) -> EndpointModelsOut:
     """读一个接口地址提供的模型，新增、编辑接口时选模型用；不保存任何东西。没填密钥时用这个接口已经保存的密钥。"""
     gateway = platform.gateway
-    key = body.api_key or None
+    key = body.api_key
     if key is None and body.endpoint_id:
         try:
-            key = gateway.endpoint(body.endpoint_id).api_key
+            endpoint = gateway.endpoint(body.endpoint_id)
+            # 编辑地址时，不能把原接口已保存的密钥发送给另一个服务。
+            if body.base_url.strip().rstrip("/") == endpoint.base_url.rstrip("/"):
+                key = endpoint.api_key
         except ModelError as error:
             raise HTTPException(404, str(error)) from error
     try:
@@ -508,6 +512,7 @@ def client_auth(session: SessionDep, authorization: Annotated[str | None, Header
 
 
 ClientDep = Annotated[tuple[m.ClientToken, m.Participant], Depends(client_auth)]
+AttemptDep = Annotated[int, Header(alias="X-Fedagent-Attempt", ge=1)]
 
 
 @client.post("/hello", response_model=ClientHelloOut)
@@ -524,25 +529,25 @@ def client_claim(body: ClaimIn, auth: ClientDep, platform: PlatformDep, session:
 
 
 @client.get("/units/{unit_id}/inputs", response_model=UnitInputsOut)
-def client_inputs(unit_id: int, auth: ClientDep, platform: PlatformDep, session: SessionDep) -> UnitInputsOut:
-    return clients.inputs(platform, session, auth[1], unit_id)
+def client_inputs(unit_id: int, attempt: AttemptDep, auth: ClientDep, platform: PlatformDep, session: SessionDep) -> UnitInputsOut:
+    return clients.inputs(platform, session, auth[0], auth[1], unit_id, attempt)
 
 
 @client.post("/units/{unit_id}/heartbeat", status_code=204)
-def client_heartbeat(unit_id: int, auth: ClientDep, platform: PlatformDep, session: SessionDep) -> Response:
-    clients.heartbeat(platform, session, auth[1], unit_id)
+def client_heartbeat(unit_id: int, attempt: AttemptDep, auth: ClientDep, platform: PlatformDep, session: SessionDep) -> Response:
+    clients.heartbeat(platform, session, auth[0], auth[1], unit_id, attempt)
     return Response(status_code=204)
 
 
 @client.post("/units/{unit_id}/complete", status_code=204)
-def client_complete(unit_id: int, body: CompleteIn, auth: ClientDep, platform: PlatformDep, session: SessionDep) -> Response:
-    clients.complete(platform, session, auth[1], unit_id, body)
+def client_complete(unit_id: int, body: CompleteIn, attempt: AttemptDep, auth: ClientDep, platform: PlatformDep, session: SessionDep) -> Response:
+    clients.complete(platform, session, auth[0], auth[1], unit_id, attempt, body)
     return Response(status_code=204)
 
 
 @client.post("/units/{unit_id}/fail", status_code=204)
-def client_fail(unit_id: int, body: FailIn, auth: ClientDep, platform: PlatformDep, session: SessionDep) -> Response:
-    clients.fail(platform, session, auth[1], unit_id, body)
+def client_fail(unit_id: int, body: FailIn, attempt: AttemptDep, auth: ClientDep, platform: PlatformDep, session: SessionDep) -> Response:
+    clients.fail(platform, session, auth[0], auth[1], unit_id, attempt, body)
     return Response(status_code=204)
 
 
@@ -563,6 +568,14 @@ def create_app(platform: Platform) -> FastAPI:
     app.state.platform = platform
     # 经 Tailscale 中继访问时带宽有限：页面脚本和较大的 JSON 压缩后再发
     app.add_middleware(GZipMiddleware, minimum_size=1024)
+
+    @app.middleware("http")
+    async def _api_cache(request: Request, call_next):
+        response = await call_next(request)
+        if request.url.path.startswith("/v1/"):
+            response.headers["Cache-Control"] = "no-store"
+        return response
+
     app.include_router(public)
     app.include_router(admin)
     app.include_router(client)

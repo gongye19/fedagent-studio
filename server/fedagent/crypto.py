@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import os
+import tempfile
 from pathlib import Path
 
 from cryptography.fernet import Fernet, InvalidToken
+from fedagent_sdk import ModelError
 
 
 class SecretBox:
@@ -18,8 +20,16 @@ class SecretBox:
             return cls(configured.encode())
         path = data_dir / "secret.key"
         if not path.exists():
-            path.write_bytes(Fernet.generate_key())
-            os.chmod(path, 0o600)
+            # API 和 runner 同时首次启动时只能有一个密钥；链接前临时文件已写完。
+            with tempfile.NamedTemporaryFile(dir=data_dir, delete=False) as handle:
+                temporary = Path(handle.name)
+                handle.write(Fernet.generate_key())
+            try:
+                os.link(temporary, path)
+            except FileExistsError:
+                pass
+            finally:
+                temporary.unlink()
         return cls(path.read_bytes().strip())
 
     def encrypt(self, value: str) -> str:
@@ -30,5 +40,5 @@ class SecretBox:
             return None
         try:
             return self._fernet.decrypt(value.encode()).decode()
-        except InvalidToken:
-            return None
+        except InvalidToken as error:
+            raise ModelError("无法解密已保存的模型密钥，请恢复匹配的 secret.key 或重新配置接口密钥") from error

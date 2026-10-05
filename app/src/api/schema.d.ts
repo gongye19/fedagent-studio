@@ -830,6 +830,10 @@ export interface components {
         ClientUnitOut: {
             /** Id */
             id: number;
+            /** Attempt */
+            attempt: number;
+            /** Itemids */
+            itemIds: string[];
             /** Taskid */
             taskId: string;
             /** Round */
@@ -2825,7 +2829,8 @@ export interface operations {
     client_inputs_v1_client_units__unit_id__inputs_get: {
         parameters: {
             query?: never;
-            header?: {
+            header: {
+                "X-Fedagent-Attempt": number;
                 authorization?: string | null;
             };
             path: {
@@ -2858,7 +2863,8 @@ export interface operations {
     client_heartbeat_v1_client_units__unit_id__heartbeat_post: {
         parameters: {
             query?: never;
-            header?: {
+            header: {
+                "X-Fedagent-Attempt": number;
                 authorization?: string | null;
             };
             path: {
@@ -2889,7 +2895,8 @@ export interface operations {
     client_complete_v1_client_units__unit_id__complete_post: {
         parameters: {
             query?: never;
-            header?: {
+            header: {
+                "X-Fedagent-Attempt": number;
                 authorization?: string | null;
             };
             path: {
@@ -2924,7 +2931,8 @@ export interface operations {
     client_fail_v1_client_units__unit_id__fail_post: {
         parameters: {
             query?: never;
-            header?: {
+            header: {
+                "X-Fedagent-Attempt": number;
                 authorization?: string | null;
             };
             path: {

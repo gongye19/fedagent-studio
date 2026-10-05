@@ -1,4 +1,4 @@
-import { useId, useRef, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useId, useRef, type Dispatch, type SetStateAction } from "react";
 import { SCENARIOS, TASK_TYPES, taskTypesFor } from "../domain/catalog";
 import type { Hosting } from "../domain/resources";
 import { checkJsonl, MAX_FILE_BYTES, MAX_PROBLEMS } from "../domain/validate";
@@ -16,20 +16,33 @@ export function DatasetFields({ form, hosting, onChange }: { form: DatasetForm; 
   const uid = useId();
   const ids = { scenario: `${uid}-scenario`, type: `${uid}-type`, file: `${uid}-file`, format: `${uid}-format`, name: `${uid}-name`, description: `${uid}-description` };
   const input = useRef<HTMLInputElement>(null);
+  const selection = useRef(0);
+  useEffect(() => {
+    selection.current += 1;
+    return () => { selection.current += 1; };
+  }, [hosting, form.scenario, form.taskType]);
   const types = form.scenario ? taskTypesFor(form.scenario) : [];
   const type = form.taskType ? TASK_TYPES[form.taskType] : null;
   const file = form.file;
-  const failed = file && !file.check?.ok;
+  const failed = file && !file.checking && !file.check?.ok;
 
   async function pick(selected: File | undefined) {
     if (!selected) return;
+    const version = ++selection.current;
     if (selected.size > MAX_FILE_BYTES) {
       onChange((current) => ({ ...current, file: { name: selected.name, size: selected.size, check: null, error: "文件超过 20 MB，请拆分后再选择" } }));
       return;
     }
-    const check = checkJsonl(await selected.text());
-    // 读文件期间用户可能改了别的字段，只更新文件这一项。
-    onChange((current) => ({ ...current, file: { name: selected.name, size: selected.size, check, blob: selected } }));
+    onChange((current) => ({ ...current, file: { name: selected.name, size: selected.size, check: null, checking: true } }));
+    try {
+      const text = new TextDecoder("utf-8", { fatal: true }).decode(await selected.arrayBuffer());
+      if (selection.current !== version) return;
+      const check = checkJsonl(text);
+      onChange((current) => ({ ...current, file: { name: selected.name, size: selected.size, check, blob: selected } }));
+    } catch {
+      if (selection.current !== version) return;
+      onChange((current) => ({ ...current, file: { name: selected.name, size: selected.size, check: null, error: "无法读取 UTF-8 文本，请检查文件编码后重新选择" } }));
+    }
   }
 
   function choose() {
@@ -46,13 +59,13 @@ export function DatasetFields({ form, hosting, onChange }: { form: DatasetForm; 
           value={form.scenario}
           options={SCENARIOS.map((item) => ({ value: item.id, label: item.short, disabled: item.status !== "available", badge: item.status === "available" ? undefined : "规划中" }))}
           // 换了场景，任务类型要重新选。
-          onChange={(scenario) => onChange((current) => (current.scenario === scenario ? current : { ...current, scenario, taskType: null }))}
+          onChange={(scenario) => onChange((current) => (current.scenario === scenario ? current : { ...current, scenario, taskType: null, file: null }))}
         />
       </Field>
       {form.scenario ? (
         <Field label="任务类型" labelId={ids.type} wide>
           {types.length ? (
-            <Choices labelledBy={ids.type} value={form.taskType} options={types.map((item) => ({ value: item, label: TASK_TYPES[item].label }))} placeholder="更多类型" onChange={(taskType) => onChange((current) => ({ ...current, taskType }))} />
+            <Choices labelledBy={ids.type} value={form.taskType} options={types.map((item) => ({ value: item, label: TASK_TYPES[item].label }))} placeholder="更多类型" onChange={(taskType) => onChange((current) => current.taskType === taskType ? current : { ...current, taskType, file: null })} />
           ) : <p className="field-static">这个场景还没有可用的任务类型。</p>}
         </Field>
       ) : null}
@@ -67,6 +80,7 @@ export function DatasetFields({ form, hosting, onChange }: { form: DatasetForm; 
           </label>
           {file ? (
             <div className={`check-result${failed ? " check-result--failed" : " check-result--ok"}`} aria-live="polite">
+              {file.checking ? <p>正在读取并检查文件…</p> : null}
               {file.error ? <p><Icon name="x" />{file.error}</p> : null}
               {file.check?.ok ? (
                 <p><Icon name="check" />检查通过：{formatNumber(file.check.count)} 条样本，其中 {formatNumber(file.check.answered)} 条有标注。</p>
