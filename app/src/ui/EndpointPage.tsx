@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api, ApiError } from "../api/client";
+import type { components } from "../api/schema";
 import { DEFAULT_ENDPOINT_ID, type Endpoint } from "../domain/resources";
 import { deleteEndpoint, saveEndpoint } from "../state/actions";
 import { showFlash } from "../state/flash";
@@ -7,6 +8,9 @@ import { backTo, navigate, type From } from "../state/route";
 import type { State } from "../state/store";
 import { Confirm, FormActions, NotFound, Notice, PageHead } from "./common";
 import { Field, FieldGroup, Panel, UnitInput } from "./console";
+import { Icon } from "./icons";
+
+type Check = components["schemas"]["EndpointTestOut"];
 
 type Props = { state: State; id?: string; from?: From };
 
@@ -32,7 +36,8 @@ function EndpointForm({ state, endpoint, from }: { state: State; endpoint?: Endp
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
-  const [tested, setTested] = useState<{ ok: boolean; message: string } | null>(null);
+  const [tested, setTested] = useState<Check | null>(null);
+  const [testError, setTestError] = useState<string | null>(null);
   const list = models.split(/[\n,，]/).map((item) => item.trim()).filter(Boolean);
   const url = baseUrl.trim();
   const validUrl = url === "" || /^https?:\/\/\S+$/.test(url);
@@ -88,14 +93,19 @@ function EndpointForm({ state, endpoint, from }: { state: State; endpoint?: Endp
     if (!endpoint) return;
     setTesting(true);
     setTested(null);
+    setTestError(null);
     try {
-      const result = await api.testEndpoint(endpoint.id);
-      setTested({ ok: result.ok, message: result.message });
+      setTested(await api.testEndpoint(endpoint.id));
     } catch (failure) {
-      setTested({ ok: false, message: failure instanceof ApiError ? failure.message : "测试失败" });
+      setTestError(failure instanceof ApiError ? failure.message : "测试失败，稍后再试");
     } finally {
       setTesting(false);
     }
+  }
+
+  // 接口提供的模型点一下就加进"模型"，保存后生效
+  function addModel(model: string) {
+    setModels((current) => (current.trim() ? `${current.trim().replace(/[,，]$/, "")}, ${model}` : model));
   }
 
   const deletable = endpoint && endpoint.id !== DEFAULT_ENDPOINT_ID && !endpoint.builtin;
@@ -108,13 +118,14 @@ function EndpointForm({ state, endpoint, from }: { state: State; endpoint?: Endp
   return (
     <>
       <PageHead title={title} crumbs={[{ label: "模型接口", route: { page: "models" } }]} actions={actions} />
-      {tested ? <Notice tone={tested.ok ? "info" : "warning"} onDismiss={() => setTested(null)}>{tested.ok ? tested.message : `连接失败：${tested.message}`}</Notice> : null}
+      {testError ? <Notice tone="warning" onDismiss={() => setTestError(null)}>{`测试失败：${testError}`}</Notice> : null}
       {removing && endpoint ? (
         <Confirm title={`删除“${endpoint.name}”？`} confirmLabel="删除" onConfirm={() => void remove()} onCancel={() => setRemoving(false)}>
           已有任务的配置不受影响；新建任务时不能再选它的模型。
         </Confirm>
       ) : null}
       <div className="form-page">
+        {tested ? <CheckPanel result={tested} listed={list} onAdd={addModel} onClose={() => setTested(null)} /> : null}
         <Panel title="接口设置">
           <div className="form-body">
             <FieldGroup>
@@ -161,4 +172,61 @@ function EndpointForm({ state, endpoint, from }: { state: State; endpoint?: Endp
       </div>
     </>
   );
+}
+
+/**
+ * 测试连接的结果：每个登记的模型按任务实际会用的生成参数各发一条很短的请求；
+ * 接口提供、还没登记的模型点一下加进"模型"。
+ */
+function CheckPanel({ result, listed, onAdd, onClose }: { result: Check; listed: readonly string[]; onAdd: (model: string) => void; onClose: () => void }) {
+  const available = result.available;
+  const unlisted = available ? available.filter((model) => !listed.includes(model)) : [];
+  const missing = available ? result.checks.map((check) => check.model).filter((model) => !available.includes(model)) : [];
+  return (
+    <Panel
+      title="检查结果"
+      extra={result.ok ? "模型都能用" : "有模型不能用"}
+      actions={<button type="button" className="button button--secondary button--compact" onClick={onClose}>收起</button>}
+      flush
+    >
+      <table className="table">
+        <caption className="visually-hidden">每个模型按任务实际的参数各试一次的结果</caption>
+        <thead>
+          <tr>
+            <th scope="col">模型</th>
+            <th scope="col">结果</th>
+            <th scope="col" className="numeric">耗时</th>
+          </tr>
+        </thead>
+        <tbody>
+          {result.checks.map((check) => (
+            <tr key={check.model}>
+              {/* 模型名不能从中间断开 */}
+              <th scope="row" className="nowrap">{check.model}</th>
+              <td>{check.ok ? <span className="status-text">正常</span> : <span className="check-error">{check.message}</span>}</td>
+              <td className="numeric nowrap">{latencyText(check.latencyMs)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="model-picks">
+        {available === null || available === undefined ? <span>读不到接口的模型列表{result.modelsError ? `：${result.modelsError}` : ""}</span> : (
+          <>
+            <span>{unlisted.length ? `接口还提供 ${unlisted.length} 个模型，点击加入：` : `接口提供的 ${available.length} 个模型都已登记`}</span>
+            {unlisted.map((model) => (
+              <button key={model} type="button" className="button button--secondary button--compact" onClick={() => onAdd(model)}>
+                <Icon name="plus" />{model}
+              </button>
+            ))}
+          </>
+        )}
+        {missing.length ? <span className="check-error">接口的模型列表里没有：{missing.join("、")}</span> : null}
+      </div>
+    </Panel>
+  );
+}
+
+function latencyText(ms: number | null): string {
+  if (ms === null) return "—";
+  return ms < 1000 ? `${ms} 毫秒` : `${(ms / 1000).toFixed(1)} 秒`;
 }

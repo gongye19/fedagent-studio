@@ -77,6 +77,14 @@ class Registry:
         except KeyError as error:
             raise PluginError(f"算法 {algorithm_id} 没有安装") from error
 
+    def model_settings(self) -> dict[str, Any]:
+        """检查模型接口时用的生成参数：各算法里最严格的（最大的 max_tokens，用到的 temperature、top_p）。"""
+        merged: dict[str, Any] = {}
+        for algorithm in self.algorithms.values():
+            for key, value in algorithm.model_settings().items():
+                merged[key] = max(int(merged.get(key, 0)), int(value)) if key == "max_tokens" else merged.get(key, value)
+        return merged or {"max_tokens": 16}
+
     def task_type(self, task_type_id: str) -> TaskType:
         try:
             return self.task_types[task_type_id]

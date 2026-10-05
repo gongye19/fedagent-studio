@@ -80,3 +80,52 @@ def test_unconfigured_default_endpoint(tmp_path) -> None:
     platform = make(tmp_path, lambda request: httpx.Response(500))
     with pytest.raises(ModelError, match="还没有配置"):
         platform.gateway.model("default")
+
+
+def test_endpoint_check_lists_models_and_uses_algorithm_settings(tmp_path) -> None:
+    from fastapi.testclient import TestClient
+
+    from fedagent.api import create_app
+
+    sent = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers["authorization"] == "Bearer sk-test"
+        if request.url.path.endswith("/models"):
+            return httpx.Response(200, json={"data": [{"id": "m1"}, {"id": "m2"}]})
+        body = json.loads(request.content)
+        sent.append(body)
+        if body["model"] == "m2" and "top_p" in body:
+            return httpx.Response(400, json={"error": {"message": "temperature and top_p cannot both be specified for this model"}})
+        return httpx.Response(
+            200, json={"choices": [{"message": {"content": "OK"}, "finish_reason": "stop"}], "usage": {"prompt_tokens": 3, "completion_tokens": 1}}
+        )
+
+    platform = make(tmp_path, handler)
+    with platform.db.session() as session:
+        session.get(m.Endpoint, "ep-test").models = ["m1", "m2", "m3"]
+    with TestClient(create_app(platform)) as client:
+        assert client.get("/v1/endpoints/ep-test/models").json() == {"models": ["m1", "m2"]}
+        result = client.post("/v1/endpoints/ep-test/test").json()
+    assert result["available"] == ["m1", "m2"]
+    assert [(check["model"], check["ok"]) for check in result["checks"]] == [("m1", True), ("m2", False), ("m3", True)]
+    assert result["ok"] is False
+    assert "top_p" in result["message"]
+    # 错误原因取接口返回的 message，不是整段 JSON
+    assert result["checks"][1]["message"] == "接口返回 400：temperature and top_p cannot both be specified for this model"
+    assert "模型列表里没有：m3" in result["message"]
+    # 按算法实际用的生成参数发：FoT 最长输出 32768，temperature 0.7，top_p 0.9
+    assert sent[0]["max_tokens"] == 32768
+    assert sent[0]["temperature"] == 0.7
+    assert sent[0]["top_p"] == 0.9
+
+
+def test_retry_exhaustion_keeps_provider_reason(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr("time.sleep", lambda _: None)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(503, json={"error": {"message": "No available accounts"}})
+
+    platform = make(tmp_path, handler)
+    with pytest.raises(ModelError, match="接口返回 503：No available accounts"):
+        platform.gateway.model("ep-test:m1").chat("hi")

@@ -217,6 +217,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/endpoints/{endpoint_id}/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Endpoint Models
+         * @description 接口提供的模型（读接口的 GET /models），选模型时用。
+         */
+        get: operations["endpoint_models_v1_endpoints__endpoint_id__models_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/endpoints/{endpoint_id}/test": {
         parameters: {
             query?: never;
@@ -228,7 +248,7 @@ export interface paths {
         put?: never;
         /**
          * Test Endpoint
-         * @description 发一条很短的请求，看接口能不能用（会产生极少量费用）。
+         * @description 检查接口：读接口的模型列表；每个登记的模型按算法实际用的生成参数各发一条很短的请求（会产生极少量费用）。
          */
         post: operations["test_endpoint_v1_endpoints__endpoint_id__test_post"];
         delete?: never;
@@ -937,6 +957,11 @@ export interface components {
              */
             maxRetries: number;
         };
+        /** EndpointModelsOut */
+        EndpointModelsOut: {
+            /** Models */
+            models: string[];
+        };
         /** EndpointOut */
         EndpointOut: {
             /** Id */
@@ -977,6 +1002,15 @@ export interface components {
             latencyMs: number | null;
             /** Message */
             message: string;
+            /** Available */
+            available?: string[] | null;
+            /** Modelserror */
+            modelsError?: string | null;
+            /**
+             * Checks
+             * @default []
+             */
+            checks: components["schemas"]["ModelCheckOut"][];
         };
         /** EstimateOut */
         EstimateOut: {
@@ -1112,6 +1146,17 @@ export interface components {
              * @default []
              */
             clientPackages: string[];
+        };
+        /** ModelCheckOut */
+        ModelCheckOut: {
+            /** Model */
+            model: string;
+            /** Ok */
+            ok: boolean;
+            /** Latencyms */
+            latencyMs: number | null;
+            /** Message */
+            message: string;
         };
         /** OutputDef */
         OutputDef: {
@@ -2051,6 +2096,39 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    endpoint_models_v1_endpoints__endpoint_id__models_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                endpoint_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EndpointModelsOut"];
+                };
             };
             /** @description Validation Error */
             422: {

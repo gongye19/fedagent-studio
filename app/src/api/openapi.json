@@ -1025,13 +1025,72 @@
     }
    }
   },
+  "/v1/endpoints/{endpoint_id}/models": {
+   "get": {
+    "tags": [
+     "endpoints"
+    ],
+    "summary": "Endpoint Models",
+    "description": "接口提供的模型（读接口的 GET /models），选模型时用。",
+    "operationId": "endpoint_models_v1_endpoints__endpoint_id__models_get",
+    "parameters": [
+     {
+      "name": "endpoint_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Endpoint Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/EndpointModelsOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/v1/endpoints/{endpoint_id}/test": {
    "post": {
     "tags": [
      "endpoints"
     ],
     "summary": "Test Endpoint",
-    "description": "发一条很短的请求，看接口能不能用（会产生极少量费用）。",
+    "description": "检查接口：读接口的模型列表；每个登记的模型按算法实际用的生成参数各发一条很短的请求（会产生极少量费用）。",
     "operationId": "test_endpoint_v1_endpoints__endpoint_id__test_post",
     "parameters": [
      {
@@ -3427,6 +3486,22 @@
     ],
     "title": "EndpointIn"
    },
+   "EndpointModelsOut": {
+    "properties": {
+     "models": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Models"
+     }
+    },
+    "type": "object",
+    "required": [
+     "models"
+    ],
+    "title": "EndpointModelsOut"
+   },
    "EndpointOut": {
     "properties": {
      "id": {
@@ -3540,6 +3615,39 @@
      "message": {
       "type": "string",
       "title": "Message"
+     },
+     "available": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Available"
+     },
+     "modelsError": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Modelserror"
+     },
+     "checks": {
+      "items": {
+       "$ref": "#/components/schemas/ModelCheckOut"
+      },
+      "type": "array",
+      "title": "Checks",
+      "default": []
      }
     },
     "type": "object",
@@ -3884,6 +3992,41 @@
      "authRequired"
     ],
     "title": "MetaOut"
+   },
+   "ModelCheckOut": {
+    "properties": {
+     "model": {
+      "type": "string",
+      "title": "Model"
+     },
+     "ok": {
+      "type": "boolean",
+      "title": "Ok"
+     },
+     "latencyMs": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Latencyms"
+     },
+     "message": {
+      "type": "string",
+      "title": "Message"
+     }
+    },
+    "type": "object",
+    "required": [
+     "model",
+     "ok",
+     "latencyMs",
+     "message"
+    ],
+    "title": "ModelCheckOut"
    },
    "OutputDef": {
     "properties": {

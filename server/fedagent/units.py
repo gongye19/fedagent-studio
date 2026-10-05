@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from fedagent_sdk import SERVER, Artifact, Item, Manifest, Message, StepDef, TaskType, UnitResult
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.orm import Session
 
 from . import models as m
@@ -74,17 +74,27 @@ def to_message(row: m.Message) -> Message:
 
 
 def inbox(session: Session, task_id: str, site: SiteView, channel: str, round: int) -> list[Message]:
+    """发给这一方的消息。按发送方在任务里的顺序、步骤、样本在数据集里的顺序排，和各单元完成的先后无关：
+    并发执行时先完成的单元先写入，如果按写入顺序，续跑和一次跑完时汇总步骤读到的顺序会不一样。
+    同一个单元发出的几条保持发出的顺序。"""
     rows = session.scalars(
-        select(m.Message)
-        .where(
+        select(m.Message).where(
             m.Message.task_id == task_id,
             m.Message.round == round,
             m.Message.channel == channel,
             or_(m.Message.receiver_site == site.id, m.Message.receiver_role == site.role),
         )
-        .order_by(m.Message.id)
     ).all()
-    return [to_message(row) for row in rows]
+    sites = load_sites(session, task_id)
+    position = {view.id: index for index, view in enumerate(sites)}
+    item_order = {view.id: {item: index for index, item in enumerate(view.items)} for view in sites}
+
+    def order(row: m.Message) -> tuple[int, str, int, int]:
+        items = item_order.get(row.sender_site, {})
+        item = items.get(row.item_id, len(items)) if row.item_id is not None else -1
+        return position.get(row.sender_site, len(position)), row.step, item, row.id
+
+    return [to_message(row) for row in sorted(rows, key=order)]
 
 
 def latest_artifact(session: Session, task_id: str, before_round: int) -> Artifact | None:
@@ -164,8 +174,25 @@ def store_result(
     plugin_version: str,
     keep_private: bool,
     run_dir: Path | None,
-) -> None:
-    """在一个事务里保存工作单元的全部结果，并把单元标为完成。"""
+    expected: str,
+    attempt: int | None = None,
+) -> bool:
+    """在一个事务里保存工作单元的全部结果，并把单元标为完成。
+
+    先用一条条件更新把单元从 expected 状态（平台执行的是 running，客户端的是 claimed）改为完成；
+    平台执行的单元还要是同一次尝试（attempt）。条件不满足说明别的执行已经保存过，或者这次执行已经过期
+    （例如暂停后续跑，同一个单元又被领走了），这时什么都不保存，返回 False。
+    """
+    conditions = [m.WorkUnit.id == unit.id, m.WorkUnit.status == expected]
+    if attempt is not None:
+        conditions.append(m.WorkUnit.attempts == attempt)
+    owned = session.execute(
+        update(m.WorkUnit).where(*conditions).values(status="done", error=None, finished_at=m.now(), lease_until=None),
+        execution_options={"synchronize_session": False},
+    )
+    if not owned.rowcount:  # type: ignore[attr-defined]
+        return False
+    session.refresh(unit)
     task_id, round, step = unit.task_id, unit.round, unit.step
     if keep_private:
         for key, item_id, value in result.kept:
@@ -206,16 +233,13 @@ def store_result(
             path = run_dir / "artifacts" / f"v{version}.json"
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(json.dumps(result.published, ensure_ascii=False, indent=2), encoding="utf-8")
-    unit.status = "done"
-    unit.error = None
-    unit.finished_at = m.now()
-    unit.lease_until = None
     if run_dir is not None and written:
         path = run_dir / "messages" / f"r{round}" / f"{step}.jsonl"
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("a", encoding="utf-8") as handle:
             for row in written:
                 handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+    return True
 
 
 def add_event(session: Session, task_id: str, kind: str, message: str, data: dict[str, Any] | None = None, run_dir: Path | None = None) -> None:

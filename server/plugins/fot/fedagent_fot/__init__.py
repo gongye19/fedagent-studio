@@ -71,6 +71,9 @@ class FoT(Algorithm):
     def _problem(ctx: StepContext) -> str:
         return prompts.problem_text(str(ctx.item["question"]))
 
+    def model_settings(self) -> dict[str, Any]:
+        return {"max_tokens": max(MAX_TOKENS.values()), **GENERATION}
+
     @step("solve")
     def solve(self, ctx: StepContext) -> None:
         artifact = ctx.artifact()

@@ -42,6 +42,7 @@ from .schemas import (
     DatasetCheckOut,
     DatasetOut,
     EndpointIn,
+    EndpointModelsOut,
     EndpointOut,
     EndpointTestOut,
     EstimateOut,
@@ -49,6 +50,7 @@ from .schemas import (
     FailIn,
     MessageOut,
     MetaOut,
+    ModelCheckOut,
     ParticipantOut,
     ParticipantPatch,
     RegistryOut,
@@ -299,20 +301,63 @@ def delete_endpoint(endpoint_id: str, session: SessionDep) -> Response:
     return Response(status_code=204)
 
 
+@admin.get("/endpoints/{endpoint_id}/models", response_model=EndpointModelsOut, tags=["endpoints"])
+def endpoint_models(endpoint_id: str, platform: PlatformDep) -> EndpointModelsOut:
+    """接口提供的模型（读接口的 GET /models），选模型时用。"""
+    gateway = platform.gateway
+    try:
+        gateway.endpoint(endpoint_id)
+    except ModelError as error:
+        raise HTTPException(404, str(error)) from error
+    try:
+        return EndpointModelsOut(models=gateway.list_models(endpoint_id))
+    except ModelError as error:
+        raise HTTPException(502, f"读不到模型列表：{error}") from error
+
+
 @admin.post("/endpoints/{endpoint_id}/test", response_model=EndpointTestOut, tags=["endpoints"])
 def test_endpoint(endpoint_id: str, platform: PlatformDep) -> EndpointTestOut:
-    """发一条很短的请求，看接口能不能用（会产生极少量费用）。"""
+    """检查接口：读接口的模型列表；每个登记的模型按算法实际用的生成参数各发一条很短的请求（会产生极少量费用）。"""
+    gateway = platform.gateway
     try:
-        endpoint = platform.gateway.endpoint(endpoint_id)
-        if not endpoint.configured:
-            return EndpointTestOut(ok=False, model=None, latency_ms=None, message="还没有填接口地址和模型")
-        model = endpoint.models[0]
-        started = time.monotonic()
-        reply = platform.gateway.model(f"{endpoint_id}:{model}", purpose="test").chat("Reply with OK.", max_tokens=16)
-        latency = int((time.monotonic() - started) * 1000)
-        return EndpointTestOut(ok=True, model=reply.model, latency_ms=latency, message=f"连接正常，{latency} 毫秒")
+        endpoint = gateway.endpoint(endpoint_id)
     except ModelError as error:
-        return EndpointTestOut(ok=False, model=None, latency_ms=None, message=str(error))
+        raise HTTPException(404, str(error)) from error
+    if not endpoint.configured:
+        return EndpointTestOut(ok=False, model=None, latency_ms=None, message="还没有填接口地址和模型")
+    available: list[str] | None = None
+    models_error: str | None = None
+    try:
+        available = gateway.list_models(endpoint_id)
+    except ModelError as error:
+        models_error = str(error)  # 有的接口不提供模型列表，不算失败
+    settings = platform.registry.model_settings()
+    checks: list[ModelCheckOut] = []
+    for model in endpoint.models:
+        started = time.monotonic()
+        try:
+            gateway.probe(endpoint_id, model, settings)
+            checks.append(ModelCheckOut(model=model, ok=True, latency_ms=int((time.monotonic() - started) * 1000), message="正常"))
+        except ModelError as error:
+            checks.append(ModelCheckOut(model=model, ok=False, latency_ms=None, message=str(error)))
+    failed = [check for check in checks if not check.ok]
+    missing = [model for model in endpoint.models if available is not None and endpoint.kind != "fake" and model not in available]
+    if failed:
+        message = f"{len(failed)} 个模型不能用：" + "；".join(f"{check.model}（{check.message}）" for check in failed)
+    else:
+        message = "模型都能用：" + "、".join(f"{check.model} {check.latency_ms / 1000:.1f} 秒" for check in checks if check.latency_ms is not None)
+    if missing:
+        message += f"。接口的模型列表里没有：{'、'.join(missing)}"
+    first = checks[0] if checks else None
+    return EndpointTestOut(
+        ok=not failed,
+        model=first.model if first else None,
+        latency_ms=first.latency_ms if first else None,
+        message=message,
+        available=available,
+        models_error=models_error,
+        checks=checks,
+    )
 
 
 # —— 联邦任务 ——

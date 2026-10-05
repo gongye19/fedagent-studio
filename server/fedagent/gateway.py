@@ -14,7 +14,7 @@ import json
 import random
 import threading
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 import httpx
@@ -139,6 +139,32 @@ class Gateway:
 
     def client(self, endpoint: EndpointConfig) -> httpx.Client:
         return httpx.Client(timeout=httpx.Timeout(endpoint.timeout, connect=30.0), transport=self._transport)
+
+    def list_models(self, endpoint_id: str) -> list[str]:
+        """接口提供的模型（OpenAI 兼容的 GET /models）。"""
+        endpoint = self.endpoint(endpoint_id)
+        if endpoint.kind == "fake":
+            return list(endpoint.models)
+        if not endpoint.base_url.strip():
+            raise ModelError("还没有填接口地址")
+        headers = {"Authorization": f"Bearer {endpoint.api_key}"} if endpoint.api_key else {}
+        try:
+            with self.client(endpoint) as client:
+                response = client.get(endpoint.base_url.rstrip("/") + "/models", headers=headers)
+        except (httpx.TimeoutException, httpx.TransportError) as error:
+            raise ModelError(f"连接失败：{type(error).__name__}") from error
+        if response.status_code >= 400:
+            raise ModelError(f"接口返回 {response.status_code}：{_error_text(response)}")
+        try:
+            items = response.json().get("data") or []
+            return sorted({str(item["id"]) for item in items if isinstance(item, dict) and item.get("id")})
+        except (ValueError, AttributeError, TypeError) as error:
+            raise ModelError(f"模型列表无法解析：{_snippet(response.text)}") from error
+
+    def probe(self, endpoint_id: str, model: str, settings: dict[str, Any]) -> ChatResult:
+        """按给定的生成参数发一条很短的请求；只重试一次，检查时不久等。"""
+        endpoint = replace(self.endpoint(endpoint_id), max_retries=1)
+        return GatewayModel(self, endpoint, model, ledger=None, purpose="test", plugin=None, step_id=None).chat("Reply with OK.", **settings)
 
 
 class GatewayModel:
@@ -287,10 +313,10 @@ class GatewayModel:
                     last_error = f"连接失败：{type(error).__name__}"
                     continue
                 if response.status_code in RETRYABLE:
-                    last_error = f"接口返回 {response.status_code}"
+                    last_error = f"接口返回 {response.status_code}：{_error_text(response)}"
                     continue
                 if response.status_code >= 400:
-                    raise ModelError(f"接口返回 {response.status_code}：{_snippet(response.text)}")
+                    raise ModelError(f"接口返回 {response.status_code}：{_error_text(response)}")
                 try:
                     data = response.json()
                     choice = data["choices"][0]
@@ -310,6 +336,20 @@ class GatewayModel:
                     finish_reason=choice.get("finish_reason"),
                 )
         raise ModelError(f"重试 {endpoint.max_retries} 次后仍失败（{last_error}）")
+
+
+def _error_text(response: httpx.Response) -> str:
+    """接口返回的错误原因：OpenAI 兼容的接口一般是 {"error": {"message": ...}}，取不到就用响应的开头。"""
+    try:
+        data = response.json()
+    except ValueError:
+        return _snippet(response.text)
+    if isinstance(data, dict):
+        error = data.get("error")
+        for value in (error.get("message") if isinstance(error, dict) else error, data.get("message"), data.get("detail")):
+            if isinstance(value, str) and value.strip():
+                return _snippet(value)
+    return _snippet(response.text)
 
 
 def _snippet(text: str, limit: int = 300) -> str:

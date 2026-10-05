@@ -219,11 +219,27 @@ class EndpointOut(Model):
     max_retries: int
 
 
+class ModelCheckOut(Model):
+    model: str
+    ok: bool
+    latency_ms: int | None
+    message: str
+
+
 class EndpointTestOut(Model):
     ok: bool
     model: str | None
     latency_ms: int | None
     message: str
+    available: list[str] | None = None
+    """接口提供的模型（GET /models）；读不到时为空，原因在 models_error。"""
+    models_error: str | None = None
+    checks: list[ModelCheckOut] = []
+    """每个登记的模型按算法实际用的生成参数各试一次的结果。"""
+
+
+class EndpointModelsOut(Model):
+    models: list[str]
 
 
 # —— 联邦任务 ——

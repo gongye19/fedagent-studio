@@ -181,6 +181,7 @@ def complete(platform: Platform, session: Session, participant: m.Participant, u
         ],
         reports=dict(body.reports),
     )
+    # 同一个单元重复提交（例如客户端超时后重试）时只保存第一次，后面的什么都不做
     store_result(
         session,
         unit=unit,
@@ -192,6 +193,7 @@ def complete(platform: Platform, session: Session, participant: m.Participant, u
         plugin_version=algorithm.version,
         keep_private=False,
         run_dir=platform.settings.runs_dir / task.id,
+        expected="claimed",
     )
 
 

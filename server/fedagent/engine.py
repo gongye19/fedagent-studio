@@ -139,23 +139,23 @@ class TaskEngine:
         self._step_started = time.monotonic()
         workers = max(1, int(self.config.get("workers") or 8))
         pool = ThreadPoolExecutor(max_workers=workers, thread_name_prefix=f"{step.id}")
-        futures: dict[Future[Outcome], int] = {}
+        futures: dict[Future[Outcome], tuple[int, int]] = {}
         try:
             while True:
                 self._check_command()
                 self._check_budget()
                 for future in [future for future in futures if future.done()]:
-                    unit_id = futures.pop(future)
+                    unit_id, attempt = futures.pop(future)
                     try:
                         outcome = future.result()
                     except Exception as error:
                         outcome = Outcome(False, f"{type(error).__name__}: {error}")
                     if not outcome.ok:
-                        self._unit_failed(unit_id, step, outcome)
+                        self._unit_failed(unit_id, attempt, step, outcome)
                 capacity = workers - len(futures)
                 if capacity > 0:
-                    for unit_id in self._claim_platform_units(round, step, capacity):
-                        futures[pool.submit(self._execute, unit_id, round, step)] = unit_id
+                    for unit_id, attempt in self._claim_platform_units(round, step, capacity):
+                        futures[pool.submit(self._execute, unit_id, attempt, round, step)] = (unit_id, attempt)
                 self._reclaim_client_leases(round, step)
                 status = self._unit_counts(round, step)
                 if status.get("failed"):
@@ -171,7 +171,8 @@ class TaskEngine:
         finally:
             pool.shutdown(wait=False, cancel_futures=True)
 
-    def _claim_platform_units(self, round: int, step: StepDef, limit: int) -> list[int]:
+    def _claim_platform_units(self, round: int, step: StepDef, limit: int) -> list[tuple[int, int]]:
+        """领取待执行的单元，返回（单元 id，第几次尝试）；保存结果时按尝试次数核对，过期的执行不会覆盖新的。"""
         with self.db.session() as session:
             units = session.scalars(
                 select(m.WorkUnit)
@@ -189,7 +190,7 @@ class TaskEngine:
                 unit.status = "running"
                 unit.attempts += 1
                 unit.started_at = m.now()
-            return [unit.id for unit in units]
+            return [(unit.id, unit.attempts) for unit in units]
 
     def _unit_counts(self, round: int, step: StepDef) -> dict[str, int]:
         with self.db.session() as session:
@@ -200,7 +201,7 @@ class TaskEngine:
             ).all()
         return {status: count for status, count in rows}
 
-    def _execute(self, unit_id: int, round: int, step: StepDef) -> Outcome:
+    def _execute(self, unit_id: int, attempt: int, round: int, step: StepDef) -> Outcome:
         with self.db.session() as session:
             unit = session.get(m.WorkUnit, unit_id)
             assert unit is not None
@@ -253,9 +254,9 @@ class TaskEngine:
             graded.append(Graded(item_id, labeled, correct))
         with self.db.session() as session:
             unit = session.get(m.WorkUnit, unit_id)
-            if unit is None or unit.status != "running":
+            if unit is None:
                 return Outcome(True)
-            store_result(
+            stored = store_result(
                 session,
                 unit=unit,
                 manifest=self.manifest,
@@ -266,19 +267,22 @@ class TaskEngine:
                 plugin_version=self.plugin.version,
                 keep_private=True,
                 run_dir=self.run_dir,
+                expected="running",
+                attempt=attempt,
             )
+            if not stored:
+                log.info("%s unit %s attempt %s: result discarded (stored by another attempt)", self.task_id, unit_id, attempt)
         return Outcome(True)
 
-    def _unit_failed(self, unit_id: int, step: StepDef, outcome: Outcome) -> None:
+    def _unit_failed(self, unit_id: int, attempt: int, step: StepDef, outcome: Outcome) -> None:
+        # 只改这次尝试领到的单元；过期的执行失败了不影响后来的尝试
         with self.db.session() as session:
-            unit = session.get(m.WorkUnit, unit_id)
-            if unit is None:
-                return
-            unit.error = outcome.error
-            if outcome.pause or unit.attempts > step.retries:
-                unit.status = "failed"
-            else:
-                unit.status = "pending"
+            session.execute(
+                update(m.WorkUnit)
+                .where(m.WorkUnit.id == unit_id, m.WorkUnit.status == "running", m.WorkUnit.attempts == attempt)
+                .values(error=outcome.error, status="failed" if outcome.pause or attempt > step.retries else "pending"),
+                execution_options={"synchronize_session": False},
+            )
 
     def _pause_from_failed(self, round: int, step: StepDef) -> str:
         with self.db.session() as session:

@@ -146,6 +146,14 @@ class Algorithm:
             return OutputEntry(key=str(key), text=json.dumps(payload, ensure_ascii=False))
         return OutputEntry(key="", text=str(payload))
 
+    def model_settings(self) -> dict[str, Any]:
+        """模型调用里最严格的生成参数（例如最大的 max_tokens、temperature、top_p）。
+
+        平台检查模型接口时按它发一条很短的请求，提前发现接口不支持的参数（有的模型不接受同时设
+        temperature 和 top_p，有的输出上限比算法要的小）。不调用模型的算法返回空字典。
+        """
+        return {}
+
     def fake_reply(self, step_id: str | None, prompt: str, seed: str) -> str | None:
         """假模型的回答：开发、测试、演示时不调用真实模型。
 
