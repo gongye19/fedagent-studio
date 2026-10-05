@@ -126,6 +126,8 @@ export const api = {
   updateEndpoint: (id: string, body: S["EndpointIn"]) => put<S["EndpointOut"]>(`/v1/endpoints/${encodeURIComponent(id)}`, body),
   deleteEndpoint: (id: string) => del(`/v1/endpoints/${encodeURIComponent(id)}`),
   testEndpoint: (id: string) => post<S["EndpointTestOut"]>(`/v1/endpoints/${encodeURIComponent(id)}/test`),
+  /** 读接口地址提供的模型（选模型用）；没填密钥时用 endpointId 这个接口已保存的密钥。 */
+  previewModels: (body: S["ModelListIn"]) => post<S["EndpointModelsOut"]>("/v1/endpoints/models", body),
 
   validateTask: (body: TaskConfigIn) => post<S["ValidateOut"]>("/v1/tasks/validate", body),
   createTask: (body: TaskConfigIn) => post<S["TaskOut"]>("/v1/tasks", body),

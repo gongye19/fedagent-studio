@@ -54,7 +54,8 @@ export default function ModelsPage({ state }: { state: State }) {
                         </small>
                       ) : null}
                     </th>
-                    <td data-label="模型">{endpoint.models.length ? endpoint.models.join("、") : "—"}</td>
+                    {/* 每个接口选用一个模型，只列这一个 */}
+                    <td data-label="模型" className="nowrap">{endpoint.models.length > 1 ? `${endpoint.models[0]} 等 ${endpoint.models.length} 个` : endpoint.models[0] ?? "—"}</td>
                     <td className="numeric" data-label="并发上限">{endpoint.concurrency}</td>
                     <td className="numeric" data-label="单价（元 / 百万 token）">{endpoint.price === null ? "—" : endpoint.price}</td>
                     <td className="numeric" data-label="使用">{used ? `${used} 个任务` : "—"}</td>

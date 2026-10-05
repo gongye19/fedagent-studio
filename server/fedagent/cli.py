@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import sys
 import threading
 from pathlib import Path
@@ -71,6 +72,8 @@ def main(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
 
     if args.command == "dev":
+        # 本地开发默认带测试用假模型接口，跑通流程不花钱；部署（serve）不带
+        os.environ.setdefault("FEDAGENT_FAKE_ENDPOINT", "1")
         _serve(True, args.host, args.port)
     elif args.command == "serve":
         _serve(False, args.host, args.port)

@@ -138,7 +138,7 @@ def run_contract(
 ) -> ContractReport:
     """datasets：参与方名称 → 样本列表（平台托管）。用测试用假模型跑两遍（一次跑完、一次中途暂停再继续）。"""
     root = workdir or Path(tempfile.mkdtemp(prefix="fedagent-contract-"))
-    platform = Platform.create(Settings(data_dir=root))
+    platform = Platform.create(Settings(data_dir=root, fake_endpoint=True))
     seed(platform)
     plugin = platform.registry.algorithm(algorithm)
     manifest = plugin.manifest

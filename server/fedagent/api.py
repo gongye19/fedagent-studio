@@ -51,6 +51,7 @@ from .schemas import (
     MessageOut,
     MetaOut,
     ModelCheckOut,
+    ModelListIn,
     ParticipantOut,
     ParticipantPatch,
     RegistryOut,
@@ -299,6 +300,22 @@ def update_endpoint(endpoint_id: str, body: EndpointIn, platform: PlatformDep, s
 def delete_endpoint(endpoint_id: str, session: SessionDep) -> Response:
     resources.delete_endpoint(session, endpoint_id)
     return Response(status_code=204)
+
+
+@admin.post("/endpoints/models", response_model=EndpointModelsOut, tags=["endpoints"])
+def preview_models(body: ModelListIn, platform: PlatformDep) -> EndpointModelsOut:
+    """读一个接口地址提供的模型，新增、编辑接口时选模型用；不保存任何东西。没填密钥时用这个接口已经保存的密钥。"""
+    gateway = platform.gateway
+    key = body.api_key or None
+    if key is None and body.endpoint_id:
+        try:
+            key = gateway.endpoint(body.endpoint_id).api_key
+        except ModelError as error:
+            raise HTTPException(404, str(error)) from error
+    try:
+        return EndpointModelsOut(models=gateway.list_models_at(body.base_url, key))
+    except ModelError as error:
+        raise HTTPException(502, f"读不到模型列表：{error}") from error
 
 
 @admin.get("/endpoints/{endpoint_id}/models", response_model=EndpointModelsOut, tags=["endpoints"])

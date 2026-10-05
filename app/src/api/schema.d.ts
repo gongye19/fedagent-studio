@@ -217,6 +217,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/endpoints/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview Models
+         * @description 读一个接口地址提供的模型，新增、编辑接口时选模型用；不保存任何东西。没填密钥时用这个接口已经保存的密钥。
+         */
+        post: operations["preview_models_v1_endpoints_models_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/endpoints/{endpoint_id}/models": {
         parameters: {
             query?: never;
@@ -1158,6 +1178,15 @@ export interface components {
             /** Message */
             message: string;
         };
+        /** ModelListIn */
+        ModelListIn: {
+            /** Baseurl */
+            baseUrl: string;
+            /** Apikey */
+            apiKey?: string | null;
+            /** Endpointid */
+            endpointId?: string | null;
+        };
         /** OutputDef */
         OutputDef: {
             /** Name */
@@ -2096,6 +2125,41 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_models_v1_endpoints_models_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModelListIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EndpointModelsOut"];
+                };
             };
             /** @description Validation Error */
             422: {

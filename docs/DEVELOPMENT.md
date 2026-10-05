@@ -25,8 +25,8 @@ npm run dev
 
 打开 <http://127.0.0.1:8880/>。前端开发服务器把 `/v1` 和 `/healthz` 转给 `127.0.0.1:8000`，要换地址时设环境变量 `FEDAGENT_API`。
 
-- 内置一个"测试用假模型"接口，不花钱就能从新建任务跑到发布应用；真实模型在"模型接口"里配置（OpenAI 兼容）。
-- 第一次启动时写入初始数据：参与方 A–H 和它们的数据集（A、B 的 AIME 题库随代码一起；C–H 的 6 份 LiveMathBench 题库要从 FoT 代码包导入：`uv run fedagent datasets import-fot-bundle <zip>`）、一个等待连接的本地参与方示例、默认 LLM 接口（待配置）和假模型。
+- `fedagent dev` 带一个"测试用假模型"接口，不花钱就能从新建任务跑到发布应用；部署的平台（`fedagent serve`）没有它，只登记真实接口。开关是 `FEDAGENT_FAKE_ENDPOINT`，每次启动按它补上或删掉。真实模型在"模型接口"里配置（OpenAI 兼容），每个接口从接口提供的模型里选一个。
+- 第一次启动时写入初始数据：参与方 A–H 和它们的数据集（A、B 的 AIME 题库随代码一起；C–H 的 6 份 LiveMathBench 题库要从 FoT 代码包导入：`uv run fedagent datasets import-fot-bundle <zip>`）、一个等待连接的本地参与方示例、默认 LLM 接口（待配置）。
 - 后端的其他命令：`uv run fedagent --help`（`serve`、`runner` 分开启动、`db upgrade`、`seed`、`openapi`、`contract` 等）。
 
 ## 常用命令

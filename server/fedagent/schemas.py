@@ -242,6 +242,13 @@ class EndpointModelsOut(Model):
     models: list[str]
 
 
+class ModelListIn(Model):
+    base_url: str = Field(min_length=1, max_length=400)
+    api_key: str | None = Field(default=None, max_length=400)
+    """不填时用 endpoint_id 这个接口已经保存的密钥。"""
+    endpoint_id: str | None = None
+
+
 # —— 联邦任务 ——
 
 

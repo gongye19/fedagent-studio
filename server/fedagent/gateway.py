@@ -145,12 +145,16 @@ class Gateway:
         endpoint = self.endpoint(endpoint_id)
         if endpoint.kind == "fake":
             return list(endpoint.models)
-        if not endpoint.base_url.strip():
+        return self.list_models_at(endpoint.base_url, endpoint.api_key)
+
+    def list_models_at(self, base_url: str, api_key: str | None) -> list[str]:
+        """按地址和密钥读模型列表；新增、编辑接口时还没保存也能读。"""
+        if not base_url.strip():
             raise ModelError("还没有填接口地址")
-        headers = {"Authorization": f"Bearer {endpoint.api_key}"} if endpoint.api_key else {}
+        headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
         try:
-            with self.client(endpoint) as client:
-                response = client.get(endpoint.base_url.rstrip("/") + "/models", headers=headers)
+            with httpx.Client(timeout=httpx.Timeout(30.0), transport=self._transport) as client:
+                response = client.get(base_url.strip().rstrip("/") + "/models", headers=headers)
         except (httpx.TimeoutException, httpx.TransportError) as error:
             raise ModelError(f"连接失败：{type(error).__name__}") from error
         if response.status_code >= 400:

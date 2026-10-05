@@ -14,7 +14,7 @@ from fedagent.settings import Settings
 
 @pytest.fixture
 def platform(tmp_path: Path) -> Platform:
-    created = Platform.create(Settings(data_dir=tmp_path))
+    created = Platform.create(Settings(data_dir=tmp_path, fake_endpoint=True))
     seed(created)
     return created
 

@@ -55,6 +55,21 @@ def test_seed_and_participants(client: TestClient) -> None:
     assert datasets["ds-aime24"]["ready"] and not datasets["ds-amc"]["ready"]
 
 
+def test_fake_endpoint_only_when_enabled(tmp_path: Path) -> None:
+    from fedagent.seed import seed
+    from fedagent.settings import Settings
+
+    # 本地开发、测试时开启；部署的平台不开，已有的也会删掉，只留真实接口
+    seed(Platform.create(Settings(data_dir=tmp_path, fake_endpoint=True)))
+    with Platform.create(Settings(data_dir=tmp_path, fake_endpoint=True)).db.session() as session:
+        assert session.get(m.Endpoint, "fake") is not None
+    deployed = Platform.create(Settings(data_dir=tmp_path))
+    seed(deployed)
+    with deployed.db.session() as session:
+        assert session.get(m.Endpoint, "fake") is None
+        assert session.get(m.Endpoint, "default") is not None
+
+
 def test_upload_check_and_create(client: TestClient) -> None:
     bad = client.post("/v1/datasets/check", data={"taskType": "math-reasoning"}, files={"file": ("d.jsonl", b'{"id": 1}\n')}).json()
     assert not bad["ok"] and bad["problems"][0]["message"] == "缺少 question，或 question 不是文本"

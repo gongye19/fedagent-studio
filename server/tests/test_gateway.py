@@ -12,7 +12,7 @@ from fedagent.settings import Settings
 
 
 def make(tmp_path, handler):
-    platform = Platform.create(Settings(data_dir=tmp_path), transport=httpx.MockTransport(handler))
+    platform = Platform.create(Settings(data_dir=tmp_path, fake_endpoint=True), transport=httpx.MockTransport(handler))
     seed(platform)
     with platform.db.session() as session:
         session.add(
@@ -129,3 +129,24 @@ def test_retry_exhaustion_keeps_provider_reason(tmp_path, monkeypatch) -> None:
     platform = make(tmp_path, handler)
     with pytest.raises(ModelError, match="接口返回 503：No available accounts"):
         platform.gateway.model("ep-test:m1").chat("hi")
+
+
+def test_preview_models_with_typed_or_stored_key(tmp_path) -> None:
+    from fastapi.testclient import TestClient
+
+    from fedagent.api import create_app
+
+    keys = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        keys.append(request.headers.get("authorization"))
+        return httpx.Response(200, json={"data": [{"id": "b-model"}, {"id": "a-model"}]})
+
+    platform = make(tmp_path, handler)
+    with TestClient(create_app(platform)) as client:
+        typed = client.post("/v1/endpoints/models", json={"baseUrl": "https://other.example/v1", "apiKey": "sk-typed"})
+        stored = client.post("/v1/endpoints/models", json={"baseUrl": "https://llm.example/v1", "endpointId": "ep-test"})
+    assert typed.json() == {"models": ["a-model", "b-model"]}
+    assert stored.json() == {"models": ["a-model", "b-model"]}
+    # 填了密钥用填的；没填用这个接口已经保存的
+    assert keys == ["Bearer sk-typed", "Bearer sk-test"]

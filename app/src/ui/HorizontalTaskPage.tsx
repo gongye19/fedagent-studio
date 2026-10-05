@@ -47,6 +47,7 @@ import { datasetsOf, participantOf, type Action, type State } from "../state/sto
 import { Collapsible, Confirm, Meta, Notice, PageHead, PanelEmpty, Tag } from "./common";
 import { Choices, Field, FieldGroup, Panel, UnitInput } from "./console";
 import { formatDuration, formatNumber, formatTokens, formatYuan } from "./format";
+import { useDebounced } from "./hooks";
 import { Icon } from "./icons";
 import { usageText } from "./labels";
 
@@ -726,15 +727,4 @@ function EstimateBlock({ result, priceHref }: { result: Estimate; priceHref: str
       </dl>
     </div>
   );
-}
-
-/** 值停止变化 delay 毫秒后才更新（配置改动时不用每敲一个字就请求一次后端）。 */
-function useDebounced<T>(value: T, delay: number): T {
-  const [current, setCurrent] = useState(value);
-  const serialized = JSON.stringify(value);
-  useEffect(() => {
-    const timer = window.setTimeout(() => setCurrent(JSON.parse(serialized) as T), delay);
-    return () => window.clearTimeout(timer);
-  }, [serialized, delay]);
-  return current;
 }

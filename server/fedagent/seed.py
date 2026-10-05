@@ -69,8 +69,19 @@ def _store(platform: Platform, dataset: m.Dataset, rows: list[dict], origin: str
         dataset.origin = origin
 
 
+def sync_fake_endpoint(platform: Platform) -> None:
+    """测试用假模型接口按配置开关同步：开启时补上，关闭时删掉（部署的平台上只留真实接口）。"""
+    with platform.db.session() as session:
+        row = session.get(m.Endpoint, FAKE_ENDPOINT)
+        if platform.settings.fake_endpoint and row is None:
+            session.add(m.Endpoint(id=FAKE_ENDPOINT, name="测试用假模型", kind="fake", models=["fake"], concurrency=16, builtin=True))
+        elif not platform.settings.fake_endpoint and row is not None:
+            session.delete(row)
+
+
 def seed(platform: Platform) -> bool:
-    """数据库是空的才写入初始数据；返回是否写入了。"""
+    """数据库是空的才写入初始数据；返回是否写入了。测试用假模型接口每次都按配置同步。"""
+    sync_fake_endpoint(platform)
     with platform.db.session() as session:
         if session.scalar(select(func.count()).select_from(m.Participant)):
             return False
@@ -119,7 +130,6 @@ def seed(platform: Platform) -> bool:
             )
         )
         session.add(m.Endpoint(id=DEFAULT_ENDPOINT, name="默认 LLM 接口", kind="openai", builtin=True))
-        session.add(m.Endpoint(id=FAKE_ENDPOINT, name="测试用假模型", kind="fake", models=["fake"], concurrency=16, builtin=True))
     return True
 
 

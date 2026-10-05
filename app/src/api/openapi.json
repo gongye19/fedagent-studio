@@ -1025,6 +1025,66 @@
     }
    }
   },
+  "/v1/endpoints/models": {
+   "post": {
+    "tags": [
+     "endpoints"
+    ],
+    "summary": "Preview Models",
+    "description": "读一个接口地址提供的模型，新增、编辑接口时选模型用；不保存任何东西。没填密钥时用这个接口已经保存的密钥。",
+    "operationId": "preview_models_v1_endpoints_models_post",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ModelListIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/EndpointModelsOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/v1/endpoints/{endpoint_id}/models": {
    "get": {
     "tags": [
@@ -4027,6 +4087,44 @@
      "message"
     ],
     "title": "ModelCheckOut"
+   },
+   "ModelListIn": {
+    "properties": {
+     "baseUrl": {
+      "type": "string",
+      "maxLength": 400,
+      "minLength": 1,
+      "title": "Baseurl"
+     },
+     "apiKey": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 400
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Apikey"
+     },
+     "endpointId": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Endpointid"
+     }
+    },
+    "type": "object",
+    "required": [
+     "baseUrl"
+    ],
+    "title": "ModelListIn"
    },
    "OutputDef": {
     "properties": {

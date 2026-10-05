@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     """设置后，界面和 API 都要带这个令牌（参与方客户端用自己的令牌）。"""
     secret_key: str | None = None
     """加密模型密钥用的 Fernet 密钥；不设置时在数据目录里生成 secret.key。"""
+    fake_endpoint: bool = False
+    """测试用假模型接口（不调用真实模型）：本地开发（fedagent dev）和自动测试时开启；部署的平台不开，只有真实接口。"""
     frontend_dist: Path | None = None
     """前端构建产物目录；设置后由 API 进程一起提供。"""
     client_dist: Path | None = None
