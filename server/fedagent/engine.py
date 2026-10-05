@@ -277,10 +277,29 @@ class TaskEngine:
     def _unit_failed(self, unit_id: int, attempt: int, step: StepDef, outcome: Outcome) -> None:
         # 只改这次尝试领到的单元；过期的执行失败了不影响后来的尝试
         with self.db.session() as session:
-            session.execute(
+            failed = session.execute(
                 update(m.WorkUnit)
                 .where(m.WorkUnit.id == unit_id, m.WorkUnit.status == "running", m.WorkUnit.attempts == attempt)
                 .values(error=outcome.error, status="failed" if outcome.pause or attempt > step.retries else "pending"),
+                execution_options={"synchronize_session": False},
+            )
+            if not failed.rowcount:  # type: ignore[attr-defined]
+                return
+            unit = session.get(m.WorkUnit, unit_id)
+            assert unit is not None
+            # 这次尝试的调用作废：重试（或修好后继续）时重新调用模型，而不是从账本取回让这一步失败的结果。
+            # 费用照记（账本里的行还在），只是不再拿来续跑。
+            session.execute(
+                update(m.CallRecord)
+                .where(
+                    m.CallRecord.task_id == unit.task_id,
+                    m.CallRecord.site_id == unit.site_id,
+                    m.CallRecord.round == unit.round,
+                    m.CallRecord.step == unit.step,
+                    m.CallRecord.unit_key == unit.unit_key,
+                    m.CallRecord.status == "ok",
+                )
+                .values(status="discarded"),
                 execution_options={"synchronize_session": False},
             )
 

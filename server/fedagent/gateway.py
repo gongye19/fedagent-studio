@@ -19,6 +19,7 @@ from typing import Any
 
 import httpx
 from fedagent_sdk import Algorithm, ChatResult, ModelError
+from fedagent_sdk.openai_compat import error_text, read_json, read_stream, retryable, streaming
 from sqlalchemy import select
 
 from .crypto import SecretBox
@@ -28,7 +29,6 @@ from .models import CallRecord, Endpoint
 DEFAULT_REF = "default"
 DEFAULT_ENDPOINT = "default"
 FAKE_ENDPOINT = "fake"
-RETRYABLE = {408, 409, 425, 429, 500, 502, 503, 504}
 
 
 @dataclass(frozen=True)
@@ -158,7 +158,7 @@ class Gateway:
         except (httpx.TimeoutException, httpx.TransportError) as error:
             raise ModelError(f"连接失败：{type(error).__name__}") from error
         if response.status_code >= 400:
-            raise ModelError(f"接口返回 {response.status_code}：{_error_text(response)}")
+            raise ModelError(f"接口返回 {response.status_code}：{error_text(response.text, response.headers.get('content-type', ''))}")
         try:
             items = response.json().get("data") or []
             return sorted({str(item["id"]) for item in items if isinstance(item, dict) and item.get("id")})
@@ -301,59 +301,55 @@ class GatewayModel:
         return f"（假模型的回答 {digest[:8]}）"
 
     def _post(self, body: dict[str, Any]) -> ChatResult:
+        """发请求（流式），按接口的重试次数重试暂时性的错误。请求哈希按原始请求体算，和是否流式无关。"""
         endpoint = self.endpoint
         url = endpoint.base_url.rstrip("/") + "/chat/completions"
         headers = {"Content-Type": "application/json"}
         if endpoint.api_key:
             headers["Authorization"] = f"Bearer {endpoint.api_key}"
+        stream = True
         last_error = ""
         with self.gateway.semaphore(endpoint), self.gateway.client(endpoint) as client:
             for attempt in range(endpoint.max_retries + 1):
                 if attempt:
                     time.sleep(min(2 ** (attempt - 1), 30) + random.random())
                 try:
-                    response = client.post(url, json=body, headers=headers)
+                    with client.stream("POST", url, json=streaming(body) if stream else body, headers=headers) as response:
+                        content_type = response.headers.get("content-type", "")
+                        if response.status_code >= 400:
+                            reason = error_text(response.read().decode(errors="replace"), content_type)
+                            last_error = f"接口返回 {response.status_code}：{reason}"
+                            if stream and response.status_code in (400, 422) and "stream" in reason.lower():
+                                stream = False  # 不支持流式参数的接口：改用普通请求
+                                continue
+                            if retryable(response.status_code):
+                                continue
+                            raise ModelError(last_error)
+                        if "text/event-stream" in content_type:
+                            reply = read_stream(response.iter_lines())
+                        else:
+                            text = response.read().decode(errors="replace")
+                            try:
+                                reply = read_json(json.loads(text))
+                            except (ValueError, KeyError, IndexError, TypeError) as error:
+                                raise ModelError(f"接口返回的内容无法解析：{_snippet(text)}") from error
                 except (httpx.TimeoutException, httpx.TransportError) as error:
                     last_error = f"连接失败：{type(error).__name__}"
                     continue
-                if response.status_code in RETRYABLE:
-                    last_error = f"接口返回 {response.status_code}：{_error_text(response)}"
+                if reply.error:
+                    last_error = f"接口返回错误：{reply.error}"
                     continue
-                if response.status_code >= 400:
-                    raise ModelError(f"接口返回 {response.status_code}：{_error_text(response)}")
-                try:
-                    data = response.json()
-                    choice = data["choices"][0]
-                    content = choice.get("message", {}).get("content")
-                except (ValueError, KeyError, IndexError, TypeError) as error:
-                    raise ModelError(f"接口返回的内容无法解析：{_snippet(response.text)}") from error
-                if isinstance(content, list):
-                    content = "".join(part.get("text", "") for part in content if isinstance(part, dict))
-                usage = data.get("usage") or {}
+                if reply.empty:
+                    # 有的中转在上游出错时回 200 和空回答、不计 token：当作暂时性错误重试，不记成成功的调用
+                    last_error = "接口返回了空的回答"
+                    continue
                 return ChatResult(
-                    text=str(content or ""),
-                    model=str(data.get("model") or body["model"]),
-                    usage={
-                        "prompt_tokens": int(usage.get("prompt_tokens") or 0),
-                        "completion_tokens": int(usage.get("completion_tokens") or 0),
-                    },
-                    finish_reason=choice.get("finish_reason"),
+                    text=reply.text,
+                    model=str(reply.model or body["model"]),
+                    usage={"prompt_tokens": reply.usage.get("prompt_tokens", 0), "completion_tokens": reply.usage.get("completion_tokens", 0)},
+                    finish_reason=reply.finish_reason,
                 )
         raise ModelError(f"重试 {endpoint.max_retries} 次后仍失败（{last_error}）")
-
-
-def _error_text(response: httpx.Response) -> str:
-    """接口返回的错误原因：OpenAI 兼容的接口一般是 {"error": {"message": ...}}，取不到就用响应的开头。"""
-    try:
-        data = response.json()
-    except ValueError:
-        return _snippet(response.text)
-    if isinstance(data, dict):
-        error = data.get("error")
-        for value in (error.get("message") if isinstance(error, dict) else error, data.get("message"), data.get("detail")):
-            if isinstance(value, str) and value.strip():
-                return _snippet(value)
-    return _snippet(response.text)
 
 
 def _snippet(text: str, limit: int = 300) -> str:

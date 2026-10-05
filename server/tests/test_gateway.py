@@ -1,8 +1,10 @@
 import json
+import re
 
 import httpx
 import pytest
 from fedagent_sdk import ModelError
+from sqlalchemy import select
 
 from fedagent import models as m
 from fedagent.gateway import LedgerKey
@@ -150,3 +152,105 @@ def test_preview_models_with_typed_or_stored_key(tmp_path) -> None:
     assert stored.json() == {"models": ["a-model", "b-model"]}
     # 填了密钥用填的；没填用这个接口已经保存的
     assert keys == ["Bearer sk-typed", "Bearer sk-test"]
+
+
+def test_empty_reply_is_retried_not_recorded_as_success(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr("time.sleep", lambda _: None)
+    replies = iter(["", "", "OK"])
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        text = next(replies)
+        usage = {"prompt_tokens": 0, "completion_tokens": 0} if not text else {"prompt_tokens": 3, "completion_tokens": 1}
+        return httpx.Response(200, json={"choices": [{"message": {"content": text}, "finish_reason": "stop"}], "usage": usage})
+
+    platform = make(tmp_path, handler)
+    assert platform.gateway.model("ep-test:m1").chat("hi").text == "OK"
+    with platform.db.session() as session:
+        statuses = [row.status for row in session.scalars(select(m.CallRecord))]
+    assert statuses == ["ok"]
+
+    always_empty = make(
+        tmp_path / "again", lambda request: httpx.Response(200, json={"choices": [{"message": {"content": ""}, "finish_reason": "stop"}], "usage": {}})
+    )
+    with pytest.raises(ModelError, match="接口返回了空的回答"):
+        always_empty.gateway.model("ep-test:m1").chat("hi")
+
+
+def sse(*chunks: dict) -> httpx.Response:
+    body = "".join(f"data: {json.dumps(chunk)}\n\n" for chunk in chunks) + "data: [DONE]\n\n"
+    return httpx.Response(200, headers={"content-type": "text/event-stream"}, content=body.encode())
+
+
+def test_streamed_reply_is_assembled_with_usage(tmp_path) -> None:
+    sent = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent.append(json.loads(request.content))
+        return sse(
+            {"model": "m1", "choices": [{"delta": {"role": "assistant", "content": "The answer "}, "finish_reason": None}]},
+            {"model": "m1", "choices": [{"delta": {"content": "is \\\\boxed{70}."}, "finish_reason": "stop"}]},
+            {"model": "m1", "choices": [], "usage": {"prompt_tokens": 12, "completion_tokens": 7}},
+        )
+
+    platform = make(tmp_path, handler)
+    reply = platform.gateway.model("ep-test:m1").chat("solve", max_tokens=100)
+    assert reply.text == "The answer is \\\\boxed{70}."
+    assert reply.usage == {"prompt_tokens": 12, "completion_tokens": 7}
+    assert reply.finish_reason == "stop"
+    # 流式请求，要求最后一块带用量
+    assert sent[0]["stream"] is True
+    assert sent[0]["stream_options"] == {"include_usage": True}
+
+
+def test_falls_back_to_plain_request_when_streaming_is_rejected(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr("time.sleep", lambda _: None)
+    sent = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content)
+        sent.append(body)
+        if body.get("stream"):
+            return httpx.Response(400, json={"error": {"message": "stream_options is not supported"}})
+        return httpx.Response(
+            200, json={"choices": [{"message": {"content": "OK"}, "finish_reason": "stop"}], "usage": {"prompt_tokens": 1, "completion_tokens": 1}}
+        )
+
+    platform = make(tmp_path, handler)
+    assert platform.gateway.model("ep-test:m1").chat("hi").text == "OK"
+    assert [body.get("stream") for body in sent] == [True, None]
+
+
+def test_cloudflare_timeout_page_is_retried_and_reported_by_title(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr("time.sleep", lambda _: None)
+    page = "<!DOCTYPE html><html><head><title>api.example | 524: A timeout occurred</title></head><body>...</body></html>"
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return httpx.Response(524, headers={"content-type": "text/html"}, content=page.encode())
+
+    platform = make(tmp_path, handler)
+    with pytest.raises(ModelError, match=re.escape("接口返回 524：api.example | 524: A timeout occurred")):
+        platform.gateway.model("ep-test:m1").chat("hi")
+    assert len(calls) == 4  # 第一次加上 3 次重试（测试接口的重试次数是 3）
+
+
+def test_local_client_model_streams_and_retries_empty(monkeypatch) -> None:
+    from fedagent_client.local import LocalModel
+
+    monkeypatch.setattr("time.sleep", lambda _: None)
+    replies = iter(
+        [
+            sse({"choices": [{"delta": {"content": ""}, "finish_reason": "stop"}]}),
+            sse({"choices": [{"delta": {"content": "OK"}, "finish_reason": "stop"}]}, {"choices": [], "usage": {"prompt_tokens": 2, "completion_tokens": 1}}),
+        ]
+    )
+    original = httpx.Client
+
+    def client(*args, **kwargs):
+        return original(*args, transport=httpx.MockTransport(lambda request: next(replies)), **kwargs)
+
+    monkeypatch.setattr("fedagent_client.local.httpx.Client", client)
+    reply = LocalModel("https://local.example/v1", "m", None, retries=2).chat("hi")
+    assert reply.text == "OK"
+    assert reply.usage == {"prompt_tokens": 2, "completion_tokens": 1}

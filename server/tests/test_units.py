@@ -97,3 +97,40 @@ def test_stale_attempt_cannot_store_over_a_newer_one(client: TestClient, platfor
         assert store(2) is False  # 已经保存过
         reports = session.scalars(select(m.Report).where(m.Report.task_id == task_id)).all()
     assert sorted(report.name for report in reports) == ["correct", "labeled"]
+
+
+def test_failed_attempt_voids_its_ledger_entries(client: TestClient, platform: Platform) -> None:
+    from sqlalchemy import select
+
+    from fedagent.engine import Outcome, TaskEngine
+    from fedagent.gateway import LedgerKey
+
+    body = {
+        "scenario": "horizontal",
+        "taskType": "math-reasoning",
+        "algorithm": "fot",
+        "participants": [{"participantId": "p-a", "datasetId": "ds-aime24"}, {"participantId": "p-b", "datasetId": "ds-aime25"}],
+        "clientModel": "fake:fake",
+        "serverModel": "fake:fake",
+        "rounds": 2,
+        "mode": "trial",
+        "trialCap": 1,
+    }
+    task_id = client.post("/v1/tasks", json=body).json()["id"]
+    step = platform.registry.algorithm("fot").manifest.step("solve")
+    assert step is not None
+    with platform.db.session() as session:
+        site = next(view for view in load_sites(session, task_id) if view.kind == "participant")
+        unit = m.WorkUnit(task_id=task_id, round=1, step="solve", site_id=site.id, unit_key=site.items[0], executor="platform", status="running", attempts=1)
+        session.add(unit)
+        session.flush()
+        unit_id = unit.id
+    key = LedgerKey(task_id, site.id, 1, "solve", site.items[0])
+    # 这次尝试拿到的回答让步骤失败了（例如空的）
+    platform.gateway.model("fake:fake", ledger=key).chat("problem")
+    TaskEngine(platform, task_id)._unit_failed(unit_id, 1, step, Outcome(False, "解题的回答是空的"))
+    with platform.db.session() as session:
+        assert session.get(m.WorkUnit, unit_id).status == "pending"
+        assert [row.status for row in session.scalars(select(m.CallRecord).where(m.CallRecord.task_id == task_id))] == ["discarded"]
+    # 重试时重新调用，不从账本取回失败的那次
+    assert platform.gateway.model("fake:fake", ledger=key).chat("problem").cached is False

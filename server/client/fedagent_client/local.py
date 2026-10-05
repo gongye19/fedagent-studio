@@ -12,8 +12,7 @@ from typing import Any
 
 import httpx
 from fedagent_sdk import Algorithm, Artifact, ChatResult, Item, Message, ModelError, TaskType
-
-RETRYABLE = {408, 409, 425, 429, 500, 502, 503, 504}
+from fedagent_sdk.openai_compat import error_text, read_json, read_stream, retryable, streaming
 
 
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -108,29 +107,38 @@ class LocalModel:
             if value is not None:
                 body[key] = value
         headers = {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
+        stream = True
         last = ""
         with httpx.Client(timeout=self.timeout) as client:
             for attempt in range(self.retries + 1):
                 if attempt:
                     time.sleep(min(2 ** (attempt - 1), 30))
                 try:
-                    response = client.post(f"{self.base_url}/chat/completions", json=body, headers=headers)
+                    with client.stream("POST", f"{self.base_url}/chat/completions", json=streaming(body) if stream else body, headers=headers) as response:
+                        content_type = response.headers.get("content-type", "")
+                        if response.status_code >= 400:
+                            reason = error_text(response.read().decode(errors="replace"), content_type)
+                            last = f"HTTP {response.status_code}：{reason}"
+                            if stream and response.status_code in (400, 422) and "stream" in reason.lower():
+                                stream = False  # 不支持流式参数的模型服务：改用普通请求
+                                continue
+                            if retryable(response.status_code):
+                                continue
+                            raise ModelError(f"本地模型返回 {response.status_code}：{reason}")
+                        streamed = "text/event-stream" in content_type
+                        reply = read_stream(response.iter_lines()) if streamed else read_json(json.loads(response.read()))
                 except (httpx.TimeoutException, httpx.TransportError) as error:
                     last = type(error).__name__
                     continue
-                if response.status_code in RETRYABLE:
-                    last = f"HTTP {response.status_code}"
+                if reply.error or reply.empty:
+                    # 流里报错，或者空回答、不计 token：多半是接口暂时出错，重试
+                    last = reply.error or "空的回答"
                     continue
-                if response.status_code >= 400:
-                    raise ModelError(f"本地模型返回 {response.status_code}")
-                data = response.json()
-                choice = data["choices"][0]
-                usage = data.get("usage") or {}
                 return ChatResult(
-                    text=str(choice.get("message", {}).get("content") or ""),
-                    model=str(data.get("model") or self.name),
-                    usage={"prompt_tokens": int(usage.get("prompt_tokens") or 0), "completion_tokens": int(usage.get("completion_tokens") or 0)},
-                    finish_reason=choice.get("finish_reason"),
+                    text=reply.text,
+                    model=str(reply.model or self.name),
+                    usage={"prompt_tokens": reply.usage.get("prompt_tokens", 0), "completion_tokens": reply.usage.get("completion_tokens", 0)},
+                    finish_reason=reply.finish_reason,
                 )
         raise ModelError(f"本地模型重试 {self.retries} 次后仍失败（{last}）")
 

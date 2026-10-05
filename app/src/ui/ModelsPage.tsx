@@ -1,7 +1,7 @@
-import { DEFAULT_ENDPOINT_ID, endpointOf, isConfigured } from "../domain/resources";
+import { endpointOf, isConfigured } from "../domain/resources";
 import { hrefOf } from "../state/route";
 import type { State } from "../state/store";
-import { Meta, PageHead, Tag } from "./common";
+import { PageHead, Tag } from "./common";
 import { Panel } from "./console";
 import { Icon } from "./icons";
 
@@ -35,24 +35,14 @@ export default function ModelsPage({ state }: { state: State }) {
             <tbody>
               {state.endpoints.map((endpoint) => {
                 const used = usedBy(state, endpoint.id);
-                const fallback = endpoint.id === DEFAULT_ENDPOINT_ID;
                 return (
                   <tr key={endpoint.id}>
+                    {/* 列表只写接口名称；地址、密钥这些细节在编辑页里看 */}
                     <th scope="row">
                       <span className="cell-title">
                         {endpoint.name}
                         {endpoint.kind === "fake" ? <Tag>测试用</Tag> : isConfigured(endpoint) ? null : <Tag tone="warning">待配置</Tag>}
                       </span>
-                      {endpoint.baseUrl || fallback || endpoint.kind === "fake" ? (
-                        <small>
-                          <Meta parts={[
-                            endpoint.baseUrl ? <code key="url">{endpoint.baseUrl}</code> : null,
-                            fallback ? "未指定模型的调用都走这里" : null,
-                            endpoint.kind === "fake" ? "不调用真实模型，只用来跑通流程" : null,
-                            endpoint.hasKey ? "已保存密钥" : null,
-                          ]} />
-                        </small>
-                      ) : null}
                     </th>
                     {/* 每个接口选用一个模型，只列这一个 */}
                     <td data-label="模型" className="nowrap">{endpoint.models.length > 1 ? `${endpoint.models[0]} 等 ${endpoint.models.length} 个` : endpoint.models[0] ?? "—"}</td>

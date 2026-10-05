@@ -262,6 +262,7 @@ class CallRecord(Base):
     latency_ms: Mapped[int] = mapped_column(default=0)
     cost: Mapped[float | None] = mapped_column(Float, default=None)
     status: Mapped[str] = mapped_column(String(16), default="ok")
+    """ok：成功，续跑时可以取回；error：调用失败；discarded：所在的单元这次尝试失败了，重试时不再取回（费用照记）。"""
     error: Mapped[str | None] = mapped_column(Text, default=None)
     created_at: Mapped[datetime] = mapped_column(default=now)
 

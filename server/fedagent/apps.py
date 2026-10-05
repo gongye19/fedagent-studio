@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
+
 from fastapi import HTTPException
 from fedagent_sdk import ApplyRequest, Artifact, ModelError
 from sqlalchemy import select
@@ -81,18 +83,23 @@ def apply(platform: Platform, app: m.App, body: ApplyIn) -> ApplyOut:
     task_type = registry.task_type(app.task_type)
     grader = registry.grader(task_type.graders[0])
     request = ApplyRequest(input=body.input.strip(), answer=body.answer)
-    sides: dict[str, ApplySide] = {}
-    for key, artifact in (("with", artifact_of(app)), ("without", None)):
-        try:
-            model = platform.gateway.model(body.model, purpose="apply", plugin=algorithm)
-            result = algorithm.apply(artifact, request, model)
-        except ModelError as error:
-            raise HTTPException(502, f"模型调用失败：{error}") from error
+
+    def side(artifact: Artifact | None) -> ApplySide:
+        model = platform.gateway.model(body.model, purpose="apply", plugin=algorithm)
+        result = algorithm.apply(artifact, request, model)
         correct = None
         if body.answer and body.answer.strip():
             correct = grader.grade(result.output, {"id": "try", "question": request.input, "answer": body.answer.strip()})
         tokens = int(result.usage.get("prompt_tokens", 0)) + int(result.usage.get("completion_tokens", 0))
-        sides[key] = ApplySide(output=result.output, correct=correct, tokens=tokens)
+        return ApplySide(output=result.output, correct=correct, tokens=tokens)
+
+    # 带产出、不带产出两次调用同时发，等待时间按较慢的那次算
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = {"with": pool.submit(side, artifact_of(app)), "without": pool.submit(side, None)}
+        try:
+            sides = {key: future.result() for key, future in futures.items()}
+        except ModelError as error:
+            raise HTTPException(502, f"模型调用失败：{error}") from error
     return ApplyOut.model_validate({"without": sides["without"], "with": sides["with"]})
 
 

@@ -373,7 +373,7 @@ def task_out(platform: Platform, session: Session, task: m.Task) -> TaskOut:
     tokens = dict(
         session.execute(
             select(m.CallRecord.round, func.sum(m.CallRecord.prompt_tokens + m.CallRecord.completion_tokens))
-            .where(m.CallRecord.task_id == task.id, m.CallRecord.status == "ok")
+            .where(m.CallRecord.task_id == task.id, m.CallRecord.status.in_(("ok", "discarded")))
             .group_by(m.CallRecord.round)
         ).all()
     )
