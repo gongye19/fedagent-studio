@@ -56,10 +56,6 @@ export function datasetsOf(state: State, participantId: string): Dataset[] {
   return state.datasets.filter((dataset) => dataset.participantId === participantId);
 }
 
-export function datasetOf(state: State, id: string): Dataset | undefined {
-  return state.datasets.find((dataset) => dataset.id === id);
-}
-
 export function publishedOf(state: State, taskId: string, builtAfterRound: number): Published | undefined {
   return state.published.find((item) => item.taskId === taskId && item.builtAfterRound === builtAfterRound);
 }

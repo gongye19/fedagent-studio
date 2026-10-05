@@ -1,0 +1,108 @@
+# 交接说明
+
+更新时间：2026-10-05（T57）。给接手开发的人和 AI：先读这一页，再读仓库根目录的 [AGENTS.md](../AGENTS.md)（协作规则和安全红线）。
+
+## 现状
+
+前端和后端第一版都已完成，部署在实验室服务器上，只在 Tailscale 内网访问：<http://100.111.198.54:8880/>，接的是真实大模型（David AI 的 gpt-5.6-luna）。
+
+- **能用的流程**：登记参与方和数据集 → 新建联邦任务（场景 → 任务类型 → 算法 → 参与方，每步由用户选）→ 后端按算法插件逐轮运行，可以暂停、继续、取消，中断后从检查点续跑 → 看进度、通信记录、本地 vs 联邦的结果 → 把产出（经验库）发布为应用 → 试用（带 / 不带应用对比并判分）、导出 JSON、API 调用。
+- **场景和算法**：横向联邦可用，算法是 FoT（Federation over Text，论文复现器拆成的插件，上游提示词逐字使用）。纵向、迁移是"规划中"，算法还没定。
+- **参与方**：内置参与方 A–H（平台托管），A、B 有 AIME24、AIME25 题库，C–H 的 6 份题库要导入后才能用；一个"示例合作方"演示本地参与方（需要在参与方那边运行客户端）。
+- **测试**：前端 20 个、后端 36 个测试，包括 FoT 的契约测试、真实子进程的 runner、本地客户端混合流程。
+- **真实模型验证**（2026-10-05）：在部署的平台上用界面完整走过一遍（新建试跑 → 进度 → 产出 → 发布 → 试用 → 复制为新任务）。三个真实任务都完成了，最后一次 28 次调用全部成功、没有重试。
+
+各模块的完成情况见 [PROGRESS.md](./PROGRESS.md)，每次改了什么见 [HISTORY.md](./HISTORY.md)（T1–T57）。
+
+## 服务器怎么连
+
+| 项 | 值 |
+|---|---|
+| 地址 | `100.111.198.54`（Tailscale 内网；主机名 `zhiqikou-ic4078375cc`），没有公网 IP |
+| SSH | `ssh -o BatchMode=yes -p 10022 poly-zhu@100.111.198.54`，**只用密钥登录** |
+| 前提 | 本机要在同一个 Tailscale 网络里；本机的 `~/.ssh/id_rsa` 已经加到服务器上。换一台机器要用户把那台的公钥加进去 |
+| 权限 | 普通用户，没有 sudo，没有 Docker；家目录权限 700 |
+| 机器 | Ubuntu 22.04，x86_64，192 核，约 1 TB 内存（与他人共用），8 张 96 GB GPU（与他人共用，每张已被占 45–70 GB） |
+| 网络 | 能访问 api.david-ai.net、DeepSeek、智谱、阿里云百炼、OpenRouter、PyPI、GitHub；OpenAI、Gemini 的官方接口因地区限制被拒 |
+
+## 怎么部署的
+
+全部是用户进程，不用容器，所有文件都在服务器的 `~/fedagent-studio/` 里，删掉这个目录就干净了：
+
+```text
+~/fedagent-studio/
+├── serve.sh      启动、停止、状态、访问令牌开关（来自仓库 deploy/serve.sh）
+├── bin/uv        uv 0.11.1（从 GitHub 下载并核对 sha256）
+├── python/       uv 下载的 Python 3.12
+├── cache/        uv 的下载缓存
+├── dist/         前端构建产物
+├── client/       参与方客户端、SDK 和插件的安装包（/client/ 下提供）
+├── server/       后端代码，虚拟环境在 server/.venv
+├── data/         数据库（SQLite）、数据集、运行目录、加密密钥 secret.key —— 部署不覆盖，这是全部状态
+└── logs/  run/   api.log、runner.log 和进程号
+```
+
+- **两个进程**：api（FastAPI，同时提供前端页面和客户端安装包，只监听 `100.111.198.54:8880`）和 runner（领取排队的任务，每个任务起一个子进程）。用 `setsid nohup` 启动，退出 SSH 后继续运行。
+- **部署**：在本机仓库根目录运行 `bash deploy/deploy.sh`。它先跑完前后端的全部检查，再构建客户端安装包、停下服务器上的旧进程、同步代码，最后在服务器上运行 `serve.sh`（按 `uv.lock` 装依赖、迁移数据库、启动、健康检查）。约 2–3 分钟。`SKIP_CHECKS=1` 跳过本地检查。
+- **重启时的任务**：runner 停下前会结束它起的任务进程，任务保持"运行中"，重启后从检查点继续，已完成的模型调用不重复计费。
+
+服务器上的日常操作：
+
+```bash
+bash ~/fedagent-studio/serve.sh status         # 进程、健康检查、访问令牌开关
+bash ~/fedagent-studio/serve.sh                # 启动或重启
+bash ~/fedagent-studio/serve.sh stop
+bash ~/fedagent-studio/serve.sh token on|off   # 访问令牌，改完自动重启
+tail -f ~/fedagent-studio/logs/api.log         # 每个任务的日志在 data/runs/<任务 id>/task.log
+```
+
+- **访问令牌**：现在关闭（用户要求暂时不用），Tailscale 内网里能打开地址的人都能使用全部功能。开启后令牌只在服务器的 `data/admin-token`，不要打印出来。
+- **服务器重启后不会自动拉起**：要手动运行 `serve.sh`。可以加 crontab 的 `@reboot`，但要用户同意。
+- **没有备份**：状态都在 `data/`，需要时自己复制。
+
+## 模型接口（David AI）
+
+- 平台里的默认接口叫"David AI"：`https://api.david-ai.net/v1`（OpenAI 兼容），选用 `gpt-5.6-luna`。密钥在用户自己的控制台创建，是 codex 分组的，用户粘贴进平台，加密存在服务器上。
+- 控制台 <https://api.david-ai.net/>（用户的账号，品牌名"胃袋AI / VidAI"）：余额、使用记录（每次调用的 token 和费用）、渠道状态在这里看。2026-10-05 余额约 $199.5。"ChatGPT 网页订阅"分组的密钥调不了 API（一律 503），要用 codex 分组的。
+- codex 分组的模型：gpt-5.5、gpt-5.6-luna / sol / terra、gpt-6-astra、gpt-6-luna、gpt-6.1-sol（列表会变）。每百万输入 token 约 luna $0.3、terra / 6.1-sol $3、5.6-sol $7.5、6-astra $15，实际扣费是标准价的 1.5 倍。按实际扣费折算，gpt-5.6-luna 约 $0.47 / 百万 token。
+- 这个中转的特点，平台都已处理：
+  - 每次请求会被加上 Codex 的系统提示词（多 2.5K–5K 输入 token，大多命中缓存），实测不影响 FoT 的输出格式；
+  - 在 Cloudflare 后面，约 120 秒没有响应就返回 524，所以平台一律用流式请求；
+  - 偶尔返回空回答（200、0 token），平台当作暂时性错误重试，所在单元失败时这次的调用作废，重试时重新调用。
+- 用量参考：小试跑（2 方 × 2 题 × 2 轮）约 11 分钟、28 次调用、$0.1–0.2；完整跑现有两份题库（60 题、3 轮）估计 $2–3、30 分钟左右。"测试连接"每点一次约 $0.002。
+
+## 服务器上现在的数据
+
+- 任务 3 个，都是验证用的真实模型试跑，已完成：`真实模型冒烟测试（gpt-5.6-luna）`、`数学推理任务 10-05 20:56`、`数学推理任务 10-05 20:56（副本）`。任务还不能删除（没有接口）。
+- 应用 1 个：`数学推理任务 10-05 20:56 经验库`（可以"撤下"）。
+- 参与方 A、B 的题库可用；C–H 显示"样本待导入"。
+
+## 待办（按优先级）
+
+1. **导入 C–H 的 6 份题库**：需要用户提供 `FoT_code_bundle_20260925.zip`，在服务器上运行 `~/fedagent-studio/server/.venv/bin/fedagent datasets import-fot-bundle <zip>`（设 `FEDAGENT_DATA_DIR=~/fedagent-studio/data`）。
+2. **单价**：现在一个接口一个模型，可以填单价让新建任务时显示费用预估（gpt-5.6-luna 约 3.4 元 / 百万 token，按 7.1 的汇率），填之前问用户。
+3. **服务器重启后自动拉起**（crontab `@reboot`），要用户同意。
+4. **完整跑一次 FoT** 看效果：小试跑每方只有 2 题，准确率波动很大，看不出 FoT 有没有用；论文结果来自 DeepSeek 和 Gemini，之前用 gpt-5.4-mini 复现没有提升。
+5. FoT 按复现器格式写插件文件，和复现器逐文件核对（[ARCHITECTURE.md](./ARCHITECTURE.md) §20）。
+6. 任务删除、按模型登记单价、账号和角色、事件推送（SSE）、命令行、本地客户端发布到公共仓库和上传前的过滤规则。
+7. 纵向、迁移场景的算法（用户说暂不定）。
+
+## 已知的小问题
+
+- 概览页的"各参与方"图在只有两个参与方时行距偏紧。
+- 新建任务的默认名称用的是打开页面的时间，不是创建的时间。
+- 经 Tailscale 首次打开约 2 秒、再次打开约 1 秒（中继延迟），用界面检查脚本扫部署的平台时要设 `WAIT=4000`。
+
+## 文档地图
+
+| 文档 | 内容 |
+|---|---|
+| [AGENTS.md](../AGENTS.md) | 协作规则、安全红线、产品规则、常用命令 |
+| [GOAL.md](./GOAL.md) | 产品目标和验收标准 |
+| [FLOW.md](./FLOW.md) | 用户怎么用，每个页面做什么 |
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | 后端设计和实现：插件体系、编排、模型网关、API、存储、部署 |
+| [DEVELOPMENT.md](./DEVELOPMENT.md) | 本地开发、测试、代码结构、加算法、部署、界面规范 |
+| [PROGRESS.md](./PROGRESS.md) | 各模块完成情况、服务器、最近的验证结果 |
+| [DECISIONS.md](./DECISIONS.md) | 设计决策和没采用的方案（D1–D52） |
+| [HISTORY.md](./HISTORY.md) | 每次任务改了什么、怎么验证的（T1–T57） |
+| [tools/ui-check](../tools/ui-check/README.md) | 界面检查脚本 |

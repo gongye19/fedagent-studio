@@ -22,13 +22,10 @@ export const TASK_STATUS: Record<TaskStatus, string> = {
 
 /** 创建任务时冻结的参与方快照：之后改名或删除参与方、数据集不影响已有任务。 */
 export type Member = components["schemas"]["MemberOut"];
-export type Cursor = components["schemas"]["CursorOut"];
 /** 产出里的一条（FoT 是经验库里的一条经验）。 */
 export type OutputItem = components["schemas"]["OutputItem"];
 /** 某一轮结束时的产出，供下一轮使用；任意一版都可以发布为应用。 */
 export type OutputVersion = components["schemas"]["OutputVersionOut"];
-/** 服务端把上传归成的一类，以及每个参与方有几条归到这一类。 */
-export type SampleGroup = components["schemas"]["GroupOut"];
 export type RoundRecord = components["schemas"]["RoundOut"];
 
 /** 任务：config 是冻结时的配置，字段和新建任务的配置一致。 */

@@ -75,18 +75,6 @@ export function withDefaults(draft: Partial<Draft>): Draft {
   };
 }
 
-/** 本次任务每份数据集实际使用的样本数。 */
-export function problemsOf(config: Pick<TaskConfig, "mode" | "trialCap">, dataset: Dataset): number {
-  return config.mode === "trial" ? Math.min(dataset.count, Math.max(1, config.trialCap)) : dataset.count;
-}
-
-/** 已选的数据集，顺序和参与方一致；数据集不属于这个参与方时忽略。 */
-export function selectedDatasets(config: Pick<TaskConfig, "participants">, datasets: readonly Dataset[]): Dataset[] {
-  return config.participants
-    .map(({ participantId, datasetId }) => datasets.find((dataset) => dataset.id === datasetId && dataset.participantId === participantId))
-    .filter((dataset): dataset is Dataset => Boolean(dataset));
-}
-
 /** 后端的调用量预估：服务端调用模型的步骤每轮各一次（结果不合法时会重试，所以是下限）；用到的接口都设置了单价才估算费用，单位：元。 */
 export type Estimate = components["schemas"]["EstimateOut"];
 
@@ -166,11 +154,6 @@ export function toConfig(draft: Draft): TaskConfig | null {
 /** 只保留已选参与方的单独模型设置（取消勾选后，之前的设置不再生效）。 */
 export function activeOverrides(config: Pick<TaskConfig, "participants" | "clientOverrides">): Record<string, string> {
   return Object.fromEntries(Object.entries(config.clientOverrides).filter(([id]) => config.participants.some((item) => item.participantId === id)));
-}
-
-/** 某个参与方实际使用的模型。 */
-export function clientModelOf(config: Pick<TaskConfig, "clientModel" | "clientOverrides">, participantId: string): string {
-  return config.clientOverrides[participantId] ?? config.clientModel;
 }
 
 /** "复制为新任务"：带上原任务的配置，算作用户动过的草稿。 */

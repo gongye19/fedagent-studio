@@ -105,6 +105,7 @@ npm run dev
 
 ## 文档导航
 
+- [交接说明](./docs/HANDOFF.md)：现状、部署、服务器怎么连、待办（接手开发先读这一页和 [AGENTS.md](./AGENTS.md)）
 - [项目目标](./docs/GOAL.md)
 - [使用流程](./docs/FLOW.md)
 - [系统架构](./docs/ARCHITECTURE.md)
@@ -130,5 +131,7 @@ federation-studio/
 │   ├── client/           参与方本地客户端 fedagent-client
 │   └── tests/
 ├── deploy/               部署到实验室服务器的脚本
-└── docs/                 目标、使用流程、架构、进展、决策和任务记录
+├── tools/ui-check/       界面检查脚本：截图、可访问性、断行
+├── AGENTS.md             给接手开发的 AI 的说明（CLAUDE.md 引用它）
+└── docs/                 目标、使用流程、架构、进展、决策、任务记录、交接说明
 ```

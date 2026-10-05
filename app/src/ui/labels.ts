@@ -51,13 +51,6 @@ export function sortTasks(tasks: readonly Task[]): Task[] {
   return [...tasks].sort((a, b) => rank(a) - rank(b) || b.createdAt.localeCompare(a.createdAt));
 }
 
-/** 嵌进中文句子的名称：以英文或数字开头 / 结尾时补一个空格，中文开头就不加。 */
-export function inline(text: string): string {
-  const start = /^[A-Za-z0-9]/.test(text) ? " " : "";
-  const end = /[A-Za-z0-9)]$/.test(text) ? " " : "";
-  return `${start}${text}${end}`;
-}
-
 /** 变化的颜色：上升绿、下降红，持平不着色。 */
 export function deltaClass(value: number | null): string {
   if (value === null || Math.abs(value) < 0.0005) return "delta";
