@@ -239,42 +239,38 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
           <Panel title="任务类型与算法" id="scenario">
             <div className="form-body">
               <FieldGroup>
-                {draft.scenario ? <TaskTypeChoice scenario={draft.scenario} value={draft.taskType} onChange={(taskType) => dispatch({ type: "chooseTaskType", taskType })} /> : null}
-                {draft.scenario && draft.taskType ? (
-                  <AlgorithmField scenario={draft.scenario} taskType={draft.taskType} value={draft.algorithm} onChange={(id) => dispatch({ type: "chooseAlgorithm", algorithm: id })} />
-                ) : null}
+                <TaskTypeChoice scenario={SCENARIO} value={draft.taskType} onChange={(taskType) => dispatch({ type: "chooseTaskType", taskType })} />
+                <AlgorithmField scenario={SCENARIO} taskType={draft.taskType} value={draft.algorithm} onChange={(id) => dispatch({ type: "chooseAlgorithm", algorithm: id })} />
               </FieldGroup>
             </div>
           </Panel>
 
-          {algorithm && scenarioId && taskType ? (
-            <Panel
-              title="参与方"
-              id="participants"
-              extra={`已选 ${joined.length} 个`}
-              actions={(
-                <>
-                  <a className="button button--secondary button--compact" href={hrefOf(NEW_DATASET)}><Icon name="plus" />新增数据集</a>
-                  <a className="button button--secondary button--compact" href={hrefOf(NEW_PARTICIPANT)}><Icon name="plus" />新增参与方</a>
-                </>
-              )}
-              flush
-            >
-              {candidates.length ? (
-                <ParticipantTable draft={draft} dispatch={dispatch} candidates={candidates} />
-              ) : (
-                <PanelEmpty>还没有参与方登记了“{usageText(scenarioId, taskType)}”的数据集。</PanelEmpty>
-              )}
-            </Panel>
-          ) : null}
+          <Panel
+            title="参与方"
+            id="participants"
+            extra={algorithm ? `已选 ${joined.length} 个` : "待选择"}
+            actions={(
+              <>
+                <a className="button button--secondary button--compact" href={hrefOf(NEW_DATASET)}><Icon name="plus" />新增数据集</a>
+                <a className="button button--secondary button--compact" href={hrefOf(NEW_PARTICIPANT)}><Icon name="plus" />新增参与方</a>
+              </>
+            )}
+            flush
+          >
+            {!algorithm || !scenarioId || !taskType ? (
+              <PanelEmpty>请先选择任务类型和算法，再勾选参与方及其数据集。</PanelEmpty>
+            ) : candidates.length ? (
+              <ParticipantTable draft={draft} dispatch={dispatch} candidates={candidates} />
+            ) : (
+              <PanelEmpty>还没有参与方登记了“{usageText(scenarioId, taskType)}”的数据集。</PanelEmpty>
+            )}
+          </Panel>
 
-          {algorithm ? (
-            <Panel title="运行配置" id="settings">
-              <RunSettings state={state} draft={draft} update={update} algorithm={algorithm} />
-            </Panel>
-          ) : null}
+          <Panel title="运行配置" id="settings">
+            <RunSettings state={state} draft={draft} update={update} algorithm={algorithm} />
+          </Panel>
 
-          {algorithm ? <AdvancedPanel state={state} draft={draft} update={update} algorithm={algorithm} joined={joined.map((item) => item.participantId)} /> : null}
+          <AdvancedPanel state={state} draft={draft} update={update} algorithm={algorithm} joined={joined.map((item) => item.participantId)} />
         </div>
 
         <aside className="order-summary" aria-label="配置摘要" id="task-summary">
@@ -284,14 +280,10 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
               <div><dt>任务类型</dt><dd>{draft.taskType ? TASK_TYPES[draft.taskType].label : "—"}</dd></div>
               <div><dt>算法</dt><dd>{algorithm ? algorithm.name : "—"}</dd></div>
               <div><dt>参与方</dt><dd>{joined.length ? `${joined.length} 个` : "—"}</dd></div>
-              {algorithm ? (
-                <>
-                  <div><dt>样本</dt><dd>{result ? `${formatNumber(result.problems)} 条${full ? "" : `（每份前 ${draft.trialCap} 条）`}` : "—"}</dd></div>
-                  <div><dt>运行</dt><dd>{full ? "正式运行" : "试跑"} · {draft.rounds} 轮</dd></div>
-                  <div><dt>模型</dt><dd>{modelSummary(draft, state, algorithm)}</dd></div>
-                  {overrideCount ? <div><dt>单独指定</dt><dd>{overrideCount} 个参与方</dd></div> : null}
-                </>
-              ) : null}
+              <div><dt>样本</dt><dd>{result ? `${formatNumber(result.problems)} 条${full ? "" : `（每份前 ${draft.trialCap} 条）`}` : "—"}</dd></div>
+              <div><dt>运行</dt><dd>{full ? "正式运行" : "试跑"} · {algorithm ? `${draft.rounds} 轮` : "轮次待选"}</dd></div>
+              <div><dt>模型</dt><dd>{algorithm ? modelSummary(draft, state, algorithm) : modelLabel(draft.clientModel, state.endpoints)}</dd></div>
+              {overrideCount ? <div><dt>单独指定</dt><dd>{overrideCount} 个参与方</dd></div> : null}
             </dl>
             {result ? <EstimateBlock result={result} priceHref={hrefOf(endpointRoute(priceEndpoint))} /> : null}
             {confirm ? (
@@ -343,17 +335,18 @@ function TaskTypeChoice({ scenario, value, onChange }: { scenario: ScenarioId; v
 }
 
 /** 算法：带单选的表格，列出这个场景里能处理所选任务类型的算法，比较说明、交换内容和产出，由用户选。 */
-function AlgorithmField({ scenario, taskType, value, onChange }: { scenario: ScenarioId; taskType: TaskType; value: Draft["algorithm"]; onChange: (id: Algorithm["id"]) => void }) {
+function AlgorithmField({ scenario, taskType, value, onChange }: { scenario: ScenarioId; taskType: TaskType | null; value: Draft["algorithm"]; onChange: (id: Algorithm["id"]) => void }) {
   const algorithms = algorithmsFor(scenario, taskType);
   return (
     <Field label="算法" labelId="algorithm-label" wide>
-      {algorithms.length ? <AlgorithmTable algorithms={algorithms} value={value} onChange={onChange} /> : <p className="field-static">这种任务类型在这个场景下还没有算法。</p>}
+      {!taskType ? <p className="field-static" id="algorithm-prerequisite">请先选择任务类型</p> : null}
+      {algorithms.length ? <AlgorithmTable algorithms={algorithms} value={value} onChange={onChange} disabled={!taskType} /> : <p className="field-static">这种任务类型在这个场景下还没有算法。</p>}
     </Field>
   );
 }
 
 /** 算法表：最后一行留"更多算法 · 待接入"的空位，表示之后还会接入别的算法。 */
-function AlgorithmTable({ algorithms, value, onChange }: { algorithms: readonly Algorithm[]; value: Draft["algorithm"]; onChange: (id: Algorithm["id"]) => void }) {
+function AlgorithmTable({ algorithms, value, onChange, disabled }: { algorithms: readonly Algorithm[]; value: Draft["algorithm"]; onChange: (id: Algorithm["id"]) => void; disabled: boolean }) {
   return (
     <div className="table-shell">
       <table className="table table--select">
@@ -372,8 +365,8 @@ function AlgorithmTable({ algorithms, value, onChange }: { algorithms: readonly 
             const checked = value === item.id;
             const inputId = `algorithm-${item.id}`;
             return (
-              <tr key={item.id} className={`select-row${checked ? " select-row--checked" : ""}`} onClick={rowToggle(true, () => onChange(item.id))}>
-                <td className="select-cell"><input id={inputId} type="radio" name="algorithm" checked={checked} onChange={() => onChange(item.id)} /></td>
+              <tr key={item.id} className={`select-row${checked ? " select-row--checked" : ""}${disabled ? " select-row--disabled" : ""}`} onClick={rowToggle(!disabled, () => onChange(item.id))}>
+                <td className="select-cell"><input id={inputId} type="radio" name="algorithm" checked={checked} disabled={disabled} aria-describedby={disabled ? "algorithm-prerequisite" : undefined} onChange={() => onChange(item.id)} /></td>
                 <th scope="row" className="nowrap-cell"><label htmlFor={inputId}>{item.name}</label><small translate="no">{item.fullName}</small></th>
                 <td className="col-optional">{item.summary}</td>
                 <td className="col-optional nowrap-cell">{item.exchange}</td>
@@ -514,10 +507,10 @@ function RunSettings({
   state: State;
   draft: Draft;
   update: (patch: Partial<Draft>) => void;
-  algorithm: Algorithm;
+  algorithm: Algorithm | null;
 }) {
   const options = modelOptions(state.endpoints);
-  const rounds = Array.from({ length: algorithm.maxRounds - algorithm.minRounds + 1 }, (_, index) => algorithm.minRounds + index);
+  const rounds = algorithm ? Array.from({ length: algorithm.maxRounds - algorithm.minRounds + 1 }, (_, index) => algorithm.minRounds + index) : [];
 
   return (
     <div className="form-body">
@@ -530,8 +523,10 @@ function RunSettings({
             <UnitInput id="trial-cap" unit="条 / 数据集" name="trial-cap" type="number" inputMode="numeric" autoComplete="off" min={1} max={50} value={draft.trialCap} onChange={(event) => update({ trialCap: clampInt(event.target.value, 1, 50, draft.trialCap) })} />
           </Field>
         ) : null}
-        <Field label="轮次" labelId="rounds-label" wide info={`第 1 轮各方单独作答，作为本地基线；之后每轮都带上上一轮的${algorithm.output.name}再作答。`}>
-          <Choices labelledBy="rounds-label" value={draft.rounds} options={rounds.map((value) => ({ value, label: `${value} 轮` }))} onChange={(value) => update({ rounds: value })} />
+        <Field label="轮次" htmlFor={algorithm ? undefined : "rounds-pending"} labelId="rounds-label" wide info={algorithm ? `第 1 轮各方单独作答，作为本地基线；之后每轮都带上上一轮的${algorithm.output.name}再作答。` : undefined}>
+          {algorithm ? <Choices labelledBy="rounds-label" value={draft.rounds} options={rounds.map((value) => ({ value, label: `${value} 轮` }))} onChange={(value) => update({ rounds: value })} /> : (
+            <select id="rounds-pending" disabled value=""><option value="">请先选择算法</option></select>
+          )}
         </Field>
         {options.length === 1 ? (
           <ModelField state={state} />
@@ -542,7 +537,7 @@ function RunSettings({
                 {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
               </select>
             </Field>
-            {serverUsesModel(algorithm) ? (
+            {!algorithm || serverUsesModel(algorithm) ? (
               <Field label="服务端模型" htmlFor="server-model" info="服务端每轮要读完各方上传的内容，需要长上下文的模型。">
                 <select id="server-model" name="server-model" value={draft.serverModel} onChange={(event) => update({ serverModel: event.target.value })}>
                   {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
@@ -578,11 +573,11 @@ function AdvancedPanel({
   state: State;
   draft: Draft;
   update: (patch: Partial<Draft>) => void;
-  algorithm: Algorithm;
+  algorithm: Algorithm | null;
   /** 已选的参与方 id。 */
   joined: readonly string[];
 }) {
-  const changed = algorithm.params.filter((def) => paramValue(def, draft.params) !== def.default).length
+  const changed = (algorithm?.params.filter((def) => paramValue(def, draft.params) !== def.default).length ?? 0)
     + GENERAL_KEYS.filter((key) => draft[key] !== DEFAULT_DRAFT[key]).length
     + Object.keys(activeOverrides(draft)).length;
   // 只有一个模型时没有可指定的，不显示这一项。
@@ -594,10 +589,10 @@ function AdvancedPanel({
       sub="可选，默认值即推荐值"
     >
       <div className="form-body">
-        <FieldGroup title={`${algorithm.name} 算法参数`}>
-          {algorithm.params.map((def) => (
+        <FieldGroup title={algorithm ? `${algorithm.name} 算法参数` : "算法参数"}>
+          {algorithm ? algorithm.params.map((def) => (
             <ParamField key={def.key} def={def} params={draft.params} onChange={(value) => update({ params: { ...draft.params, [def.key]: value } })} />
-          ))}
+          )) : <p className="field-static">请先选择算法</p>}
         </FieldGroup>
         <FieldGroup title="通用">
           <Field label="并发数" htmlFor="workers" info="同时发出的模型调用数，所有参与方共用。">

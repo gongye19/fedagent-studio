@@ -1,6 +1,6 @@
 # 交接说明
 
-更新时间：2026-10-06（T58）。给接手开发的人和 AI：先读这一页，再读仓库根目录的 [AGENTS.md](../AGENTS.md)（协作规则和安全红线）。
+更新时间：2026-10-06（T59）。给接手开发的人和 AI：先读这一页，再读仓库根目录的 [AGENTS.md](../AGENTS.md)（协作规则和安全红线）。
 
 ## 现状
 
@@ -12,7 +12,7 @@
 - **测试**：前端 25 个、后端 51 个测试，包括 FoT 契约、真实 runner、本地客户端租约、跨进程限流和备份恢复。
 - **真实模型验证**（2026-10-05）：在部署的平台上用界面完整走过一遍（新建试跑 → 进度 → 产出 → 发布 → 试用 → 复制为新任务）。三个真实任务都完成了，最后一次 28 次调用全部成功、没有重试。
 
-各模块的完成情况见 [PROGRESS.md](./PROGRESS.md)，每次改了什么见 [HISTORY.md](./HISTORY.md)（T1–T58）。
+各模块的完成情况见 [PROGRESS.md](./PROGRESS.md)，每次改了什么见 [HISTORY.md](./HISTORY.md)（T1–T59）。新建任务固定面板和字段从首次打开起全部可见，未满足前置条件的控件置灰或写明需要先选什么。
 
 ## 服务器怎么连
 
@@ -104,6 +104,6 @@ tail -f ~/fedagent-studio/logs/api.log         # 每个任务的日志在 data/r
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | 后端设计和实现：插件体系、编排、模型网关、API、存储、部署 |
 | [DEVELOPMENT.md](./DEVELOPMENT.md) | 本地开发、测试、代码结构、加算法、部署、界面规范 |
 | [PROGRESS.md](./PROGRESS.md) | 各模块完成情况、服务器、最近的验证结果 |
-| [DECISIONS.md](./DECISIONS.md) | 设计决策和没采用的方案（D1–D55） |
-| [HISTORY.md](./HISTORY.md) | 每次任务改了什么、怎么验证的（T1–T58） |
+| [DECISIONS.md](./DECISIONS.md) | 设计决策和没采用的方案（D1–D56） |
+| [HISTORY.md](./HISTORY.md) | 每次任务改了什么、怎么验证的（T1–T59） |
 | [tools/ui-check](../tools/ui-check/README.md) | 界面检查脚本 |
