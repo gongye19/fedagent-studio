@@ -45,6 +45,10 @@ export function isActive(task: Pick<Task, "status">): boolean {
   return task.status === "queued" || task.status === "running";
 }
 
+export function canDeleteTask(task: Pick<Task, "status">): boolean {
+  return task.status === "completed" || task.status === "canceled";
+}
+
 // ——— 指标 ———
 
 export function roundOf(task: Task, round: number): RoundRecord | undefined {

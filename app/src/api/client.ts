@@ -135,6 +135,7 @@ export const api = {
   createTask: (body: TaskConfigIn) => post<S["TaskOut"]>("/v1/tasks", body),
   tasks: () => get<S["TaskOut"][]>("/v1/tasks"),
   task: (id: string) => get<S["TaskOut"]>(`/v1/tasks/${encodeURIComponent(id)}`),
+  deleteTask: (id: string) => del(`/v1/tasks/${encodeURIComponent(id)}`),
   controlTask: (id: string, action: "pause" | "resume" | "cancel") => post<S["TaskOut"]>(`/v1/tasks/${encodeURIComponent(id)}/${action}`),
   taskMessages: (id: string, filter: { round?: number; site?: string; limit?: number }) =>
     get<S["MessageOut"][]>(`/v1/tasks/${encodeURIComponent(id)}/messages${query(filter)}`),

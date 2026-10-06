@@ -16,6 +16,7 @@ from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
 from fedagent_sdk import SERVER, Algorithm, Artifact, ModelError, SiteSpec, TaskSpec
+from sqlalchemy import delete as sql_delete
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -487,3 +488,36 @@ def get_task(session: Session, task_id: str) -> m.Task:
     if task is None:
         raise not_found("任务")
     return task
+
+
+def delete_task(session: Session, task_id: str) -> None:
+    """只删除终态任务；关联结果由外键清理，应用和费用账本独立保留。"""
+    from .runner import leftover_process
+
+    task = get_task(session, task_id)
+    if task.status not in ("completed", "canceled"):
+        raise HTTPException(409, "请先取消任务，等任务结束后再删除")
+    if leftover_process(task.pid, task_id):
+        raise HTTPException(409, "任务进程正在退出，请稍后再删除")
+    # 事件为独立日志表，没有任务外键，需在同一事务里显式清理。
+    session.execute(sql_delete(m.Event).where(m.Event.task_id == task_id))
+    result = session.execute(sql_delete(m.Task).where(m.Task.id == task_id, m.Task.status.in_(("completed", "canceled"))))
+    if result.rowcount != 1:  # type: ignore[attr-defined]
+        raise HTTPException(409, "任务状态已变化，请刷新后再试")
+
+
+def remove_run_directory(platform: Platform, task_id: str) -> None:
+    """事务提交后的清理；清理失败不把已成功的删除伪装成失败。"""
+    import logging
+    import shutil
+
+    root = platform.settings.runs_dir.resolve()
+    path = root / task_id
+    if path.parent != root or path.is_symlink():
+        logging.getLogger(__name__).warning("skipped unsafe task directory: %s", task_id)
+        return
+    try:
+        if path.exists():
+            shutil.rmtree(path)
+    except OSError:
+        logging.getLogger(__name__).exception("could not remove deleted task directory: %s", task_id)

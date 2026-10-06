@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { SCENARIOS } from "../domain/catalog";
-import { TASK_STATUS, type TaskStatus } from "../domain/task";
+import { TASK_STATUS, type Task, type TaskStatus } from "../domain/task";
 import { hrefOf } from "../state/route";
 import type { State } from "../state/store";
-import { PageHead, PanelEmpty, Tag } from "./common";
+import { Notice, PageHead, PanelEmpty, Tag } from "./common";
+import { DeleteTaskConfirm } from "./DeleteTaskConfirm";
 import { Panel } from "./console";
 import { TaskTypeSelect, type TaskTypeFilter } from "./filters";
 import { Icon } from "./icons";
@@ -21,6 +22,8 @@ export default function TasksPage({ state }: { state: State }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [taskType, setTaskType] = useState<TaskTypeFilter>("all");
   const [query, setQuery] = useState("");
+  const [deleting, setDeleting] = useState<Task | null>(null);
+  const [deletedName, setDeletedName] = useState<string | null>(null);
   const keyword = query.trim().toLowerCase();
   const filtered = sortTasks(state.tasks.filter((task) => (
     (filter === "all" || task.status === filter)
@@ -33,6 +36,8 @@ export default function TasksPage({ state }: { state: State }) {
   return (
     <>
       <PageHead title="联邦任务" meta="每个联邦任务让多个参与方的 Agent 协作几轮，完成后对比各方效果，产出可以发布为应用。" />
+      {deleting ? <DeleteTaskConfirm task={deleting} onCancel={() => setDeleting(null)} onDeleted={() => { setDeletedName(deleting.name); setDeleting(null); }} /> : null}
+      {deletedName ? <Notice onDismiss={() => setDeletedName(null)}>已删除任务“{deletedName}”。</Notice> : null}
       {state.tasks.length ? (
         <div className="list-toolbar">
           <input
@@ -68,7 +73,7 @@ export default function TasksPage({ state }: { state: State }) {
                 : <button type="button" className="button button--secondary button--compact" disabled><Icon name="plus" />新建联邦任务</button>}
               flush
             >
-              {tasks.length ? <TaskTable tasks={tasks} /> : (
+              {tasks.length ? <TaskTable tasks={tasks} deleteDisabled={Boolean(deleting)} onDelete={(task) => { setDeletedName(null); setDeleting(task); }} /> : (
                 <PanelEmpty>
                   {!available
                     ? `${scenario.short}的算法还在规划中，接入后可以在这里新建任务。`

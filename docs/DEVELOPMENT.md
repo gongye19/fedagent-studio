@@ -152,7 +152,7 @@ bash deploy/deploy.sh
 
 ## 测试约定
 
-当前回归：前端 25 项、后端 51 项。`test_client_leases.py` 验证领取次数、过期结果、幂等提交、慢调用续租和实际标注数；`test_maintenance.py` 验证 WAL 数据备份恢复、匹配的解密密钥和并发首次启动；`test_gateway.py` 包括真实多进程共享并发上限和零重试时的流式兼容回退；`test_api.py` 验证事务在响应前提交，前端 `actions.test.ts` 覆盖旧列表缓存和动态请求禁用缓存。
+当前回归：前端 27 项、后端 53 项。`test_client_leases.py` 验证领取次数、过期结果、幂等提交、慢调用续租和实际标注数；`test_maintenance.py` 验证 WAL 数据备份恢复、匹配的解密密钥和并发首次启动；`test_gateway.py` 包括真实多进程共享并发上限和零重试时的流式兼容回退；`test_api.py` 验证事务在响应前提交，前端 `actions.test.ts` 覆盖旧列表缓存和动态请求禁用缓存。
 
 - 前端：
   - `domain/*.test.ts`：草稿的检查和参与方的选择规则、任务状态和显示用的计算、数据集文件检查；
@@ -192,3 +192,5 @@ fix: keep delta column visible on phones
 docs: refresh architecture and usage flow
 test: cover library publishing
 ```
+
+任务删除：`DELETE /v1/tasks/{id}` 仅接受已完成或已取消且进程已退出的任务，事务内清理任务和关联结果；响应前提交，随后清理运行目录。独立的已发布应用和调用费用账本保留。`test_api.py` 验证终态限制、进程退出、关联记录清理及删除后应用仍可用；前端回归覆盖旧列表响应不使任务重新出现及拒绝删除时保留数据。

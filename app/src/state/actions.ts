@@ -31,6 +31,13 @@ export async function controlTask(id: string, action: "pause" | "resume" | "canc
   await refresh(keys.tasks);
 }
 
+export async function deleteTask(id: string): Promise<void> {
+  await api.deleteTask(id);
+  await refresh(keys.tasks);
+  queryClient.setQueryData<Task[]>(keys.tasks, (previous = []) => previous.filter((task) => task.id !== id));
+  queryClient.removeQueries({ queryKey: ["messages", id] });
+}
+
 export async function publish(taskId: string, builtAfterRound: number, name: string) {
   const app = await api.publish({ taskId, builtAfterRound, name });
   await refresh(keys.apps);

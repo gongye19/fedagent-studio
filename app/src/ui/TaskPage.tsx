@@ -1,7 +1,7 @@
 import { useState, type Dispatch } from "react";
 import { ApiError } from "../api/client";
 import { toDraft } from "../domain/config";
-import { progressOf, scoredRounds, type Task } from "../domain/task";
+import { canDeleteTask, progressOf, scoredRounds, type Task } from "../domain/task";
 import { controlTask } from "../state/actions";
 import { navigate, type TaskTab } from "../state/route";
 import type { Action, State } from "../state/store";
@@ -14,11 +14,14 @@ import { OutputTab } from "./task/OutputTab";
 import { OverviewTab } from "./task/OverviewTab";
 import { ProgressTab } from "./task/ProgressTab";
 import { TaskStatus } from "./TaskTable";
+import { DeleteTaskConfirm } from "./DeleteTaskConfirm";
+import { showFlash } from "../state/flash";
 
 type Props = { task: Task; state: State; dispatch: Dispatch<Action>; tab?: TaskTab };
 
 export default function TaskPage({ task, state, dispatch, tab }: Props) {
   const [canceling, setCanceling] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   // 有结果就先看概览；还没有结果时看进度。
@@ -59,8 +62,9 @@ export default function TaskPage({ task, state, dispatch, tab }: Props) {
     <>
       {running ? <button type="button" className="button button--secondary" disabled={busy} onClick={() => void control("pause")}><Icon name="pause" />暂停</button> : null}
       {paused ? <button type="button" className="button button--secondary" disabled={busy} onClick={() => void control("resume")}><Icon name="play" />继续</button> : null}
-      <button type="button" className="button button--secondary" onClick={copy}><Icon name="copy" />复制为新任务</button>
+      <button type="button" className="button button--secondary" disabled={busy || deleting} onClick={copy}><Icon name="copy" />复制为新任务</button>
       {(running || paused) && !canceling ? <button type="button" className="button button--secondary button--danger" onClick={() => setCanceling(true)}>取消任务</button> : null}
+      {canDeleteTask(task) ? <button type="button" className="button button--secondary button--danger" disabled={busy || deleting} onClick={() => setDeleting(true)}>删除任务</button> : null}
     </>
   );
 
@@ -80,6 +84,7 @@ export default function TaskPage({ task, state, dispatch, tab }: Props) {
       />
       {paused && task.error ? <Notice tone="warning">任务已暂停：{task.error}</Notice> : null}
       {problem ? <Notice tone="warning" onDismiss={() => setProblem(null)}>{problem}</Notice> : null}
+      {deleting ? <DeleteTaskConfirm task={task} onCancel={() => setDeleting(false)} onDeleted={() => { showFlash({ page: "tasks" }, `已删除任务“${task.name}”。`); navigate({ page: "tasks" }); }} /> : null}
       {canceling && (running || paused) ? (
         <Confirm title="取消这个任务？" confirmLabel="取消任务" cancelLabel="返回" onConfirm={cancel} onCancel={() => setCanceling(false)}>
           取消后任务停在当前步骤，不能再继续；已经生成的结果和产出会保留。

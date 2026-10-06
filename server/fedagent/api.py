@@ -13,7 +13,7 @@ import time
 from collections.abc import Iterator
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, FastAPI, File, Form, Header, HTTPException, Query, Request, Response, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, FastAPI, File, Form, Header, HTTPException, Query, Request, Response, UploadFile
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -427,6 +427,13 @@ def list_tasks(
 @admin.get("/tasks/{task_id}", response_model=TaskOut, tags=["tasks"])
 def get_task(task_id: str, platform: PlatformDep, session: SessionDep) -> TaskOut:
     return tasks.task_out(platform, session, tasks.get_task(session, task_id))
+
+
+@admin.delete("/tasks/{task_id}", status_code=204, tags=["tasks"])
+def delete_task(task_id: str, background: BackgroundTasks, platform: PlatformDep, session: SessionDep) -> Response:
+    tasks.delete_task(session, task_id)
+    background.add_task(tasks.remove_run_directory, platform, task_id)
+    return Response(status_code=204)
 
 
 @admin.post("/tasks/{task_id}/{action}", response_model=TaskOut, tags=["tasks"])

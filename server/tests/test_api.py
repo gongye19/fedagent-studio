@@ -146,6 +146,57 @@ def test_full_flow_with_fake_model(client: TestClient, platform: Platform) -> No
     events = [event["kind"] for event in client.get(f"/v1/tasks/{task_id}/events").json()]
     assert events[0] == "create" and events[-1] == "complete"
 
+    # 删除任务清理结果与目录；已发布应用的内容及调用费用账本独立保留。
+    from sqlalchemy import func, select
+
+    with platform.db.session() as session:
+        calls = session.scalar(select(func.count()).select_from(m.CallRecord).where(m.CallRecord.task_id == task_id))
+        assert calls and calls > 0
+    assert (platform.settings.runs_dir / task_id).is_dir()
+    assert client.delete(f"/v1/tasks/{task_id}").status_code == 204
+    assert client.get(f"/v1/tasks/{task_id}").status_code == 404
+    assert not (platform.settings.runs_dir / task_id).exists()
+    assert client.get(f"/v1/apps/{app_id}").json() == app.json()
+    assert client.get(f"/v1/apps/{app_id}/export").content == exported.content
+    assert client.post(f"/v1/apps/{app_id}/apply", json={"input": "What is 1+1?", "model": "fake:fake"}).status_code == 200
+    with platform.db.session() as session:
+        for table in (m.TaskSite, m.WorkUnit, m.SiteState, m.Message, m.Report, m.Artifact, m.Event):
+            assert session.scalar(select(func.count()).select_from(table).where(table.task_id == task_id)) == 0
+        assert session.scalar(select(func.count()).select_from(m.CallRecord).where(m.CallRecord.task_id == task_id)) == calls
+
+
+def test_delete_task_rejects_unfinished_and_allows_canceled(client: TestClient, platform: Platform) -> None:
+    body = config([{"participantId": "p-a", "datasetId": "ds-aime24"}, {"participantId": "p-b", "datasetId": "ds-aime25"}])
+    task_id = client.post("/v1/tasks", json=body).json()["id"]
+    participants = client.get("/v1/participants").json()
+    datasets = client.get("/v1/datasets").json()
+    for status in ("queued", "running", "paused"):
+        with platform.db.session() as session:
+            session.get(m.Task, task_id).status = status
+        assert client.delete(f"/v1/tasks/{task_id}").status_code == 409
+        assert client.get(f"/v1/tasks/{task_id}").status_code == 200
+    assert client.post(f"/v1/tasks/{task_id}/cancel").status_code == 200
+    assert client.delete(f"/v1/tasks/{task_id}").status_code == 204
+    assert client.delete(f"/v1/tasks/{task_id}").status_code == 404
+    assert client.get("/v1/participants").json() == participants
+    assert client.get("/v1/datasets").json() == datasets
+
+
+def test_delete_task_waits_for_process_exit(client: TestClient, platform: Platform, monkeypatch) -> None:
+    from fedagent import runner
+
+    body = config([{"participantId": "p-a", "datasetId": "ds-aime24"}, {"participantId": "p-b", "datasetId": "ds-aime25"}])
+    task_id = client.post("/v1/tasks", json=body).json()["id"]
+    with platform.db.session() as session:
+        task = session.get(m.Task, task_id)
+        task.status = "completed"
+        task.pid = 12345
+    monkeypatch.setattr(runner, "leftover_process", lambda pid, id: True)
+    rejected = client.delete(f"/v1/tasks/{task_id}")
+    assert rejected.status_code == 409 and "进程正在退出" in rejected.json()["detail"]
+    monkeypatch.setattr(runner, "leftover_process", lambda pid, id: False)
+    assert client.delete(f"/v1/tasks/{task_id}").status_code == 204
+
 
 def test_pause_resume_cancel(client: TestClient, platform: Platform) -> None:
     body = config([{"participantId": "p-a", "datasetId": "ds-aime24"}, {"participantId": "p-b", "datasetId": "ds-aime25"}])

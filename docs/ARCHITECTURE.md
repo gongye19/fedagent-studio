@@ -1,6 +1,6 @@
 # 系统架构
 
-最后复核：2026-10-06（T58：前端检查、客户端租约、跨进程并发、完整数据备份）
+最后复核：2026-10-06（T60：任务删除；保留 T58 的客户端租约、跨进程并发和完整数据备份）
 状态：后端第一版已实现（`server/`），前端已接入，部署在实验室服务器（只在 Tailscale 内网访问）。本文既是设计也是实现说明；还没做的写在各节和 §21。
 
 ![整体架构](./agent-platform-design.png)
@@ -329,6 +329,7 @@ POST /v1/endpoints/models                  （按地址和密钥读模型列表�
 POST /v1/tasks/validate                    POST /v1/tasks/estimate                 POST /v1/tasks
 GET  /v1/tasks?scenario=&taskType=&status= GET  /v1/tasks/{id}            （当前步骤、每轮结果、产出版本都在任务里）
 POST /v1/tasks/{id}/pause | resume | cancel
+DELETE /v1/tasks/{id}                     （仅已完成、已取消且进程已退出）
 GET  /v1/tasks/{id}/messages?round=&site=  （通信记录）
 GET  /v1/tasks/{id}/events
 
@@ -402,7 +403,7 @@ server/                        uv workspace，虚拟环境在 server/.venv
 │   ├── registry.py            场景、插件发现（entry points）、清单校验
 │   ├── platform.py            把配置、数据库、注册表、文件存储、模型网关组装在一起
 │   ├── resources.py           参与方、数据集、模型接口的增删改
-│   ├── tasks.py               任务的校验、预估、创建、控制，以及给界面的任务视图
+│   ├── tasks.py               任务的校验、预估、创建、控制、删除，以及给界面的任务视图
 │   ├── engine.py / units.py   编排：轮次、步骤、工作单元、检查点、消息投递；每一步的读写（StepIO）
 │   ├── runner.py / taskproc.py  任务进程管理：排队、启动、暂停、继续、取消、意外退出后重启
 │   ├── clients.py             本地参与方客户端的令牌、领取、心跳、提交
@@ -557,3 +558,5 @@ steps:
 - 服务器重启后自动拉起：crontab 可以用，加不加 `@reboot` 由用户决定。
 - 身份与权限：现在只有一个可选的访问令牌（暂时关闭），之后再定。
 - 还没做：FoT 按复现器格式写的插件文件（§20）、SSE、按配置文件创建任务的命令行、本地客户端上传前的过滤规则、把客户端发布到公共仓库。
+
+任务删除在事务内清理任务及外键关联的工作单元、参与方快照、中间状态、消息、判分与产出，独立事件表显式删除；响应前提交后再清理运行目录。已发布应用持有独立产出副本，调用费用账本不随任务删除。
