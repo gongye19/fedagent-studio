@@ -11,7 +11,7 @@ import AlgorithmPage from "./ui/AlgorithmPage";
 import AlgorithmsPage from "./ui/AlgorithmsPage";
 import AppPage from "./ui/AppPage";
 import AppsPage from "./ui/AppsPage";
-import { EmptyState, NotFound, Notice, PageHead } from "./ui/common";
+import { EmptyState, NotFound, PageHead, Toast } from "./ui/common";
 import { Icon, type IconName } from "./ui/icons";
 import EndpointPage from "./ui/EndpointPage";
 import HomePage from "./ui/HomePage";
@@ -121,12 +121,12 @@ export default function App() {
       <main className="main" id="main" tabIndex={-1}>
         <div className="page">
           {flash ? (
-            <Notice
+            <Toast key={flash.id}
               action={flash.link ? <a className="text-link" href={hrefOf(flash.link.route)}>{flash.link.label}</a> : undefined}
               onDismiss={clearFlash}
             >
               {flash.text}
-            </Notice>
+            </Toast>
           ) : null}
           {state ? <Page state={state} dispatch={dispatch} route={route} /> : error ? <Unavailable error={error} /> : <Loading />}
         </div>

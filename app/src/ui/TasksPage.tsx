@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { SCENARIOS } from "../domain/catalog";
 import { TASK_STATUS, type Task, type TaskStatus } from "../domain/task";
+import { showFlash } from "../state/flash";
 import { hrefOf } from "../state/route";
 import type { State } from "../state/store";
-import { Notice, PageHead, PanelEmpty, SearchInput, Tag } from "./common";
+import { PageHead, PanelEmpty, SearchInput, Tag } from "./common";
 import { DeleteTaskConfirm } from "./DeleteTaskConfirm";
 import { Panel } from "./console";
 import { TaskTypeSelect, type TaskTypeFilter } from "./filters";
@@ -23,7 +24,6 @@ export default function TasksPage({ state }: { state: State }) {
   const [taskType, setTaskType] = useState<TaskTypeFilter>("all");
   const [query, setQuery] = useState("");
   const [deleting, setDeleting] = useState<Task | null>(null);
-  const [deletedName, setDeletedName] = useState<string | null>(null);
   const keyword = query.trim().toLowerCase();
   const filtered = sortTasks(state.tasks.filter((task) => (
     (filter === "all" || task.status === filter)
@@ -36,8 +36,7 @@ export default function TasksPage({ state }: { state: State }) {
   return (
     <>
       <PageHead title="联邦任务" meta="配置协作任务，查看进度、比较效果并发布产出。" />
-      {deleting ? <DeleteTaskConfirm task={deleting} onCancel={() => setDeleting(null)} onDeleted={() => { setDeletedName(deleting.name); setDeleting(null); }} /> : null}
-      {deletedName ? <Notice onDismiss={() => setDeletedName(null)}>已删除任务“{deletedName}”。</Notice> : null}
+      {deleting ? <DeleteTaskConfirm task={deleting} onCancel={() => setDeleting(null)} onDeleted={() => { showFlash({ page: "tasks" }, `已删除任务“${deleting.name}”。`); setDeleting(null); }} /> : null}
       <div className="list-toolbar" role="search" aria-label="筛选联邦任务">
         <SearchInput
           name="task-search"
@@ -70,7 +69,7 @@ export default function TasksPage({ state }: { state: State }) {
                 : <button type="button" className="button button--secondary button--compact" disabled><Icon name="plus" />新建联邦任务</button>}
               flush
             >
-              {tasks.length ? <TaskTable tasks={tasks} deleteDisabled={Boolean(deleting)} onDelete={(task) => { setDeletedName(null); setDeleting(task); }} /> : (
+              {tasks.length ? <TaskTable tasks={tasks} onDelete={setDeleting} /> : (
                 <PanelEmpty>
                   {!available
                     ? "算法待接入，暂时不能新建任务。"

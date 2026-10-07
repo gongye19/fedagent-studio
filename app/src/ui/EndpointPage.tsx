@@ -95,14 +95,9 @@ function EndpointForm({ state, endpoint, from }: { state: State; endpoint?: Endp
 
   async function remove() {
     if (!endpoint) return;
-    try {
-      await deleteEndpoint(endpoint.id);
-      showFlash({ page: "models" }, `已删除“${endpoint.name}”。`);
-      navigate({ page: "models" });
-    } catch (failure) {
-      setRemoving(false);
-      setError(failure instanceof ApiError ? failure.message : "删除失败，稍后再试");
-    }
+    await deleteEndpoint(endpoint.id);
+    showFlash({ page: "models" }, `已删除“${endpoint.name}”。`);
+    navigate({ page: "models" });
   }
 
   async function test() {
@@ -120,7 +115,7 @@ function EndpointForm({ state, endpoint, from }: { state: State; endpoint?: Endp
   }
 
   const deletable = endpoint && endpoint.id !== DEFAULT_ENDPOINT_ID && !endpoint.builtin;
-  const actions = endpoint && !removing ? (
+  const actions = endpoint ? (
     <>
       {endpoint.configured ? <button type="button" className="button button--secondary" disabled={testing} onClick={() => void test()}>{testing ? "正在测试…" : "测试连接"}</button> : null}
       {deletable ? <button type="button" className="button button--secondary button--danger" onClick={() => setRemoving(true)}>删除接口</button> : null}

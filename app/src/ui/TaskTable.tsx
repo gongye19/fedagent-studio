@@ -31,7 +31,7 @@ export function MetricChange({ task }: { task: Task }) {
  * 任务表格，放在联邦任务页按场景分好的块里：任务类型单独一列（第二层分类），
  * 名称下面的摘要只写算法、参与方数和运行方式，不再重复场景和任务类型。
  */
-export function TaskTable({ tasks, onDelete, deleteDisabled }: { tasks: readonly Task[]; onDelete: (task: Task) => void; deleteDisabled: boolean }) {
+export function TaskTable({ tasks, onDelete }: { tasks: readonly Task[]; onDelete: (task: Task) => void }) {
   return (
     <div className="table-shell">
       <table className="table table--stack table--tasks">
@@ -67,7 +67,7 @@ export function TaskTable({ tasks, onDelete, deleteDisabled }: { tasks: readonly
                 <td className="numeric" data-label="主要指标"><MetricChange task={task} /></td>
                 <td className="numeric nowrap" data-label="创建时间">{formatDate(task.createdAt)}</td>
                 <td className="numeric" data-label="操作">
-                  <button type="button" className="button button--ghost button--danger button--compact" disabled={deleteDisabled || !canDeleteTask(task)} title={canDeleteTask(task) ? undefined : "请先取消任务，结束后才能删除"} aria-label={`删除任务“${task.name}”`} onClick={() => onDelete(task)}>删除</button>
+                  <button type="button" className="button button--ghost button--danger button--compact" disabled={!canDeleteTask(task)} title={canDeleteTask(task) ? undefined : "请先取消任务，结束后才能删除"} aria-label={`删除任务“${task.name}”`} onClick={() => onDelete(task)}>删除</button>
                 </td>
               </tr>
             );

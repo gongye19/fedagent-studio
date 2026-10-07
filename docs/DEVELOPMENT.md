@@ -81,7 +81,7 @@ app/src/
 │   └── flash.ts / ids.ts
 ├── ui/
 │   ├── HomePage.tsx         首页：居中的三张场景卡片（可用的点进去新建这个场景的任务）
-│   ├── ScenarioArt.tsx      场景卡片上的示意图（横向按行分、纵向按列分、迁移从已有领域到新领域）
+│   ├── ScenarioArt.tsx      源码 SVG 关系图（横向协作、纵向互补、跨域迁移）
 │   ├── TasksPage.tsx        联邦任务：按场景分块列出任务（任务类型是一列），每块一个"新建联邦任务"；名称搜索、任务类型和状态筛选对所有块生效
 │   ├── HorizontalTaskPage.tsx 横向联邦的任务配置页（控制台风格的配置面板 + 右侧配置摘要 + 窄屏吸底操作栏）；校验和预估由后端做
 │   ├── TaskPage.tsx         任务详情（task/ 下是概览、进度、产出、配置四个标签）
@@ -98,7 +98,7 @@ app/src/
 │   ├── Chart.tsx            ECharts 封装（按需加载，概览页的哑铃图）
 │   ├── OutputGroups.tsx     按类别列出产出里的条目（任务产出和应用内容共用）
 │   ├── console.tsx          控制台风格的表单组件：Panel、Field / FieldGroup、UnitInput、Choices
-│   ├── common.tsx           共用组件：Tag、PageHead、Confirm、Notice、FormActions、Meta、CodeBlock、Collapsible、PanelEmpty、Stat、Facts 等
+│   ├── common.tsx           共用组件：Tag、PageHead、Confirm、Toast、Notice、FormActions、Meta、CodeBlock、Collapsible、PanelEmpty、Stat、Facts 等
 │   ├── filters.tsx          列表页共用的任务类型筛选
 │   ├── TaskTable.tsx / labels.ts / format.ts / icons.tsx
 ├── test/               测试用的注册表和数据（registry.json 是后端注册表的快照）
@@ -173,7 +173,7 @@ bash deploy/deploy.sh
   - 配置区块一律用 `Panel`；新建任务四个固定区域传 `step` 表示序号，不分步隐藏。表单字段一律用 `Field`，放进 `FieldGroup` 的两栏网格，选项按钮组、表格、长文本或单独占一行的字段用 `wide`；
   - 字段名一行写完；可以不填的字段传 `optional`；控件下方不放说明，只有填错时传 `error`；需要解释的字段传 `info`（字段名旁的"说明"，点开才显示）；单位用 `UnitInput`；
   - 决定任务内容的选择（场景、任务类型、算法、参与方、运行位置、数据集的场景和任务类型）即使只有一个选项，也由用户自己选，不预先选好；只有一个取值、又不需要用户决定的字段（例如只有一个模型）直接显示文字；
-  - 不可逆的操作一律用 `Confirm` 在原地确认，不用 `window.confirm`；创建、保存、发布、删除之后用 `showFlash(目标页, 文字)` 在目标页顶部提示；
+  - 不可逆操作使用 `Confirm` 居中模态：保留背景位置、默认取消焦点、Tab／Esc 和焦点恢复；请求中锁定关闭，失败留在对话框内重试，不用 `window.confirm`。创建、保存、发布、删除后用 `showFlash(目标页, 文字)` 显示不占布局的 `Toast`，鼠标停留／键盘聚焦暂停计时；`Notice` 用于持续状态与就地错误；
   - 多段元信息一律交给 `Meta`，不要在字符串里拼" · "；
   - 列表页的分类统一两层：先按场景分块（每个场景一个 `Panel`，规划中的场景标"规划中"，空面板可用 `.panel--planned` 减少占用），任务类型是表格的一列；上方 `.list-toolbar` 放 `SearchInput` 和 `TaskTypeSelect`，对所有场景一起生效，任务／应用无记录时也保留工具栏。新的列表页照这个写，不要用标签页切换场景，也不要把任务类型做成分组标题；
   - 互斥的少量选项用 `Choices`，选项多或次要设置用下拉，选对象（算法、参与方）用带单选 / 复选的表格；

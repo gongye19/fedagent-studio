@@ -8,6 +8,7 @@
 | `a11y.mjs` | 逐页检查可访问性：没有名字的按钮和链接、没有标签的输入框、重复 id、点击区域太小、对比度、横向溢出、标题层级 | `node a11y.mjs`，结果写到 `OUT`（默认 `/tmp/fedagent-audit/a11y.json`） |
 | `wrap.mjs` | 在多个宽度下找断行不当的文字：短文字被折成两行、长文字最后一行只剩一两个字 | `node wrap.mjs`，结果写到 `OUT`（默认 `/tmp/fedagent-audit/wrap.json`） |
 | `summary.py` | 汇总上面两个的结果，过滤已核实的误报 | `python3 summary.py a11y.json wrap.json` |
+| `feedback.mjs` | 确认、失败、焦点、长内容和减少动态的浏览器回归（响应夹具，不修改数据库） | `node feedback.mjs`，仅允许本地 BASE；需已有一个任务和应用作只读模板；CDP_OUT 指定证据目录 |
 | `docshots.json` | 文档里的 14 张截图（`docs/screenshots/`） | `CDP_OUT=../../docs/screenshots node cdp.mjs docshots.json` |
 
 环境变量：

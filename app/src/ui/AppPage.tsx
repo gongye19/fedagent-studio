@@ -45,17 +45,17 @@ export default function AppPage({ item, task, state, tab }: Props) {
     }
   }
 
-  const unpublish = () => run(async () => {
+  const unpublish = async () => {
     await withdrawApp(item.id);
     showFlash({ page: "apps" }, `已撤下“${item.name}”。${task ? "产出还在任务里，可以重新发布。" : "来源任务已删除。"}`);
     navigate({ page: "apps" });
-  });
+  };
 
   const manage = (
     <>
       <button type="button" className="button button--secondary" disabled={managing} onClick={() => void run(() => api.exportApp(item.id))}><Icon name="download" />导出 JSON</button>
       <button type="button" className="button button--secondary" disabled={managing} onClick={() => setEditing("rename")}>重命名</button>
-      <button type="button" className="button button--secondary button--danger" disabled={managing} onClick={() => setEditing("unpublish")}>撤下应用</button>
+      <button type="button" className="button button--secondary button--danger" disabled={managing} onClick={() => { setProblem(null); setEditing("unpublish"); }}>撤下应用</button>
     </>
   );
   const editor = editing === "rename" ? (
@@ -83,7 +83,7 @@ export default function AppPage({ item, task, state, tab }: Props) {
           task ? <>来源任务 <a className="text-link" href={hrefOf({ page: "task", id: task.id, tab: "output" })}>{task.name}</a></> : "来源任务已删除",
           `发布于 ${formatDate(item.publishedAt)}`,
         ]} />}
-        actions={editing ? null : manage}
+        actions={editing === "rename" ? null : manage}
       />
       {editor}
       {problem ? <Notice tone="warning" onDismiss={() => setProblem(null)}>{problem}</Notice> : null}

@@ -919,7 +919,7 @@
         "sha256": "5f317234744f215842ba576f8e7e9f072f18f9e0d7e394cb7311c333983ce86f"
       }
     ],
-    "status": "awaiting_user_reference_confirmation",
+    "status": "user_confirmed_2026-10-08",
     "base_dir": ".references/mobbin/t63-feedback-home"
   }
 }

@@ -147,7 +147,6 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
       showFlash({ page: "task", id: task.id }, full ? `已创建“${task.name}”，开始正式运行。` : `已创建“${task.name}”，开始试跑。`);
       navigate({ page: "task", id: task.id, tab: "progress" });
     } catch (error) {
-      setPending(null);
       setCreateError(error instanceof ApiError ? error.message : "创建失败，稍后再试");
     } finally {
       setCreating(false);
@@ -169,7 +168,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
   /** 正式运行调用量大，先确认一次；试跑直接开始。 */
   function start() {
     if (!canCreate || creating) return;
-    if (full) setPending("full");
+    if (full) { setCreateError(null); setPending("full"); }
     else void create();
   }
 
@@ -192,7 +191,6 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
           <span>创建后配置不能修改，运行中可以暂停或取消。</span>
         </>
       ),
-      short: <Meta parts={[`至少 ${formatNumber(result.participantCalls + result.serverCalls)} 次调用`, formatDuration(result.seconds), result.cost === null ? "费用无法估算" : formatYuan(result.cost)]} />,
       confirmLabel: "确认开始",
       cancelLabel: "取消",
       tone: "primary" as const,
@@ -202,7 +200,6 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
       ? {
         title: "放弃这次的配置？",
         text: "已选的参与方和设置都会清空。",
-        short: "已选的参与方和设置都会清空",
         confirmLabel: "放弃",
         cancelLabel: "继续编辑",
         tone: "danger" as const,
@@ -213,7 +210,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
   return (
     <>
       <PageHead title="新建横向联邦任务" crumbs={[{ label: "联邦任务", route: back }]} />
-      {createError ? <Notice tone="warning" onDismiss={() => setCreateError(null)}>没有创建：{createError}</Notice> : null}
+      {createError && !confirm ? <Notice tone="warning" onDismiss={() => setCreateError(null)}>没有创建：{createError}</Notice> : null}
       {pending === "restart" ? (
         <Confirm title="清空这次的配置？" confirmLabel="清空" onConfirm={restart} onCancel={() => setPending(null)}>
           已选的参与方和设置都会恢复默认。
@@ -287,16 +284,10 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
               {overrideCount ? <div><dt>单独指定</dt><dd>{overrideCount} 个参与方</dd></div> : null}
             </dl>
             {result ? <EstimateBlock result={result} priceHref={hrefOf(endpointRoute(priceEndpoint))} /> : null}
-            {confirm ? (
-              <Confirm className="summary-confirm" title={confirm.title} confirmLabel={confirm.confirmLabel} cancelLabel={confirm.cancelLabel} tone={confirm.tone} onConfirm={confirm.onConfirm} onCancel={() => setPending(null)}>
-                {confirm.text}
-              </Confirm>
-            ) : (
-              <div className="summary-actions">
-                <button type="button" className="button button--primary button--block summary-start" disabled={!canCreate || creating} aria-describedby={statusText ? issuesId : undefined} onClick={start}>{creating ? "正在创建…" : startLabel}</button>
-                <button type="button" className="button button--ghost button--block" onClick={cancel}>取消</button>
-              </div>
-            )}
+            <div className="summary-actions">
+              <button type="button" className="button button--primary button--block summary-start" disabled={!canCreate || creating} aria-describedby={statusText ? issuesId : undefined} onClick={start}>{creating ? "正在创建…" : startLabel}</button>
+              <button type="button" className="button button--ghost button--block" disabled={creating} onClick={cancel}>取消</button>
+            </div>
             <p className="summary-issues" id={issuesId} aria-live="polite">{statusText}</p>
             {validationError ? <button type="button" className="link-button" onClick={() => void check.refetch()}>重新检查</button> : null}
           </Panel>
@@ -304,21 +295,20 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
       </div>
 
       {confirm ? (
-        <Confirm className="order-bar order-bar--confirm" title={confirm.title} confirmLabel={confirm.confirmLabel} cancelLabel={confirm.cancelLabel} tone={confirm.tone} onConfirm={confirm.onConfirm} onCancel={() => setPending(null)}>
-          {confirm.short}
+        <Confirm title={confirm.title} confirmLabel={confirm.confirmLabel} cancelLabel={confirm.cancelLabel} tone={confirm.tone} onConfirm={confirm.onConfirm} onCancel={() => setPending(null)} error={pending === "full" ? createError : undefined}>
+          {confirm.text}
         </Confirm>
-      ) : (
-        <div className="order-bar" aria-label="创建任务">
-          <div>
-            <strong className={issues.length || validationError ? "order-bar-issue" : undefined}>{statusText || `${joined.length} 个参与方 · 至少 ${formatNumber((result?.participantCalls ?? 0) + (result?.serverCalls ?? 0))} 次调用`}</strong>
-            {result && !issues.length ? <small>{formatDuration(result.seconds)}</small> : null}
-          </div>
-          <div className="order-bar-actions">
-            <button type="button" className="button button--ghost order-bar-cancel" onClick={cancel}>取消</button>
-            <button type="button" className="button button--primary" disabled={!canCreate || creating} onClick={start}>{creating ? "正在创建…" : startLabel}</button>
-          </div>
+      ) : null}
+      <div className="order-bar" aria-label="创建任务">
+        <div>
+          <strong className={issues.length || validationError ? "order-bar-issue" : undefined}>{statusText || `${joined.length} 个参与方 · 至少 ${formatNumber((result?.participantCalls ?? 0) + (result?.serverCalls ?? 0))} 次调用`}</strong>
+          {result && !issues.length ? <small>{formatDuration(result.seconds)}</small> : null}
         </div>
-      )}
+        <div className="order-bar-actions">
+          <button type="button" className="button button--ghost order-bar-cancel" disabled={creating} onClick={cancel}>取消</button>
+          <button type="button" className="button button--primary" disabled={!canCreate || creating} onClick={start}>{creating ? "正在创建…" : startLabel}</button>
+        </div>
+      </div>
     </>
   );
 }

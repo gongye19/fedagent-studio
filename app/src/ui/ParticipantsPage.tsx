@@ -184,20 +184,14 @@ function RowDetail({
   scenario: ScenarioId;
 }) {
   const [pending, setPending] = useState<"dataset" | "participant" | null>(null);
-  const [problem, setProblem] = useState<string | null>(null);
   const removable = dataset.source !== "builtin" && datasetsOf(state, participant.id).length > 1;
 
   async function remove(kind: "dataset" | "participant") {
+    if (kind === "dataset") await deleteDataset(dataset.id);
+    else await deleteParticipant(participant.id);
     setPending(null);
-    setProblem(null);
-    try {
-      if (kind === "dataset") await deleteDataset(dataset.id);
-      else await deleteParticipant(participant.id);
-      showFlash({ page: "participants" }, kind === "dataset" ? `已删除数据集“${dataset.name}”。` : `已删除“${participant.name}”。`);
-      navigate({ page: "participants", scenario }, { keepScroll: true });
-    } catch (error) {
-      setProblem(error instanceof ApiError ? error.message : "删除失败，稍后再试");
-    }
+    showFlash({ page: "participants" }, kind === "dataset" ? `已删除数据集“${dataset.name}”。` : `已删除“${participant.name}”。`);
+    navigate({ page: "participants", scenario }, { keepScroll: true });
   }
 
   return (
@@ -221,7 +215,6 @@ function RowDetail({
       ) : null}
       {participant.intro ? <p className="detail-lede">{participant.intro}</p> : null}
       {participant.hosting === "local" ? <LocalConnect participantId={participant.id} datasetIds={datasetsOf(state, participant.id).map((item) => item.id)} /> : null}
-      {problem ? <Notice tone="warning" onDismiss={() => setProblem(null)}>{problem}</Notice> : null}
       {pending === "dataset" ? (
         <Confirm title={`删除数据集“${dataset.name}”？`} confirmLabel="删除" onConfirm={() => remove("dataset")} onCancel={() => setPending(null)}>
           删除后不能再选入新任务；已有任务里的记录不受影响。
@@ -230,13 +223,12 @@ function RowDetail({
         <Confirm title={`删除“${participant.name}”？`} confirmLabel="删除" onConfirm={() => remove("participant")} onCancel={() => setPending(null)}>
           它的数据集会一起删除；已有任务里的记录不受影响。
         </Confirm>
-      ) : (
-        <div className="detail-actions">
+      ) : null}
+      <div className="detail-actions">
           <a className="button button--secondary button--compact" href={hrefOf({ page: "newDataset", participant: participant.id })}><Icon name="plus" />为这个参与方新增数据集</a>
           {removable ? <button type="button" className="button button--secondary button--compact button--danger" onClick={() => setPending("dataset")}>删除数据集</button> : null}
           {participant.builtin ? null : <button type="button" className="button button--secondary button--compact button--danger" onClick={() => setPending("participant")}>删除参与方</button>}
-        </div>
-      )}
+      </div>
     </div>
   );
 }

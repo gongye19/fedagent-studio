@@ -1,13 +1,14 @@
 /**
- * 页面顶部的提示条：创建、保存、上传、发布之后告诉用户结果。
+ * 不占布局的成功通知：创建、保存、上传、发布之后告诉用户结果。
  * 提示属于它显示的那一页（按 pageKeyOf 判断）：同一页里展开行、切换标签时保留，换到别的页就收起。
  * 通常先 showFlash(目标页, …)，紧接着 navigate(目标页)。
  */
 import { useSyncExternalStore } from "react";
 import { pageKeyOf, type Route } from "./route";
 
-export type Flash = { text: string; link?: { label: string; route: Route }; page: string };
+export type Flash = { id: number; text: string; link?: { label: string; route: Route }; page: string };
 
+let sequence = 0;
 let current: Flash | null = null;
 const listeners = new Set<() => void>();
 
@@ -21,7 +22,7 @@ function subscribe(listener: () => void): () => void {
 }
 
 export function showFlash(route: Route, text: string, link?: Flash["link"]): void {
-  current = { text, link, page: pageKeyOf(route) };
+  current = { id: ++sequence, text, link, page: pageKeyOf(route) };
   emit();
 }
 

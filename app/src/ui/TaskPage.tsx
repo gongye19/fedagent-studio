@@ -44,15 +44,17 @@ export default function TaskPage({ task, state, dispatch, tab }: Props) {
     try {
       await controlTask(task.id, action);
     } catch (error) {
+      if (action === "cancel") throw error;
       setProblem(error instanceof ApiError ? error.message : "操作失败，稍后再试");
     } finally {
       setBusy(false);
     }
   }
 
-  function cancel() {
+  async function cancel() {
+    await control("cancel");
     setCanceling(false);
-    void control("cancel");
+    showFlash({ page: "task", id: task.id }, "已取消任务，已生成的结果和产出会保留。");
   }
 
   // 排队中的任务也可以暂停、取消；暂停命令发出后，任务做完手上的样本才停下。
@@ -62,9 +64,9 @@ export default function TaskPage({ task, state, dispatch, tab }: Props) {
     <>
       {running ? <button type="button" className="button button--secondary" disabled={busy} onClick={() => void control("pause")}><Icon name="pause" />暂停</button> : null}
       {paused ? <button type="button" className="button button--secondary" disabled={busy} onClick={() => void control("resume")}><Icon name="play" />继续</button> : null}
-      <button type="button" className="button button--secondary" disabled={busy || deleting} onClick={copy}><Icon name="copy" />复制为新任务</button>
-      {(running || paused) && !canceling ? <button type="button" className="button button--secondary button--danger" onClick={() => setCanceling(true)}>取消任务</button> : null}
-      {canDeleteTask(task) ? <button type="button" className="button button--secondary button--danger" disabled={busy || deleting} onClick={() => setDeleting(true)}>删除任务</button> : null}
+      <button type="button" className="button button--secondary" disabled={busy} onClick={copy}><Icon name="copy" />复制为新任务</button>
+      {(running || paused) ? <button type="button" className="button button--secondary button--danger" disabled={busy} onClick={() => { setProblem(null); setCanceling(true); }}>取消任务</button> : null}
+      {canDeleteTask(task) ? <button type="button" className="button button--secondary button--danger" disabled={busy} onClick={() => setDeleting(true)}>删除任务</button> : null}
     </>
   );
 

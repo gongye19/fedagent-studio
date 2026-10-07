@@ -34,8 +34,8 @@ export default function HomePage() {
             return (
               <li key={scenario.id}>
                 {available
-                  ? <a className="scenario-card" href={hrefOf({ page: "newTask", scenario: scenario.id })}>{body}</a>
-                  : <div className="scenario-card scenario-card--planned">{body}</div>}
+                  ? <a className={`scenario-card scenario-card--${scenario.id}`} href={hrefOf({ page: "newTask", scenario: scenario.id })}>{body}</a>
+                  : <div className={`scenario-card scenario-card--${scenario.id} scenario-card--planned`}>{body}</div>}
               </li>
             );
           })}
