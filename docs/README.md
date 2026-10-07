@@ -9,5 +9,7 @@
 5. [开发说明](./DEVELOPMENT.md)：本地启动、常用命令、代码结构、如何增加算法、部署、测试约定和界面规范。
 6. [关键设计决策](./DECISIONS.md)：背后的取舍，以及哪些决定已被废弃。
 7. [任务记录](./HISTORY.md)：按时间顺序的 T 任务。
+8. [界面参考研究](./UI-REFERENCES.md)：Mobbin Pro 中适合联邦实验、运行、结果比较和应用发布的产品与流程。
+9. [Mobbin 使用与接入](./MOBBIN.md)：网页筛选、官方 MCP OAuth、搜索、下载和额度；[来源清单](./ui-reference-manifest.json)保留原图顺序及校验值。
 
 `agent-platform-design.svg/png` 是整体架构图（由 `agent-platform-design.gen.py` 生成），若与文字冲突，以 `ARCHITECTURE.md` 为准。截图在 `screenshots/`，用 `tools/ui-check/docshots.json` 重新生成。

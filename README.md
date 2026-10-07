@@ -113,6 +113,8 @@ npm run dev
 - [开发说明](./docs/DEVELOPMENT.md)
 - [关键设计决策](./docs/DECISIONS.md)
 - [任务记录](./docs/HISTORY.md)
+- [界面参考研究](./docs/UI-REFERENCES.md)
+- [Mobbin 使用与接入](./docs/MOBBIN.md)
 
 ## 目录
 

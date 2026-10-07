@@ -1,0 +1,536 @@
+{
+  "captured_at": "2026-10-07 Asia/Hong_Kong",
+  "source": "Mobbin official MCP; Braintrust creating experiment images exported from Pro website",
+  "flows": [
+    {
+      "id": "591a08be-07d0-493d-a3cc-4ae64b5ee07e",
+      "name": "Evaluating a prompt",
+      "actions": [
+        "Starting & Completing"
+      ],
+      "mobbin_url": "https://mobbin.com/flows/591a08be-07d0-493d-a3cc-4ae64b5ee07e",
+      "app_name": "Adaline",
+      "platform": "web",
+      "screen_count": 5,
+      "key": "adaline-evaluate-prompt"
+    },
+    {
+      "id": "bf54f0f0-6062-4f74-a100-c47788761483",
+      "name": "Comparing data",
+      "actions": [
+        "Misc"
+      ],
+      "mobbin_url": "https://mobbin.com/flows/bf54f0f0-6062-4f74-a100-c47788761483",
+      "app_name": "Amplitude",
+      "platform": "web",
+      "screen_count": 6,
+      "key": "amplitude-compare-data"
+    },
+    {
+      "id": "c0baa31a-140b-4b47-886c-1893f113d29d",
+      "name": "Creating an experiment",
+      "actions": [
+        "Adding & Creating"
+      ],
+      "mobbin_url": "https://mobbin.com/flows/c0baa31a-140b-4b47-886c-1893f113d29d",
+      "app_name": "Braintrust",
+      "platform": "web",
+      "screen_count": 10,
+      "key": "braintrust-create-experiment"
+    },
+    {
+      "id": "385e0636-39e9-40f4-ac23-b7969f526224",
+      "name": "Eval details",
+      "actions": [],
+      "mobbin_url": "https://mobbin.com/flows/385e0636-39e9-40f4-ac23-b7969f526224",
+      "app_name": "Braintrust",
+      "platform": "web",
+      "screen_count": 5,
+      "key": "braintrust-eval-details"
+    },
+    {
+      "id": "3f5823a6-912d-4898-968c-a38993f904fb",
+      "name": "Experiments",
+      "actions": [],
+      "mobbin_url": "https://mobbin.com/flows/3f5823a6-912d-4898-968c-a38993f904fb",
+      "app_name": "Braintrust",
+      "platform": "web",
+      "screen_count": 5,
+      "key": "braintrust-experiments"
+    },
+    {
+      "id": "90fe30e3-9589-4c01-b210-4fe2188f283d",
+      "name": "Preview an agent",
+      "actions": [],
+      "mobbin_url": "https://mobbin.com/flows/90fe30e3-9589-4c01-b210-4fe2188f283d",
+      "app_name": "ElevenLabs",
+      "platform": "web",
+      "screen_count": 6,
+      "key": "elevenlabs-preview-agent"
+    },
+    {
+      "id": "b1bfc1bb-640f-4d1d-9fc7-0964955d1212",
+      "name": "Publishing an agent",
+      "actions": [
+        "Publishing"
+      ],
+      "mobbin_url": "https://mobbin.com/flows/b1bfc1bb-640f-4d1d-9fc7-0964955d1212",
+      "app_name": "ElevenLabs",
+      "platform": "web",
+      "screen_count": 3,
+      "key": "elevenlabs-publish-agent"
+    },
+    {
+      "id": "df9ae237-8060-48a3-bae9-2ff60ea859b7",
+      "name": "Comparing a prompt",
+      "actions": [
+        "Misc"
+      ],
+      "mobbin_url": "https://mobbin.com/flows/df9ae237-8060-48a3-bae9-2ff60ea859b7",
+      "app_name": "LangChain",
+      "platform": "web",
+      "screen_count": 2,
+      "key": "langsmith-compare-prompt"
+    },
+    {
+      "id": "c7030d07-e88b-413f-8f4d-261ae30878b9",
+      "name": "Run detail",
+      "actions": [],
+      "mobbin_url": "https://mobbin.com/flows/c7030d07-e88b-413f-8f4d-261ae30878b9",
+      "app_name": "LangChain",
+      "platform": "web",
+      "screen_count": 3,
+      "key": "langsmith-run-detail"
+    },
+    {
+      "id": "c03d421c-861f-45e9-9e0f-1f1947a46563",
+      "name": "My issues",
+      "actions": [],
+      "mobbin_url": "https://mobbin.com/flows/c03d421c-861f-45e9-9e0f-1f1947a46563",
+      "app_name": "Linear",
+      "platform": "web",
+      "screen_count": 4,
+      "key": "linear-my-issues"
+    },
+    {
+      "id": "d4b2687c-751b-4700-9861-45722c5d7f09",
+      "name": "Chat",
+      "actions": [],
+      "mobbin_url": "https://mobbin.com/flows/d4b2687c-751b-4700-9861-45722c5d7f09",
+      "app_name": "OpenAI Platform",
+      "platform": "web",
+      "screen_count": 2,
+      "key": "openai-chat"
+    }
+  ],
+  "files": [
+    {
+      "key": "adaline-evaluate-prompt",
+      "screen_id": "d0b46c80-33e5-4213-b612-8f51f233dc44",
+      "position": 1,
+      "file": "adaline-evaluate-prompt/01.webp",
+      "bytes": 163040,
+      "sha256": "9318f697d4186ed98565a31fc79d9402ee29521483d845893c6e50984ff181ba"
+    },
+    {
+      "key": "adaline-evaluate-prompt",
+      "screen_id": "86ad22a5-a0d4-4bc8-bf5c-e9b05b9139c9",
+      "position": 2,
+      "file": "adaline-evaluate-prompt/02.webp",
+      "bytes": 127870,
+      "sha256": "aa16adb65ab90a059bfedf3197965a668918cd94b085f2c476e7d04a4bec9ce3"
+    },
+    {
+      "key": "adaline-evaluate-prompt",
+      "screen_id": "fcdd8f81-bf0f-4413-a606-3c4aa1107a1f",
+      "position": 3,
+      "file": "adaline-evaluate-prompt/03.webp",
+      "bytes": 255702,
+      "sha256": "6a9f3ec549801ea1927a496cc47e6a849c529ab731147c8375adcd8e6cb4101c"
+    },
+    {
+      "key": "adaline-evaluate-prompt",
+      "screen_id": "b44c76f4-b4d1-4231-8a3c-eeb5382c1ef3",
+      "position": 4,
+      "file": "adaline-evaluate-prompt/04.webp",
+      "bytes": 264510,
+      "sha256": "19de0d43fa7f87bc9cdd761123173c4adcbc84db802c5d0e07cede1fdd4864c9"
+    },
+    {
+      "key": "adaline-evaluate-prompt",
+      "screen_id": "bd0da4e1-51ec-4447-8d8d-5ce0a1df2d3d",
+      "position": 5,
+      "file": "adaline-evaluate-prompt/05.webp",
+      "bytes": 271616,
+      "sha256": "518b20a788eeb8ec6bfeee8afc94b3375b9404ef321776adf570ae63674b9f3f"
+    },
+    {
+      "key": "amplitude-compare-data",
+      "screen_id": "1eefeb49-657c-44e2-9eb4-facb10fe2042",
+      "position": 1,
+      "file": "amplitude-compare-data/01.webp",
+      "bytes": 89056,
+      "sha256": "85f4b4a8a0667f1185edd03d53f5ee872f31a089efbb20efc039d9f1da3edb58"
+    },
+    {
+      "key": "amplitude-compare-data",
+      "screen_id": "25b9a505-2d15-4ae6-b4df-625a67de64b8",
+      "position": 2,
+      "file": "amplitude-compare-data/02.webp",
+      "bytes": 93606,
+      "sha256": "e96d1d6a69e2ae145797b6c9cac4680db18f51068e47548b5bd0e2ec27a55b1a"
+    },
+    {
+      "key": "amplitude-compare-data",
+      "screen_id": "f737d8d3-b723-4868-81d3-e8eda8093e6f",
+      "position": 3,
+      "file": "amplitude-compare-data/03.webp",
+      "bytes": 99748,
+      "sha256": "73837e9763bbfbc8bfdc3f278db229a7b73616dbd28db115d5478fe2ef3bad53"
+    },
+    {
+      "key": "amplitude-compare-data",
+      "screen_id": "23537a82-6735-4dbd-a041-6c1d97224d9f",
+      "position": 4,
+      "file": "amplitude-compare-data/04.webp",
+      "bytes": 96808,
+      "sha256": "d29394ab7d41c33f925c1755933231576060d3e9e6323862cc1e14ee986fde9e"
+    },
+    {
+      "key": "amplitude-compare-data",
+      "screen_id": "ef5335f0-8751-491f-a48f-a442cdeae279",
+      "position": 5,
+      "file": "amplitude-compare-data/05.webp",
+      "bytes": 94324,
+      "sha256": "86fb67ff30bbeef1f80080c6b0312d5f818dcdab4bcfca58618baa46094e1827"
+    },
+    {
+      "key": "amplitude-compare-data",
+      "screen_id": "3afcd733-04bd-4028-884b-922ffdbdea98",
+      "position": 6,
+      "file": "amplitude-compare-data/06.webp",
+      "bytes": 94290,
+      "sha256": "bf008489de57b7722bddea19482ad897e1ab10bb44011e872affbbec6325f025"
+    },
+    {
+      "key": "braintrust-create-experiment",
+      "screen_id": "2e239225-e11f-42e0-90a8-188e64329f89",
+      "position": 1,
+      "file": "braintrust-create-experiment/01.png",
+      "bytes": 348717,
+      "sha256": "5c20a2b271ec811bcaf1707581f653140ad575b2ac33c0ee044e4300b23daa77"
+    },
+    {
+      "key": "braintrust-create-experiment",
+      "screen_id": "9ee2d6a1-325c-4cbf-85b0-b99c96e83241",
+      "position": 2,
+      "file": "braintrust-create-experiment/02.png",
+      "bytes": 390064,
+      "sha256": "df599b42a9865df723fbdf43f492eea4bc2622dcf9ca4c116b17e2e0f1f4e236"
+    },
+    {
+      "key": "braintrust-create-experiment",
+      "screen_id": "3c48aa6d-38ba-4609-87e2-ca1069c77c3e",
+      "position": 3,
+      "file": "braintrust-create-experiment/03.png",
+      "bytes": 392495,
+      "sha256": "305f5a38ba4552dda4d18ef4bc89d4cf188f82a872e8bc87a11aaf6362b3086b"
+    },
+    {
+      "key": "braintrust-create-experiment",
+      "screen_id": "fdea42f7-b9e5-4ccb-84a8-77be31e89242",
+      "position": 4,
+      "file": "braintrust-create-experiment/04.png",
+      "bytes": 404841,
+      "sha256": "9dc3ffd63e7d63d5cfc4e02aeb90cc4b89ab2bd0fe63b0821b6b5b24abd49b9b"
+    },
+    {
+      "key": "braintrust-create-experiment",
+      "screen_id": "1ad282cf-082e-487f-b2bd-393b4ca2f0b7",
+      "position": 5,
+      "file": "braintrust-create-experiment/05.png",
+      "bytes": 396549,
+      "sha256": "f97d21159f22201ad7ae412e0cc76b136fd3889086cd8eeb5771a507ce27bc26"
+    },
+    {
+      "key": "braintrust-create-experiment",
+      "screen_id": "a309503c-f5ea-4bee-be9f-8e3f41f3df8f",
+      "position": 6,
+      "file": "braintrust-create-experiment/06.png",
+      "bytes": 398686,
+      "sha256": "ade5cc2f188501d946e12bc387b02a189d70e5a8c61cd4c716f5036cbf9b9853"
+    },
+    {
+      "key": "braintrust-create-experiment",
+      "screen_id": "ca9ccd87-f005-455d-b927-3c02fc77a90b",
+      "position": 7,
+      "file": "braintrust-create-experiment/07.png",
+      "bytes": 401167,
+      "sha256": "6be8a63f93e7566f74b43f919edec8b81dad4aa1b4c601eb4f4e01ab649c56ad"
+    },
+    {
+      "key": "braintrust-create-experiment",
+      "screen_id": "37e024d2-ea0a-4f73-9d2c-6336b246a09b",
+      "position": 8,
+      "file": "braintrust-create-experiment/08.png",
+      "bytes": 403853,
+      "sha256": "b8b5482c943d7e8c31ae1dfce743fc2b37e7603d57adaf7893c8f8980b4079c8"
+    },
+    {
+      "key": "braintrust-create-experiment",
+      "screen_id": "567065a3-b6ad-4465-ab49-d8bdbc1322af",
+      "position": 9,
+      "file": "braintrust-create-experiment/09.png",
+      "bytes": 552355,
+      "sha256": "5f8744e420329f0c32734649f82fa10109a991c2e18c672b47f37ecd826baca6"
+    },
+    {
+      "key": "braintrust-create-experiment",
+      "screen_id": "8eb54fcc-ab09-4b22-b1d7-3e379a309b22",
+      "position": 10,
+      "file": "braintrust-create-experiment/10.png",
+      "bytes": 674510,
+      "sha256": "c0e1c0ec4f6be9e4135eb7b100c8b2e0937a44eb05bd3ac2d05d70a5d1841ebc"
+    },
+    {
+      "key": "braintrust-eval-details",
+      "screen_id": "8eb54fcc-ab09-4b22-b1d7-3e379a309b22",
+      "position": 1,
+      "file": "braintrust-eval-details/01.webp",
+      "bytes": 107888,
+      "sha256": "44d225e0e69f841ce947334df8e6dcbc444893097a3fffe8ea50e6814da95f0e"
+    },
+    {
+      "key": "braintrust-eval-details",
+      "screen_id": "aaaf6c4e-7a6d-4670-8299-ac3098661c84",
+      "position": 2,
+      "file": "braintrust-eval-details/02.webp",
+      "bytes": 126526,
+      "sha256": "732fa34477a5aff6a824eb4ac6f8a65a9f6c8f481b8fc97102bd56964e9acd36"
+    },
+    {
+      "key": "braintrust-eval-details",
+      "screen_id": "59703fe2-adea-407f-b6a4-4bb4748349fe",
+      "position": 3,
+      "file": "braintrust-eval-details/03.webp",
+      "bytes": 116584,
+      "sha256": "fe22c3dfa8ef1063550154b1cf1a1e0e2a997d800ca897143cf7bad3a0f42687"
+    },
+    {
+      "key": "braintrust-eval-details",
+      "screen_id": "bb7a5740-36c6-4740-babf-05f053e5d8d2",
+      "position": 4,
+      "file": "braintrust-eval-details/04.webp",
+      "bytes": 104468,
+      "sha256": "4ca0e2ec0e80ee097a15e952574d03ff8ce84c8f976cf098ccaa364c513432ce"
+    },
+    {
+      "key": "braintrust-eval-details",
+      "screen_id": "1c0d3472-b12e-4975-a9e3-ce11c015d6fe",
+      "position": 5,
+      "file": "braintrust-eval-details/05.webp",
+      "bytes": 110382,
+      "sha256": "24f7b4e6ab86ed57d1cb9c48885adf52e0d69bf908c6542f494b53fad699f995"
+    },
+    {
+      "key": "braintrust-experiments",
+      "screen_id": "c7ff49f6-cc45-408e-afbc-dca2cb798351",
+      "position": 1,
+      "file": "braintrust-experiments/01.webp",
+      "bytes": 67720,
+      "sha256": "e143fd9e1c0220b8fd48807f1b12de11da6c9e674b3b8cca574fb66942043dd9"
+    },
+    {
+      "key": "braintrust-experiments",
+      "screen_id": "f85c2e5b-8251-416a-b2ca-3b4205f67b4c",
+      "position": 2,
+      "file": "braintrust-experiments/02.webp",
+      "bytes": 75536,
+      "sha256": "3cee01f320faced81f65fbf3833478b0494349c776dccdb6bfa57d949b7929c4"
+    },
+    {
+      "key": "braintrust-experiments",
+      "screen_id": "5b467c6a-74db-4139-970c-64d43e6da410",
+      "position": 3,
+      "file": "braintrust-experiments/03.webp",
+      "bytes": 50746,
+      "sha256": "0cd5cc0369be15047acb870353df089003f3e54085513e41f9fa3dc014fa7919"
+    },
+    {
+      "key": "braintrust-experiments",
+      "screen_id": "93c66287-70e1-47b7-aa7e-cf3abf875036",
+      "position": 4,
+      "file": "braintrust-experiments/04.webp",
+      "bytes": 52208,
+      "sha256": "cb2b51841be0ab3d0c17d5b8eeee40fb4d7fa2f7088f67990a19f86c8f723e1c"
+    },
+    {
+      "key": "braintrust-experiments",
+      "screen_id": "14781e20-980e-4881-b263-e5db605de795",
+      "position": 5,
+      "file": "braintrust-experiments/05.webp",
+      "bytes": 53844,
+      "sha256": "ab7ec55fa264f3c61c32c5c6543d9b4aa5245e068d2122fc2cc6e110c3d64550"
+    },
+    {
+      "key": "elevenlabs-preview-agent",
+      "screen_id": "ed66c02b-8a0c-404c-b1bb-53af89f87dda",
+      "position": 1,
+      "file": "elevenlabs-preview-agent/01.webp",
+      "bytes": 190136,
+      "sha256": "5787c01b07171cd42d61c42a6bedd1a9da667e7d889e8bd6e5bfb36834df5e13"
+    },
+    {
+      "key": "elevenlabs-preview-agent",
+      "screen_id": "20415cdb-1d74-45b9-be97-b7e7e197ad0d",
+      "position": 2,
+      "file": "elevenlabs-preview-agent/02.webp",
+      "bytes": 35342,
+      "sha256": "966223f9912a69e56fc5dc7b733a28c36d32d2089fc8596f5edd3c3eaa4a2436"
+    },
+    {
+      "key": "elevenlabs-preview-agent",
+      "screen_id": "5de031ac-ea60-46c7-869a-32b443d38647",
+      "position": 3,
+      "file": "elevenlabs-preview-agent/03.webp",
+      "bytes": 67078,
+      "sha256": "d6e0f5121165fd4b3dcaf6671384e2280577b7f9969a36974c4abb486944988f"
+    },
+    {
+      "key": "elevenlabs-preview-agent",
+      "screen_id": "b547338d-1640-4ae4-a999-10ab8552ddeb",
+      "position": 4,
+      "file": "elevenlabs-preview-agent/04.webp",
+      "bytes": 100120,
+      "sha256": "2555751a694b6ccb60ccbf9845712d56ce74389972416571686777523586f65a"
+    },
+    {
+      "key": "elevenlabs-preview-agent",
+      "screen_id": "0ce2e993-4b26-4e04-bfeb-ac0a44dc226c",
+      "position": 5,
+      "file": "elevenlabs-preview-agent/05.webp",
+      "bytes": 79950,
+      "sha256": "6ccdc1501cb85f93a3f2319078d9f1e8818ee71b738784528a42719b53799a51"
+    },
+    {
+      "key": "elevenlabs-preview-agent",
+      "screen_id": "73db71d2-9427-4d2a-a3f5-610760c3e799",
+      "position": 6,
+      "file": "elevenlabs-preview-agent/06.webp",
+      "bytes": 53314,
+      "sha256": "f3068da0b9b120b6d2fafdf9bf4b016318e6c7130cb8c38532072a95246960d0"
+    },
+    {
+      "key": "elevenlabs-publish-agent",
+      "screen_id": "ed66c02b-8a0c-404c-b1bb-53af89f87dda",
+      "position": 1,
+      "file": "elevenlabs-publish-agent/01.webp",
+      "bytes": 190136,
+      "sha256": "5787c01b07171cd42d61c42a6bedd1a9da667e7d889e8bd6e5bfb36834df5e13"
+    },
+    {
+      "key": "elevenlabs-publish-agent",
+      "screen_id": "ff16450b-9de9-4c60-8738-770be8df0a5c",
+      "position": 2,
+      "file": "elevenlabs-publish-agent/02.webp",
+      "bytes": 50060,
+      "sha256": "31fecd823ee8e80ce731bd31ebf38bfed314fff08fd6b76b9317593343d0df0f"
+    },
+    {
+      "key": "elevenlabs-publish-agent",
+      "screen_id": "9785c0b7-70e8-4c3d-9d59-10ecf468e65e",
+      "position": 3,
+      "file": "elevenlabs-publish-agent/03.webp",
+      "bytes": 189440,
+      "sha256": "6f893503fc61165e30a33ce4c1cc52f37a627e7ad80f7460eca72eb096dff732"
+    },
+    {
+      "key": "langsmith-compare-prompt",
+      "screen_id": "4a7f5d4c-fabe-4a51-a61f-0d21f7613ae6",
+      "position": 1,
+      "file": "langsmith-compare-prompt/01.webp",
+      "bytes": 89452,
+      "sha256": "7a0b6f1877eb1f87081e6b7439c556d42955305b513014927dc0183eb9237aac"
+    },
+    {
+      "key": "langsmith-compare-prompt",
+      "screen_id": "a17b5192-3839-44d3-84b7-4d0218792baa",
+      "position": 2,
+      "file": "langsmith-compare-prompt/02.webp",
+      "bytes": 148090,
+      "sha256": "a4da172b20d202b7d218630ffcf57145b543dcd231deacd83358194da7858df8"
+    },
+    {
+      "key": "langsmith-run-detail",
+      "screen_id": "99966c64-a44c-4553-bf93-b6f51aac0958",
+      "position": 1,
+      "file": "langsmith-run-detail/01.webp",
+      "bytes": 52384,
+      "sha256": "2cc4e669729e13e27657225d573cf479bceed9de11b5595771610008588fddbd"
+    },
+    {
+      "key": "langsmith-run-detail",
+      "screen_id": "2de61249-39d3-4fb8-9325-e7a118e360cc",
+      "position": 2,
+      "file": "langsmith-run-detail/02.webp",
+      "bytes": 107878,
+      "sha256": "2caf564b0753f0b76f792a2a1ddc9b1592444a1569817ecd63e15150a5f86394"
+    },
+    {
+      "key": "langsmith-run-detail",
+      "screen_id": "f267f962-21dc-4334-a91c-f32df91ffa2f",
+      "position": 3,
+      "file": "langsmith-run-detail/03.webp",
+      "bytes": 83566,
+      "sha256": "da7645899d357965b512a87515416e2f9271e634dde8917a57d3a5b93d3f6957"
+    },
+    {
+      "key": "linear-my-issues",
+      "screen_id": "a0193431-e1b3-44c4-b1a2-1d1f4a017ccc",
+      "position": 1,
+      "file": "linear-my-issues/01.webp",
+      "bytes": 38464,
+      "sha256": "2b1ca76d44eca2ff93626670f97a48e7bf9190f5b5ab0c39f9c56638c064f232"
+    },
+    {
+      "key": "linear-my-issues",
+      "screen_id": "a085c0e8-477c-4459-b2ee-25d5a4c0340a",
+      "position": 2,
+      "file": "linear-my-issues/02.webp",
+      "bytes": 30626,
+      "sha256": "b775d6e3055940862ef858583750239b60c70da34500b1dd93b9ee1ac3b70eed"
+    },
+    {
+      "key": "linear-my-issues",
+      "screen_id": "1c951621-7b10-4f56-8dc7-b52094872e17",
+      "position": 3,
+      "file": "linear-my-issues/03.webp",
+      "bytes": 47786,
+      "sha256": "7e747a5b39840a9fac0f71b4a35862c15d0388ed2916fac7905b351f145bd7c3"
+    },
+    {
+      "key": "linear-my-issues",
+      "screen_id": "297b699f-68f4-4c12-904c-3409ea847104",
+      "position": 4,
+      "file": "linear-my-issues/04.webp",
+      "bytes": 142892,
+      "sha256": "9036c725ec542a780d99bce09312f57944b9944c0c371995b45d32bd4f949c82"
+    },
+    {
+      "key": "openai-chat",
+      "screen_id": "87f11cff-7433-4e73-83b2-01fc00e38233",
+      "position": 1,
+      "file": "openai-chat/01.webp",
+      "bytes": 40896,
+      "sha256": "4497dc1d6eb3e83edbdbc3dfb74ea1e108f4fe1ec4d5c5d660684ff5432fb9d5"
+    },
+    {
+      "key": "openai-chat",
+      "screen_id": "2f09be66-12ca-493e-b5ae-065460ac1118",
+      "position": 2,
+      "file": "openai-chat/02.webp",
+      "bytes": 42146,
+      "sha256": "8e1272edf6343b9d2adee9caed81a46e89ac08fb2c5dcf6a6250b81d9dd46f8a"
+    }
+  ]
+}

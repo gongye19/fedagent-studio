@@ -1,6 +1,6 @@
 # 交接说明
 
-更新时间：2026-10-06（T60）。给接手开发的人和 AI：先读这一页，再读仓库根目录的 [AGENTS.md](../AGENTS.md)（协作规则和安全红线）。
+更新时间：2026-10-07（T61）。给接手开发的人和 AI：先读这一页，再读仓库根目录的 [AGENTS.md](../AGENTS.md)（协作规则和安全红线）。
 
 ## 现状
 
@@ -12,7 +12,9 @@
 - **测试**：前端 27 个、后端 53 个测试，包括 FoT 契约、真实 runner、本地客户端租约、跨进程限流和备份恢复。
 - **真实模型验证**（2026-10-05）：在部署的平台上用界面完整走过一遍（新建试跑 → 进度 → 产出 → 发布 → 试用 → 复制为新任务）。三个真实任务都完成了，最后一次 28 次调用全部成功、没有重试。
 
-各模块的完成情况见 [PROGRESS.md](./PROGRESS.md)，每次改了什么见 [HISTORY.md](./HISTORY.md)（T1–T60）。新建任务固定面板和字段从首次打开起全部可见，未满足前置条件的控件置灰或写明需要先选什么。T60 已于 2026-10-06 21:53 部署：已结束任务可在列表或详情中确认删除；保留已发布应用和模型费用账本，原有 4 个任务、3 个应用未删除。
+各模块的完成情况见 [PROGRESS.md](./PROGRESS.md)，每次改了什么见 [HISTORY.md](./HISTORY.md)（T1–T61）。新建任务固定面板和字段从首次打开起全部可见，未满足前置条件的控件置灰或写明需要先选什么。T60 已于 2026-10-06 21:53 部署：已结束任务可在列表或详情中确认删除；保留已发布应用和模型费用账本，原有 4 个任务、3 个应用未删除。
+
+T61 完成 Mobbin Pro 研究与本机官方 MCP 接入，7 个产品、11 个流程、51 张步骤图已核验；[界面参考研究](./UI-REFERENCES.md)列出优化建议，[使用说明](./MOBBIN.md)记录接入和检索。本机原图包在 `.references/mobbin/`，Git 只记录来源清单和结论。MCP 在本机 `~/.codex/config.toml`，授权由 Codex 管理，不随仓库迁移；此旧聊天的工具列表未即时刷新，通过 app-server 实际调用成功。新一轮 UI 尚未实施或部署；当前 Demo 不迁移 Next.js／Tailwind，服务器代码仍为 T60。
 
 ## 服务器怎么连
 
@@ -104,6 +106,8 @@ tail -f ~/fedagent-studio/logs/api.log         # 每个任务的日志在 data/r
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | 后端设计和实现：插件体系、编排、模型网关、API、存储、部署 |
 | [DEVELOPMENT.md](./DEVELOPMENT.md) | 本地开发、测试、代码结构、加算法、部署、界面规范 |
 | [PROGRESS.md](./PROGRESS.md) | 各模块完成情况、服务器、最近的验证结果 |
-| [DECISIONS.md](./DECISIONS.md) | 设计决策和没采用的方案（D1–D57） |
-| [HISTORY.md](./HISTORY.md) | 每次任务改了什么、怎么验证的（T1–T60） |
+| [DECISIONS.md](./DECISIONS.md) | 设计决策和没采用的方案（D1–D58） |
+| [HISTORY.md](./HISTORY.md) | 每次任务改了什么、怎么验证的（T1–T61） |
+| [UI-REFERENCES.md](./UI-REFERENCES.md) | Mobbin 产品与流程参考、适配建议、优化优先级 |
+| [MOBBIN.md](./MOBBIN.md) | 网页筛选、官方 MCP 接入与检索、下载与额度 |
 | [tools/ui-check](../tools/ui-check/README.md) | 界面检查脚本 |

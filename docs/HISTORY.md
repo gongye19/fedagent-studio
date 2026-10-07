@@ -991,3 +991,15 @@
 - 验证：前端 27 项、后端 53 项及 lint、类型、构建通过；回归覆盖运行状态限制、执行进程退出、关联记录和目录清理、删除后应用使用、保留费用账本及旧列表缓存防回显。全站 87 个可访问性组合、相关页面 9 个宽度断行检查通过；上线后任务列表的 3 个可访问性组合和 9 个宽度断行检查通过。线上原有任务不代为删除，本次不新增付费模型调用。
 - 部署：2026-10-06 21:53（香港时间）上线，API、runner 正常；线上四个任务的删除入口和确认提示、桌面 1280 与手机 390 截图已核验，无浏览器报错；删除接口在 OpenAPI 中可见，原有 4 个任务、3 个应用保留。快照 `20261006T135259859631Z` 已保存到服务器和 Mac，SQLite 完整性检查通过。截图：`docs/screenshots/tasks.png`、`tasks-mobile.png`。
 - 相关：D57、FLOW、ARCHITECTURE、DEVELOPMENT、PROGRESS、HANDOFF。
+
+## T61：Mobbin Pro 界面研究与官方 MCP 接入
+
+- 类型：Research + Docs + 本机工具配置
+- 时间：2026-10-07
+- 状态：完成
+- 用户要求：先理解产品目标，在 Mobbin 筛选适合的 Web 应用参考；已开通 Pro，补充资料、配置 MCP 并研究用法；用户明确允许完成 Mobbin OAuth。
+- 接入：本机添加官方 `mobbin` MCP，完成 OAuth；工具列表含三个搜索工具，实际调用 11 次流程搜索成功。当前聊天旧工具目录未即时刷新，通过 Codex app-server MCP 调用接口完成验证与研究，未发起额外模型会话。
+- 研究：Braintrust、LangSmith（LangChain 收录）、ElevenAgents（ElevenLabs 收录）、Linear、Amplitude、OpenAI Platform，加 Adaline 评测补充；保存并检查 11 个流程、51 张步骤图。纠正品牌查询可能返回其他产品的问题，记录具体截图证据和联邦场景适配，区分已观察和未核验能力。
+- 文档：新增 UI-REFERENCES、MOBBIN 和来源清单，同步索引、进展及交接；`.references/` 保存本机原图与 ZIP 并忽略 Git。配置／授权凭据不进仓库，来源清单只留稳定链接、screen ID、文件顺序及 SHA-256。
+- 验证：官方 MCP OAuth 状态与真实搜索成功，参考文件数量／顺序／SHA-256 和文档本地链接检查通过，`git diff --check` 通过；仅研究和文档，不需重新构建或部署。此次普通流程检索按官方规则消耗 0 AI credits，未使用 Deep Search 或项目付费模型。
+- 相关：D58、UI-REFERENCES、MOBBIN、PROGRESS、HANDOFF；新一轮界面改版尚未实施，服务器仍为 T60。
