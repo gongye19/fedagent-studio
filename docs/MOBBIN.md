@@ -37,7 +37,7 @@ codex mcp get mobbin
 |---|---|---|
 | `search_flows` | 完整用户流程 | 先找创建实验、运行详情、发布 Agent、比较数据 |
 | `search_screens` | 单页及布局 | 表格筛选、空状态、详情面板；显式写 `mode: "standard"` |
-| `search_sections` | 页面局部 | 只研究筛选栏、指标区、侧边导航等局部时使用 |
+| `search_sections` | 官网区块 | 研究营销网站的 About、Pricing、Footer 等区块；应用筛选栏、侧边导航用 Screens／Flows 查看 |
 
 工具的具体字段以服务器当前 schema 为准。本次 `search_screens` schema 的 `mode` 默认值是 `deep`，因此普通检索务必明确传 `standard`。页面上的 Standard 与 Deep 也要区分。[官方工具说明](https://docs.mobbin.com/mcp/features)。
 

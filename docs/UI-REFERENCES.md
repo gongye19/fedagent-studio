@@ -111,3 +111,29 @@ Adaline 第 01–02 张展示评分器配置，第 03 张明确评测仍进行�
 原图位于仓库 `.references/mobbin/`，流程目录与清单 `key` 相同，文件名按步骤 `01`、`02` 等排序；创建实验是 PNG，其余为 WebP，均保留 Mobbin 来源标识。本地原图不进 Git，可根据表中的稳定链接重新下载。51 是所选流程的步骤截图数，跨流程可能出现同一画面，不代表 51 个独立页面。
 
 快捷查看：[创建表单](../.references/mobbin/braintrust-create-experiment/02.png)、[运行详情](../.references/mobbin/langsmith-run-detail/02.webp)、[发布确认](../.references/mobbin/elevenlabs-publish-agent/02.webp)、[任务列表](../.references/mobbin/linear-my-issues/04.webp)、[比较结果](../.references/mobbin/amplitude-compare-data/05.webp)。这些本地链接需要本机参考包。
+
+## T63：操作反馈与首页入口补查（参考待用户确认）
+
+用户反馈删除确认出现在页面最上方、首页三个场景图像 Demo。线上只读复现已确认：列表中的删除确认渲染在标题下、工具栏上方；`Confirm` 自动聚焦危险按钮，可能把页面从触发位置滚回顶部，关闭后未恢复焦点。应用撤下、重置、取消运行等共用确认组件，也需检查。页面级成功 Notice／flash 会占布局空间；不能仅改变确认框颜色而保留跳动与焦点问题。
+
+通过官方 Mobbin MCP 实际完成 7 次标准检索（5 次 Flows、2 次 Screens），下载 7 个删除流程和 6 张首页候选，共 30 张原图。此聊天原生工具目录仍未刷新，通过已有线程的 app-server MCP 调用成功；没有重启用户应用、发起新模型会话或调用项目付费模型。来源、帧顺序与 SHA-256 在来源清单的 `t63_research` 中，本机原图在 `.references/mobbin/t63-feedback-home/`。
+
+| 候选 | 实际看见的细节 | 对本项目的用途／边界 |
+|---|---|---|
+| [Relevance AI 删除任务](https://mobbin.com/flows/79ae5a95-0749-4444-a1cc-070591a8dfe4)，3 帧 | 选中任务后删除；中央确认、不可撤销说明、红色 Delete；列表数量 11→10，右下角绿色成功提示 | 操作确认与成功通知分开；借鉴位置、信息层级，不引入批量审批或批量删除 |
+| [Braintrust 移除任务](https://mobbin.com/flows/9ef2697c-0a7b-41cd-9dd7-d6e252df5498)，3 帧 | 任务卡上的入口；中央 Remove task 对话框；关闭后原工作台卡片由 3→2 | 保持触发上下文，不跳到页面顶部；其移除未保存任务语义不能直接当作持久化永久删除 |
+| [ElevenAgents 删除 Agent](https://mobbin.com/flows/59645e35-ebfc-450b-8a6a-7bb38d34b783)，3 帧 | 菜单 Delete；中央确认写出 Agent 名及关联会话的后果；返回 Agent 页面 | 写明实际对象、已发布应用保留等本项目后果，不照搬会话删除规则 |
+| [LangSmith 删除数据集](https://mobbin.com/flows/f8a6927c-b30f-4667-9543-a00efa0836a8)，4 帧 | 列表选择、顶部工具、中央确认、空列表 | 检查管理页面和删除最后一项后的空状态；不引入其批量删除 |
+| [Linear 删除 issue](https://mobbin.com/flows/99ee123c-27b8-4c1b-b2d7-4147d1d36e3b)，3 帧 | 中央确认写明子事项及 30 日保留，Cancel 有焦点轮廓；结果是 Deleted 与 Restore issue | 仅补充确认布局；我们的永久删除没有恢复能力，不能增加假的撤销／恢复 |
+| [Manus 删除任务](https://mobbin.com/flows/3f02bec2-a96f-421e-9009-c67a40cc1c73)，3 帧 | 中央确认说明部署站点将一并删除；完成后顶部浮层 Deleted successfully | 补充操作后果和浮层反馈；我们的应用保留规则相反，不能照搬其文案 |
+
+以上截图不证明 Esc、焦点约束／恢复、请求锁定、超时、失败与重试等行为，这些分支需按真实接口设计和浏览器验证。错误应保留在对应对话框或字段附近；长期的运行异常与加载错误仍需就地展示，不能全部改成短暂通知。
+
+首页优先候选：
+
+- [Replit Design 入口](https://mobbin.com/screens/47a2f738-9f05-47c9-b81e-d5e8df462595)：浅色点阵、柔和渐变背景、白色卡片与有层次的插图。适合既有浅色工作台；只借鉴背景／卡片，不加入模板库、聊天、画布或导入工具。
+- [Higgsfield 三个入口](https://mobbin.com/screens/49b0ae57-9488-4155-938e-a3f9492b5013)：三个入口分别用颜色和内部关系图区分。适合替换三个场景的扁平表格示意，保持我们自己的横向／纵向／迁移语义；建议转为浅色，不照搬深色全站、节点编辑器或生成能力。静态截图未证明动画，拟议悬停变化属于本项目适配。
+
+Browserbase 全屏彩色纹理过强，Recraft 是营销首页，Unify 的主体是聊天，Copilot 的图案偏消费产品，本轮不作为主参考。建议只补充 Replit 的浅色氛围和 Higgsfield 的入口区分方式，不继续扩大候选。
+
+**待确认的范围**：居中确认与轻量成功反馈；三个入口的原创联邦关系图、低强度背景及悬停／键盘焦点变化；保留可用／规划中状态，不增加业务功能。尚未形成基于新候选的视觉稿或修改前端，也没有部署本轮改动。确认后再细化核心流程、状态表、布局、组件映射与验收。

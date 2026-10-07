@@ -532,5 +532,394 @@
       "bytes": 42146,
       "sha256": "8e1272edf6343b9d2adee9caed81a46e89ac08fb2c5dcf6a6250b81d9dd46f8a"
     }
-  ]
+  ],
+  "t63_research": {
+    "captured_at": "2026-10-07 Asia/Hong_Kong",
+    "source": "Mobbin official MCP",
+    "flows": [
+      {
+        "id": "dcc93428-368d-4880-b598-0b3d7e7ee0ec",
+        "name": "Deleting a project",
+        "actions": [
+          "Deleting & Removing"
+        ],
+        "mobbin_url": "https://mobbin.com/flows/dcc93428-368d-4880-b598-0b3d7e7ee0ec",
+        "app_name": "Braintrust",
+        "platform": "web",
+        "screen_count": 5,
+        "key": "braintrust-delete-project"
+      },
+      {
+        "id": "9ef2697c-0a7b-41cd-9dd7-d6e252df5498",
+        "name": "Deleting a task",
+        "actions": [
+          "Deleting & Removing"
+        ],
+        "mobbin_url": "https://mobbin.com/flows/9ef2697c-0a7b-41cd-9dd7-d6e252df5498",
+        "app_name": "Braintrust",
+        "platform": "web",
+        "screen_count": 3,
+        "key": "braintrust-delete-task"
+      },
+      {
+        "id": "f8a6927c-b30f-4667-9543-a00efa0836a8",
+        "name": "Deleting a dataset",
+        "actions": [
+          "Deleting & Removing",
+          "Selecting & Choosing"
+        ],
+        "mobbin_url": "https://mobbin.com/flows/f8a6927c-b30f-4667-9543-a00efa0836a8",
+        "app_name": "LangChain",
+        "platform": "web",
+        "screen_count": 4,
+        "key": "langsmith-delete-dataset"
+      },
+      {
+        "id": "59645e35-ebfc-450b-8a6a-7bb38d34b783",
+        "name": "Deleting an agent",
+        "actions": [
+          "Deleting & Removing"
+        ],
+        "mobbin_url": "https://mobbin.com/flows/59645e35-ebfc-450b-8a6a-7bb38d34b783",
+        "app_name": "ElevenLabs",
+        "platform": "web",
+        "screen_count": 3,
+        "key": "elevenagents-delete-agent"
+      },
+      {
+        "id": "99ee123c-27b8-4c1b-b2d7-4147d1d36e3b",
+        "name": "Deleting an issue",
+        "actions": [
+          "Deleting & Removing"
+        ],
+        "mobbin_url": "https://mobbin.com/flows/99ee123c-27b8-4c1b-b2d7-4147d1d36e3b",
+        "app_name": "Linear",
+        "platform": "web",
+        "screen_count": 3,
+        "key": "linear-delete-issue"
+      },
+      {
+        "id": "47a2f738-9f05-47c9-b81e-d5e8df462595",
+        "mobbin_url": "https://mobbin.com/screens/47a2f738-9f05-47c9-b81e-d5e8df462595",
+        "app_name": "Replit",
+        "platform": "web",
+        "name": "Workspace entry screen",
+        "screen_count": 1,
+        "key": "replit-47a2f738"
+      },
+      {
+        "id": "1b7915a3-d0dd-467f-8a29-211dadf76bcd",
+        "mobbin_url": "https://mobbin.com/screens/1b7915a3-d0dd-467f-8a29-211dadf76bcd",
+        "app_name": "Browserbase",
+        "platform": "web",
+        "name": "Workspace entry screen",
+        "screen_count": 1,
+        "key": "browserbase-1b7915a3"
+      },
+      {
+        "id": "49b0ae57-9488-4155-938e-a3f9492b5013",
+        "mobbin_url": "https://mobbin.com/screens/49b0ae57-9488-4155-938e-a3f9492b5013",
+        "app_name": "Higgsfield",
+        "platform": "web",
+        "name": "Workspace entry screen",
+        "screen_count": 1,
+        "key": "higgsfield-49b0ae57"
+      },
+      {
+        "id": "73bdebff-3bea-4d10-a35a-bf84d2b8bc05",
+        "mobbin_url": "https://mobbin.com/screens/73bdebff-3bea-4d10-a35a-bf84d2b8bc05",
+        "app_name": "Unify",
+        "platform": "web",
+        "name": "Workspace entry screen",
+        "screen_count": 1,
+        "key": "unify-73bdebff"
+      },
+      {
+        "id": "e9f511bd-b93f-4313-90c6-405b13a747de",
+        "mobbin_url": "https://mobbin.com/screens/e9f511bd-b93f-4313-90c6-405b13a747de",
+        "app_name": "Recraft",
+        "platform": "web",
+        "name": "Workspace entry screen",
+        "screen_count": 1,
+        "key": "recraft-e9f511bd"
+      },
+      {
+        "id": "c912dc52-284e-47e8-a25c-e43230d5a0ea",
+        "mobbin_url": "https://mobbin.com/screens/c912dc52-284e-47e8-a25c-e43230d5a0ea",
+        "app_name": "Microsoft Copilot",
+        "platform": "web",
+        "name": "Workspace entry screen",
+        "screen_count": 1,
+        "key": "microsoft-copilot-c912dc52"
+      },
+      {
+        "id": "79ae5a95-0749-4444-a1cc-070591a8dfe4",
+        "name": "Deleting a task",
+        "actions": [
+          "Deleting & Removing"
+        ],
+        "mobbin_url": "https://mobbin.com/flows/79ae5a95-0749-4444-a1cc-070591a8dfe4",
+        "app_name": "Relevance AI",
+        "platform": "web",
+        "screen_count": 3,
+        "key": "relevance-delete-task"
+      },
+      {
+        "id": "3f02bec2-a96f-421e-9009-c67a40cc1c73",
+        "name": "Deleting a task",
+        "actions": [
+          "Deleting & Removing"
+        ],
+        "mobbin_url": "https://mobbin.com/flows/3f02bec2-a96f-421e-9009-c67a40cc1c73",
+        "app_name": "Manus",
+        "platform": "web",
+        "screen_count": 3,
+        "key": "manus-delete-task"
+      }
+    ],
+    "files": [
+      {
+        "key": "braintrust-delete-project",
+        "screen_id": "f8ed61a1-0bbb-48ed-84dd-52eae22b6565",
+        "position": 1,
+        "file": "braintrust-delete-project/01.webp",
+        "bytes": 50820,
+        "sha256": "5edde29de9d4a66369c78a1da2ace8781044f161fd6cc8b265399e1fbc5f30da"
+      },
+      {
+        "key": "braintrust-delete-project",
+        "screen_id": "d32524c0-3851-479f-b9f1-b9b317b13c55",
+        "position": 2,
+        "file": "braintrust-delete-project/02.webp",
+        "bytes": 50526,
+        "sha256": "7f4deaa3fc52a993efe6420475104ac32ff9951c95efc85e1815ca2ed96c16e1"
+      },
+      {
+        "key": "braintrust-delete-project",
+        "screen_id": "64c72685-a42f-48dd-9854-9e5dce98588e",
+        "position": 3,
+        "file": "braintrust-delete-project/03.webp",
+        "bytes": 52116,
+        "sha256": "c60507b9e292d4c23fc6021f58ce3b368852df8d1b2cfb4a1cd7d6dba92b4d96"
+      },
+      {
+        "key": "braintrust-delete-project",
+        "screen_id": "14d9e069-af33-46a1-8868-a4a07eb38858",
+        "position": 4,
+        "file": "braintrust-delete-project/04.webp",
+        "bytes": 24158,
+        "sha256": "926809731b96aa65c7a977e31bd61372d8100682845e1a3c188210b201e77c80"
+      },
+      {
+        "key": "braintrust-delete-project",
+        "screen_id": "eb40f498-d378-4709-ab0c-b409af9e5cf5",
+        "position": 5,
+        "file": "braintrust-delete-project/05.webp",
+        "bytes": 67870,
+        "sha256": "241009b1d4d444714da2b956a8b897e22123621715c1302c63b112ad127d156c"
+      },
+      {
+        "key": "braintrust-delete-task",
+        "screen_id": "e244dbfe-e277-4996-a8fb-b8d48b4d9771",
+        "position": 1,
+        "file": "braintrust-delete-task/01.webp",
+        "bytes": 120338,
+        "sha256": "09bbb54c09263b0c6b8dd10d1e3368e46878cd3103343ade118d254783544252"
+      },
+      {
+        "key": "braintrust-delete-task",
+        "screen_id": "74a2e4cd-3bee-4b9c-88c0-3f51546a13e5",
+        "position": 2,
+        "file": "braintrust-delete-task/02.webp",
+        "bytes": 34072,
+        "sha256": "052a0d467a01bdb647705d906615216dd7769f8c988cb0cd0df1ef05d6371999"
+      },
+      {
+        "key": "braintrust-delete-task",
+        "screen_id": "da7f4d57-a8bd-4efd-b827-1dabf6d7ef30",
+        "position": 3,
+        "file": "braintrust-delete-task/03.webp",
+        "bytes": 97938,
+        "sha256": "d5ad8ddd73d3214eb18040336a40c9e099a16ce7680812c1963f3b377bfca4ba"
+      },
+      {
+        "key": "browserbase-1b7915a3",
+        "screen_id": "1b7915a3-d0dd-467f-8a29-211dadf76bcd",
+        "position": 1,
+        "file": "browserbase-1b7915a3/01.webp",
+        "bytes": 636584,
+        "sha256": "3c904987f31b44de5be17c4d3a2648e3bce925b6ad467f27cb66fd3aa87e3056"
+      },
+      {
+        "key": "elevenagents-delete-agent",
+        "screen_id": "9e0eefdb-916a-45b2-adc1-71b04843ade0",
+        "position": 1,
+        "file": "elevenagents-delete-agent/01.webp",
+        "bytes": 194060,
+        "sha256": "7896e88fe7f96c8f84160798e04f2787fd9803217d541cf3f24587fa79046e14"
+      },
+      {
+        "key": "elevenagents-delete-agent",
+        "screen_id": "4ee93b37-aab3-4e25-9b59-9eb91455db03",
+        "position": 2,
+        "file": "elevenagents-delete-agent/02.webp",
+        "bytes": 49342,
+        "sha256": "3f2355f176b91fb920548066ab44f5ea5b264c50b843bda7927d425235883ed0"
+      },
+      {
+        "key": "elevenagents-delete-agent",
+        "screen_id": "ebc17c84-6c86-44ce-9e2b-5345f71d69f1",
+        "position": 3,
+        "file": "elevenagents-delete-agent/03.webp",
+        "bytes": 126098,
+        "sha256": "d12c4e1e362b2c07c02fd4060cd4c38c593ae736cb1081b2be9922ddf834f760"
+      },
+      {
+        "key": "higgsfield-49b0ae57",
+        "screen_id": "49b0ae57-9488-4155-938e-a3f9492b5013",
+        "position": 1,
+        "file": "higgsfield-49b0ae57/01.webp",
+        "bytes": 72094,
+        "sha256": "c56778f70b4d5932d56d817b8936ac5912acdbf95d672702a4534978624a4e05"
+      },
+      {
+        "key": "langsmith-delete-dataset",
+        "screen_id": "fde041b6-8fcb-48b8-b4ba-79619d1a9097",
+        "position": 1,
+        "file": "langsmith-delete-dataset/01.webp",
+        "bytes": 39156,
+        "sha256": "f7e5c4d9fa28665c67eb83166ffe23ce20c788141462a798221fc2614ecc6406"
+      },
+      {
+        "key": "langsmith-delete-dataset",
+        "screen_id": "d42cdf50-f8b0-4d4f-b6e9-2aa5283ed1df",
+        "position": 2,
+        "file": "langsmith-delete-dataset/02.webp",
+        "bytes": 37234,
+        "sha256": "1333cd36c2f4f3fef938c65e1c8b9ce79c9468e2f958a41e7a95aaefef686fa4"
+      },
+      {
+        "key": "langsmith-delete-dataset",
+        "screen_id": "ac019279-3254-4459-82ab-0ce1fc78b2e9",
+        "position": 3,
+        "file": "langsmith-delete-dataset/03.webp",
+        "bytes": 38796,
+        "sha256": "a6508b54b352db28c9c9908c4c833dde0e0032778bfcbcb26b47c60b4f6f55a7"
+      },
+      {
+        "key": "langsmith-delete-dataset",
+        "screen_id": "50e025b8-ffe6-4096-85e8-6f08e2df1296",
+        "position": 4,
+        "file": "langsmith-delete-dataset/04.webp",
+        "bytes": 57690,
+        "sha256": "c1c858c0131ac0ea9a8ad017121cc71279a1a3ddeaad010f022e45dd6c1361dd"
+      },
+      {
+        "key": "linear-delete-issue",
+        "screen_id": "bf6da2e0-836d-4a5a-92a2-06dba2034ab4",
+        "position": 1,
+        "file": "linear-delete-issue/01.webp",
+        "bytes": 60858,
+        "sha256": "f8af9d87b504e7ff5888b2f78c94da9422b6ce3e2d0154601bf1916a1fdcf3ee"
+      },
+      {
+        "key": "linear-delete-issue",
+        "screen_id": "9a1bd072-26d6-493a-a8ad-a779e43dd605",
+        "position": 2,
+        "file": "linear-delete-issue/02.webp",
+        "bytes": 70414,
+        "sha256": "07cde586d4027b6969f4820f99eda4af9ff639b41d6c2ae94fd400704f888a72"
+      },
+      {
+        "key": "linear-delete-issue",
+        "screen_id": "860f7a11-799c-4930-bfab-c35b75ccd96b",
+        "position": 3,
+        "file": "linear-delete-issue/03.webp",
+        "bytes": 52934,
+        "sha256": "ea3e975d154ae5ee07085b5c973e16d1b97919bc4c472bedc6cd61ed86e9ec12"
+      },
+      {
+        "key": "manus-delete-task",
+        "screen_id": "4057ff2c-81ed-438d-8e2c-804620abac2f",
+        "position": 1,
+        "file": "manus-delete-task/01.webp",
+        "bytes": 98220,
+        "sha256": "97889cd4cc7d95ecf53f55312bf64a1a0dbbe04612d18982267537334b9f2a19"
+      },
+      {
+        "key": "manus-delete-task",
+        "screen_id": "3cc209aa-a637-442f-8f89-24e080f3c4c3",
+        "position": 2,
+        "file": "manus-delete-task/02.webp",
+        "bytes": 28498,
+        "sha256": "d0d8cfee5360148da618c0bf0effb9de91d24f2df5d87577d79cbb85456204c9"
+      },
+      {
+        "key": "manus-delete-task",
+        "screen_id": "3b22b9a4-e13d-4769-9a79-da43b03320f2",
+        "position": 3,
+        "file": "manus-delete-task/03.webp",
+        "bytes": 48180,
+        "sha256": "eab05864c840b0a0c6aa158f132d8ec59922fcb33ce29c40f695e57c98848d67"
+      },
+      {
+        "key": "microsoft-copilot-c912dc52",
+        "screen_id": "c912dc52-284e-47e8-a25c-e43230d5a0ea",
+        "position": 1,
+        "file": "microsoft-copilot-c912dc52/01.webp",
+        "bytes": 61128,
+        "sha256": "3eb960cf25cf144a78a0497c325721b1d022f55c4b9346b8c2aca07be020da6e"
+      },
+      {
+        "key": "recraft-e9f511bd",
+        "screen_id": "e9f511bd-b93f-4313-90c6-405b13a747de",
+        "position": 1,
+        "file": "recraft-e9f511bd/01.webp",
+        "bytes": 394228,
+        "sha256": "48eccfde995e4b80f9788e6d4561a46fbe898123f3ada01d6a4297dd019d2a72"
+      },
+      {
+        "key": "relevance-delete-task",
+        "screen_id": "860b4d5d-622b-4dea-81ed-a5582422fa17",
+        "position": 1,
+        "file": "relevance-delete-task/01.webp",
+        "bytes": 116494,
+        "sha256": "faef13fb6cd599f796abe2ff65a627764158d772ccfcfbdbea9760b4fec3b881"
+      },
+      {
+        "key": "relevance-delete-task",
+        "screen_id": "8e34a9ba-a9f2-4d6a-8569-6f8778830aa6",
+        "position": 2,
+        "file": "relevance-delete-task/02.webp",
+        "bytes": 25624,
+        "sha256": "c49b410f789e8c813b4be5f7164bace9fb0649b39324e0b0ec79ae8c96dc51f9"
+      },
+      {
+        "key": "relevance-delete-task",
+        "screen_id": "dd42b734-b23a-479e-8d3a-4c28e19a3a3a",
+        "position": 3,
+        "file": "relevance-delete-task/03.webp",
+        "bytes": 113894,
+        "sha256": "ada0a5d25c4012712ccd351e2271ae0612511b5ccae204892a15093a49e6afd5"
+      },
+      {
+        "key": "replit-47a2f738",
+        "screen_id": "47a2f738-9f05-47c9-b81e-d5e8df462595",
+        "position": 1,
+        "file": "replit-47a2f738/01.webp",
+        "bytes": 130964,
+        "sha256": "5c0f04f818b387cedbe35bb639d40ef2ae28bf41ca3f12d0cd30f8edab0d72d6"
+      },
+      {
+        "key": "unify-73bdebff",
+        "screen_id": "73bdebff-3bea-4d10-a35a-bf84d2b8bc05",
+        "position": 1,
+        "file": "unify-73bdebff/01.webp",
+        "bytes": 65262,
+        "sha256": "5f317234744f215842ba576f8e7e9f072f18f9e0d7e394cb7311c333983ce86f"
+      }
+    ],
+    "status": "awaiting_user_reference_confirmation",
+    "base_dir": ".references/mobbin/t63-feedback-home"
+  }
 }
