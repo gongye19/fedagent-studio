@@ -1,8 +1,13 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type InputHTMLAttributes, type KeyboardEvent, type ReactNode } from "react";
 import { hrefOf, type Route } from "../state/route";
 import { Icon } from "./icons";
 
 export type Tone = "neutral" | "info" | "success" | "warning" | "danger";
+
+/** 列表搜索：图标在控件内，名称和键盘行为仍由原生输入框提供。 */
+export function SearchInput(props: Omit<InputHTMLAttributes<HTMLInputElement>, "type">) {
+  return <div className="search-field"><Icon name="search" /><input {...props} type="search" autoComplete="off" /></div>;
+}
 
 /**
  * 全站唯一的标签样式（胶囊）。颜色只按含义选：

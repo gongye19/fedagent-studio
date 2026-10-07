@@ -61,7 +61,7 @@ function RoundItem({ task, round }: { task: Task; round: number }) {
   const output = algorithmOfTask(task).output.name;
   const base = round === 1 ? `还没有${output}（本地基线）` : `用第 ${round - 1} 轮的${output}`;
   // 收起的轮次不渲染步骤，展开时才生成。
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(task.status === "completed" && round === task.config.rounds);
 
   if (state === "done") {
     return (
@@ -90,7 +90,7 @@ function RoundItem({ task, round }: { task: Task; round: number }) {
           <span className="round-mark" aria-hidden="true">{round}</span>
           <span className="round-title">
             <h3>第 {round} 轮</h3>
-            <span className="round-summary">未开始 · {base} · {formatDuration(seconds)}</span>
+            <span className="round-summary">未开始 · {base} · 预计 {formatDuration(seconds)}</span>
           </span>
         </div>
       </li>
@@ -120,7 +120,7 @@ function stoppedText(task: Task): string {
 
 /** 每一步下面的一行结果。写什么由算法在注册表里声明（stage.result），这里不认具体的算法。 */
 function stepNote(task: Task, record: RoundRecord | undefined, stage: Stage, state: StepState): string {
-  if (state === "pending") return formatDuration(stageSeconds(task, stage.id));
+  if (state === "pending") return `预计 ${formatDuration(stageSeconds(task, stage.id))}`;
   if (state === "current") {
     const cursor = task.cursor;
     if (!cursor) return "";

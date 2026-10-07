@@ -91,7 +91,7 @@ export default function TaskPage({ task, state, dispatch, tab }: Props) {
         </Confirm>
       ) : null}
       <TabLinks label="任务详情" tabs={tabs} active={active} routeOf={(id) => ({ page: "task", id: task.id, tab: id })} />
-      {task.cursor && task.status !== "canceled" ? <LiveBanner task={task} /> : null}
+      {task.cursor && (running || paused) ? <LiveBanner task={task} /> : null}
       <div className="tab-panel">
         {active === "overview" ? <OverviewTab task={task} state={state} /> : null}
         {active === "progress" ? <ProgressTab key={task.id} task={task} /> : null}
@@ -111,8 +111,8 @@ function LiveBanner({ task }: { task: Task }) {
   return (
     <div className={`live-banner live-banner--${task.status}`}>
       <strong className="live-copy">{queued ? "排队中，等前面的任务完成后开始" : `${stage}${paused ? " · 已暂停" : ""}`}</strong>
-      <ProgressBar value={progress} label="整体进度" tone={paused ? "warning" : "info"} />
-      <span className="live-percent" aria-hidden="true">{Math.round(progress * 100)}%</span>
+      <ProgressBar value={progress} label="步骤完成进度" tone={paused ? "warning" : "info"} />
+      <span className="live-percent" title="按已完成步骤及样本计算" aria-hidden="true">{Math.round(progress * 100)}%</span>
       <span className="visually-hidden" aria-live="polite">{stage}</span>
     </div>
   );

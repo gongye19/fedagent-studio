@@ -3,7 +3,7 @@ import { SCENARIOS } from "../domain/catalog";
 import { TASK_STATUS, type Task, type TaskStatus } from "../domain/task";
 import { hrefOf } from "../state/route";
 import type { State } from "../state/store";
-import { Notice, PageHead, PanelEmpty, Tag } from "./common";
+import { Notice, PageHead, PanelEmpty, SearchInput, Tag } from "./common";
 import { DeleteTaskConfirm } from "./DeleteTaskConfirm";
 import { Panel } from "./console";
 import { TaskTypeSelect, type TaskTypeFilter } from "./filters";
@@ -35,28 +35,24 @@ export default function TasksPage({ state }: { state: State }) {
 
   return (
     <>
-      <PageHead title="联邦任务" meta="每个联邦任务让多个参与方的 Agent 协作几轮，完成后对比各方效果，产出可以发布为应用。" />
+      <PageHead title="联邦任务" meta="配置协作任务，查看进度、比较效果并发布产出。" />
       {deleting ? <DeleteTaskConfirm task={deleting} onCancel={() => setDeleting(null)} onDeleted={() => { setDeletedName(deleting.name); setDeleting(null); }} /> : null}
       {deletedName ? <Notice onDismiss={() => setDeletedName(null)}>已删除任务“{deletedName}”。</Notice> : null}
-      {state.tasks.length ? (
-        <div className="list-toolbar">
-          <input
-            type="search"
-            name="task-search"
-            autoComplete="off"
-            aria-label="搜索任务名称"
-            placeholder="搜索任务名称…"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-          <TaskTypeSelect value={taskType} onChange={setTaskType} />
-          <select name="task-status" aria-label="按状态筛选" value={filter} onChange={(event) => setFilter(event.target.value as Filter)}>
-            <option value="all">全部状态</option>
-            {(Object.keys(TASK_STATUS) as TaskStatus[]).map((status) => <option key={status} value={status}>{TASK_STATUS[status]}</option>)}
-          </select>
-          {filtering ? <button type="button" className="button button--ghost button--compact" onClick={clear}>清除筛选</button> : null}
-        </div>
-      ) : null}
+      <div className="list-toolbar" role="search" aria-label="筛选联邦任务">
+        <SearchInput
+          name="task-search"
+          aria-label="搜索任务名称"
+          placeholder="搜索任务名称…"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+        <TaskTypeSelect value={taskType} onChange={setTaskType} />
+        <select name="task-status" aria-label="按状态筛选" value={filter} onChange={(event) => setFilter(event.target.value as Filter)}>
+          <option value="all">全部状态</option>
+          {(Object.keys(TASK_STATUS) as TaskStatus[]).map((status) => <option key={status} value={status}>{TASK_STATUS[status]}</option>)}
+        </select>
+        {filtering ? <button type="button" className="button button--ghost button--compact" onClick={clear}>清除筛选</button> : null}
+      </div>
       <div className="panel-stack">
         {SCENARIOS.map((scenario) => {
           const available = scenario.status === "available";
@@ -66,8 +62,9 @@ export default function TasksPage({ state }: { state: State }) {
             <Panel
               key={scenario.id}
               id={`tasks-${scenario.id}`}
+              className={available ? undefined : "panel--planned"}
               title={<>{scenario.name}{available ? null : <Tag>规划中</Tag>}</>}
-              extra={available ? `${all.length} 个任务` : undefined}
+              extra={available ? filtering ? `${tasks.length} / ${all.length} 个任务` : `${all.length} 个任务` : undefined}
               actions={available
                 ? <a className="button button--primary button--compact" href={hrefOf({ page: "newTask", scenario: scenario.id })}><Icon name="plus" />新建联邦任务</a>
                 : <button type="button" className="button button--secondary button--compact" disabled><Icon name="plus" />新建联邦任务</button>}
@@ -76,7 +73,7 @@ export default function TasksPage({ state }: { state: State }) {
               {tasks.length ? <TaskTable tasks={tasks} deleteDisabled={Boolean(deleting)} onDelete={(task) => { setDeletedName(null); setDeleting(task); }} /> : (
                 <PanelEmpty>
                   {!available
-                    ? `${scenario.short}的算法还在规划中，接入后可以在这里新建任务。`
+                    ? "算法待接入，暂时不能新建任务。"
                     : all.length ? "没有符合条件的任务。" : `还没有${scenario.short}的任务，点右上角"新建联邦任务"开始。`}
                 </PanelEmpty>
               )}

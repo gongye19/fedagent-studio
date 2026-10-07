@@ -47,7 +47,7 @@ export default function AppPage({ item, task, state, tab }: Props) {
 
   const unpublish = () => run(async () => {
     await withdrawApp(item.id);
-    showFlash({ page: "apps" }, `已撤下“${item.name}”。产出还在任务里，可以重新发布。`);
+    showFlash({ page: "apps" }, `已撤下“${item.name}”。${task ? "产出还在任务里，可以重新发布。" : "来源任务已删除。"}`);
     navigate({ page: "apps" });
   });
 
@@ -66,7 +66,7 @@ export default function AppPage({ item, task, state, tab }: Props) {
     })} />
   ) : editing === "unpublish" ? (
     <Confirm title={`撤下“${item.name}”？`} confirmLabel="撤下" onConfirm={unpublish} onCancel={() => setEditing(null)}>
-      撤下后不能再试用和接入；产出还在任务里，可以重新发布。
+      {task ? "撤下后不能再试用和接入；产出还在任务里，可以重新发布。" : "来源任务已删除，撤下后无法从原任务重新发布。请先导出需要保留的内容。"}
     </Confirm>
   ) : null;
 
@@ -149,10 +149,11 @@ function TryPanel({ item, state }: { item: Published; state: State }) {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [running, setRunning] = useState(false);
-  const [result, setResult] = useState<{ comparison: Comparison; answer: string } | null>(null);
+  const [result, setResult] = useState<{ comparison: Comparison; input: string; answer: string; model: string } | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const type = TASK_TYPES[item.taskType];
   const missing = !model ? "还需配置可用的模型接口" : question.trim() ? "" : "还需填写：问题";
+  const outdated = result && (question.trim() !== result.input || answer.trim() !== result.answer || model !== result.model);
 
   async function compare() {
     if (missing || running) return;
@@ -162,7 +163,7 @@ function TryPanel({ item, state }: { item: Published; state: State }) {
     setResult(null);
     try {
       const comparison = await api.applyApp(item.id, submitted);
-      setResult({ comparison, answer: submitted.answer ?? "" });
+      setResult({ comparison, input: submitted.input, answer: submitted.answer ?? "", model: submitted.model });
     } catch (error) {
       setProblem(error instanceof ApiError ? error.message : "运行失败，稍后再试");
     } finally {
@@ -206,14 +207,19 @@ function TryPanel({ item, state }: { item: Published; state: State }) {
       </Panel>
       {problem ? <Notice tone="warning" onDismiss={() => setProblem(null)}>{problem}</Notice> : null}
       {result ? (
-        <Panel title="对比结果" id="try-result" actions={result.answer ? <span className="section-value">标准答案：{result.answer}</span> : undefined}>
+        <Panel title={outdated ? "上次对比结果" : "对比结果"} id="try-result" extra={modelLabel(result.model, state.endpoints)}>
+          <details className="comparison-input">
+            <summary>本次问题{result.answer ? "与标准答案" : ""}</summary>
+            <p>{result.input}</p>
+            {result.answer ? <p>标准答案：{result.answer}</p> : null}
+          </details>
           <div className="compare-grid">
             {([["不带应用", result.comparison.without], ["带应用", result.comparison.with]] as const).map(([title, side]) => (
               <div key={title} className="compare-item">
                 <div className="compare-head">
                   <h3>{title}</h3>
                   {side.correct === null ? (
-                    <span className="section-meta">{formatNumber(side.tokens)} token</span>
+                    <span className="section-meta">未判分</span>
                   ) : (
                     <span className={side.correct ? "verdict verdict--right" : "verdict verdict--wrong"}>
                       <Icon name={side.correct ? "check" : "x"} />{side.correct ? "正确" : "错误"}
@@ -221,6 +227,7 @@ function TryPanel({ item, state }: { item: Published; state: State }) {
                   )}
                 </div>
                 <p className="answer" lang="en">{side.output}</p>
+                <span className="compare-usage">{formatNumber(side.tokens)} token</span>
               </div>
             ))}
           </div>

@@ -38,4 +38,11 @@ describe("task metrics", () => {
     const queued = completedTask({ status: "queued", rounds: [], cursor: { round: 1, stage: "solve", done: {}, ticks: 0 } });
     expect(progressOf(queued)).toBe(0);
   });
+
+  it("does not invent progress while a server step is executing or paused", () => {
+    const cursor = { round: 2, stage: "collect" as const, done: {}, ticks: 0 };
+    const running = completedTask({ status: "running", cursor });
+    expect(progressOf(running)).toBeCloseTo(9 / 18);
+    expect(progressOf({ ...running, status: "paused" })).toBe(progressOf(running));
+  });
 });

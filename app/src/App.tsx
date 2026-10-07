@@ -12,7 +12,7 @@ import AlgorithmsPage from "./ui/AlgorithmsPage";
 import AppPage from "./ui/AppPage";
 import AppsPage from "./ui/AppsPage";
 import { EmptyState, NotFound, Notice, PageHead } from "./ui/common";
-import { Icon } from "./ui/icons";
+import { Icon, type IconName } from "./ui/icons";
 import EndpointPage from "./ui/EndpointPage";
 import HomePage from "./ui/HomePage";
 import ModelsPage from "./ui/ModelsPage";
@@ -49,22 +49,22 @@ function navKeyOf(route: Route): NavKey {
   }
 }
 
-type NavItem = { key: NavKey; label: string; route: Route };
+type NavItem = { key: NavKey; label: string; icon: IconName; route: Route };
 
 /**
  * 一级导航：首页、联邦任务、应用、基础管理，四项同一级、同一个样式。
  * 基础管理是可以展开的一组，点开后才出现参与方与数据、算法、模型接口。
  */
 const NAV: readonly NavItem[] = [
-  { key: "home", label: "首页", route: { page: "home" } },
-  { key: "tasks", label: "联邦任务", route: { page: "tasks" } },
-  { key: "apps", label: "应用", route: { page: "apps" } },
+  { key: "home", label: "首页", icon: "home", route: { page: "home" } },
+  { key: "tasks", label: "联邦任务", icon: "tasks", route: { page: "tasks" } },
+  { key: "apps", label: "应用", icon: "apps", route: { page: "apps" } },
 ];
 
 const MANAGE: readonly NavItem[] = [
-  { key: "participants", label: "参与方与数据", route: { page: "participants" } },
-  { key: "algorithms", label: "算法", route: { page: "algorithms" } },
-  { key: "models", label: "模型接口", route: { page: "models" } },
+  { key: "participants", label: "参与方与数据", icon: "participants", route: { page: "participants" } },
+  { key: "algorithms", label: "算法", icon: "algorithm", route: { page: "algorithms" } },
+  { key: "models", label: "模型接口", icon: "model", route: { page: "models" } },
 ];
 
 export default function App() {
@@ -142,12 +142,15 @@ function Loading() {
 /** 连不上后端，或者后端返回了错误。 */
 function Unavailable({ error }: { error: Error }) {
   return (
-    <EmptyState
-      title={error instanceof ApiError && error.status === 0 ? "连不上后端服务" : "读取数据失败"}
-      action={<button type="button" className="button button--secondary" onClick={() => queryClient.invalidateQueries()}>重试</button>}
-    >
-      <p>{error.message}</p>
-    </EmptyState>
+    <>
+      <PageHead title="服务暂不可用" />
+      <EmptyState
+        title={error instanceof ApiError && error.status === 0 ? "连不上后端服务" : "读取数据失败"}
+        action={<button type="button" className="button button--secondary" onClick={() => queryClient.invalidateQueries()}>重试</button>}
+      >
+        <p>{error.message}</p>
+      </EmptyState>
+    </>
   );
 }
 
@@ -254,7 +257,7 @@ function Sidebar({ route, state }: { route: Route; state: State | null }) {
       aria-current={item.key === active ? "page" : undefined}
       onClick={close}
     >
-      <span>{item.label}</span>
+      <span className="nav-label"><Icon name={item.icon} />{item.label}</span>
       {item.key === "tasks" && running ? <span className="nav-count" aria-label={`${running} 个运行中或排队中`}>{running}</span> : null}
     </a>
   );
@@ -291,7 +294,7 @@ function Sidebar({ route, state }: { route: Route; state: State | null }) {
           aria-controls="nav-manage"
           onClick={() => setToggled(!manageOpen)}
         >
-          <span>基础管理</span>
+          <span className="nav-label"><Icon name="manage" />基础管理</span>
           <Icon name="chevron" />
         </button>
         <div className="nav-sub" id="nav-manage" hidden={!manageOpen}>

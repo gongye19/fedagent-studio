@@ -106,7 +106,7 @@ export function totalProblems(task: Pick<Task, "members">): number {
   return task.members.reduce((sum, member) => sum + member.problems, 0);
 }
 
-/** 整个任务的完成比例（0–1），用于进度条。服务端步骤只算开始了一半。 */
+/** 步骤完成比例（0–1）：参与方按已完成样本计，服务端只计完成的步骤，不猜测执行中的百分比。 */
 export function progressOf(task: Task): number {
   const cursor = task.cursor;
   if (!cursor) return task.status === "completed" ? 1 : 0;
@@ -118,8 +118,6 @@ export function progressOf(task: Task): number {
     const total = totalProblems(task);
     const done = task.members.reduce((sum, member) => sum + (cursor.done[member.participantId] ?? 0), 0);
     within = total ? done / total : 0;
-  } else if (task.status === "running") {
-    within = 0.5;
   }
   return Math.min(1, ((cursor.round - 1) * perRound + index + within) / (task.config.rounds * perRound));
 }

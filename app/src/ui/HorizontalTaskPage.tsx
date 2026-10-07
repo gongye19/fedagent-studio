@@ -226,17 +226,17 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
 
       <div className="order-layout">
         <div className="order-main">
-          <Panel title="基本信息" id="basic">
+          <Panel title="基本信息" id="basic" step={1}>
             <div className="form-body">
               <FieldGroup>
-                <Field label="任务名称" htmlFor="task-name">
+                <Field label="任务名称" htmlFor="task-name" wide>
                   <input id="task-name" name="task-name" autoComplete="off" value={draft.name ?? autoName} placeholder={autoName} maxLength={60} onChange={(event) => update({ name: event.target.value })} />
                 </Field>
               </FieldGroup>
             </div>
           </Panel>
 
-          <Panel title="任务类型与算法" id="scenario">
+          <Panel title="任务类型与算法" id="scenario" step={2}>
             <div className="form-body">
               <FieldGroup>
                 <TaskTypeChoice scenario={SCENARIO} value={draft.taskType} onChange={(taskType) => dispatch({ type: "chooseTaskType", taskType })} />
@@ -248,6 +248,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
           <Panel
             title="参与方"
             id="participants"
+            step={3}
             extra={algorithm ? `已选 ${joined.length} 个` : "待选择"}
             actions={(
               <>
@@ -266,7 +267,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
             )}
           </Panel>
 
-          <Panel title="运行配置" id="settings">
+          <Panel title="运行配置" id="settings" step={4}>
             <RunSettings state={state} draft={draft} update={update} algorithm={algorithm} />
           </Panel>
 

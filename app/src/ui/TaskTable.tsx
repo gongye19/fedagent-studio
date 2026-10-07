@@ -61,7 +61,7 @@ export function TaskTable({ tasks, onDelete, deleteDisabled }: { tasks: readonly
                     {stage ? <small>{stage}</small> : null}
                   </div>
                   {task.cursor && task.status !== "canceled" ? (
-                    <ProgressBar value={progressOf(task)} label={`${task.name} 的进度`} tone={task.status === "paused" ? "warning" : "info"} />
+                    <ProgressBar value={progressOf(task)} label={`${task.name} 的步骤完成进度`} tone={task.status === "paused" ? "warning" : "info"} />
                   ) : null}
                 </td>
                 <td className="numeric" data-label="主要指标"><MetricChange task={task} /></td>

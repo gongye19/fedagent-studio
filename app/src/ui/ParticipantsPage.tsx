@@ -8,7 +8,7 @@ import { showFlash } from "../state/flash";
 import { hrefOf, navigate } from "../state/route";
 import { keys } from "../state/server";
 import { datasetsOf, type State } from "../state/store";
-import { CodeBlock, Confirm, Facts, Notice, PageHead, PanelEmpty, Tag } from "./common";
+import { CodeBlock, Confirm, Facts, Notice, PageHead, PanelEmpty, SearchInput, Tag } from "./common";
 import { Panel } from "./console";
 import { TaskTypeSelect, type TaskTypeFilter } from "./filters";
 import { formatNumber } from "./format";
@@ -51,11 +51,9 @@ export default function ParticipantsPage({ state, selectedId }: Props) {
           </>
         )}
       />
-      <div className="list-toolbar">
-        <input
-          type="search"
+      <div className="list-toolbar" role="search" aria-label="筛选参与方与数据">
+        <SearchInput
           name="participant-search"
-          autoComplete="off"
           aria-label="搜索参与方或数据集"
           placeholder="搜索参与方或数据集…"
           value={query}
@@ -73,6 +71,7 @@ export default function ParticipantsPage({ state, selectedId }: Props) {
             <Panel
               key={scenario.id}
               id={`participants-${scenario.id}`}
+              className={!available && !rows.length ? "panel--planned" : undefined}
               title={<>{scenario.name}{available ? null : <Tag>规划中</Tag>}</>}
               extra={all.length ? `${new Set(all.map((row) => row.participant.id)).size} 个参与方，${all.length} 份数据集` : undefined}
               flush

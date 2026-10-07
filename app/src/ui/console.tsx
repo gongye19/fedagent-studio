@@ -12,7 +12,7 @@ import { useId, useRef, useState, type InputHTMLAttributes, type KeyboardEvent, 
 import { Icon } from "./icons";
 
 export function Panel({
-  title, extra, actions, children, id, flush = false, className,
+  title, extra, actions, children, id, flush = false, className, step,
 }: {
   title?: ReactNode;
   /** 标题右边的一句补充，例如"已选 8 个"。 */
@@ -23,13 +23,15 @@ export function Panel({
   /** 内容贴边（放表格时用）。 */
   flush?: boolean;
   className?: string;
+  /** 配置页的固定区域序号，只帮助扫描，不表示分步隐藏。 */
+  step?: number;
 }) {
   const headingId = id ? `${id}-title` : undefined;
   return (
     <section className={`panel${className ? ` ${className}` : ""}`} id={id} aria-labelledby={title ? headingId : undefined}>
       {title || actions ? (
         <header className="panel-head">
-          {title ? <h2 id={headingId}>{title}</h2> : null}
+          {title ? <h2 id={headingId}>{step ? <span className="panel-step" aria-hidden="true">{step}</span> : null}{title}</h2> : null}
           {extra ? <span className="panel-extra">{extra}</span> : null}
           {actions ? <div className="panel-actions">{actions}</div> : null}
         </header>

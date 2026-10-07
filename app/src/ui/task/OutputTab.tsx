@@ -5,7 +5,7 @@ import { publish as publishApp } from "../../state/actions";
 import { showFlash } from "../../state/flash";
 import { hrefOf } from "../../state/route";
 import { publishedOf, type State } from "../../state/store";
-import { EmptyState, Notice, Tag } from "../common";
+import { EmptyState, Meta, Notice, Tag } from "../common";
 import { Panel } from "../console";
 import { formatNumber } from "../format";
 import { OutputGroups } from "../OutputGroups";
@@ -44,7 +44,7 @@ export function OutputTab({ task, state }: { task: Task; state: State }) {
     try {
       const app = await publishApp(task.id, current.builtAfterRound, title);
       setNaming(null);
-      showFlash({ page: "task", id: task.id }, `已发布为应用“${app.name}”。`, { label: "查看应用", route: { page: "app", id: app.id } });
+      showFlash({ page: "task", id: task.id }, `已发布为应用“${app.name}”。`, { label: "立即试用", route: { page: "app", id: app.id } });
     } catch (error) {
       setProblem(error instanceof ApiError ? error.message : "发布失败，稍后再试");
     } finally {
@@ -66,10 +66,10 @@ export function OutputTab({ task, state }: { task: Task; state: State }) {
           {published ? (
             <>
               <Tag>已发布</Tag>
-              <a className="button button--secondary button--compact" href={hrefOf({ page: "app", id: published.id })}>查看应用</a>
+              <a className="button button--secondary button--compact" href={hrefOf({ page: "app", id: published.id })}>试用应用</a>
             </>
           ) : naming === null ? (
-            <button type="button" className="button button--primary button--compact" onClick={() => setNaming(suggested)}>发布为应用</button>
+            <button type="button" className="button button--primary button--compact" onClick={() => { setChosen(current.builtAfterRound); setNaming(suggested); }}>发布为应用</button>
           ) : null}
         </>
       )}
@@ -87,6 +87,8 @@ export function OutputTab({ task, state }: { task: Task; state: State }) {
           }}
         >
           <div className="confirm-copy">
+            <strong>发布为应用</strong>
+            <p className="publish-source"><Meta parts={[task.name, `第 ${current.builtAfterRound} 轮后`, `${output.name} ${formatNumber(current.items.length)} 条`]} /></p>
             <label className="field-label" htmlFor="publish-name">应用名称</label>
             <input ref={nameInput} id="publish-name" name="publish-name" autoComplete="off" disabled={saving} value={naming} maxLength={60} onChange={(event) => setNaming(event.target.value)} />
           </div>

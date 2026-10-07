@@ -3,7 +3,7 @@ import { algorithmOf, SCENARIOS, TASK_TYPES } from "../domain/catalog";
 import { outputs } from "../domain/task";
 import { hrefOf } from "../state/route";
 import { taskOf, type Published, type State } from "../state/store";
-import { PageHead, PanelEmpty, Tag } from "./common";
+import { PageHead, PanelEmpty, SearchInput, Tag } from "./common";
 import { Panel } from "./console";
 import { TaskTypeSelect, type TaskTypeFilter } from "./filters";
 import { formatDate } from "./format";
@@ -24,22 +24,18 @@ export default function AppsPage({ state }: { state: State }) {
 
   return (
     <>
-      <PageHead title="应用" meta="任务的产出发布后成为应用，可以直接试用，也可以接入自己的 Agent。" />
-      {state.published.length ? (
-        <div className="list-toolbar">
-          <input
-            type="search"
-            name="app-search"
-            autoComplete="off"
-            aria-label="搜索应用名称"
-            placeholder="搜索应用名称…"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-          <TaskTypeSelect value={taskType} onChange={setTaskType} />
-          {filtering ? <button type="button" className="button button--ghost button--compact" onClick={() => { setQuery(""); setTaskType("all"); }}>清除筛选</button> : null}
-        </div>
-      ) : null}
+      <PageHead title="应用" meta="试用已发布的任务产出，或接入自己的 Agent。" />
+      <div className="list-toolbar" role="search" aria-label="筛选应用">
+        <SearchInput
+          name="app-search"
+          aria-label="搜索应用名称"
+          placeholder="搜索应用名称…"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+        <TaskTypeSelect value={taskType} onChange={setTaskType} />
+        {filtering ? <button type="button" className="button button--ghost button--compact" onClick={() => { setQuery(""); setTaskType("all"); }}>清除筛选</button> : null}
+      </div>
       <div className="panel-stack">
         {SCENARIOS.map((scenario) => {
           const available = scenario.status === "available";
@@ -49,14 +45,15 @@ export default function AppsPage({ state }: { state: State }) {
             <Panel
               key={scenario.id}
               id={`apps-${scenario.id}`}
+              className={available ? undefined : "panel--planned"}
               title={<>{scenario.name}{available ? null : <Tag>规划中</Tag>}</>}
-              extra={available ? `${all.length} 个应用` : undefined}
+              extra={available ? filtering ? `${items.length} / ${all.length} 个应用` : `${all.length} 个应用` : undefined}
               flush
             >
               {items.length ? <AppTable state={state} items={items} /> : (
                 <PanelEmpty>
                   {!available
-                    ? `${scenario.short}的算法还在规划中，还没有这个场景的应用。`
+                    ? "算法待接入，暂无应用。"
                     : all.length ? "没有符合条件的应用。" : `还没有${scenario.short}的应用。在任务详情的"产出"里，把一版产出发布为应用。`}
                 </PanelEmpty>
               )}
