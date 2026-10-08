@@ -60,13 +60,18 @@ function RoundItem({ task, round }: { task: Task; round: number }) {
   const state = roundStateOf(task, round);
   const output = algorithmOfTask(task).output.name;
   const base = round === 1 ? `还没有${output}（本地基线）` : `用第 ${round - 1} 轮的${output}`;
-  // 收起的轮次不渲染步骤，展开时才生成。
+  // 首次展开才生成步骤；收起后保留，供原生 details 平滑关闭。
   const [open, setOpen] = useState(task.status === "completed" && round === task.config.rounds);
+  const [visited, setVisited] = useState(open);
 
   if (state === "done") {
     return (
       <li className="round round--done">
-        <details open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
+        <details open={open} onToggle={(event) => {
+          const next = event.currentTarget.open;
+          setOpen(next);
+          if (next) setVisited(true);
+        }}>
           <summary className="round-head">
             <Icon name="chevron" />
             <span className="round-mark" aria-hidden="true"><Icon name="check" /></span>
@@ -75,7 +80,7 @@ function RoundItem({ task, round }: { task: Task; round: number }) {
               <span className="round-summary">{roundSummary(task, record)}</span>
             </span>
           </summary>
-          {open ? <StepLine task={task} round={round} record={record} /> : null}
+          {visited ? <StepLine task={task} round={round} record={record} /> : null}
         </details>
       </li>
     );

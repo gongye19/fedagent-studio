@@ -15,6 +15,7 @@ import { Field, FieldGroup, Panel } from "./console";
 import { formatDate, formatNumber } from "./format";
 import { Icon } from "./icons";
 import { OutputGroups } from "./OutputGroups";
+import { useContentMotion } from "./hooks";
 
 type Props = { item: Published; task: Task | undefined; state: State; tab?: AppTab };
 type Comparison = components["schemas"]["ApplyOut"];
@@ -31,6 +32,7 @@ export default function AppPage({ item, task, state, tab }: Props) {
   const [managing, setManaging] = useState(false);
   const algorithm = algorithmOf(item.algorithm);
   const active: AppTab = tab ?? "try";
+  const panelMotion = useContentMotion(active, true);
 
   async function run(action: () => Promise<void>) {
     if (managing) return;
@@ -97,7 +99,7 @@ export default function AppPage({ item, task, state, tab }: Props) {
         active={active}
         routeOf={(id) => ({ page: "app", id: item.id, tab: id })}
       />
-      <div className="tab-panel">
+      <div className="tab-panel" ref={panelMotion}>
         {active === "try" ? <TryPanel item={item} state={state} /> : null}
         {active === "content" ? (
           <Panel title={algorithm.output.name} extra={`${item.items.length} 条`}>

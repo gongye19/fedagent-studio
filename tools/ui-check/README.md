@@ -10,6 +10,7 @@
 | `summary.py` | 汇总上面两个的结果，过滤已核实的误报 | `python3 summary.py a11y.json wrap.json` |
 | `feedback.mjs` | 确认、失败、焦点、长内容和减少动态的浏览器回归（响应夹具，不修改数据库） | `node feedback.mjs`，仅允许本地 BASE；需已有一个任务和应用作只读模板；CDP_OUT 指定证据目录 |
 | `participants.mjs` | 信息分区、折叠、连接命令／复制、加载重试与一次性令牌展示（响应夹具） | `node participants.mjs`，连接本地内置示例；不签发真实令牌或调用模型；CDP_OUT 指定证据目录 |
+| `motion.mjs` | 页面／标签动效、快速切换、草稿和编辑状态保留、折叠中间帧、减少动态与焦点 | `node motion.mjs`；只读现有任务／应用，拦截全部写请求；支持线上 BASE，本地另用前端通知夹具检查 Toast |
 | `docshots.json` | 文档里的 14 张截图（`docs/screenshots/`） | `CDP_OUT=../../docs/screenshots node cdp.mjs docshots.json` |
 
 环境变量：
@@ -18,6 +19,7 @@
 - `WAIT`：打开页面后等多少毫秒，默认 1300。经 Tailscale 访问部署的平台时页面要先读数据，用 `WAIT=4000`，不然会扫到"正在读取…"。
 - `CHROME_PATH`：Chrome 的路径，默认 macOS 上的 Google Chrome。
 - `CDP_PORT`、`CDP_PROFILE`：几个脚本并行跑时各用一个端口和配置目录。
+- `DEV_FIXTURES=0`：`motion.mjs` 检查本地生产预览时关闭 Vite 源码导入的前端通知夹具；例如 `BASE=http://127.0.0.1:8881/ DEV_FIXTURES=0 node motion.mjs`。线上自动不使用该夹具。
 
 说明：
 

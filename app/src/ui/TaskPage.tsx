@@ -16,6 +16,7 @@ import { ProgressTab } from "./task/ProgressTab";
 import { TaskStatus } from "./TaskTable";
 import { DeleteTaskConfirm } from "./DeleteTaskConfirm";
 import { showFlash } from "../state/flash";
+import { useContentMotion } from "./hooks";
 
 type Props = { task: Task; state: State; dispatch: Dispatch<Action>; tab?: TaskTab };
 
@@ -26,6 +27,7 @@ export default function TaskPage({ task, state, dispatch, tab }: Props) {
   const [problem, setProblem] = useState<string | null>(null);
   // 有结果就先看概览；还没有结果时看进度。
   const active: TaskTab = tab ?? (scoredRounds(task).length ? "overview" : "progress");
+  const panelMotion = useContentMotion(active, true);
   const tabs: { id: TaskTab; label: string }[] = [
     { id: "overview", label: "概览" },
     { id: "progress", label: "进度" },
@@ -94,7 +96,7 @@ export default function TaskPage({ task, state, dispatch, tab }: Props) {
       ) : null}
       <TabLinks label="任务详情" tabs={tabs} active={active} routeOf={(id) => ({ page: "task", id: task.id, tab: id })} />
       {task.cursor && (running || paused) ? <LiveBanner task={task} /> : null}
-      <div className="tab-panel">
+      <div className="tab-panel" ref={panelMotion}>
         {active === "overview" ? <OverviewTab task={task} state={state} /> : null}
         {active === "progress" ? <ProgressTab key={task.id} task={task} /> : null}
         {active === "output" ? <OutputTab key={task.id} task={task} state={state} /> : null}

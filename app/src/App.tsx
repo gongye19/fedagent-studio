@@ -22,6 +22,7 @@ import HorizontalTaskPage from "./ui/HorizontalTaskPage";
 import ParticipantsPage from "./ui/ParticipantsPage";
 import TaskPage from "./ui/TaskPage";
 import TasksPage from "./ui/TasksPage";
+import { useContentMotion } from "./ui/hooks";
 
 type NavKey = "home" | "tasks" | "apps" | "participants" | "algorithms" | "models";
 
@@ -70,6 +71,7 @@ const MANAGE: readonly NavItem[] = [
 export default function App() {
   const route = useRoute();
   const pageKey = pageKeyOf(route);
+  const pageMotion = useContentMotion(pageKey);
   const firstPage = useRef(true);
   const flash = useFlash(route);
   // 注册表（后端安装的场景、任务类型、算法）和数据同时取，都到了才渲染页面；需要访问令牌时先输入令牌。
@@ -119,7 +121,7 @@ export default function App() {
       }}>跳到主要内容</a>
       <Sidebar route={route} state={state} />
       <main className="main" id="main" tabIndex={-1}>
-        <div className="page">
+        <div className="page" ref={pageMotion}>
           {flash ? (
             <Toast key={flash.id}
               action={flash.link ? <a className="text-link" href={hrefOf(flash.link.route)}>{flash.link.label}</a> : undefined}
@@ -297,8 +299,8 @@ function Sidebar({ route, state }: { route: Route; state: State | null }) {
           <span className="nav-label"><Icon name="manage" />基础管理</span>
           <Icon name="chevron" />
         </button>
-        <div className="nav-sub" id="nav-manage" hidden={!manageOpen}>
-          {MANAGE.map((item) => link(item, true))}
+        <div className={`nav-sub${manageOpen ? " nav-sub--open" : ""}`} id="nav-manage" inert={!manageOpen} aria-hidden={!manageOpen}>
+          <div className="nav-sub-content">{MANAGE.map((item) => link(item, true))}</div>
         </div>
       </nav>
     </aside>
