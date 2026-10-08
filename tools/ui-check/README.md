@@ -9,6 +9,7 @@
 | `wrap.mjs` | 在多个宽度下找断行不当的文字：短文字被折成两行、长文字最后一行只剩一两个字 | `node wrap.mjs`，结果写到 `OUT`（默认 `/tmp/fedagent-audit/wrap.json`） |
 | `summary.py` | 汇总上面两个的结果，过滤已核实的误报 | `python3 summary.py a11y.json wrap.json` |
 | `feedback.mjs` | 确认、失败、焦点、长内容和减少动态的浏览器回归（响应夹具，不修改数据库） | `node feedback.mjs`，仅允许本地 BASE；需已有一个任务和应用作只读模板；CDP_OUT 指定证据目录 |
+| `participants.mjs` | 信息分区、折叠、连接命令／复制、加载重试与一次性令牌展示（响应夹具） | `node participants.mjs`，连接本地内置示例；不签发真实令牌或调用模型；CDP_OUT 指定证据目录 |
 | `docshots.json` | 文档里的 14 张截图（`docs/screenshots/`） | `CDP_OUT=../../docs/screenshots node cdp.mjs docshots.json` |
 
 环境变量：

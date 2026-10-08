@@ -87,7 +87,7 @@ app/src/
 │   ├── TaskPage.tsx         任务详情（task/ 下是概览、进度、产出、配置四个标签）
 │   ├── AppsPage.tsx         应用列表：和联邦任务一样按场景分块，任务类型是一列；名称搜索、任务类型筛选
 │   ├── AppPage.tsx          应用详情：试用（真实调用，带 / 不带应用对比并判分）、内容、接入（导出 JSON、API）
-│   ├── ParticipantsPage.tsx 参与方与数据：按场景分块，每块一张表（一行一份数据集）；详情里有数据集、本地客户端的连接令牌和命令、新增和删除
+│   ├── ParticipantsPage.tsx 参与方与数据：按场景分块，每块一张表（一行一份数据集）；概况分区，样本／连接步骤按需展开，签发／复制对应段落，保留新增和删除
 │   ├── NewParticipantPage.tsx 新增参与方（独立页面，同时登记第一份数据集）
 │   ├── NewDatasetPage.tsx   新增数据集（独立页面：参与方 → 场景 → 任务类型 → 文件或名称）
 │   ├── DatasetFields.tsx / datasetForm.ts 登记数据集的字段和规则（新增参与方和新增数据集共用）

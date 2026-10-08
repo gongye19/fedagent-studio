@@ -104,11 +104,13 @@ export function Meta({ parts }: { parts: readonly ReactNode[] }) {
  * 还没上线的命令（规划中的 API、未发布的客户端）传 copyable={false}，只给人看，不让复制。
  */
 export function CodeBlock({
-  code, copyText, copyLabel = "复制", wrap = false, copyable = true,
+  code, copyText, copyLabel = "复制", title, actions, wrap = false, copyable = true,
 }: {
   code: string;
   copyText?: string;
   copyLabel?: string;
+  title?: string;
+  actions?: ReactNode;
   wrap?: boolean;
   copyable?: boolean;
 }) {
@@ -147,11 +149,15 @@ export function CodeBlock({
   }
   return (
     <div className="code">
-      {copyable ? (
+      {copyable || title || actions ? (
         <div className="code-bar">
-          <button type="button" className="button button--secondary button--compact" onClick={copy}>
-            {copied ? <><Icon name="check" />已复制</> : <><Icon name="copy" />{copyLabel}</>}
-          </button>
+          {title ? <strong className="code-title">{title}</strong> : null}
+          <div className="code-actions">
+            {actions}
+            {copyable ? <button type="button" className="button button--secondary button--compact" aria-label={title ? `${copied ? "已复制" : copyLabel}：${title}` : undefined} onClick={copy}>
+              {copied ? <><Icon name="check" />已复制</> : <><Icon name="copy" />{copyLabel}</>}
+            </button> : null}
+          </div>
         </div>
       ) : null}
       <pre className={`code-block${wrap ? " code-block--wrap" : ""}`} translate="no">{code}</pre>

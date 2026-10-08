@@ -8,7 +8,7 @@ import { showFlash } from "../state/flash";
 import { hrefOf, navigate } from "../state/route";
 import { keys } from "../state/server";
 import { datasetsOf, type State } from "../state/store";
-import { CodeBlock, Confirm, Facts, Notice, PageHead, PanelEmpty, SearchInput, Tag } from "./common";
+import { CodeBlock, Collapsible, Confirm, Facts, Notice, PageHead, PanelEmpty, SearchInput, Tag } from "./common";
 import { Panel } from "./console";
 import { TaskTypeSelect, type TaskTypeFilter } from "./filters";
 import { formatNumber } from "./format";
@@ -22,7 +22,7 @@ type Row = { participant: Participant; dataset: Dataset };
 
 /**
  * 参与方与数据：和联邦任务、应用一样按场景分块（横向、纵向、迁移），每块一张表，只写参与方和数据：
- * 一行是一个参与方在这个场景下登记的一份数据集，列为参与方、数据集、任务类型、样本数。
+ * 一行是一个参与方在这个场景下登记的一份数据集，列为参与方、数据集、任务类型、状态、样本数。
  * 任务类型是第二层分类：表格里单独一列，上方可以按任务类型筛选。参加了哪些任务属于联邦任务，不在这里显示。
  * 参与方本身不绑定场景：它在几个场景下有数据集，就出现在几块里。
  */
@@ -43,7 +43,7 @@ export default function ParticipantsPage({ state, selectedId }: Props) {
     <>
       <PageHead
         title="参与方与数据"
-        meta="每一行是一个参与方在这个场景下登记的一份数据集。"
+        meta="管理参与方及其数据集。"
         actions={(
           <>
             <a className="button button--secondary" href={hrefOf({ page: "newDataset" })}><Icon name="plus" />新增数据集</a>
@@ -94,7 +94,7 @@ export default function ParticipantsPage({ state, selectedId }: Props) {
 }
 
 /**
- * 一个场景下的全部数据集：参与方、数据集、任务类型、样本数。还不能用的参与方（等待连接、离线）在名字旁标出来。
+ * 一个场景下的全部数据集：参与方、数据集、任务类型、状态、样本数；名称和机构分行，状态独立。
  * 点开一行看运行位置、这份数据集的详情和操作；手机上每行变成一张卡片，字段名写在值上面。
  */
 function DataTable({
@@ -108,13 +108,14 @@ function DataTable({
   return (
     <div className="table-shell">
       {/* 列宽固定（宽屏），展开详情时列不会跳动 */}
-      <table className="table table--rows table--fixed table--stack">
+      <table className="table table--rows table--fixed table--stack table--participants">
         <thead>
           <tr>
-            <th scope="col" style={{ width: "34%" }}>参与方</th>
-            <th scope="col" style={{ width: "30%" }}>数据集</th>
-            <th scope="col" style={{ width: "20%" }}>任务类型</th>
-            <th scope="col" className="numeric" style={{ width: "16%" }}>样本数</th>
+            <th scope="col" style={{ width: "28%" }}>参与方</th>
+            <th scope="col" style={{ width: "28%" }}>数据集</th>
+            <th scope="col" style={{ width: "16%" }}>任务类型</th>
+            <th scope="col" style={{ width: "16%" }}>状态</th>
+            <th scope="col" className="numeric" style={{ width: "12%" }}>样本数</th>
           </tr>
         </thead>
         <tbody>
@@ -133,12 +134,11 @@ function DataTable({
                   }}
                 >
                   <th scope="row">
-                    <button type="button" className="row-button" aria-expanded={open} onClick={toggle}>
+                    <button type="button" className="row-button" aria-expanded={open} aria-label={`${open ? "收起" : "查看"}${participant.name}的${dataset.name}`} onClick={toggle}>
                       <Icon name="chevron" />
-                      <span className="cell-title">
-                        {participant.name}
+                      <span className="participant-identity">
+                        <span>{participant.name}</span>
                         {participant.org ? <span className="cell-note">{participant.org}</span> : null}
-                        {participant.status === "online" ? null : <Tag tone="warning">{PARTICIPANT_STATUS[participant.status]}</Tag>}
                       </span>
                     </button>
                   </th>
@@ -147,12 +147,13 @@ function DataTable({
                     {dataset.description && dataset.description !== dataset.name ? <small>{dataset.description}</small> : null}
                   </td>
                   <td data-label="任务类型">{TASK_TYPES[dataset.taskType].label}</td>
+                  <td data-label="状态">{participant.status === "online" ? <span className="status-text">在线</span> : <Tag tone="warning">{PARTICIPANT_STATUS[participant.status]}</Tag>}</td>
                   <td className="numeric" data-label="样本数">{dataset.ready ? formatNumber(dataset.count) : pendingNote(dataset)}</td>
                 </tr>
                 {open ? (
                   <tr className="detail-row">
-                    <td colSpan={4}>
-                      <RowDetail state={state} participant={participant} dataset={dataset} scenario={scenario} />
+                    <td colSpan={5}>
+                      <RowDetail key={dataset.id} state={state} participant={participant} dataset={dataset} scenario={scenario} />
                     </td>
                   </tr>
                 ) : null}
@@ -172,7 +173,7 @@ function sourceText(dataset: Dataset): string {
 }
 
 /**
- * 展开后：这份数据集的来源、标注和样本示例，参与方的简介和本地连接步骤，以及操作。
+ * 展开后先分区展示数据集和参与方概况，样本与本地连接步骤按需展开。
  * 自己登记的数据集可以删，但参与方至少留一份：只有一份时不能单独删，要删就删除参与方。
  */
 function RowDetail({
@@ -196,25 +197,28 @@ function RowDetail({
 
   return (
     <div className="participant-detail">
-      <Facts className="facts--columns" items={[
-        ["运行位置", HOSTING_LABELS[participant.hosting]],
-        ["状态", PARTICIPANT_STATUS[participant.status]],
-        ["来源", sourceText(dataset)],
-        ["标注", !dataset.ready
-          ? (dataset.source === "local" ? "连上客户端后上报" : "导入样本后统计")
-          : dataset.answered === dataset.count
-            ? `${formatNumber(dataset.count)} 条都有标注`
-            : `${formatNumber(dataset.count)} 条中 ${formatNumber(dataset.answered)} 条有标注`],
-      ]} />
-      {dataset.sample ? (
-        <div className="sample-question">
-          <span>样本示例</span>
-          <p lang="en">{dataset.sample.question}</p>
-          {dataset.sample.answer ? <p className="sample-answer" lang="en">标注：{dataset.sample.answer}</p> : null}
-        </div>
-      ) : null}
-      {participant.intro ? <p className="detail-lede">{participant.intro}</p> : null}
-      {participant.hosting === "local" ? <LocalConnect participantId={participant.id} datasetIds={datasetsOf(state, participant.id).map((item) => item.id)} /> : null}
+      <div className="participant-detail-grid">
+        <section className="participant-section" aria-label="数据集信息">
+          <h3>数据集信息</h3>
+          <Facts items={[
+            ["来源", sourceText(dataset)],
+            ["已标注", dataset.ready ? `${formatNumber(dataset.answered)} / ${formatNumber(dataset.count)} 条` : dataset.source === "local" ? "待客户端上报" : "待导入"],
+          ]} />
+          {dataset.sample ? (
+            <Collapsible title="样本预览" className="sample-preview">
+              <div className="sample-question">
+                <p lang="en">{dataset.sample.question}</p>
+                {dataset.sample.answer ? <p className="sample-answer" lang="en">标注：{dataset.sample.answer}</p> : null}
+              </div>
+            </Collapsible>
+          ) : null}
+        </section>
+        <section className="participant-section" aria-label="参与方信息">
+          <h3>参与方信息</h3>
+          <Facts items={[["运行位置", HOSTING_LABELS[participant.hosting]]]} />
+          {participant.intro ? <p className="detail-lede">{participant.intro}</p> : null}
+        </section>
+      </div>
       {pending === "dataset" ? (
         <Confirm title={`删除数据集“${dataset.name}”？`} confirmLabel="删除" onConfirm={() => remove("dataset")} onCancel={() => setPending(null)}>
           删除后不能再选入新任务；已有任务里的记录不受影响。
@@ -225,10 +229,13 @@ function RowDetail({
         </Confirm>
       ) : null}
       <div className="detail-actions">
-          <a className="button button--secondary button--compact" href={hrefOf({ page: "newDataset", participant: participant.id })}><Icon name="plus" />为这个参与方新增数据集</a>
+        <a className="button button--secondary button--compact" href={hrefOf({ page: "newDataset", participant: participant.id })}><Icon name="plus" />新增数据集</a>
+        <div className="detail-actions-destructive">
           {removable ? <button type="button" className="button button--secondary button--compact button--danger" onClick={() => setPending("dataset")}>删除数据集</button> : null}
           {participant.builtin ? null : <button type="button" className="button button--secondary button--compact button--danger" onClick={() => setPending("participant")}>删除参与方</button>}
+        </div>
       </div>
+      {participant.hosting === "local" ? <LocalConnect participantId={participant.id} datasetIds={datasetsOf(state, participant.id).map((item) => item.id)} /> : null}
     </div>
   );
 }
@@ -248,7 +255,7 @@ function LocalConnect({ participantId, datasetIds }: { participantId: string; da
   const packages = meta.data?.clientPackages ?? [];
   const install = packages.length
     ? `pip install \\\n${packages.map((name) => `  ${origin}/client/${name}`).join(" \\\n")}`
-    : "# 安装包在部署时生成，这里还没有";
+    : "";
 
   async function issue() {
     setIssuing(true);
@@ -263,26 +270,23 @@ function LocalConnect({ participantId, datasetIds }: { participantId: string; da
   }
 
   return (
-    <div className="connect-steps">
-      <h2 className="detail-title">在参与方的环境里连接</h2>
-      <CodeBlock code={`# 需要 Python 3.12 或更高版本
-${install}
-export FEDAGENT_TOKEN=${token ?? "<客户端令牌>"}
-export MODEL_KEY=<本方模型的密钥>
-fedagent-client run --server ${origin} \\
+    <Collapsible title="客户端连接" className="participant-connect">
+      <div className="connect-steps">
+        <p className="connect-requirement">在参与方环境执行，需要 Python 3.12 或更高版本。</p>
+        {meta.isPending ? <p role="status">正在读取安装包…</p> : meta.isError ? (
+          <Notice tone="warning" action={<button type="button" className="link-button" onClick={() => void meta.refetch()}>重试</button>}>无法读取客户端安装包</Notice>
+        ) : install ? <CodeBlock title="1. 安装客户端" code={install} /> : <Notice tone="warning">服务器尚未发布客户端安装包</Notice>}
+        <div className="connect-environment">
+          <CodeBlock title="2. 设置环境变量" actions={token ? <Tag tone="warning">仅显示一次</Tag> : <button type="button" className="button button--secondary button--compact" disabled={issuing} onClick={() => void issue()}>{issuing ? "正在签发…" : "签发客户端令牌"}</button>} code={`export FEDAGENT_TOKEN="${token ?? "<客户端令牌>"}"
+export MODEL_KEY="<本方模型的密钥>"`} />
+          {problem ? <Notice tone="warning" onDismiss={() => setProblem(null)}>{problem}</Notice> : null}
+        </div>
+        <CodeBlock title="3. 运行连接" code={`fedagent-client run --server ${origin} \\
 ${datasets}
-  --model-base-url https://<本方模型的地址>/v1 --model <模型名> \\
+  --model-base-url "https://<本方模型的地址>/v1" --model "<模型名>" \\
   --api-key-env MODEL_KEY --review`} />
-      {token ? (
-        <p className="connect-foot"><Tag tone="warning">只显示这一次</Tag><span>令牌已经填进上面的命令，复制保存好；丢了可以重新签发。</span></p>
-      ) : (
-        <p className="connect-foot">
-          <button type="button" className="button button--secondary button--compact" disabled={issuing} onClick={() => void issue()}>签发客户端令牌</button>
-          {/* 说明包成一个整体：窄屏时整句换到按钮下面，不在中间断开 */}
-          <span>加 <code>--review</code> 可以在上传前逐条确认；连上之前不能加入任务。</span>
-        </p>
-      )}
-      {problem ? <Notice tone="warning" onDismiss={() => setProblem(null)}>{problem}</Notice> : null}
-    </div>
+        <p className="connect-foot"><code>--review</code> 会在上传前逐条确认。</p>
+      </div>
+    </Collapsible>
   );
 }

@@ -778,11 +778,27 @@ a.algo-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .comparison-input p { margin-top: var(--space-2); color: var(--secondary); white-space: pre-wrap; overflow-wrap: anywhere; }
 .code-block { font-size: var(--text-xs); white-space: pre; }
 .code { min-width: 0; display: grid; gap: var(--space-2); }
-.code-bar { display: flex; justify-content: flex-end; }
+.code-bar { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; justify-content: space-between; }
+.code-title { font-size: var(--text-sm); font-weight: var(--weight-medium); }
+.code-actions { margin-left: auto; display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
 .code-block--wrap { white-space: pre-wrap; overflow-wrap: anywhere; }
 
 /* ——— 参与方与数据 ——— */
-.participant-detail { display: grid; gap: var(--space-4); max-width: 760px; font-size: var(--text-sm); }
+.participant-identity { min-width: 0; display: grid; gap: 2px; }
+.participant-identity .cell-note { font-size: var(--text-xs); font-weight: var(--weight-regular); }
+.table--participants .detail-row > td { padding: 0 var(--space-4) var(--space-4); background: var(--surface); }
+.table--participants .row--open > * { background: var(--surface); }
+.participant-detail { display: grid; gap: var(--space-3); min-width: 0; font-size: var(--text-sm); }
+.participant-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+.participant-section { min-width: 0; padding: var(--space-4); display: grid; align-content: start; gap: var(--space-3); background: var(--background); border: 1px solid var(--border); border-radius: var(--radius); }
+.participant-section h3 { font-size: var(--text-sm); }
+.participant-section .facts > div { grid-template-columns: 72px minmax(0, 1fr); gap: var(--space-3); }
+.participant-section .facts dd { white-space: normal; }
+.participant-section .sample-preview { border: 0; border-top: 1px solid var(--border); border-radius: 0; }
+.participant-section .sample-preview > summary { padding: var(--space-3) 0 0; }
+.participant-section .sample-preview .module-title strong { font-size: var(--text-sm); font-weight: var(--weight-medium); }
+.participant-section .sample-preview .module-body { padding: var(--space-3) 0 0; border: 0; }
+.participant-section .sample-preview > summary:hover { background: transparent; }
 .detail-lede { max-width: var(--measure); color: var(--secondary); }
 .detail-lede code { color: var(--foreground); white-space: nowrap; }
 .sample-question { padding: var(--space-3) var(--space-4); display: grid; gap: 4px; background: var(--surface); border-radius: var(--radius-sm); }
@@ -790,9 +806,22 @@ a.algo-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .sample-question p { font-family: var(--mono); font-size: var(--text-xs); font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; overflow-wrap: anywhere; }
 .sample-answer { color: var(--secondary); }
 .detail-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
-.connect-steps { display: grid; gap: var(--space-2); }
+.detail-actions-destructive { margin-left: auto; display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.participant-connect .module-title strong { font-size: var(--text-sm); }
+.connect-steps { min-width: 0; display: grid; gap: var(--space-5); }
+.connect-environment { min-width: 0; display: grid; gap: var(--space-2); }
+.connect-requirement { color: var(--secondary); }
 .detail-title { font-size: var(--text-sm); }
 .connect-foot { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; color: var(--secondary); font-size: var(--text-sm); }
+@media (max-width: 600px) {
+  .participant-detail-grid { grid-template-columns: minmax(0, 1fr); }
+  .table--participants .detail-row > td { padding: 0 !important; }
+  .table--participants .participant-detail .detail-actions .button { width: auto; }
+  .detail-actions-destructive { margin-left: 0; }
+  .participant-connect .module-body { padding: var(--space-3); }
+  .participant-connect .code-bar { align-items: start; }
+  .participant-connect .code-actions { justify-content: flex-end; }
+}
 .upload-zone { position: relative; padding: var(--space-5); display: grid; gap: 6px; justify-items: center; text-align: center; background: var(--surface); border: 1px dashed var(--border-strong); border-radius: var(--radius); cursor: pointer; transition: border-color .15s ease, background-color .15s ease; }
 .upload-zone:hover { border-color: var(--border-hover); background: var(--surface-hover); }
 .upload-zone:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -935,6 +964,7 @@ a.algo-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 
 /* 触屏：点击目标至少 44px */
 @media (pointer: coarse) {
+  .sample-preview > summary { min-height: 44px; align-items: center; }
   .button, .nav-link, .choice, .tab, .menu-button, .skip-link { min-height: 44px; }
   input:not([type="checkbox"], [type="radio"], [type="file"]), select { min-height: 44px; }
   .table select.cell-select { min-height: 44px; margin-block: -10px; }
