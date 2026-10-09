@@ -1,3 +1,4 @@
+import { SelectField } from "./SelectField";
 import { useState } from "react";
 import { SCENARIOS } from "../domain/catalog";
 import { TASK_STATUS, type Task, type TaskStatus } from "../domain/task";
@@ -46,10 +47,10 @@ export default function TasksPage({ state }: { state: State }) {
           onChange={(event) => setQuery(event.target.value)}
         />
         <TaskTypeSelect value={taskType} onChange={setTaskType} />
-        <select name="task-status" aria-label="按状态筛选" value={filter} onChange={(event) => setFilter(event.target.value as Filter)}>
+        <SelectField name="task-status" aria-label="按状态筛选" value={filter} onValueChange={(value) => setFilter(value as Filter)}>
           <option value="all">全部状态</option>
           {(Object.keys(TASK_STATUS) as TaskStatus[]).map((status) => <option key={status} value={status}>{TASK_STATUS[status]}</option>)}
-        </select>
+        </SelectField>
         {filtering ? <button type="button" className="button button--ghost button--compact" onClick={clear}>清除筛选</button> : null}
       </div>
       <div className="panel-stack">

@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type InputHTMLAttributes, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type InputHTMLAttributes, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { hrefOf, type Route } from "../state/route";
 import { ApiError } from "../api/client";
@@ -402,9 +402,28 @@ export function TabLinks<T extends string>({
   routeOf: (id: T) => Route;
   label: string;
 }) {
+  const nav = useRef<HTMLElement>(null);
+  const indicator = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const node = nav.current;
+    const bar = indicator.current;
+    if (!node || !bar) return;
+    const update = () => {
+      const selected = node.querySelector<HTMLElement>("[aria-current='page']");
+      if (!selected) return;
+      bar.style.width = `${selected.offsetWidth}px`;
+      bar.style.transform = `translateX(${selected.offsetLeft}px)`;
+      bar.style.opacity = "1";
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    node.querySelectorAll(".tab").forEach((tab) => observer.observe(tab));
+    return () => observer.disconnect();
+  }, [active]);
   return (
     <div className="tab-bar">
-      <nav className="tabs" aria-label={label}>
+      <nav className="tabs" aria-label={label} ref={nav}>
         {tabs.map((tab) => (
           <a
             key={tab.id}
@@ -415,6 +434,7 @@ export function TabLinks<T extends string>({
             {tab.label}
           </a>
         ))}
+        <span ref={indicator} className="tab-indicator" aria-hidden="true" />
       </nav>
     </div>
   );

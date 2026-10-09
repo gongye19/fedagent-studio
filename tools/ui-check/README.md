@@ -11,6 +11,7 @@
 | `feedback.mjs` | 确认、失败、焦点、长内容和减少动态的浏览器回归（响应夹具，不修改数据库） | `node feedback.mjs`，仅允许本地 BASE；需已有一个任务和应用作只读模板；CDP_OUT 指定证据目录 |
 | `participants.mjs` | 信息分区、折叠、连接命令／复制、加载重试与一次性令牌展示（响应夹具） | `node participants.mjs`，连接本地内置示例；不签发真实令牌或调用模型；CDP_OUT 指定证据目录 |
 | `motion.mjs` | 页面／标签动效、快速切换、草稿和编辑状态保留、折叠中间帧、减少动态与焦点 | `node motion.mjs`；只读现有任务／应用，拦截全部写请求；支持线上 BASE，本地另用前端通知夹具检查 Toast |
+| `select.mjs` | 选择菜单、键盘／焦点、筛选、占位／禁用／空值、长菜单与表格事件及标签指示条 | `node select.mjs`；本地响应夹具；线上 `SELECT_FIXTURES=0`，禁止业务写入与模型调用 |
 | `docshots.json` | 文档里的 14 张截图（`docs/screenshots/`） | `CDP_OUT=../../docs/screenshots node cdp.mjs docshots.json` |
 
 环境变量：

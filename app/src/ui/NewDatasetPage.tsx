@@ -1,3 +1,4 @@
+import { SelectField } from "./SelectField";
 import { useState, type Dispatch } from "react";
 import { ApiError } from "../api/client";
 import { canPickInto } from "../domain/config";
@@ -62,12 +63,12 @@ export default function NewDatasetPage({ state, dispatch, participant, from }: P
           <div className="form-body">
             <FieldGroup>
               <Field label="参与方" htmlFor="dataset-owner">
-                <select
+                <SelectField
                   id="dataset-owner"
                   name="dataset-owner"
                   value={ownerId}
-                  onChange={(event) => {
-                    setOwnerId(event.target.value);
+                  onValueChange={(value) => {
+                    setOwnerId(value);
                     // 换了参与方，运行位置可能不同，要填的内容也不同，从头再选。
                     setForm(EMPTY_DATASET_FORM);
                   }}
@@ -76,7 +77,7 @@ export default function NewDatasetPage({ state, dispatch, participant, from }: P
                   {state.participants.map((item) => (
                     <option key={item.id} value={item.id}>{item.hosting === "local" ? `${item.name}（${HOSTING_LABELS.local}）` : item.name}</option>
                   ))}
-                </select>
+                </SelectField>
               </Field>
               {owner ? <DatasetFields key={owner.id} form={form} hosting={owner.hosting} onChange={setForm} /> : null}
             </FieldGroup>

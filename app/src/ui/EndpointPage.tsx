@@ -1,3 +1,4 @@
+import { SelectField } from "./SelectField";
 import { useQuery } from "@tanstack/react-query";
 import { useId, useState } from "react";
 import { api, ApiError } from "../api/client";
@@ -157,11 +158,11 @@ function EndpointForm({ state, endpoint, from }: { state: State; endpoint?: Endp
               {/* 从接口提供的模型里选；接口不提供模型列表时直接填 */}
               <Field label="模型" htmlFor="endpoint-model" error={listError && !choices.length ? `${listError}，可以直接填模型名` : undefined}>
                 {choices.length ? (
-                  <select id="endpoint-model" name="endpoint-model" value={model} onChange={(event) => setModel(event.target.value)}>
+                  <SelectField id="endpoint-model" name="endpoint-model" value={model} onValueChange={(value) => setModel(value)}>
                     {model ? null : <option value="">选择模型</option>}
                     {model && !choices.includes(model) ? <option value={model}>{model}（不在接口的模型列表里）</option> : null}
                     {choices.map((choice) => <option key={choice} value={choice}>{choice}</option>)}
-                  </select>
+                  </SelectField>
                 ) : (
                   <input
                     id="endpoint-model"

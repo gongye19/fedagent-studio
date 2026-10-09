@@ -2,7 +2,7 @@
 // BASE 仅允许本地开发；需要一个任务和一个应用作为模板。输出明确标记 fixtureOnly。
 import assert from 'node:assert/strict';
 import {mkdirSync,writeFileSync} from 'node:fs';
-import {launch,viewport,evaluate,sleep,NEW_TASK_ALL} from './lib.mjs';
+import {launch,viewport,evaluate,sleep,NEW_TASK_ALL,SELECT} from './lib.mjs';
 const base=process.env.BASE??'http://127.0.0.1:8880/';
 assert.ok(['127.0.0.1','localhost'].includes(new URL(base).hostname),'Local development only');
 const [tasks,apps,participants,datasets,endpoints]=await Promise.all(['tasks','apps','participants','datasets','endpoints'].map(async p=>(await fetch(base+'v1/'+p)).json()));
@@ -38,7 +38,7 @@ try{
  const qe={...endpoints[0],id:'qa-endpoint',name:'验证接口',builtin:false,models:['qa-model']};
  await load('#/models/'+qe.id+'/edit',{endpoints:[...endpoints,qe]});await click('删除接口');await shot('endpoint-modal');await click('删除');await until("Boolean(document.querySelector('.confirm-error'))");check('接口失败保留确认和原表单',await evaluate(send,"Boolean(document.querySelector('dialog[open] .confirm-error'))&&Boolean(document.getElementById('endpoint-name'))"));
  await load('#/tasks/new/horizontal');await evaluate(send,NEW_TASK_ALL);await click('正式运行');
- await evaluate(send,"(()=>{for(const id of ['client-model','server-model']){const s=document.getElementById(id);s.value=[...s.options].find(x=>x.textContent.includes('假模型')).value;s.dispatchEvent(new Event('change',{bubbles:true}));}})()");
+ for(const name of ['client-model','server-model']) await evaluate(send,SELECT(name,'fake:fake'));
  await until("Boolean(document.querySelector('.summary-start:not(:disabled)'))");
  for(const width of [1280,390]){await viewport(send,{width,height:width===390?844:900,mobile:width===390});await click('创建并正式运行');check('正式运行只渲染一个模态 '+width,await evaluate(send,"document.querySelectorAll('dialog').length===1&&document.querySelector('dialog').textContent.includes('参与方')"));await shot('full-modal-'+width);await click('确认开始');await until("Boolean(document.querySelector('.confirm-error'))");check('正式运行创建失败保持配置和确认 '+width,await evaluate(send,"Boolean(document.querySelector('dialog[open] .confirm-error'))&&Boolean(document.querySelector('#participants input:checked'))"));await evaluate(send,"document.querySelector('.dialog-close').click()");await sleep(150);}
  await load('#/tasks');

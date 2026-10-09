@@ -1,3 +1,4 @@
+import { SelectField } from "../SelectField";
 import { useEffect, useRef, useState } from "react";
 import { ApiError } from "../../api/client";
 import { outputs, type Task } from "../../domain/task";
@@ -59,9 +60,9 @@ export function OutputTab({ task, state }: { task: Task; state: State }) {
       actions={(
         <>
           {versions.length > 1 ? (
-            <select name="version" aria-label="版本" disabled={saving} value={current.builtAfterRound} onChange={(event) => { setChosen(Number(event.target.value)); setNaming(null); }}>
+            <SelectField name="version" aria-label="版本" disabled={saving} value={current.builtAfterRound} onValueChange={(value) => { setChosen(Number(value)); setNaming(null); }}>
               {versions.map((version) => <option key={version.builtAfterRound} value={version.builtAfterRound}>{versionLabel(task, version)}</option>)}
-            </select>
+            </SelectField>
           ) : null}
           {published ? (
             <>

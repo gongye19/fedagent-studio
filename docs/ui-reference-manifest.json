@@ -921,5 +921,105 @@
     ],
     "status": "user_confirmed_2026-10-08",
     "base_dir": ".references/mobbin/t63-feedback-home"
+  },
+  "t67_select": {
+    "captured_at": "2026-10-08",
+    "files": [
+      {
+        "screen_id": "6d0577b3-4b12-44bb-a816-39997cc4a080",
+        "position": 1,
+        "file": "linear-01.webp",
+        "source": "https://mobbin.com/flows/f7e892c1-7f23-4267-a950-ed9c4bb904dc",
+        "app": "Linear",
+        "sha256": "b58a9ced191ff0eb762c5cbd690b8d308ce59eb6ff2710b8eea03c941cbf0568",
+        "bytes": 133738
+      },
+      {
+        "screen_id": "d1d26f7d-e1e5-490f-ab4f-c96dd12854c1",
+        "position": 2,
+        "file": "linear-02.webp",
+        "source": "https://mobbin.com/flows/f7e892c1-7f23-4267-a950-ed9c4bb904dc",
+        "app": "Linear",
+        "sha256": "facbe8bf13d8c38b21af1822b4f58f45d7f9f23a2e9232e74aa300339677b94a",
+        "bytes": 139558
+      },
+      {
+        "screen_id": "c15e23d9-67b4-4a87-af34-117ae648c266",
+        "position": 3,
+        "file": "linear-03.webp",
+        "source": "https://mobbin.com/flows/f7e892c1-7f23-4267-a950-ed9c4bb904dc",
+        "app": "Linear",
+        "sha256": "efcf157b1e2ab3d06cfd3bc367d74eea94b5ae62684c40bae99c45b4012ef16a",
+        "bytes": 67642
+      },
+      {
+        "screen_id": "9dab540b-f7d4-47d4-be77-5facc75f89fa",
+        "position": 4,
+        "file": "linear-04.webp",
+        "source": "https://mobbin.com/flows/f7e892c1-7f23-4267-a950-ed9c4bb904dc",
+        "app": "Linear",
+        "sha256": "001a9541faf112371f3d22f54850b9671e72b9e8b8053c10ee2320cd5a13dae0",
+        "bytes": 66934
+      },
+      {
+        "screen_id": "90b0ca17-b70a-425c-b28b-ce934231b2b9",
+        "position": 5,
+        "file": "linear-05.webp",
+        "source": "https://mobbin.com/flows/f7e892c1-7f23-4267-a950-ed9c4bb904dc",
+        "app": "Linear",
+        "sha256": "c2c61f91c4f513bffb65e0134625c4ebd15b03ebf84c292d34426da4ab8e721f",
+        "bytes": 63498
+      },
+      {
+        "screen_id": "d3ab0127-662f-4764-9c84-511cd7345e27",
+        "position": 6,
+        "file": "linear-06.webp",
+        "source": "https://mobbin.com/flows/f7e892c1-7f23-4267-a950-ed9c4bb904dc",
+        "app": "Linear",
+        "sha256": "aa00926849867e1f7796b33aecc308ac20a2f8ffb86253af190b22ae2e7990a0",
+        "bytes": 61674
+      },
+      {
+        "id": "3fb4cfb8-3cbf-4f3a-8089-8e67db76cb67",
+        "mobbin_url": "https://mobbin.com/screens/3fb4cfb8-3cbf-4f3a-8089-8e67db76cb67",
+        "app_name": "Gumloop",
+        "platform": "web",
+        "file": "gumloop-screen.webp",
+        "source": "https://mobbin.com/screens/3fb4cfb8-3cbf-4f3a-8089-8e67db76cb67",
+        "app": "Gumloop",
+        "sha256": "ec950a676cfa9652bed6026ea1e8409284f3f7b5143ddcebcb54547e8fa121ac",
+        "bytes": 96276
+      },
+      {
+        "id": "e95be796-6e6b-4ed1-9a3a-aaa291203b70",
+        "mobbin_url": "https://mobbin.com/screens/e95be796-6e6b-4ed1-9a3a-aaa291203b70",
+        "app_name": "Unify",
+        "platform": "web",
+        "file": "unify-screen.webp",
+        "source": "https://mobbin.com/screens/e95be796-6e6b-4ed1-9a3a-aaa291203b70",
+        "app": "Unify",
+        "sha256": "41a0d31c036dcc11da98454f104324ed874f330c4ebc9ed8f84fb0e87b06492e",
+        "bytes": 53618
+      },
+      {
+        "id": "b3e74860-e1a1-471f-9180-ecd6f12b530a",
+        "mobbin_url": "https://mobbin.com/screens/b3e74860-e1a1-471f-9180-ecd6f12b530a",
+        "app_name": "Browserbase",
+        "platform": "web",
+        "file": "browserbase-screen.webp",
+        "source": "https://mobbin.com/screens/b3e74860-e1a1-471f-9180-ecd6f12b530a",
+        "app": "Browserbase",
+        "sha256": "80478d4cd1c5d7d78ede7ae605dbaad78b93806eecb77e5fd40daa7707228b8d",
+        "bytes": 60134
+      }
+    ],
+    "base_dir": ".references/mobbin/t67-select",
+    "approved_at": "2026-10-09 Asia/Hong_Kong",
+    "status": "user_confirmed",
+    "approved_references": [
+      "https://mobbin.com/screens/3fb4cfb8-3cbf-4f3a-8089-8e67db76cb67",
+      "https://mobbin.com/flows/f7e892c1-7f23-4267-a950-ed9c4bb904dc"
+    ],
+    "note": "检索候选均实际查看；Gumloop 为菜单视觉主参考，Linear 为选择与筛选反馈主参考。Unify、Browserbase 未作为设计依据；静态帧不证明动画。"
   }
 }

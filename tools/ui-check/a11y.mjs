@@ -15,7 +15,7 @@ const CHECK = `(() => {
   document.querySelectorAll('h1,h2,h3,h4').forEach((h) => { if (visible(h)) out.headings.push(h.tagName + ':' + h.textContent.trim().slice(0, 24)); });
   const nameOf = (el) => (el.getAttribute('aria-label') || (el.getAttribute('aria-labelledby') && document.getElementById(el.getAttribute('aria-labelledby'))?.textContent) || el.textContent || el.getAttribute('title') || '').trim();
   document.querySelectorAll('button, a[href], summary, [role=button], [role=radio], [role=tab]').forEach((el) => { if (visible(el) && !nameOf(el)) out.unnamed.push(el.outerHTML.slice(0, 90)); });
-  document.querySelectorAll('input, select, textarea').forEach((el) => {
+  document.querySelectorAll('input, select, textarea, [role=combobox]').forEach((el) => {
     if (el.type === 'hidden') return;
     const labelled = el.closest('label') || (el.id && document.querySelector('label[for="' + el.id + '"]')) || el.getAttribute('aria-label') || el.getAttribute('aria-labelledby');
     if (!labelled) out.unlabeled.push(el.outerHTML.slice(0, 90));

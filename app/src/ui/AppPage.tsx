@@ -1,3 +1,4 @@
+import { SelectField } from "./SelectField";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "../api/client";
@@ -186,9 +187,9 @@ function TryPanel({ item, state }: { item: Published; state: State }) {
             </Field>
             {options.length > 1 ? (
               <Field label="模型" htmlFor="try-model">
-                <select id="try-model" name="model" disabled={running} value={model} onChange={(event) => setModel(event.target.value)}>
+                <SelectField id="try-model" name="model" disabled={running} value={model} onValueChange={(value) => setModel(value)}>
                   {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
-                </select>
+                </SelectField>
               </Field>
             ) : (
               <Field label="模型">

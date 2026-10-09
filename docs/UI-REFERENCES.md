@@ -182,3 +182,31 @@ Browserbase 全屏彩色纹理过强，Recraft 是营销首页，Unify 的主体
 | 减少动态／旧浏览器 | 减少动态立即呈现最终状态；不支持高度插值时原生直接开合 | 核心交互仍可用 |
 
 原生折叠增强依据：[MDN details-content](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Selectors/::details-content)、[MDN interpolate-size](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/interpolate-size)。只作为技术兼容资料，不声称 Mobbin 静态帧证明了这些动画。
+
+
+## T67：统一选择菜单与增强切换反馈
+
+用户看到真实预览后回复“好的 开始改吧”（2026-10-09），确认以下参考；不增加参考产品的业务功能。当前会话的直接 MCP 返回认证错误，通过本机已授权的 Mobbin app-server 连接实际完成标准 Flow／Screen 检索，原图与 SHA256 保存在 `.references/mobbin/t67-select/`，来源记录在 `ui-reference-manifest.json`。
+
+- [Gumloop 任务筛选菜单](https://mobbin.com/screens/3fb4cfb8-3cbf-4f3a-8089-8e67db76cb67)：借鉴弹层与控件的对齐、紧凑行距、浅色高亮与右侧勾选；状态／任务类型／模型／数据集沿用同一套。原图中搜索与额外筛选字段不引入本项目。
+- [Linear Filtering issues Flow](https://mobbin.com/flows/f7e892c1-7f23-4267-a950-ed9c4bb904dc)：六帧实际查看，关键第 2／3 帧依次为展开状态选项、选择后更新列表，第 6 帧为无结果；借鉴即时选中反馈和现有清除筛选，保留平台简单单选，不增加嵌套筛选或保存视图。
+- 技术依据：[shadcn/ui Select](https://ui.shadcn.com/docs/components/radix/select) 的实际展开示例及 [Radix Select](https://www.radix-ui.com/primitives/docs/components/select)。Radix 2.3.8 支持当前 React 19，MIT；直接复用交互原语并沿用本项目 CSS，不迁移 Tailwind 或 Next.js。静态 Mobbin 帧不作为动画时长证据。
+
+**核心流程**：点击／键盘打开选择 → 查看当前项和可选项 → 选择后立即写入现有页面状态 → 列表／表单／摘要按原规则更新 → 关闭并回到触发器。Esc、外部点击取消选择；导航与标签立即切换，无额外等待。
+
+**布局规则**：触发器沿用字段高度和两栏表单，文字过长截断并提供完整 title；弹层从控件边缘对齐、6px 间距，视口边界自动避让，限高 320px 并支持滚动；选项桌面至少 36px、窄屏至少 44px。单独勾选与当前悬停／键盘焦点分别表达，不使用系统蓝色整行。手机两项筛选平分一行，清除操作换行。菜单开／关 160／120ms；正常页面内容 240ms、0→1 淡入和 8px 位移，固定底栏与通知独立；标签内容同样反馈，底部指示条平滑滑动。减少动态时直接到达最终状态。
+
+| 状态 | 展示与用户操作 | 下一状态 |
+|---|---|---|
+| 未选择／前置缺失 | 占位文字；依赖控件禁用，已有固定配置区保留 | 满足前置条件后启用 |
+| 关闭且已有值 | 显示当前标签，点击、Enter、Space、方向键可打开 | 展开 |
+| 展开 | 当前值勾选，悬停／方向键高亮；长列表滚动，Home／End／输入文字定位 | 选择／取消 |
+| 选择 | 回调原业务状态；空字符串的“不限”与未选择占位分开映射 | 关闭并恢复焦点 |
+| Esc／外部点击 | 关闭，保持原值，恢复触发器焦点 | 可再次打开 |
+| 保存／运行锁定 | 保持已有 disabled 条件，不允许修改模型或版本 | 原业务恢复后启用 |
+| 换页／标签／快速连续点击 | 即时内容更新、滑动指示；取消上一段动画，保留草稿／父级状态 | 完成，不随后台轮询重播 |
+| 减少动态 | 禁止位移和渐变；偏好中途改变也取消动画 | 相同操作与结果 |
+
+**组件映射**：新增共享 SelectField，使用 Radix Root／Trigger／Portal／Content／Viewport／Item／Indicator／ScrollButton；既有 option 仅声明选项数据，不渲染原生可见菜单，回调为字符串值。复用 Icon 与主题变量，任务类型包装器继续复用；列表状态、模型、数据集、版本、算法参数和参与方单独模型全部接入。Radix 处理键盘与焦点、弹层边界；本项目处理空值映射、真实字段值和弹层点击隔离（防止冒泡误切换表格勾选）。TabLinks／useContentMotion 沿用原生能力，不增加动画库。
+
+**验收条件**：桌面 1280／窄屏 390 实际展开与筛选正确；键盘、Esc、外部点击和焦点恢复；前置禁用、不默认选择参与方、有效空值恢复；长菜单尾部可达、文字和弹层不溢出；鼠标选题库不会反向取消参与方；枚举与模型状态接通；标签指示条定位、快速切换、草稿保留和固定底栏正常；生产构建下动画单位正确，减少动态有效。复用现有确认／参与方回归与全站可访问性／九宽度检查，纯 UI 不新增付费模型调用。菜单专门回归 `tools/ui-check/select.mjs`，本地长模型／多题库为响应夹具，线上禁用夹具并阻止业务写入。

@@ -37,12 +37,12 @@ try {
     await open(send, base + '#/');
     await evaluate(send, "window.__page=document.querySelector('.page');void 0");
     await go('#/tasks');
-    check('页面淡入且主内容节点保留 ' + width, await evaluate(send, "__page===document.querySelector('.page')&&__motions.length===1&&__motions[0].frames[0].opacity<1&&__motions[0].timing.duration===180"));
+    check('页面淡入且主内容节点保留 ' + width, await evaluate(send, "__page===document.querySelector('.page')&&__motions.length>0&&__motions.every(m=>m.frames[0].opacity===0&&m.frames[0].transform==='translateY(8px)'&&m.timing.duration===240)"));
     check('页面切换后焦点到主内容 ' + width, await evaluate(send, "document.activeElement.id==='main'"));
     await evaluate(send, "window.__pauseMotion=true;location.hash='#/apps';void 0");
     await sleep(70);
-    await evaluate(send, "location.hash='#/tasks';void 0"); await sleep(70);
-    check('快速切换取消前一次动画 ' + width, await evaluate(send, "__motions.at(-2).animation.playState==='idle'&&__motions.at(-1).animation.playState==='paused'"));
+    await evaluate(send, "window.__prior=__motions.slice();location.hash='#/tasks';void 0"); await sleep(70);
+    check('快速切换取消前一次动画 ' + width, await evaluate(send, "__prior.every(m=>m.animation.playState==='idle')&&__motions.at(-1).animation.playState==='paused'"));
     await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
     await sleep(60); // matchMedia 的 change 事件由浏览器在渲染周期派发。
     check('偏好中途改变会立即取消动画 ' + width, await evaluate(send, "__motions.at(-1).animation.playState==='idle'"));
@@ -58,9 +58,9 @@ try {
     check('普通状态更新不重播导航动画 ' + width, await evaluate(send, "__motions.length===__motionCount"));
     await go('#/tasks/' + ids.task + '/overview');
     await go('#/tasks/' + ids.task + '/config');
-    check('任务标签仅动画内容区 ' + width, await evaluate(send, "__motions.at(-1).element.className==='tab-panel'&&__motions.at(-1).frames[0].transform==='translateY(4px)'"));
+    check('任务标签仅动画内容区 ' + width, await evaluate(send, "__motions.at(-1).element.className==='tab-panel'&&__motions.at(-1).frames[0].transform==='translateY(8px)'"));
     await go('#/tasks/' + ids.task + '/progress');
-    // 延长测试中的 CSS 时长，可靠采样开、关中间帧；产品默认仍为 180ms。
+    // 延长测试中的 CSS 时长，可靠采样开、关中间帧；产品默认为 240ms。
     const disclosure = await evaluate(send, `(async()=>{const d=document.querySelector('.round details');if(!d)return null;d.style.setProperty('--motion-content','1000ms');d.open=true;await new Promise(r=>setTimeout(r,1100));const full=d.getBoundingClientRect().height;window.__steps=d.querySelector('.step-line');d.open=false;await new Promise(r=>setTimeout(r,100));const mid=d.getBoundingClientRect().height;await new Promise(r=>setTimeout(r,1100));const closed=d.getBoundingClientRect().height;d.open=true;await new Promise(r=>setTimeout(r,100));const opening=d.getBoundingClientRect().height;return {full,mid,closed,opening,retained:__steps===d.querySelector('.step-line'),supported:CSS.supports('interpolate-size','allow-keywords')}})()`);
     check('轮次收起保留步骤且双向平滑 ' + width, disclosure && disclosure.retained && (!disclosure.supported || (disclosure.closed < disclosure.mid && disclosure.mid < disclosure.full && disclosure.closed < disclosure.opening && disclosure.opening < disclosure.full)));
     await go('#/apps/' + ids.app + '/content');
@@ -91,9 +91,9 @@ try {
     await evaluate(send, "document.querySelector('.dialog-close').click();void 0");
     await go('#/');
     if (width === 390) { await evaluate(send, "document.querySelector('.menu-button').click();void 0"); await sleep(180); }
-    await evaluate(send, "document.querySelector('.nav-parent').click();void 0"); await sleep(250);
+    await evaluate(send, "document.querySelector('.nav-parent').click();void 0"); await sleep(350);
     const expanded = await evaluate(send, "document.querySelector('.nav-sub').getBoundingClientRect().height");
-    await evaluate(send, "document.querySelector('.nav-parent').click();void 0"); await sleep(250);
+    await evaluate(send, "document.querySelector('.nav-parent').click();void 0"); await sleep(350);
     check('导航分组平滑关闭且隐藏链接不可聚焦 ' + width, expanded > 50 && await evaluate(send, "document.querySelector('.nav-sub').getBoundingClientRect().height===0&&document.querySelector('.nav-sub').inert&&getComputedStyle(document.querySelector('.nav-sub')).visibility==='hidden'"));
     check('页面无横向溢出 ' + width, await evaluate(send, 'document.documentElement.scrollWidth<=innerWidth'));
     if (process.env.DEV_FIXTURES !== '0' && ['127.0.0.1', 'localhost'].includes(new URL(base).hostname)) {

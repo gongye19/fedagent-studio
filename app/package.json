@@ -14,6 +14,7 @@
     "api:types": "cd ../server && uv run fedagent openapi > ../app/src/api/openapi.json && cd ../app && npx --yes openapi-typescript@7.13.0 src/api/openapi.json -o src/api/schema.d.ts"
   },
   "dependencies": {
+    "@radix-ui/react-select": "^2.3.8",
     "@tanstack/react-query": "^5.104.1",
     "echarts": "^6.1.0",
     "react": "^19.2.8",

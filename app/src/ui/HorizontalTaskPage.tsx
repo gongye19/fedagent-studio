@@ -1,3 +1,4 @@
+import { SelectField } from "./SelectField";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState, type Dispatch, type MouseEvent } from "react";
 import { api, ApiError, type TaskConfigIn } from "../api/client";
@@ -449,17 +450,17 @@ function ParticipantTable({ draft, dispatch, candidates }: { draft: Draft; dispa
                 <th scope="row"><label htmlFor={inputId}>{participant.name}</label></th>
                 <td>
                   {choices.length > 1 ? (
-                    <select
+                    <SelectField
                       className="cell-select"
                       name={`dataset-${participant.id}`}
                       aria-label={`${participant.name} 用的数据集`}
                       value={shown.id}
                       disabled={!enabled}
                       // 选了数据集就是要让这个参与方参加。
-                      onChange={(event) => dispatch({ type: "pickDataset", participantId: participant.id, datasetId: event.target.value })}
+                      onValueChange={(value) => dispatch({ type: "pickDataset", participantId: participant.id, datasetId: value })}
                     >
                       {choices.map((dataset) => <option key={dataset.id} value={dataset.id}>{dataset.name}</option>)}
-                    </select>
+                    </SelectField>
                   ) : shown.name}
                 </td>
                 <td className="numeric col-optional">{shown.ready ? formatNumber(shown.count) : "—"}</td>
@@ -516,7 +517,7 @@ function RunSettings({
         ) : null}
         <Field label="轮次" htmlFor={algorithm ? undefined : "rounds-pending"} labelId="rounds-label" wide info={algorithm ? `第 1 轮各方单独作答，作为本地基线；之后每轮都带上上一轮的${algorithm.output.name}再作答。` : undefined}>
           {algorithm ? <Choices labelledBy="rounds-label" value={draft.rounds} options={rounds.map((value) => ({ value, label: `${value} 轮` }))} onChange={(value) => update({ rounds: value })} /> : (
-            <select id="rounds-pending" disabled value=""><option value="">请先选择算法</option></select>
+            <SelectField id="rounds-pending" disabled value=""><option value="">请先选择算法</option></SelectField>
           )}
         </Field>
         {options.length === 1 ? (
@@ -524,15 +525,15 @@ function RunSettings({
         ) : (
           <>
             <Field label="参与方模型" htmlFor="client-model">
-              <select id="client-model" name="client-model" value={draft.clientModel} onChange={(event) => update({ clientModel: event.target.value })}>
+              <SelectField id="client-model" name="client-model" value={draft.clientModel} onValueChange={(value) => update({ clientModel: value })}>
                 {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
-              </select>
+              </SelectField>
             </Field>
             {!algorithm || serverUsesModel(algorithm) ? (
               <Field label="服务端模型" htmlFor="server-model" info="服务端每轮要读完各方上传的内容，需要长上下文的模型。">
-                <select id="server-model" name="server-model" value={draft.serverModel} onChange={(event) => update({ serverModel: event.target.value })}>
+                <SelectField id="server-model" name="server-model" value={draft.serverModel} onValueChange={(value) => update({ serverModel: value })}>
                   {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
-                </select>
+                </SelectField>
               </Field>
             ) : null}
           </>
@@ -618,17 +619,17 @@ function ParamField({ def, params, onChange }: { def: ParamDef; params: Params; 
   if (def.kind === "select-number") {
     return (
       <Field label={def.label} htmlFor={id} info={def.help}>
-        <select id={id} name={def.key} value={value ?? ""} onChange={(event) => onChange(event.target.value ? Number(event.target.value) : null)}>
+        <SelectField id={id} name={def.key} value={value ?? ""} onValueChange={(value) => onChange(value ? Number(value) : null)}>
           {def.options.map((option) => <option key={String(option.value)} value={option.value ?? ""}>{option.label}</option>)}
-        </select>
+        </SelectField>
       </Field>
     );
   }
   return (
     <Field label={def.label} htmlFor={id} info={def.help}>
-      <select id={id} name={def.key} value={String(value ?? def.default)} onChange={(event) => onChange(event.target.value)}>
+      <SelectField id={id} name={def.key} value={String(value ?? def.default)} onValueChange={(value) => onChange(value)}>
         {def.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
+      </SelectField>
     </Field>
   );
 }
@@ -657,20 +658,20 @@ function ModelOverrides({
           <div className="override-row override-head" aria-hidden="true"><span>参与方</span><span>模型</span><span /></div>
           {entries.map(([participantId, ref]) => (
             <div key={participantId} className="override-row">
-              <select
+              <SelectField
                 aria-label="参与方"
                 value={participantId}
-                onChange={(event) => {
+                onValueChange={(value) => {
                   const next = { ...overrides };
                   delete next[participantId];
-                  set({ ...next, [event.target.value]: ref });
+                  set({ ...next, [value]: ref });
                 }}
               >
                 {[participantId, ...free].map((id) => <option key={id} value={id}>{nameOf(id)}</option>)}
-              </select>
-              <select aria-label={`${nameOf(participantId)} 使用的模型`} value={ref} onChange={(event) => set({ ...overrides, [participantId]: event.target.value })}>
+              </SelectField>
+              <SelectField aria-label={`${nameOf(participantId)} 使用的模型`} value={ref} onValueChange={(value) => set({ ...overrides, [participantId]: value })}>
                 {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
-              </select>
+              </SelectField>
               <button
                 type="button"
                 className="button button--ghost"
