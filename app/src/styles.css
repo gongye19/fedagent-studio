@@ -463,6 +463,9 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 /* 两栏一样高：右栏撑满整行，里面的配置摘要吸顶，滚动时一直看得见 */
 .order-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: var(--space-5); align-items: stretch; }
 .order-main { display: grid; gap: var(--space-4); min-width: 0; }
+/* 任务配置保持适合阅读的宽度，避免宽屏把单个控件无限拉长。 */
+.page:has(.task-config) { width: min(900px, calc(100% - 48px)); }
+.task-config-actions { display: flex; justify-content: flex-end; padding-top: var(--space-2); }
 
 /* ——— 控制台面板 ——— */
 .panel { min-width: 0; background: var(--background); border: 1px solid var(--border); border-radius: var(--radius); }
@@ -906,6 +909,7 @@ a.algo-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 /* ——— 1180px 以下：新建任务的配置摘要移到下方，开始按钮放进吸底操作栏 ———
  * 侧栏和摘要同时占位时，主栏窄于 600px，参与方表格会把中文挤成两行 */
 @media (max-width: 1180px) {
+  .page:has(.task-config) { width: min(600px, calc(100% - 48px)); }
   .order-layout { grid-template-columns: minmax(0, 1fr); gap: var(--space-8); }
   .order-summary > .summary-panel { position: static; }
   .page:has(.order-bar) { padding-bottom: 104px; }
@@ -952,6 +956,7 @@ a.algo-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
   /* 顶栏和页脚占了高度，首页不再上下居中，从上往下排 */
   .home { min-height: 0; align-content: start; padding-bottom: 0; }
   .page { width: calc(100% - 32px); padding-top: var(--space-5); }
+  .page:has(.task-config) { width: min(600px, calc(100% - 32px)); }
   /* 顶栏吸顶，锚点和焦点滚动时留出它的高度 */
   html { scroll-padding-top: 72px; }
   .page-title-row h1 { font-size: var(--text-xl); }

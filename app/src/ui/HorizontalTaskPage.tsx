@@ -38,8 +38,6 @@ import {
   isConfigured,
   modelLabel,
   modelOptions,
-  PARTICIPANT_STATUS,
-  pendingNote,
   type Dataset,
   type Participant,
 } from "../domain/resources";
@@ -106,7 +104,8 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
   const taskType = draft.taskType;
   const candidates: Candidate[] = algorithm && scenarioId && taskType
     ? state.participants.flatMap((participant) => {
-      const datasets = compatibleDatasets(scenarioId, taskType, datasetsOf(state, participant.id));
+      if (participant.status !== "online") return [];
+      const datasets = compatibleDatasets(scenarioId, taskType, datasetsOf(state, participant.id)).filter((dataset) => dataset.ready);
       return datasets.length ? [{ participant, datasets }] : [];
     })
     : [];
@@ -222,11 +221,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
 
   return (
     <>
-      <PageHead title="新建横向联邦任务" crumbs={[{ label: "联邦任务", route: back }]} actions={(
-        <button type="button" className="button button--secondary" disabled={!draft.touched || creating} onClick={() => setPending("restart")}>
-          重置配置
-        </button>
-      )} />
+      <PageHead title="新建横向联邦任务" crumbs={[{ label: "联邦任务", route: back }]} />
       {createError && pending !== "full" ? <Notice tone="warning" onDismiss={() => setCreateError(null)}>没有创建：{createError}</Notice> : null}
       {restored && draft.scenario ? (
         <Notice onDismiss={() => setRestored(null)}>
@@ -266,7 +261,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
             ) : candidates.length ? (
               <ParticipantTable draft={draft} dispatch={dispatch} candidates={candidates} />
             ) : (
-              <PanelEmpty>还没有参与方登记了“{usageText(scenarioId, taskType)}”的数据集。</PanelEmpty>
+              <PanelEmpty>暂无可用于“{usageText(scenarioId, taskType)}”的参与方。</PanelEmpty>
             )}
           </Panel>
 
@@ -275,6 +270,11 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
           </Panel>
 
           <AdvancedPanel state={state} draft={draft} update={update} algorithm={algorithm} joined={joined.map((item) => item.participantId)} />
+          <div className="task-config-actions">
+            <button type="button" className="button button--secondary" disabled={!draft.touched || creating} onClick={() => setPending("restart")}>
+              重置配置
+            </button>
+          </div>
         </div>
 
         <aside className="order-summary" aria-label="配置摘要" id="task-summary">
@@ -380,19 +380,12 @@ type Candidate = { participant: Participant; datasets: Dataset[] };
 
 /**
  * 参与方：带复选框的表格，一行一个参与方，表头可以全选。每个参与方出一份数据集，
- * 名下有几份能用的数据集时在行里选用哪一份。还不能参加的（等待连接、离线、样本还没就绪）写明原因，并能点进去查看。
+ * 只展示在线且有匹配、已就绪数据集的参与方，多份可用数据集在行内选择。
  */
 function ParticipantTable({ draft, dispatch, candidates }: { draft: Draft; dispatch: Dispatch<Action>; candidates: readonly Candidate[] }) {
   const head = useRef<HTMLInputElement>(null);
   const picks = new Map(draft.participants.map((item) => [item.participantId, item.datasetId]));
-  // 能选的数据集：参与方在线、样本已就绪。能参加的排在前面，还不能参加的放在后面。
-  const rows = candidates
-    .map(({ participant, datasets }) => {
-      const ready = participant.status === "online" ? datasets.filter((dataset) => dataset.ready) : [];
-      return { participant, datasets, ready, picked: ready.find((dataset) => dataset.id === picks.get(participant.id)) };
-    })
-    .sort((a, b) => Number(!a.ready.length) - Number(!b.ready.length));
-  const open = rows.filter((row) => row.ready.length);
+  const open = candidates.map(({ participant, datasets }) => ({ participant, ready: datasets, picked: datasets.find((dataset) => dataset.id === picks.get(participant.id)) }));
   const chosen = open.filter((row) => row.picked).length;
   const all = open.length > 0 && chosen === open.length;
   const some = !all && chosen > 0;
@@ -422,20 +415,18 @@ function ParticipantTable({ draft, dispatch, candidates }: { draft: Draft; dispa
             <th scope="col">数据集</th>
             <th scope="col" className="numeric col-optional">样本</th>
             <th scope="col" className="col-optional">运行位置</th>
-            <th scope="col">状态</th>
           </tr>
         </thead>
         <tbody>
-          {rows.map(({ participant, datasets, ready, picked }) => {
-            const enabled = ready.length > 0;
+          {open.map(({ participant, ready, picked }) => {
             const checked = picked !== undefined;
-            const choices = enabled ? ready : datasets;
+            const choices = ready;
             const shown = picked ?? choices[0];
             const toggle = () => dispatch({ type: "pickDataset", participantId: participant.id, datasetId: checked ? null : shown.id });
             const inputId = `pick-${participant.id}`;
             return (
-              <tr key={participant.id} className={`select-row${checked ? " select-row--checked" : ""}${enabled ? "" : " select-row--disabled"}`} onClick={rowToggle(enabled, toggle)}>
-                <td className="select-cell"><input id={inputId} type="checkbox" checked={checked} disabled={!enabled} onChange={toggle} /></td>
+              <tr key={participant.id} className={`select-row${checked ? " select-row--checked" : ""}`} onClick={rowToggle(true, toggle)}>
+                <td className="select-cell"><input id={inputId} type="checkbox" checked={checked} onChange={toggle} /></td>
                 <th scope="row"><label htmlFor={inputId}>{participant.name}</label></th>
                 <td>
                   {choices.length > 1 ? (
@@ -444,7 +435,6 @@ function ParticipantTable({ draft, dispatch, candidates }: { draft: Draft; dispa
                       name={`dataset-${participant.id}`}
                       aria-label={`${participant.name} 用的数据集`}
                       value={shown.id}
-                      disabled={!enabled}
                       // 选了数据集就是要让这个参与方参加。
                       onValueChange={(value) => dispatch({ type: "pickDataset", participantId: participant.id, datasetId: value })}
                     >
@@ -452,17 +442,8 @@ function ParticipantTable({ draft, dispatch, candidates }: { draft: Draft; dispa
                     </SelectField>
                   ) : shown.name}
                 </td>
-                <td className="numeric col-optional">{shown.ready ? formatNumber(shown.count) : "—"}</td>
+                <td className="numeric col-optional">{formatNumber(shown.count)}</td>
                 <td className="col-optional">{HOSTING_LABELS[participant.hosting]}</td>
-                <td>
-                  {enabled ? <span className="status-text">可用</span> : (
-                    <span className="cell-title">
-                      <Tag tone="warning">{participant.status === "online" ? `样本${pendingNote(shown)}` : PARTICIPANT_STATUS[participant.status]}</Tag>
-                      {/* 手机上状态列窄，只留状态，免得"查看"单独折到下一行 */}
-                      <a className="text-link wide-only" href={hrefOf({ page: "participants", scenario: draft.scenario ?? undefined, id: participant.id })}>查看</a>
-                    </span>
-                  )}
-                </td>
               </tr>
             );
           })}
