@@ -160,6 +160,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
     dispatch({ type: "resetDraft" });
     setPending(null);
     setRestored(null);
+    setCreateError(null);
     dispatch({ type: "chooseScenario", scenario: SCENARIO, auto: true });
   }
 
@@ -208,37 +209,39 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
         tone: "danger" as const,
         onConfirm: leave,
       }
-      : null;
+      : pending === "restart"
+        ? {
+          title: "重置这次的配置？",
+          text: "任务名称、已选的任务类型、算法、参与方和设置都会恢复到初始状态。",
+          confirmLabel: "重置",
+          cancelLabel: "继续编辑",
+          tone: "danger" as const,
+          onConfirm: restart,
+        }
+        : null;
 
   return (
     <>
-      <PageHead title="新建横向联邦任务" crumbs={[{ label: "联邦任务", route: back }]} />
-      {createError && !confirm ? <Notice tone="warning" onDismiss={() => setCreateError(null)}>没有创建：{createError}</Notice> : null}
-      {pending === "restart" ? (
-        <Confirm title="清空这次的配置？" confirmLabel="清空" onConfirm={restart} onCancel={() => setPending(null)}>
-          已选的参与方和设置都会恢复默认。
-        </Confirm>
-      ) : restored && draft.scenario ? (
-        <Notice action={<button type="button" className="link-button" onClick={() => setPending("restart")}>清空重填</button>}>
+      <PageHead title="新建横向联邦任务" crumbs={[{ label: "联邦任务", route: back }]} actions={(
+        <button type="button" className="button button--secondary" disabled={!draft.touched || creating} onClick={() => setPending("restart")}>
+          重置配置
+        </button>
+      )} />
+      {createError && pending !== "full" ? <Notice tone="warning" onDismiss={() => setCreateError(null)}>没有创建：{createError}</Notice> : null}
+      {restored && draft.scenario ? (
+        <Notice onDismiss={() => setRestored(null)}>
           {restored.kind === "copy" ? `已带入“${restored.source}”的配置。` : "已恢复上次没填完的配置。"}
         </Notice>
       ) : null}
 
       <div className="order-layout task-config">
         <div className="order-main">
-          <Panel title="基本信息" id="basic" step={1}>
+          <Panel title="任务配置" id="scenario" step={1}>
             <div className="form-body">
               <FieldGroup>
                 <Field label="任务名称" htmlFor="task-name" wide>
                   <input id="task-name" name="task-name" autoComplete="off" value={draft.name ?? autoName} placeholder={autoName} maxLength={60} onChange={(event) => update({ name: event.target.value })} />
                 </Field>
-              </FieldGroup>
-            </div>
-          </Panel>
-
-          <Panel title="任务类型与算法" id="scenario" step={2}>
-            <div className="form-body">
-              <FieldGroup>
                 <TaskTypeChoice scenario={SCENARIO} value={draft.taskType} onChange={(taskType) => dispatch({ type: "chooseTaskType", taskType })} />
                 <AlgorithmField scenario={SCENARIO} taskType={draft.taskType} value={draft.algorithm} onChange={(id) => dispatch({ type: "chooseAlgorithm", algorithm: id })} />
               </FieldGroup>
@@ -248,7 +251,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
           <Panel
             title="参与方"
             id="participants"
-            step={3}
+            step={2}
             extra={algorithm ? `已选 ${joined.length} 个` : "待选择"}
             actions={(
               <>
@@ -267,7 +270,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
             )}
           </Panel>
 
-          <Panel title="运行配置" id="settings" step={4}>
+          <Panel title="运行配置" id="settings" step={3}>
             <RunSettings state={state} draft={draft} update={update} algorithm={algorithm} />
           </Panel>
 
@@ -500,7 +503,7 @@ function RunSettings({
           <UnitInput id="trial-cap" unit="条 / 数据集" name="trial-cap" type="number" inputMode="numeric" autoComplete="off" min={1} max={50} value={draft.mode === "trial" ? draft.trialCap : ""} disabled={draft.mode !== "trial"} placeholder="全部样本" onChange={(event) => update({ trialCap: clampInt(event.target.value, 1, 50, draft.trialCap) })} />
         </Field>
         <Field label="轮次" htmlFor={algorithm ? undefined : "rounds-pending"} labelId="rounds-label" wide info={algorithm ? `第 1 轮各方单独作答，作为本地基线；之后每轮都带上上一轮的${algorithm.output.name}再作答。` : undefined}>
-          {algorithm ? <Choices labelledBy="rounds-label" value={draft.rounds} options={rounds.map((value) => ({ value, label: `${value} 轮` }))} onChange={(value) => update({ rounds: value })} /> : (
+          {algorithm ? <Choices name="rounds" labelledBy="rounds-label" value={draft.rounds} options={rounds.map((value) => ({ value, label: `${value} 轮` }))} onChange={(value) => update({ rounds: value })} /> : (
             <SelectField id="rounds-pending" disabled value=""><option value="">请先选择算法</option></SelectField>
           )}
         </Field>

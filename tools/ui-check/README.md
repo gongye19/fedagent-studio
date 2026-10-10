@@ -12,7 +12,7 @@
 | `participants.mjs` | 信息分区、折叠、连接命令／复制、加载重试与一次性令牌展示（响应夹具） | `node participants.mjs`，连接本地内置示例；不签发真实令牌或调用模型；CDP_OUT 指定证据目录 |
 | `motion.mjs` | 页面／标签动效、快速切换、草稿和编辑状态保留、折叠中间帧、减少动态与焦点 | `node motion.mjs`；只读现有任务／应用，拦截全部写请求；支持线上 BASE，本地另用前端通知夹具检查 Toast |
 | `select.mjs` | 选择菜单、键盘／焦点、筛选、占位／禁用／空值、长菜单与表格事件及标签指示条 | `node select.mjs`；本地响应夹具；线上 `SELECT_FIXTURES=0`，禁止业务写入与模型调用 |
-| `config.mjs` | 任务逐行配置、ⓘ真实悬停／键盘／触屏／关闭、无重排、运行方式、模型搜索／空状态／焦点恢复 | `node config.mjs`；本地响应夹具；线上 `CONFIG_FIXTURES=0`；禁止业务写入与模型调用 |
+| `config.mjs` | 三分区／轮次菜单／独立重置与恢复提示、任务逐行配置、ⓘ真实悬停／键盘／触屏／关闭、无重排、运行方式、模型搜索／空状态／焦点恢复 | `node config.mjs`；本地响应夹具；线上 `CONFIG_FIXTURES=0`；禁止业务写入与模型调用 |
 | `task-flow.mjs` | 本地真接口、假模型、runner 的配置 → 完成 → 发布 → 对比 | `node task-flow.mjs`；仅允许 localhost／127.0.0.1；核对 fake 接口，只清理自己创建的任务／应用并逐项保留原有记录 |
 | `docshots.json` | 文档里的 14 张截图（`docs/screenshots/`） | `CDP_OUT=../../docs/screenshots node cdp.mjs docshots.json` |
 

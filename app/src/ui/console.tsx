@@ -11,6 +11,7 @@
 import { useRef, type InputHTMLAttributes, type KeyboardEvent, type ReactNode } from "react";
 import { Icon } from "./icons";
 import { InfoTip } from "./InfoTip";
+import { SelectField } from "./SelectField";
 
 export function Panel({
   title, extra, actions, children, id, flush = false, className, step,
@@ -99,11 +100,12 @@ export function UnitInput({ id, unit, ...props }: InputHTMLAttributes<HTMLInputE
 export type Choice<T> = { value: T; label: ReactNode; disabled?: boolean; badge?: string };
 
 /**
- * 选项按钮组：方向键在可选的选项之间移动，只有当前选项在 Tab 顺序里。
+ * 互斥选择：最多三项用按钮组，更多项复用选择菜单；保留原选项的值类型。
+ * 按钮组用方向键移动，只有当前选项在 Tab 顺序里。
  * placeholder 在最后留一个"待接入"的空位（虚线框、不能选），表示之后还会接入别的选项。
  */
 export function Choices<T extends string | number>({
-  value, options, onChange, labelledBy, label, placeholder,
+  value, options, onChange, labelledBy, label, placeholder, name,
 }: {
   value: T | null;
   options: readonly Choice<T>[];
@@ -111,6 +113,7 @@ export function Choices<T extends string | number>({
   labelledBy?: string;
   label?: string;
   placeholder?: string;
+  name?: string;
 }) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const enabled = options.map((option, index) => (option.disabled ? -1 : index)).filter((index) => index >= 0);
@@ -128,6 +131,20 @@ export function Choices<T extends string | number>({
   }
 
   const badged = options.some((option) => option.badge) || Boolean(placeholder);
+  // 少量互斥选项适合直接比较；超过三项收进既有菜单，保留原值类型与业务回调。
+  if (options.length > 3) {
+    return (
+      <SelectField name={name} aria-labelledby={labelledBy} aria-label={labelledBy ? undefined : label}
+        value={value ?? ""} onValueChange={(next) => {
+          const option = options.find((item) => String(item.value) === next);
+          if (option && !option.disabled) onChange(option.value);
+        }}>
+        <option value="" disabled>请选择</option>
+        {options.map((option) => <option key={String(option.value)} value={option.value} disabled={option.disabled}>{option.label}{option.badge ? ` · ${option.badge}` : null}</option>)}
+        {placeholder ? <option value="__pending" disabled>{placeholder} · 待接入</option> : null}
+      </SelectField>
+    );
+  }
   return (
     <div className={`choices${badged ? " choices--badged" : ""}`} role="radiogroup" aria-labelledby={labelledBy} aria-label={labelledBy ? undefined : label}>
       {options.map((option, index) => {

@@ -41,6 +41,10 @@ try{
  for(const name of ['client-model','server-model']) await evaluate(send,SELECT(name,'fake:fake'));
  await until("Boolean(document.querySelector('.summary-start:not(:disabled)'))");
  for(const width of [1280,390]){await viewport(send,{width,height:width===390?844:900,mobile:width===390});await click('创建并正式运行');check('正式运行只渲染一个模态 '+width,await evaluate(send,"document.querySelectorAll('dialog').length===1&&document.querySelector('dialog').textContent.includes('参与方')"));await shot('full-modal-'+width);await click('确认开始');await until("Boolean(document.querySelector('.confirm-error'))");check('正式运行创建失败保持配置和确认 '+width,await evaluate(send,"Boolean(document.querySelector('dialog[open] .confirm-error'))&&Boolean(document.querySelector('#participants input:checked'))"));await evaluate(send,"document.querySelector('.dialog-close').click()");await sleep(150);}
+ await evaluate(send,"window.__configY=document.getElementById('scenario').getBoundingClientRect().top+scrollY;void 0");await click('重置配置');
+ check('失败后打开重置保留错误提示与配置位置',await evaluate(send,"Boolean(document.querySelector('.notice--warning'))&&document.querySelectorAll('dialog[open]').length===1&&Math.abs(document.getElementById('scenario').getBoundingClientRect().top+scrollY-window.__configY)<1"));
+ await click('继续编辑');check('取消重置保留创建错误和已选配置',await evaluate(send,"Boolean(document.querySelector('.notice--warning'))&&Boolean(document.querySelector('#participants input:checked'))"));
+ await click('重置配置');await click('重置');check('确认重置同时清除旧创建错误',await evaluate(send,"!document.querySelector('.notice--warning')&&!document.querySelector('dialog[open]')&&document.getElementById('rounds-pending').disabled"));
  await load('#/tasks');
  await evaluate(send,"document.querySelector('.list-toolbar').style.marginBottom='1400px';const b=[...document.querySelectorAll('.table--tasks button')].find(x=>!x.disabled);b.scrollIntoView({block:'center'});b.focus({preventScroll:true});window.__scroll=scrollY;window.__originalTrigger=b;void 0");
  await click('删除');

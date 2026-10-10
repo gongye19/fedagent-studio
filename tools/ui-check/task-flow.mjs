@@ -1,7 +1,7 @@
 // 真正的本地假模型流程：浏览器配置 → runner → 发布 → 对比；只清理本脚本创建的记录。
 import assert from 'node:assert/strict';
 import {mkdirSync,writeFileSync} from 'node:fs';
-import {launch,viewport,open,evaluate,sleep,NEW_TASK_ALL,PICK,SELECT,SEARCH} from './lib.mjs';
+import {launch,viewport,open,evaluate,sleep,NEW_TASK_ALL,SELECT,SEARCH} from './lib.mjs';
 const base=process.env.BASE??'http://127.0.0.1:8880/';
 assert.ok(['127.0.0.1','localhost'].includes(new URL(base).hostname),'仅允许本地假模型验证');
 const read=async(path)=>{const r=await fetch(new URL(path,base));assert.ok(r.ok,path);return r.json()};
@@ -17,14 +17,14 @@ async function set(id,value){await evaluate(send,`(()=>{const e=document.getElem
 async function shot(name){const r=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});writeFileSync(`${out}/${name}.png`,Buffer.from(r.data,'base64'))}
 try{
  await viewport(send,{width:1280,height:900});await open(send,base+'#/tasks/new/horizontal');
- await evaluate(send,NEW_TASK_ALL);await evaluate(send,PICK(['2 轮']));await set('trial-cap','1');await set('task-name','T68 配置验证（本地假模型）');
+ await evaluate(send,NEW_TASK_ALL);await evaluate(send,SELECT('rounds','2'));await set('trial-cap','1');await set('task-name','配置流程验证（本地假模型）');
  await evaluate(send,SELECT('client-model','fake:fake'));await evaluate(send,SELECT('server-model','fake:fake'));
  await until("Boolean(document.querySelector('.summary-start:not(:disabled)'))");
  check('新组件选模型与真实后端配置校验接通',await evaluate(send,"document.querySelector('input[name=client-model]').value==='fake:fake'&&document.querySelector('input[name=server-model]').value==='fake:fake'"));
  await shot('configured');await click('创建并试跑');await until("location.hash.includes('/tasks/task-')");taskId=await evaluate(send,"location.hash.split('/')[2]");
  let task;for(let i=0;i<100;i++){task=await read('v1/tasks/'+taskId);assert.notEqual(task.status,'paused',task.error);if(task.status==='completed')break;await sleep(300)}
  check('真实本地 runner 完成两轮假模型任务',task.status==='completed'&&task.config.rounds===2&&task.fake&&task.config.participants.length===2);
- await open(send,base+'#/tasks/'+taskId+'/output');await click('发布为应用');await set('publish-name','T68 配置验证应用（本地假模型）');await click('发布');
+ await open(send,base+'#/tasks/'+taskId+'/output');await click('发布为应用');await set('publish-name','配置流程验证应用（本地假模型）');await click('发布');
  await until("[...document.querySelectorAll('a')].some(e=>e.textContent==='立即试用')");await click('立即试用');await until("Boolean(document.getElementById('try-question'))");appId=await evaluate(send,"location.hash.split('/')[2]");
  if(await evaluate(send,"Boolean(document.querySelector('[data-select-name=model]'))"))await evaluate(send,SELECT('model','fake:fake'));
  await set('try-question','1 + 1');await set('try-answer','2');await click('运行对比');await until("Boolean(document.getElementById('try-result'))");
