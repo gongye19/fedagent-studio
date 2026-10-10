@@ -42,15 +42,15 @@ try{
   if(fixture){
    await click('[data-select-name="dataset-p-a"]');await click('[data-option-value="fixture-second"]');
    check('表格选择题库保留参与方勾选 '+width,await evaluate(send,"document.querySelector('input[name=dataset-p-a]').value==='fixture-second'&&document.querySelector('[data-select-name=dataset-p-a]').closest('tr').querySelector('input[type=checkbox]').checked"));
-   await click('[data-select-name="client-model"]');await key('End');
-   check('长模型菜单限高且尾部可见 '+width,await evaluate(send,"(()=>{const m=document.querySelector('[role=listbox]').getBoundingClientRect(),f=document.activeElement.getBoundingClientRect();return m.height<=322&&m.right<=innerWidth&&m.left>=0&&f.top>=m.top&&f.bottom<=m.bottom})()"));await shot('models-scroll-'+width);await key('Enter');
-   check('长模型名选择后触发器不撑破页面 '+width,await evaluate(send,"document.querySelector('[data-select-name=client-model]').title.includes('fixture-model-29')&&document.documentElement.scrollWidth<=innerWidth"));
+   await click('[data-model-name="client-model"]');await key('End');
+   check('长模型菜单限高且尾部可见 '+width,await evaluate(send,"(()=>{const m=document.querySelector('.model-picker [role=listbox]').getBoundingClientRect(),f=document.querySelector('.model-picker [cmdk-item][data-selected=true]').getBoundingClientRect();return m.height<=382&&m.right<=innerWidth&&m.left>=0&&f.top>=m.top&&f.bottom<=m.bottom})()"));await shot('models-scroll-'+width);await key('Enter');
+   check('长模型名选择后触发器不撑破页面 '+width,await evaluate(send,"document.querySelector('[data-model-name=client-model]').title.includes('fixture-model-29')&&document.documentElement.scrollWidth<=innerWidth"));
   }
   await evaluate(send,OPEN_ADVANCED);
   if(fixture){
    await evaluate(send,"[...document.querySelectorAll('button')].find(b=>b.textContent.includes('为某个参与方指定')).click();void 0");await sleep(200);
-   await click('.override-list [role=combobox][aria-label$=模型]');await key('Home');await key('ArrowDown');await key('Enter');
-   check('单独模型选择不改默认模型 '+width,await evaluate(send,"document.querySelector('.override-list [role=combobox][aria-label$=模型]').textContent.includes('fake · 测试用假模型')&&document.getElementById('client-model').title.includes('fixture-model-29')"));
+   await click('.override-list button[aria-label$=模型]');await key('Home');await key('ArrowDown');await key('Enter');
+   check('单独模型选择不改默认模型 '+width,await evaluate(send,"document.querySelector('.override-list button[aria-label$=模型]').textContent.includes('fake · 测试用假模型')&&document.getElementById('client-model').title.includes('fixture-model-29')"));
   }
   await evaluate(send,SELECT('maxTracesPerItem','2'));await evaluate(send,SELECT('maxTracesPerItem',''));
   check('数值参数可恢复有效空值不限 '+width,await evaluate(send,"document.querySelector('input[name=maxTracesPerItem]').value===''&&document.querySelector('[data-select-name=maxTracesPerItem]').textContent.includes('不限')"));

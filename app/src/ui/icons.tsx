@@ -1,5 +1,5 @@
 /** 统一线宽的小图标，替代 ✓ ✕ ! 这类字符。 */
-export type IconName = "check" | "x" | "alert" | "chevron" | "plus" | "minus" | "arrow" | "download" | "pause" | "play" | "stop" | "copy" | "upload" | "home" | "tasks" | "apps" | "manage" | "participants" | "algorithm" | "model" | "search";
+export type IconName = "check" | "x" | "alert" | "chevron" | "plus" | "minus" | "arrow" | "download" | "pause" | "play" | "stop" | "copy" | "upload" | "home" | "tasks" | "apps" | "manage" | "participants" | "algorithm" | "model" | "search" | "info";
 
 const PATHS: Record<IconName, string> = {
   check: "M3.5 8.5 6.5 11.5 12.5 4.5",
@@ -22,6 +22,7 @@ const PATHS: Record<IconName, string> = {
   participants: "M6 2.5A2 2 0 1 0 6 6.5A2 2 0 1 0 6 2.5M2.5 13V11A3.5 3.5 0 0 1 9.5 11V13M10 3A2 2 0 0 1 10 7M11 9A3 3 0 0 1 13.5 12V13",
   algorithm: "M6 2H10V6H6ZM2 10H6V14H2ZM10 10H14V14H10ZM8 6V8M4 10V8H12V10",
   model: "M3 2.5H13V6.5H3ZM3 9.5H13V13.5H3ZM5 4.5H5.5M5 11.5H5.5M9 4.5H11M9 11.5H11",
+  info: "M8 2A6 6 0 1 0 8 14A6 6 0 1 0 8 2M8 7V11M8 5V5.1",
   search: "M7 2.5A4.5 4.5 0 1 0 7 11.5A4.5 4.5 0 1 0 7 2.5M10.5 10.5 13.5 13.5",
 };
 

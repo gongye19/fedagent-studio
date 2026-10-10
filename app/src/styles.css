@@ -21,7 +21,8 @@
  * - 选择控件：
  *   互斥的少量选项 → 选项按钮组（.choices），选中蓝框加右下角标，不可选的置灰并写原因；
  *   选项多或是次要设置 → 下拉框；
- *   选一个或多个对象（算法、参与方）→ 带单选或复选的表格，整行可点；
+ *   算法 → 短名称选项配 ⓘ 浮层；参与方 → 带复选的表格，整行可点；
+ * - T68 任务配置普通字段每项一行，桌面标签在左、控件在右；窄屏同一行块内上下排。
  *   数值 → 数字输入框，单位贴在输入框右侧（.unit-input）。
  * - 字段名一行写完，不换行；可以不填的字段在字段名后写"（可选）"。
  * - 控件下方不放说明小字，只在填错时显示一行错误。字段名本身要说清楚；说不清的操作放进面板标题栏，细节放进折叠的"高级配置"。
@@ -502,10 +503,23 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 /* 字段名一行写完，不因为栏宽换行。灰色、中等字重：比分组标题弱，也和黑色的值分开 */
 .field-label { width: fit-content; color: var(--secondary); font-size: var(--text-sm); font-weight: var(--weight-medium); line-height: 20px; white-space: nowrap; }
 .field-head { display: flex; gap: var(--space-2); align-items: baseline; min-width: 0; }
-/* 字段名旁的"说明"（AWS 的 Info）：点开后在字段名和控件之间显示解释 */
-.field-info { padding: 4px; margin: -4px; color: var(--accent-strong); background: none; border: 0; font-size: var(--text-xs); font-weight: var(--weight-medium); }
-.field-info:hover { text-decoration: underline; text-underline-offset: 3px; }
-.field-help { max-width: var(--measure); padding: var(--space-2) var(--space-3); color: var(--secondary); background: var(--surface); border-radius: var(--radius-sm); font-size: var(--text-sm); }
+/* ⓘ 用同一条基线；说明浮层由 Radix 管理，不占表单位置。 */
+.field-control { display: grid; gap: 6px; min-width: 0; }
+.field-control > .button { justify-self: start; }
+.info-tip-trigger { flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; padding: 6px; margin-block: -4px; border: 0; border-radius: 50%;
+  color: var(--muted); background: transparent; cursor: help; }
+.info-tip-trigger .icon { width: 16px; height: 16px; }
+.info-tip-trigger:hover, .info-tip-trigger[aria-expanded="true"] { color: var(--accent-strong); background: var(--accent-soft); }
+.info-tip { z-index: 120; max-width: min(340px, calc(100vw - 24px)); padding: 12px 14px;
+  color: var(--foreground); background: var(--background); border: 1px solid var(--border); border-radius: 8px;
+  font-size: var(--text-sm); line-height: 1.65; overflow-wrap: anywhere;
+  box-shadow: 0 6px 20px rgb(24 24 27 / 12%); animation: select-enter 120ms var(--motion-ease); }
+.info-tip p, .algorithm-tip-facts { margin-top: 6px; }
+.info-tip-arrow { fill: var(--background); }
+.algorithm-tip-facts { display: grid; gap: 4px; }
+.algorithm-tip-facts > div { display: grid; grid-template-columns: 64px minmax(0,1fr); gap: 8px; }
+.algorithm-tip-facts dt { color: var(--muted); }
 .field-optional { color: var(--muted); font-weight: var(--weight-regular); }
 .field > .button { justify-self: start; }
 /* 只有一个取值时直接写出来：和控件一样高，跟旁边一栏的控件对齐；它是值，用正文颜色 */
@@ -1017,9 +1031,8 @@ a.algo-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
   .table .select-trigger.cell-select { min-height: 44px; margin-block: -10px; }
   .wordmark { min-height: 44px; align-content: center; }
   /* 行内链接不改变排版，只把可点区域撑到 44px 左右 */
-  .crumbs a, .text-link, .link-button, .field-info { padding-block: 12px; margin-block: -12px; }
-  /* "说明"两个字太窄，左右也撑开一点；指标链接上下撑开 */
-  .field-info { padding-inline: 8px; margin-inline: -8px; }
+  .crumbs a, .text-link, .link-button { padding-block: 12px; margin-block: -12px; }
+  /* 指标链接上下撑开 */
   .stat-link { display: inline-block; padding-block: 6px; margin-block: -6px; }
   .button--compact { min-height: 40px; }
   .cell-button { min-height: 40px; }
@@ -1060,3 +1073,60 @@ a.algo-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
   *, *::before, *::after, .confirm-dialog::backdrop { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
   details::details-content { transition: none; }
 }
+
+/* T68：任务配置每项一行，标签／控件共用固定轴线，名单独立。 */
+.task-config .field-grid { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.task-config .field { grid-template-columns: 148px minmax(0, 1fr); column-gap: 20px; align-items: start; }
+.task-config .field-head { min-height: 36px; align-items: center; gap: 4px; }
+.task-config .field-control { grid-column: 2; }
+.task-config .field-error { grid-column: 2; }
+.task-config .choices { display: grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; gap: 8px; }
+.task-config .choice { width: 100%; justify-content: center; }
+.task-config .choices--badged { flex-direction: initial; }
+.task-config .choices--badged .choice { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.task-config .choices--badged .choice-badge { margin-left: 0; }
+.algorithm-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.algorithm-choice { display: flex; align-items: center; gap: 4px; min-width: 0; min-height: 44px;
+  padding: 0 8px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--background); }
+.algorithm-choice-main { display: flex; align-items: center; gap: 8px; padding: 10px 0; min-width: 0; flex: 1; cursor: pointer; }
+.algorithm-choice-main > span { overflow-wrap: anywhere; font-size: var(--text-sm); }
+.algorithm-choice:hover:not(.algorithm-choice--disabled, .algorithm-choice--placeholder) { border-color: var(--border-hover); background: var(--surface); }
+.algorithm-choice--checked { border-color: var(--accent); background: var(--accent-soft); }
+.algorithm-choice--checked .algorithm-choice-main { color: var(--accent-strong); font-weight: var(--weight-medium); }
+.algorithm-choice--disabled .algorithm-choice-main, .algorithm-choice--placeholder { color: var(--muted); }
+.algorithm-choice--disabled .algorithm-choice-main, .algorithm-choice--placeholder .algorithm-choice-main { cursor: not-allowed; }
+.algorithm-choice--placeholder { border-style: dashed; background: var(--surface); }
+.algorithm-choice .tag { padding-inline: 6px; }
+.algorithm-choice:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+@container (max-width: 480px) {
+  .task-config .field { grid-template-columns: minmax(0, 1fr); }
+  .task-config .field-control, .task-config .field-error { grid-column: 1; }
+  .task-config .field-head { min-height: 24px; }
+}
+@media (max-width: 640px) {
+  .info-tip-trigger { width: 44px; height: 44px; margin-block: -12px; }
+  .algorithm-choice { min-height: 44px; }
+  .task-config .override-row { grid-template-columns: minmax(0, 1fr); }
+  .task-config .override-head { display: none; }
+}
+/* AI Elements ModelSelector 源码适配，复用 Radix Dialog 与 cmdk。 */
+.model-picker-trigger[data-state="open"] .select-chevron { transform: rotate(-90deg); }
+.model-picker-overlay { position: fixed; inset: 0; z-index: 140; background: rgb(24 24 27 / 35%); animation: backdrop-enter 150ms var(--motion-ease); }
+.model-picker { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 141;
+  width: min(480px, calc(100vw - 32px)); max-height: min(540px, calc(100dvh - 48px));
+  overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background: var(--background);
+  box-shadow: 0 16px 48px rgb(24 24 27 / 20%); outline: none; }
+.model-picker-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px 10px 16px; border-bottom: 1px solid var(--border); }
+.model-picker-head h2 { font-size: var(--text-md); }
+.model-picker-close { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; background: none; border: 0; border-radius: 6px; cursor: pointer; }
+.model-picker-close:hover { background: var(--surface-hover); }
+.model-picker [cmdk-input] { display: block; width: calc(100% - 24px); margin: 12px; }
+.model-picker [cmdk-list] { overflow-y: auto; max-height: min(380px, calc(100dvh - 200px)); padding: 0 8px 8px; overscroll-behavior: contain; }
+.model-picker [cmdk-group-heading] { padding: 8px; font-size: var(--text-xs); color: var(--muted); }
+.model-picker [cmdk-item] { display: flex; align-items: center; gap: 8px; padding: 10px; min-height: 40px; border-radius: 6px; font-size: var(--text-sm); cursor: pointer; }
+.model-picker [cmdk-item][data-selected="true"] { background: var(--surface-hover); }
+.model-picker [cmdk-item] > .icon { flex: none; color: var(--accent-strong); }
+.model-picker-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.model-picker [cmdk-item] .model-picker-name { white-space: normal; overflow-wrap: anywhere; }
+.model-picker [cmdk-empty] { padding: 24px 16px; text-align: center; color: var(--muted); font-size: var(--text-sm); }
+@media (max-width: 640px) { .model-picker-close, .model-picker [cmdk-item] { min-height: 44px; } .model-picker-close { width: 44px; } }

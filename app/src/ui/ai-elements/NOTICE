@@ -1,0 +1,10 @@
+AI Elements — model-selector.tsx
+Copyright 2023 Vercel, Inc.
+Licensed under the Apache License, Version 2.0.
+
+Source: https://github.com/vercel/ai-elements/blob/6a9d5b1822ffb10bba4bd97175f01edd7d8651cd/packages/elements/src/model-selector.tsx
+
+Modified for FedAgent Studio on 2026-10-10: retain the ModelSelector
+composition API; use existing CSS, Radix Dialog and cmdk directly;
+add the project dialog heading and close control; omit unused logo
+helpers and examples. No Next.js, Tailwind or AI SDK runtime added.

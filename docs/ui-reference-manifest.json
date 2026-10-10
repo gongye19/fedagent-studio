@@ -1021,5 +1021,105 @@
       "https://mobbin.com/flows/f7e892c1-7f23-4267-a950-ed9c4bb904dc"
     ],
     "note": "检索候选均实际查看；Gumloop 为菜单视觉主参考，Linear 为选择与筛选反馈主参考。Unify、Browserbase 未作为设计依据；静态帧不证明动画。"
+  },
+  "t68_config": {
+    "captured_at": "2026-10-10",
+    "files": [
+      {
+        "screen_id": "b637e77e-8a1a-43f1-9f02-1ee25a17c8e9",
+        "position": 1,
+        "app": "Mistral AI",
+        "source": "https://mobbin.com/flows/8d58b223-ebe8-4f95-9c57-3de32e8baeab",
+        "file": "mistral-01.webp",
+        "bytes": 46716,
+        "sha256": "e8f988782b5da69b49018deb5b9361ebdbefcc35502ecc3749a6caaf063a59b9"
+      },
+      {
+        "screen_id": "cc2a7651-4db2-4c80-8bc4-1fe5f4061fb0",
+        "position": 2,
+        "app": "Mistral AI",
+        "source": "https://mobbin.com/flows/8d58b223-ebe8-4f95-9c57-3de32e8baeab",
+        "file": "mistral-02.webp",
+        "bytes": 56212,
+        "sha256": "49fd7ce6270de5a9974a45d6ff5628a5490dbdd01c634238fa2485dfbd585ab1"
+      },
+      {
+        "screen_id": "0c007ba4-5c8e-4db2-992c-dade9947ebbd",
+        "position": 3,
+        "app": "Mistral AI",
+        "source": "https://mobbin.com/flows/8d58b223-ebe8-4f95-9c57-3de32e8baeab",
+        "file": "mistral-03.webp",
+        "bytes": 46612,
+        "sha256": "8fba58120fde0177fa782db59ad715cfe86a63d0bb9a398555a0dd0ed9b06bac"
+      },
+      {
+        "screen_id": "acbdcd5a-81a5-47fa-a713-bdc75dfef5d8",
+        "position": 4,
+        "app": "Mistral AI",
+        "source": "https://mobbin.com/flows/8d58b223-ebe8-4f95-9c57-3de32e8baeab",
+        "file": "mistral-04.webp",
+        "bytes": 46682,
+        "sha256": "3773d624c00b010cbd85b955c8c946c173c7b973613ea98694553f098020c954"
+      },
+      {
+        "screen_id": "ee634f74-def7-469f-9f0c-63cc7fd5346d",
+        "position": 5,
+        "app": "Mistral AI",
+        "source": "https://mobbin.com/flows/8d58b223-ebe8-4f95-9c57-3de32e8baeab",
+        "file": "mistral-05.webp",
+        "bytes": 53462,
+        "sha256": "c513cff52022859128a2821a982dfdac8645891661a6796c018874ce508915a6"
+      },
+      {
+        "screen_id": "7886743d-c1da-45f1-8f26-222909ff7715",
+        "position": 6,
+        "app": "Mistral AI",
+        "source": "https://mobbin.com/flows/8d58b223-ebe8-4f95-9c57-3de32e8baeab",
+        "file": "mistral-06.webp",
+        "bytes": 57672,
+        "sha256": "1dc1c98a9e511947ff95c02fca50c1fd2b097c2e1ebe4323793786884e503a63"
+      },
+      {
+        "screen_id": "f738a71f-6a86-4990-9456-4b028379ad97",
+        "position": 7,
+        "app": "Mistral AI",
+        "source": "https://mobbin.com/flows/8d58b223-ebe8-4f95-9c57-3de32e8baeab",
+        "file": "mistral-07.webp",
+        "bytes": 62868,
+        "sha256": "64595afaf1a8f7fd9be7814b51bf0584c6142173148609bb45e4ebd130e0ab11"
+      },
+      {
+        "screen_id": "65ca7a63-de7d-46c3-a5ff-03f387b5a43d",
+        "app": "Gumloop",
+        "file": "gumloop.webp",
+        "source": "https://mobbin.com/screens/65ca7a63-de7d-46c3-a5ff-03f387b5a43d",
+        "bytes": 103256,
+        "sha256": "9e679fb0b0b7d8d3e22c78c9272c236467f084e9511eb30ce852786b40bbfd03"
+      },
+      {
+        "screen_id": "ce041a8f-1d5f-41a5-9a0b-3b91083ad2d9",
+        "app": "Browserbase",
+        "file": "browserbase.webp",
+        "source": "https://mobbin.com/screens/ce041a8f-1d5f-41a5-9a0b-3b91083ad2d9",
+        "bytes": 43088,
+        "sha256": "ec9255c9520a8eed6edd8abff6ed0b22e9ed58fca1bf5606173dab82a4f7ec40"
+      },
+      {
+        "screen_id": "9385a5a5-8bcb-4eca-87be-9769c794dc5b",
+        "app": "Mintlify",
+        "file": "mintlify.webp",
+        "source": "https://mobbin.com/screens/9385a5a5-8bcb-4eca-87be-9769c794dc5b",
+        "bytes": 52504,
+        "sha256": "3624e33761c23044c081d6064d34d740d73a78bdc4604e8989d6f481ee840024"
+      }
+    ],
+    "base_dir": ".references/mobbin/t68-config",
+    "approved_at": "2026-10-10 Asia/Hong_Kong",
+    "status": "user_confirmed",
+    "approved_references": [
+      "https://mobbin.com/flows/8d58b223-ebe8-4f95-9c57-3de32e8baeab",
+      "https://mobbin.com/screens/9385a5a5-8bcb-4eca-87be-9769c794dc5b"
+    ],
+    "note": "官方 MCP 直接检索，原图实际查看。Mistral AI／Mintlify 为用户确认的主参考；Gumloop／Browserbase 仅候选。参数 ⓘ 在参考中未展开，不据此声称已观察 hover／触屏。"
   }
 }

@@ -1,4 +1,6 @@
 import { SelectField } from "./SelectField";
+import { ModelPicker } from "./ModelPicker";
+import { InfoTip } from "./InfoTip";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState, type Dispatch, type MouseEvent } from "react";
 import { api, ApiError, type TaskConfigIn } from "../api/client";
@@ -222,7 +224,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
         </Notice>
       ) : null}
 
-      <div className="order-layout">
+      <div className="order-layout task-config">
         <div className="order-main">
           <Panel title="基本信息" id="basic" step={1}>
             <div className="form-body">
@@ -318,7 +320,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
 function TaskTypeChoice({ scenario, value, onChange }: { scenario: ScenarioId; value: TaskType | null; onChange: (type: TaskType) => void }) {
   const types = taskTypesFor(scenario);
   return (
-    <Field label="任务类型" labelId="task-type-label" wide>
+    <Field label="任务类型" labelId="task-type-label" wide info="任务类型决定数据格式、评估指标，以及可选择的算法与参与方数据。">
       {types.length ? (
         <Choices labelledBy="task-type-label" value={value} options={types.map((type) => ({ value: type, label: TASK_TYPES[type].label }))} placeholder="更多类型" onChange={onChange} />
       ) : <p className="field-static">这个场景还没有可用的任务类型。</p>}
@@ -326,7 +328,7 @@ function TaskTypeChoice({ scenario, value, onChange }: { scenario: ScenarioId; v
   );
 }
 
-/** 算法：带单选的表格，列出这个场景里能处理所选任务类型的算法，比较说明、交换内容和产出，由用户选。 */
+/** 算法按注册表列出；短名称供选择，说明、交换内容与产出通过 ⓘ 查看。 */
 function AlgorithmField({ scenario, taskType, value, onChange }: { scenario: ScenarioId; taskType: TaskType | null; value: Draft["algorithm"]; onChange: (id: Algorithm["id"]) => void }) {
   const algorithms = algorithmsFor(scenario, taskType);
   return (
@@ -337,44 +339,28 @@ function AlgorithmField({ scenario, taskType, value, onChange }: { scenario: Sce
   );
 }
 
-/** 算法表：最后一行留"更多算法 · 待接入"的空位，表示之后还会接入别的算法。 */
+/** 算法短名称等宽选择，详细说明通过独立 ⓘ 浮层查看。 */
 function AlgorithmTable({ algorithms, value, onChange, disabled }: { algorithms: readonly Algorithm[]; value: Draft["algorithm"]; onChange: (id: Algorithm["id"]) => void; disabled: boolean }) {
   return (
-    <div className="table-shell">
-      <table className="table table--select">
-        <caption className="visually-hidden">选择算法</caption>
-        <thead>
-          <tr>
-            <th scope="col" className="select-cell"><span className="visually-hidden">选择</span></th>
-            <th scope="col">算法</th>
-            <th scope="col" className="col-optional">说明</th>
-            <th scope="col" className="col-optional">通信内容</th>
-            <th scope="col">产出</th>
-          </tr>
-        </thead>
-        <tbody>
-          {algorithms.map((item) => {
-            const checked = value === item.id;
-            const inputId = `algorithm-${item.id}`;
-            return (
-              <tr key={item.id} className={`select-row${checked ? " select-row--checked" : ""}${disabled ? " select-row--disabled" : ""}`} onClick={rowToggle(!disabled, () => onChange(item.id))}>
-                <td className="select-cell"><input id={inputId} type="radio" name="algorithm" checked={checked} disabled={disabled} aria-describedby={disabled ? "algorithm-prerequisite" : undefined} onChange={() => onChange(item.id)} /></td>
-                <th scope="row" className="nowrap-cell"><label htmlFor={inputId}>{item.name}</label><small translate="no">{item.fullName}</small></th>
-                <td className="col-optional">{item.summary}</td>
-                <td className="col-optional nowrap-cell">{item.exchange}</td>
-                <td className="nowrap-cell">{item.output.name}</td>
-              </tr>
-            );
-          })}
-          <tr className="select-row select-row--disabled select-row--placeholder">
-            <td className="select-cell"><input type="radio" name="algorithm" disabled aria-label="更多算法（待接入）" /></td>
-            <th scope="row" className="nowrap-cell">更多算法<small>待接入</small></th>
-            <td className="col-optional" />
-            <td className="col-optional" />
-            <td />
-          </tr>
-        </tbody>
-      </table>
+    <div className="algorithm-options" role="radiogroup" aria-labelledby="algorithm-label">
+      {algorithms.map((item) => (
+        <div key={item.id} className={`algorithm-choice${value === item.id ? " algorithm-choice--checked" : ""}${disabled ? " algorithm-choice--disabled" : ""}`}>
+          <label className="algorithm-choice-main" htmlFor={`algorithm-${item.id}`}>
+            <input id={`algorithm-${item.id}`} type="radio" name="algorithm" checked={value === item.id} disabled={disabled}
+              aria-label={item.name} aria-describedby={disabled ? "algorithm-prerequisite" : undefined} onChange={() => onChange(item.id)} />
+            <span>{item.name}</span>
+          </label>
+          <InfoTip label={item.name}>
+            <strong>{item.fullName}</strong>
+            <p>{item.summary}</p>
+            <dl className="algorithm-tip-facts"><div><dt>交换内容</dt><dd>{item.exchange}</dd></div><div><dt>产出</dt><dd>{item.output.name}</dd></div></dl>
+          </InfoTip>
+        </div>
+      ))}
+      <div className="algorithm-choice algorithm-choice--placeholder" aria-disabled="true">
+        <label className="algorithm-choice-main"><input type="radio" name="algorithm" disabled aria-label="更多算法（待接入）" /><span>更多算法</span></label>
+        <Tag>待接入</Tag>
+      </div>
     </div>
   );
 }
@@ -507,14 +493,12 @@ function RunSettings({
   return (
     <div className="form-body">
       <FieldGroup>
-        <Field label="运行方式" labelId="mode-label">
+        <Field label="运行方式" labelId="mode-label" info="试跑只使用每份数据集的前几条样本，适合先确认流程；正式运行使用所选数据集的全部样本。">
           <Choices labelledBy="mode-label" value={draft.mode} options={MODES} onChange={(mode) => update({ mode })} />
         </Field>
-        {draft.mode === "trial" ? (
-          <Field label="试跑样本数" htmlFor="trial-cap">
-            <UnitInput id="trial-cap" unit="条 / 数据集" name="trial-cap" type="number" inputMode="numeric" autoComplete="off" min={1} max={50} value={draft.trialCap} onChange={(event) => update({ trialCap: clampInt(event.target.value, 1, 50, draft.trialCap) })} />
-          </Field>
-        ) : null}
+        <Field label="试跑样本数" htmlFor="trial-cap" info="每份数据集使用的样本上限，仅影响试跑。">
+          <UnitInput id="trial-cap" unit="条 / 数据集" name="trial-cap" type="number" inputMode="numeric" autoComplete="off" min={1} max={50} value={draft.mode === "trial" ? draft.trialCap : ""} disabled={draft.mode !== "trial"} placeholder="全部样本" onChange={(event) => update({ trialCap: clampInt(event.target.value, 1, 50, draft.trialCap) })} />
+        </Field>
         <Field label="轮次" htmlFor={algorithm ? undefined : "rounds-pending"} labelId="rounds-label" wide info={algorithm ? `第 1 轮各方单独作答，作为本地基线；之后每轮都带上上一轮的${algorithm.output.name}再作答。` : undefined}>
           {algorithm ? <Choices labelledBy="rounds-label" value={draft.rounds} options={rounds.map((value) => ({ value, label: `${value} 轮` }))} onChange={(value) => update({ rounds: value })} /> : (
             <SelectField id="rounds-pending" disabled value=""><option value="">请先选择算法</option></SelectField>
@@ -525,15 +509,11 @@ function RunSettings({
         ) : (
           <>
             <Field label="参与方模型" htmlFor="client-model">
-              <SelectField id="client-model" name="client-model" value={draft.clientModel} onValueChange={(value) => update({ clientModel: value })}>
-                {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
-              </SelectField>
+              <ModelPicker id="client-model" name="client-model" value={draft.clientModel} onValueChange={(value) => update({ clientModel: value })} options={options} endpoints={state.endpoints} />
             </Field>
             {!algorithm || serverUsesModel(algorithm) ? (
               <Field label="服务端模型" htmlFor="server-model" info="服务端每轮要读完各方上传的内容，需要长上下文的模型。">
-                <SelectField id="server-model" name="server-model" value={draft.serverModel} onValueChange={(value) => update({ serverModel: value })}>
-                  {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
-                </SelectField>
+                <ModelPicker id="server-model" name="server-model" value={draft.serverModel} onValueChange={(value) => update({ serverModel: value })} options={options} endpoints={state.endpoints} />
               </Field>
             ) : null}
           </>
@@ -604,7 +584,7 @@ function AdvancedPanel({
   );
 }
 
-/** 按注册表里的参数定义生成一个字段：下拉或数字输入；解释来自注册表，点"说明"才展开。 */
+/** 按注册表里的参数定义生成一个字段：下拉或数字输入；解释来自注册表，通过 ⓘ 浮层查看。 */
 function ParamField({ def, params, onChange }: { def: ParamDef; params: Params; onChange: (value: ParamValue) => void }) {
   const id = `param-${def.key}`;
   const value = paramValue(def, params);
@@ -669,9 +649,7 @@ function ModelOverrides({
               >
                 {[participantId, ...free].map((id) => <option key={id} value={id}>{nameOf(id)}</option>)}
               </SelectField>
-              <SelectField aria-label={`${nameOf(participantId)} 使用的模型`} value={ref} onValueChange={(value) => set({ ...overrides, [participantId]: value })}>
-                {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
-              </SelectField>
+              <ModelPicker aria-label={`${nameOf(participantId)} 使用的模型`} value={ref} onValueChange={(value) => set({ ...overrides, [participantId]: value })} options={options} endpoints={state.endpoints} />
               <button
                 type="button"
                 className="button button--ghost"

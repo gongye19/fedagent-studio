@@ -2,14 +2,15 @@
  * 控制台风格的组件，版式参考 AWS 控制台（Cloudscape）：
  * - Panel：灰底画布上的白色容器，标题在上；
  * - Field：字段名在上、控件在下。字段名一行写完，可以不填的字段在后面写"（可选）"；
- *   控件下方不放说明文字，只在填错时显示一行错误；需要解释的字段在字段名旁放"说明"，点开才显示（和 AWS 的 Info 一样）；
+ *   控件下方不放说明文字，只在填错时显示一行错误；需要解释的字段在名称旁放 ⓘ，悬停／聚焦／点按显示浮层；
  * - FieldGroup：两栏网格，控件撑满所在的栏，左右边缘对齐；选项按钮组、表格、长文本占满一行；
- *   面板不够宽时自动变成一栏；
+ *   面板不够宽时自动变成一栏；任务配置（T68）覆盖为每项一行，标签左、控件右；
  * - UnitInput：数值的单位放在输入框右侧；
  * - Choices：一组互斥的选项按钮，选中的按钮蓝框、右下角带角标；带标记（例如"规划中"）的选项组在手机上竖排。
  */
-import { useId, useRef, useState, type InputHTMLAttributes, type KeyboardEvent, type ReactNode } from "react";
+import { useRef, type InputHTMLAttributes, type KeyboardEvent, type ReactNode } from "react";
 import { Icon } from "./icons";
+import { InfoTip } from "./InfoTip";
 
 export function Panel({
   title, extra, actions, children, id, flush = false, className, step,
@@ -57,7 +58,7 @@ export function Field({
   label: ReactNode;
   /** 可以不填的字段，字段名后写"（可选）"；必填的不标。 */
   optional?: boolean;
-  /** 字段的解释：字段名旁出现"说明"，点开后显示在字段名和控件之间，默认收起。 */
+  /** 字段解释通过 ⓘ 浮层显示，不挤动表单。 */
   info?: ReactNode;
   /** 填错时的一句话，显示在控件下方；控件要带 aria-invalid，并用 aria-describedby 指向 `${htmlFor}-error`。 */
   error?: ReactNode;
@@ -69,21 +70,16 @@ export function Field({
   children: ReactNode;
 }) {
   const text = <>{label}{optional ? <span className="field-optional">（可选）</span> : null}</>;
-  const [open, setOpen] = useState(false);
-  const helpId = useId();
   const name = htmlFor
     ? <label className="field-label" htmlFor={htmlFor} id={labelId}>{text}</label>
     : <span className="field-label" id={labelId}>{text}</span>;
   return (
     <div className={`field${wide ? " field--wide" : ""}`}>
-      {info ? (
-        <div className="field-head">
-          {name}
-          <button type="button" className="field-info" aria-expanded={open} aria-controls={helpId} onClick={() => setOpen((value) => !value)}>说明</button>
-        </div>
-      ) : name}
-      {info && open ? <div className="field-help" id={helpId}>{info}</div> : null}
-      {children}
+      <div className="field-head">
+        {name}
+        {info ? <InfoTip label={typeof label === "string" ? label : "字段"}>{info}</InfoTip> : null}
+      </div>
+      <div className="field-control">{children}</div>
       {error ? <p className="field-error" id={htmlFor ? `${htmlFor}-error` : undefined}><Icon name="alert" />{error}</p> : null}
     </div>
   );

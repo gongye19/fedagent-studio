@@ -26,7 +26,7 @@ FedAgent Studio 是通用的联邦 Agent 平台：多个参与方的 Agent 在�
 - **通用平台**：场景 → 任务类型 → 算法插件 → 数据。FoT 只是第一个接入的算法（横向场景），界面和代码都不为它写死。
 - **分类统一两层**：所有列表先按场景（横向 / 纵向 / 迁移）分块，任务类型是表格的一列。
 - **新建任务每一步由用户选**：场景、任务类型、算法、参与方都不预先选好；固定配置区域和通用字段从首次打开起全部展示，未满足前置条件时置灰或写明先选什么，不要逐块出现；选项最后留"待接入"的空位，表示以后还有别的。
-- **界面**：沿用控制台布局（面板、字段名在上的两栏表单、选项按钮、带勾选的表格、右侧配置摘要），T62 用户已确认 Braintrust／LangSmith／ElevenAgents，T64 补充确认 Relevance AI 操作反馈和 Replit／Higgsfield 首页方向，见 [docs/UI-REFERENCES.md](docs/UI-REFERENCES.md)。T67 用户确认 Gumloop 菜单与 Linear 筛选反馈，选择控件统一用 Radix SelectField，沿用现有 CSS。只改善现有流程，不因为参考增加多余功能；简洁，控件下方不放说明小字（填错时才显示）；中文不能出现一两个字被折到下一行；左右边缘对齐。资源展开行先显示分区概况，状态不重复，样本／连接指南按需展开，操作跟随对应内容（T65／D61）。规范写在 `app/src/styles.css` 开头和 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)。
+- **界面**：沿用控制台布局（面板、普通表单两栏、选项按钮、带勾选的表格、右侧配置摘要），T62 用户已确认 Braintrust／LangSmith／ElevenAgents，T64 补充确认 Relevance AI 操作反馈和 Replit／Higgsfield 首页方向，见 [docs/UI-REFERENCES.md](docs/UI-REFERENCES.md)。T67 用户确认 Gumloop 菜单与 Linear 筛选反馈，常规选择控件统一用 Radix SelectField，沿用现有 CSS。T68 用户确认 Mistral AI／Mintlify 配置参考：任务配置一项一行、桌面名称左控件右（窄屏上下排），算法短名称配独立 ⓘ；所有 Field 解释统一为 hover／focus／点按浮层，不重排。多模型按需适配 AI Elements ModelSelector（Radix Dialog／cmdk），单模型直接显示；不为组件迁移样式或框架，见 D64。只改善现有流程，不因为参考增加多余功能；简洁，控件下方不放说明小字（填错时才显示）；中文不能出现一两个字被折到下一行；左右边缘对齐。资源展开行先显示分区概况，状态不重复，样本／连接指南按需展开，操作跟随对应内容（T65／D61）。规范写在 `app/src/styles.css` 开头和 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)。
 - **动效**：沿用 T67／D63 的 240ms 内容反馈、160／120ms 菜单开合（确认／通知仍 150ms）；不靠 key 重挂载页面，不随后台轮询重播，不改变固定底栏、焦点或任务进度；支持减少动态，需验证生产构建（CSS 压缩会改写时长单位）。
 - **用词**：FoT 的产出叫"经验库"，trace 叫"解题经验"，不用"洞见"。
 - **模型接口**：部署的平台上只登记真实接口（测试用假模型只在本地开发和自动测试里有）；每个接口选用一个模型，列表只写接口名称和这个模型。
