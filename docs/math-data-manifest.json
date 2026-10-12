@@ -1,0 +1,48 @@
+{
+  "source": "user-provided FoT audited_math_reproduction/data",
+  "bundle": "FoT_code_bundle_20260925(1).zip",
+  "bundleSHA256": "26791c149903af6215ac6f3fdb15ca97932fdbb9ac023a1108f402bbbb295441",
+  "importedAt": "2026-10-12",
+  "datasets": [
+    {
+      "name": "AIME24",
+      "rows": 30,
+      "sha256": "51c4fbf6d358ea5495e52c372aaefd34ab339fd4f60e09d5426d69f3b7a236ee"
+    },
+    {
+      "name": "AIME25",
+      "rows": 30,
+      "sha256": "a9ee87be16c7212d940c7d39e906a9d970c24516eef6f4cdcae0e5bf9a8d5547"
+    },
+    {
+      "name": "AMC",
+      "rows": 46,
+      "sha256": "6e18f0d9053a4a001c7ea535d697012d1a52d4b3d12cb01e5f08e502211a661a"
+    },
+    {
+      "name": "CCEE",
+      "rows": 44,
+      "sha256": "7a3ec5856595437e1d2098c4c6b6682827fc469a04f127cc40107fa7d42fc6ef"
+    },
+    {
+      "name": "CNMO",
+      "rows": 18,
+      "sha256": "6a7838c876c154833b66f5a93ed57eaf99bd670a04c5d62fe892fca9bb95a94d"
+    },
+    {
+      "name": "V202412Hard",
+      "rows": 21,
+      "sha256": "6c49e157c0c0ad71790f2c3c4bf577dc8b39a1da3b185492754c8172a8148e1e"
+    },
+    {
+      "name": "V202505Hard",
+      "rows": 100,
+      "sha256": "727a362eef645a9029b5f69757c23bfebe426e829e2bec54fb24b84dc76c1c32"
+    },
+    {
+      "name": "WLPMC",
+      "rows": 11,
+      "sha256": "efe359f3d488443560d6beb48e73c5c3d9034c468db57df060c82a1e7ab2f026"
+    }
+  ]
+}

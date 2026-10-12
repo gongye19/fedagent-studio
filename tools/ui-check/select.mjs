@@ -1,7 +1,7 @@
 // 选择控件回归：真实只读接口 + 本地响应夹具；禁止业务写入与模型调用。
 import assert from 'node:assert/strict';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { launch, viewport, open, evaluate, sleep, sampleIds, PICK, SELECT, OPEN_ADVANCED } from './lib.mjs';
+import { launch, viewport, open, evaluate, sleep, sampleIds, PICK, SELECT, OPEN_ADVANCED, LOCAL_CONNECTION_SOURCE } from './lib.mjs';
 const base = process.env.BASE ?? 'http://127.0.0.1:8880/';
 const fixture = process.env.SELECT_FIXTURES !== '0' && ['127.0.0.1', 'localhost'].includes(new URL(base).hostname);
 const ids = await sampleIds(base);
@@ -13,6 +13,7 @@ async function key(key){await send('Input.dispatchKeyEvent',{type:'keyDown',key}
 async function click(selector){const r=await evaluate(send,`(()=>{const e=document.querySelector(${JSON.stringify(selector)});if(!e)throw Error('missing '+${JSON.stringify(selector)});e.scrollIntoView({block:'center'});const r=e.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})()`);await send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...r});await send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...r});await sleep(200)}
 async function shot(name){const r=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});writeFileSync(`${out}/${name}.png`,Buffer.from(r.data,'base64'))}
 const source=`(()=>{const original=fetch.bind(window);window.__writes=0;window.fetch=async(input,init)=>{const method=(init?.method??(input instanceof Request?input.method:'GET')).toUpperCase();const path=new URL(typeof input==='string'?input:input.url,location.origin).pathname;if(!['GET','HEAD'].includes(method)&&path!=='/v1/tasks/validate'){window.__writes++;throw Error('Select check blocks writes: '+method)}const response=await original(input,init);if(!${fixture}||!response.ok)return response;if(path==='/v1/datasets'){const list=await response.json();const a=list.find(d=>d.participantId==='p-a');return new Response(JSON.stringify([...list,{...a,id:'fixture-second',name:'另一份题库（仅前端验证夹具）'}]),{headers:{'content-type':'application/json'}})}if(path==='/v1/endpoints'){const list=await response.json();return new Response(JSON.stringify(list.map(e=>e.id==='fake'?{...e,models:['fake',...Array.from({length:30},(_,i)=>'fixture-model-'+i+'-用于验证长名称的模型接口显示及选项滚动')]}:e)),{headers:{'content-type':'application/json'}})}return response}})()`;
+await send('Page.addScriptToEvaluateOnNewDocument',{source:LOCAL_CONNECTION_SOURCE});
 await send('Page.addScriptToEvaluateOnNewDocument',{source});
 try{
  for(const width of [1280,390]){
@@ -34,8 +35,8 @@ try{
   check('参与方初始占位而未默认选择 '+width,await evaluate(send,"document.querySelector('[data-select-name=dataset-owner]').hasAttribute('data-placeholder')&&!document.querySelector('[role=listbox]')"));
   await click('label[for="dataset-owner"]');
   check('点字段名可打开选择且占位不作为选项 '+width,await evaluate(send,"Boolean(document.querySelector('[role=listbox]'))&&![...document.querySelectorAll('[role=option]')].some(e=>e.textContent==='选择参与方')"));await key('Escape');
-  await evaluate(send,SELECT('dataset-owner','p-local-example'));
-  check('参与方变化接通对应表单 '+width,await evaluate(send,"document.querySelector('input[name=dataset-owner]').value==='p-local-example'&&document.querySelector('main').textContent.includes('参与方本地')"));
+  await evaluate(send,SELECT('dataset-owner','qa-local-client'));
+  check('参与方变化接通对应表单 '+width,await evaluate(send,"document.querySelector('input[name=dataset-owner]').value==='qa-local-client'&&document.querySelector('main').textContent.includes('参与方本地')"));
   await open(send,base+'#/tasks/new/horizontal');
   check('前置未选的轮次确实禁用 '+width,await evaluate(send,"document.getElementById('rounds-pending').disabled"));
   await evaluate(send,PICK(['数学推理']));await click('#algorithm-fot');

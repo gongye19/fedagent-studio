@@ -139,7 +139,7 @@ def algorithm(algorithm_id: str, platform: PlatformDep) -> dict:
 
 
 def _participants_order(rows: list[m.Participant]) -> list[m.Participant]:
-    """新登记的在前（按登记时间从新到旧），内置示例在后。"""
+    """新登记的在前（按登记时间从新到旧），内置数据在后。"""
     own = sorted((row for row in rows if not row.builtin), key=lambda row: row.created_at, reverse=True)
     builtin = sorted((row for row in rows if row.builtin), key=lambda row: (row.hosting != "local", row.id))
     return own + builtin

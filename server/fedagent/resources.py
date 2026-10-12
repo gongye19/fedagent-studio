@@ -93,7 +93,7 @@ def delete_participant(session: Session, participant_id: str) -> None:
     if participant is None:
         raise not_found("参与方")
     if participant.builtin:
-        raise HTTPException(409, "内置示例参与方不能删除")
+        raise HTTPException(409, "平台内置参与方不能删除")
     require_unused(session, m.TaskSite.participant_id, participant_id, "参与方")
     session.delete(participant)
 
@@ -210,7 +210,7 @@ def delete_dataset(session: Session, dataset_id: str) -> None:
     if dataset is None:
         raise not_found("数据集")
     if dataset.source == "builtin":
-        raise HTTPException(409, "内置示例数据集不能删除")
+        raise HTTPException(409, "平台内置题库不能删除")
     require_unused(session, m.TaskSite.dataset_id, dataset_id, "数据集")
     remaining = session.scalar(select(func.count()).where(m.Dataset.participant_id == dataset.participant_id)) or 0
     if remaining <= 1:

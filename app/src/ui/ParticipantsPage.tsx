@@ -30,7 +30,7 @@ export default function ParticipantsPage({ state, selectedId }: Props) {
   const [taskType, setTaskType] = useState<TaskTypeFilter>("all");
   const [query, setQuery] = useState("");
   const keyword = query.trim().toLowerCase();
-  // 新登记的参与方在前（登记时插到最前面），内置示例在后；同一个参与方的几份数据集排在一起。
+  // 新登记的参与方在前（登记时插到最前面），内置数据在后；同一个参与方的几份数据集排在一起。
   const participants = [...state.participants].sort((a, b) => Number(Boolean(a.builtin)) - Number(Boolean(b.builtin)));
   const rowsOf = (scenario: ScenarioId) => participants.flatMap((participant) => datasetsOf(state, participant.id)
     .filter((dataset) => dataset.scenario === scenario)
@@ -168,7 +168,7 @@ function DataTable({
 
 /** 数据集的来源。 */
 function sourceText(dataset: Dataset): string {
-  if (dataset.source === "builtin") return dataset.origin ? `内置示例（${dataset.origin}）` : "内置示例";
+  if (dataset.source === "builtin") return dataset.origin ? `基准题库（${dataset.origin}）` : "基准题库";
   return dataset.source === "local" ? "留在参与方本地" : "上传到平台";
 }
 

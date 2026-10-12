@@ -7,7 +7,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 HOST=poly-zhu@100.111.198.54
-SSH=(ssh -p 10022 -o BatchMode=yes -o ConnectTimeout=12 -o ServerAliveInterval=15 -o ServerAliveCountMax=2)
+SSH=(ssh -p 10022 -o IPQoS=none -o BatchMode=yes -o ConnectTimeout=12 -o ServerAliveInterval=15 -o ServerAliveCountMax=2)
 
 # 1. 本地检查：前端 lint、类型、测试、构建；后端 lint、类型、测试
 if [ "${SKIP_CHECKS:-}" = 1 ]; then

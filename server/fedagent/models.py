@@ -52,7 +52,7 @@ class Dataset(Base):
     scenario: Mapped[str] = mapped_column(String(32))
     task_type: Mapped[str] = mapped_column(String(64))
     source: Mapped[str] = mapped_column(String(16))
-    """builtin：内置示例；upload：上传到平台；local：留在参与方本地。"""
+    """builtin：内置数据；upload：上传到平台；local：留在参与方本地。"""
     count: Mapped[int] = mapped_column(default=0)
     answered: Mapped[int] = mapped_column(default=0)
     sample: Mapped[dict[str, Any] | None] = mapped_column(default=None)

@@ -58,6 +58,8 @@ def main(argv: list[str] | None = None) -> None:
         sub.add_argument("--port", type=int)
     commands.add_parser("runner")
     commands.add_parser("seed")
+    resources = commands.add_parser("resources").add_subparsers(dest="action", required=True)
+    resources.add_parser("remove-demo", help="清理旧版空合作方与占位机构文案")
     db = commands.add_parser("db").add_subparsers(dest="action", required=True)
     db.add_parser("upgrade")
     revision = db.add_parser("revision")
@@ -91,6 +93,10 @@ def main(argv: list[str] | None = None) -> None:
         from .seed import seed
 
         print("已写入初始数据" if seed(_platform()) else "数据库里已有数据，没有改动")
+    elif args.command == "resources":
+        from .seed import remove_legacy_demo
+
+        print(json.dumps(remove_legacy_demo(_platform()), ensure_ascii=False))
     elif args.command == "db":
         from .migrate import revision as make_revision
 

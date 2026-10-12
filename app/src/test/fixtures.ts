@@ -11,7 +11,7 @@ import registry from "./registry.json";
 installRegistry(registry as unknown as components["schemas"]["RegistryOut"]);
 
 const participant = (id: string, name: string, extra: Partial<Participant> = {}): Participant => ({
-  id, name, org: "内置示例", intro: "", hosting: "platform", status: "online", builtin: true, lastSeenAt: null, ...extra,
+  id, name, org: "内置数据", intro: "", hosting: "platform", status: "online", builtin: true, lastSeenAt: null, ...extra,
 });
 
 const dataset = (id: string, participantId: string, extra: Partial<Dataset> = {}): Dataset => ({

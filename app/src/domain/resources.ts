@@ -3,11 +3,11 @@
  *
  * - 参与方：参加联邦的一个机构或节点，是一道隐私边界，原始数据不出本方。参与方本身不绑定场景，
  *   它能参加哪些联邦任务，由它登记的数据集决定。参与方有两种运行位置：
- *   平台托管 = 数据上传到平台，由平台代这一方运行 Agent，适合公开数据、演示和算法验证；
+ *   平台托管 = 数据上传到平台，由平台代这一方运行 Agent，适合公开数据和算法运行；
  *   参与方本地 = 数据和模型密钥留在参与方自己的环境，由参与方运行客户端，只上传算法需要交换的内容。
  * - 数据集：只属于一个参与方。登记时选定场景和任务类型，只能用于同一场景、同一任务类型的联邦任务；
  *   本地参与方的数据集只登记名称和说明，样本数由客户端连上后上报。
- * 内置的 8 个数学题库分给 8 个平台托管的示例参与方（参与方 A–H），每方一份；它们由后端初始化。
+ * 内置的数学题库分给平台托管的参与方（参与方 A–H），每方一份；它们由后端初始化。
  */
 import type { components } from "../api/schema";
 import type { ScenarioId, TaskType } from "./catalog";
@@ -18,7 +18,7 @@ export type ParticipantStatus = "online" | "offline" | "waiting";
 export type Participant = components["schemas"]["ParticipantOut"];
 
 /**
- * 数据集：source 为 builtin（内置示例）、upload（上传到平台）、local（留在参与方本地，只登记名称和说明）。
+ * 数据集：source 为 builtin（内置数据）、upload（上传到平台）、local（留在参与方本地，只登记名称和说明）。
  * ready：平台托管的已有样本文件；本地的已由客户端上报样本数。没有 ready 的不能选入任务。
  */
 export type Dataset = components["schemas"]["DatasetOut"];

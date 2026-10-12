@@ -116,11 +116,13 @@ const ROUTES = [
   "#/apps",
   { route: "#/apps", name: "#/apps 筛选无结果", script: SELECT("task-type", "math-reasoning") + ";" + SEARCH("app-search", "zzz") },
   "{apps}",
-  "#/participants", "#/participants/horizontal/p-local-example", "#/participants/horizontal/p-a",
+  "#/participants", "#/participants/horizontal/p-a",
   { route: "#/participants", name: "#/participants 筛选", script: SEARCH("participant-search", "参与方 A") },
   "#/participants/new",
   { route: "#/participants/new", name: "#/participants/new 已选", script: PICK(["平台托管", "横向联邦", "数学推理"]) },
   "#/datasets/new",
-  { route: "#/datasets/new?participant=p-local-example", name: "#/datasets/new 本地", script: PICK(["横向联邦", "数学推理"]) },
   "#/algorithms", "#/algorithms/fot", "#/models", "#/models/new", "#/tasks/nope",
 ];
+
+// 本地客户端仅在浏览器回归中注入；不依赖生产初始资源，不签发凭据或写数据库。
+export const LOCAL_CONNECTION_SOURCE = `(()=>{const original=fetch.bind(window);window.fetch=async(input,init)=>{const path=new URL(typeof input==='string'?input:input.url,location.origin).pathname,method=(init?.method??'GET').toUpperCase();const response=await original(input,init);if(method!=='GET'||!response.ok||!['/v1/participants','/v1/datasets'].includes(path))return response;const list=await response.json();const row=path==='/v1/participants'?{id:'qa-local-client',name:'客户端连接验证夹具',org:'仅浏览器回归',intro:'',hosting:'local',status:'waiting',builtin:false,lastSeenAt:null}:{id:'qa-local-data',name:'客户端数据验证夹具',participantId:'qa-local-client',scenario:'horizontal',taskType:'math-reasoning',description:'',origin:null,source:'local',ready:false,count:0,answered:0,sample:null};return new Response(JSON.stringify([...list,row]),{headers:{'content-type':'application/json'}})}})()`;

@@ -1,7 +1,7 @@
 // 动效与状态保留回归：真实只读页面，禁止任何 API 写请求或模型调用。
 import assert from 'node:assert/strict';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { evaluate, launch, open, sampleIds, sleep, viewport } from './lib.mjs';
+import { evaluate, launch, open, sampleIds, sleep, viewport, LOCAL_CONNECTION_SOURCE } from './lib.mjs';
 const base = process.env.BASE ?? 'http://127.0.0.1:8880/';
 const ids = await sampleIds(base);
 assert.ok(ids.task && ids.app, '需要现有任务和应用作为只读模板');
@@ -15,6 +15,7 @@ async function shot(name) {
   const image = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
   writeFileSync(`${out}/${name}.png`, Buffer.from(image.data, 'base64'));
 }
+await send('Page.addScriptToEvaluateOnNewDocument',{source:LOCAL_CONNECTION_SOURCE});
 await send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => {
   const fetchOriginal = window.fetch.bind(window);
   window.fetch = (input, init) => {
@@ -68,7 +69,7 @@ try {
     await sleep(80); await evaluate(send, "window.__rename=document.getElementById('app-name');void 0");
     await go('#/apps/' + ids.app + '/integrate');
     check('应用标签动效保留父级编辑状态 ' + width, await evaluate(send, "__motions.at(-1).element.className==='tab-panel'&&__rename&&document.getElementById('app-name')===__rename"));
-    await go('#/participants/horizontal/p-local-example');
+    await go('#/participants/horizontal/qa-local-client');
     await evaluate(send, "window.__guide=document.querySelector('.participant-connect');__guide.style.setProperty('--motion-content','1000ms');window.__closed=__guide.getBoundingClientRect().height;__guide.querySelector('summary').focus({preventScroll:true});void 0");
     await send('Input.dispatchKeyEvent', { type: 'keyDown', key: ' ', code: 'Space', windowsVirtualKeyCode: 32 });
     await send('Input.dispatchKeyEvent', { type: 'keyUp', key: ' ', code: 'Space', windowsVirtualKeyCode: 32 });

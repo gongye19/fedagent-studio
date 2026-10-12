@@ -11,5 +11,7 @@
 7. [任务记录](./HISTORY.md)：按时间顺序的 T 任务。
 8. [界面参考研究](./UI-REFERENCES.md)：Mobbin Pro 中适合联邦实验、运行、结果比较和应用发布的产品与流程。
 9. [Mobbin 使用与接入](./MOBBIN.md)：网页筛选、官方 MCP OAuth、搜索、下载和额度；[来源清单](./ui-reference-manifest.json)保留原图顺序及校验值。
+10. [数学基准数据](./MATH-DATA.md)：八份审计题库、原始哈希、导入与旧占位资源清理。
+11. [EvoMedClaw 接入调研](./EVOMEDCLAW.md)：固定源码版本、医疗数据结构、横向／纵向实现边界与SDK适配步骤。
 
 `agent-platform-design.svg/png` 是整体架构图（由 `agent-platform-design.gen.py` 生成），若与文字冲突，以 `ARCHITECTURE.md` 为准。截图在 `screenshots/`，用 `tools/ui-check/docshots.json` 重新生成。

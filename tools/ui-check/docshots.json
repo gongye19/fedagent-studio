@@ -10,7 +10,7 @@
  {"name": "apps", "url": "http://127.0.0.1:8880/?v=e9#/apps", "width": 1280, "height": 900, "fullPage": false},
  {"name": "app-try", "url": "http://127.0.0.1:8880/?v=e10#/apps/{app}", "width": 1280, "height": 900, "fullPage": false, "script": "(async () => { const w = (ms) => new Promise((r) => setTimeout(r, ms)); const set = (el, v) => { const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype; Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, v); el.dispatchEvent(new Event('input', { bubbles: true })); }; set(document.getElementById('try-question'), 'Find the number of ordered pairs of positive integers (m, n) such that m^2 n = 20^20.'); set(document.getElementById('try-answer'), '231'); await w(300); })()"},
  {"name": "participants", "url": "http://127.0.0.1:8880/?v=e11#/participants", "width": 1280, "height": 900, "fullPage": false},
- {"name": "participants-open", "url": "http://127.0.0.1:8880/?v=e12#/participants/horizontal/p-local-example", "width": 1280, "height": 900, "fullPage": false},
+ {"name": "participants-open", "url": "http://127.0.0.1:8880/?v=e12#/participants/horizontal/p-a", "width": 1280, "height": 900, "fullPage": false},
  {"name": "algorithms", "url": "http://127.0.0.1:8880/?v=e13#/algorithms", "width": 1280, "height": 900, "fullPage": false},
  {"name": "algorithm-detail", "url": "http://127.0.0.1:8880/?v=e14#/algorithms/fot", "width": 1280, "height": 900, "fullPage": false}
 ]

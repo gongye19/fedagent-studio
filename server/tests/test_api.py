@@ -49,10 +49,11 @@ def test_registry_describes_plugins(client: TestClient) -> None:
 
 def test_seed_and_participants(client: TestClient) -> None:
     participants = client.get("/v1/participants").json()
-    assert [item["name"] for item in participants][:2] == ["示例合作方", "参与方 A"]
-    assert participants[0]["status"] == "waiting"
+    assert [item["name"] for item in participants] == [f"参与方 {letter}" for letter in "ABCDEFGH"]
+    assert all(item["status"] == "online" for item in participants)
     datasets = {item["id"]: item for item in client.get("/v1/datasets").json()}
-    assert datasets["ds-aime24"]["ready"] and not datasets["ds-amc"]["ready"]
+    assert len(datasets) == 8 and all(item["ready"] for item in datasets.values())
+    assert sum(item["count"] for item in datasets.values()) == 300
 
 
 def test_fake_endpoint_only_when_enabled(tmp_path: Path) -> None:
@@ -103,7 +104,12 @@ def test_endpoint_key_is_write_only(client: TestClient) -> None:
     assert not cleared["hasKey"]
 
 
-def test_validation_issues(client: TestClient) -> None:
+def test_validation_issues(client: TestClient, platform: Platform) -> None:
+    # 缺数据是测试夹具，正式内置题库均已导入。
+    with platform.db.session() as session:
+        dataset = session.get(m.Dataset, "ds-amc")
+        assert dataset
+        dataset.content_hash = None
     chosen = [{"participantId": "p-a", "datasetId": "ds-aime24"}, {"participantId": "p-c", "datasetId": "ds-amc"}]
     result = client.post("/v1/tasks/validate", json=config(chosen, clientModel="default")).json()
     messages = [issue["message"] for issue in result["issues"]]

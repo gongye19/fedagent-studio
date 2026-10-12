@@ -26,7 +26,7 @@ npm run dev
 打开 <http://127.0.0.1:8880/>。前端开发服务器把 `/v1` 和 `/healthz` 转给 `127.0.0.1:8000`，要换地址时设环境变量 `FEDAGENT_API`。
 
 - `fedagent dev` 带一个"测试用假模型"接口，不花钱就能从新建任务跑到发布应用；部署的平台（`fedagent serve`）没有它，只登记真实接口。开关是 `FEDAGENT_FAKE_ENDPOINT`，每次启动按它补上或删掉。真实模型在"模型接口"里配置（OpenAI 兼容），每个接口从接口提供的模型里选一个。
-- 第一次启动时写入初始数据：参与方 A–H 和它们的数据集（A、B 的 AIME 题库随代码一起；C–H 的 6 份 LiveMathBench 题库要从 FoT 代码包导入：`uv run fedagent datasets import-fot-bundle <zip>`）、一个等待连接的本地参与方示例、默认 LLM 接口（待配置）。
+- 第一次启动加载A–H八个参与方和八份实际数学题库，共300题，文件随代码保存；默认LLM接口待配置。不创建空合作方或手写样本；旧库完整导入和清理见MATH-DATA。
 - 后端的其他命令：`uv run fedagent --help`（`serve`、`runner` 分开启动、`db upgrade`、`seed`、`openapi`、`contract` 等）。
 
 ## 常用命令
@@ -152,7 +152,7 @@ bash deploy/deploy.sh
 
 ## 测试约定
 
-当前回归：前端 28 项、后端 53 项。`test_client_leases.py` 验证领取次数、过期结果、幂等提交、慢调用续租和实际标注数；`test_maintenance.py` 验证 WAL 数据备份恢复、匹配的解密密钥和并发首次启动；`test_gateway.py` 包括真实多进程共享并发上限和零重试时的流式兼容回退；`test_api.py` 验证事务在响应前提交，前端 `actions.test.ts` 覆盖旧列表缓存和动态请求禁用缓存。
+当前回归：前端28／后端60。新增test_seed_resources.py覆盖完整数据、样本来源、预检不部分替换、清理保护、级联与幂等；test_client_leases.py验证租约，test_maintenance.py验证完整备份／密钥与并发初始化，test_gateway.py验证跨进程限流和兼容流式回退，test_api.py验证事务、完整题库与执行流程。前端actions.test.ts覆盖旧缓存与请求禁用缓存。
 
 - 前端：
   - `domain/*.test.ts`：草稿的检查和参与方的选择规则、任务状态和显示用的计算、数据集文件检查；
@@ -190,6 +190,12 @@ bash deploy/deploy.sh
   - T70任务候选仅显示在线且有兼容、就绪题库的参与方，移除状态列；空态与最低参与方校验保留。任务页总宽900px、左栏600px／摘要280px／间距20px；摘要下移后单栏仍最多600px，手机边距16px。可用性夹具只改浏览器响应，验证失效草稿不计入、无可用项禁止创建；T71允许点击开始定位错误，但不发送创建请求。
 
 T71配置反馈：草稿静默保存／恢复，恢复和复制无顶部Notice，创建错误放开始旁；重置在摘要标题右侧（窄屏同排），页面取消移除，确认中的取消保留。尝试开始后错误原位显示并定位，修正后清除；260ms反馈仅由用户触发，减少动态不播放。开始按钮只在校验中／创建中disabled，data-ready表示实际可创建，自动回归必须等data-ready=true再创建，不能只判断:not(:disabled)。后端校验／create guard保留，回归见task-form.mjs。
+
+T72数学数据：八份原审计题库随仓库保存，共300题；来源／原始哈希见[MATH-DATA](./MATH-DATA.md)与清单。已有库运行`fedagent datasets import-fot-bundle <原包或解压目录>`，先检查八份齐全与题数／格式再统一导入；样本来自真实首条。`fedagent resources remove-demo`仅清理旧空合作方与机构占位文案，实际数据或任务引用存在时拒绝；任务／应用删除用正常API，不删模型接口或调用账本。生产库不保留示例资源，本地客户端测试用浏览器响应夹具。真实验证需显式`REAL_MODEL_VERIFY=1`，不可放入普通UI自动检查。
+
+部署SSH使用`IPQoS=none`并继续可选`SSH_CONTROL_PATH=none`。T72在密钥认证后命令会话超时，数据快照已完成，但服务未启动；使用前者手动`bash ~/fedagent-studio/serve.sh`恢复。发生超时时先检查健康与状态，不能把客户端超时说成部署成功，也不要重复停服覆盖数据。八份数据保存在代码与规范化存储中，旧哈希文件和历史费用账本保留。
+
+第二算法候选EvoMedClaw的固定源码、医疗输入格式、模型与步骤适配以及纵向缺口见[调研](./EVOMEDCLAW.md)。本次尚未登记平台插件，不能把mock验证或异构会诊当成已完成的纵向联邦。
 
 ## 提交约定
 

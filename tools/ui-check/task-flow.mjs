@@ -23,7 +23,7 @@ try{
  check('新组件选模型与真实后端配置校验接通',await evaluate(send,"document.querySelector('input[name=client-model]').value==='fake:fake'&&document.querySelector('input[name=server-model]').value==='fake:fake'"));
  await shot('configured');await click('创建并试跑');await until("location.hash.includes('/tasks/task-')");taskId=await evaluate(send,"location.hash.split('/')[2]");
  let task;for(let i=0;i<100;i++){task=await read('v1/tasks/'+taskId);assert.notEqual(task.status,'paused',task.error);if(task.status==='completed')break;await sleep(300)}
- check('真实本地 runner 完成两轮假模型任务',task.status==='completed'&&task.config.rounds===2&&task.fake&&task.config.participants.length===2);
+ check('真实本地 runner 完成两轮假模型任务',task.status==='completed'&&task.config.rounds===2&&task.fake&&task.config.participants.length===8);
  await open(send,base+'#/tasks/'+taskId+'/output');await click('发布为应用');await set('publish-name','配置流程验证应用（本地假模型）');await click('发布');
  await until("[...document.querySelectorAll('a')].some(e=>e.textContent==='立即试用')");await click('立即试用');await until("Boolean(document.getElementById('try-question'))");appId=await evaluate(send,"location.hash.split('/')[2]");
  if(await evaluate(send,"Boolean(document.querySelector('[data-select-name=model]'))"))await evaluate(send,SELECT('model','fake:fake'));
