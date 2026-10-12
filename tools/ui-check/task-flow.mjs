@@ -19,7 +19,7 @@ try{
  await viewport(send,{width:1280,height:900});await open(send,base+'#/tasks/new/horizontal');
  await evaluate(send,NEW_TASK_ALL);await evaluate(send,SELECT('rounds','2'));await set('trial-cap','1');await set('task-name','配置流程验证（本地假模型）');
  await evaluate(send,SELECT('client-model','fake:fake'));await evaluate(send,SELECT('server-model','fake:fake'));
- await until("Boolean(document.querySelector('.summary-start:not(:disabled)'))");
+ await until("Boolean(document.querySelector('.summary-start[data-ready=true]:not(:disabled)'))");
  check('新组件选模型与真实后端配置校验接通',await evaluate(send,"document.querySelector('input[name=client-model]').value==='fake:fake'&&document.querySelector('input[name=server-model]').value==='fake:fake'"));
  await shot('configured');await click('创建并试跑');await until("location.hash.includes('/tasks/task-')");taskId=await evaluate(send,"location.hash.split('/')[2]");
  let task;for(let i=0;i<100;i++){task=await read('v1/tasks/'+taskId);assert.notEqual(task.status,'paused',task.error);if(task.status==='completed')break;await sleep(300)}

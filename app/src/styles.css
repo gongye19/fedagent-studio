@@ -465,7 +465,10 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 .order-main { display: grid; gap: var(--space-4); min-width: 0; }
 /* 任务配置保持适合阅读的宽度，避免宽屏把单个控件无限拉长。 */
 .page:has(.task-config) { width: min(900px, calc(100% - 48px)); }
-.task-config-actions { display: flex; justify-content: flex-end; padding-top: var(--space-2); }
+/* 校验定位先完整展开错误区域，避免折叠高度过渡使滚动目标漂移。 */
+.task-config details:has(.field-error)::details-content { transition: none; }
+.task-config .task-section-error { grid-column: 1 / -1; padding: 12px 20px; }
+.task-config [aria-invalid="true"] { outline: 1px solid var(--danger-text); outline-offset: 2px; border-radius: var(--radius); }
 
 /* ——— 控制台面板 ——— */
 .panel { min-width: 0; background: var(--background); border: 1px solid var(--border); border-radius: var(--radius); }
@@ -704,6 +707,8 @@ a.algo-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 
 
 .order-summary > .summary-panel { position: sticky; top: var(--space-4); }
+.summary-panel .panel-head { flex-wrap: nowrap; }
+.summary-panel .panel-head .panel-actions { flex-basis: auto; margin-left: auto; }
 .summary-panel .panel-body { padding-top: var(--space-3); display: grid; gap: var(--space-4); }
 .summary-list { display: grid; gap: var(--space-2); }
 .summary-list div { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: var(--space-3); align-items: baseline; font-size: var(--text-sm); }
@@ -711,6 +716,8 @@ a.algo-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .summary-list dd { min-width: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .summary-estimate { padding-top: var(--space-4); display: grid; gap: var(--space-2); border-top: 1px solid var(--border); }
 .summary-estimate h3 { font-size: var(--text-md); line-height: 1.4; }
+.order-bar-error:empty { display: none; }
+.order-bar-error { color: var(--warning-text); font-size: var(--text-xs); max-width: 280px; }
 .summary-actions { display: grid; gap: var(--space-2); }
 .summary-issues { color: var(--warning-text); font-size: var(--text-xs); }
 /* 没有缺项时不占位置，但区域一直在，缺项变化时读屏软件能播报 */
@@ -933,9 +940,8 @@ a.algo-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
   }
   .order-bar strong { display: block; font-size: var(--text-sm); }
   .order-bar small { display: block; color: var(--muted); }
-  .order-bar .order-bar-issue { color: var(--warning-text); }
   .order-summary .button--block { display: none; }
-  .order-bar-actions { display: flex; gap: var(--space-2); }
+  .order-bar-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-2); }
 }
 
 /* ——— 平板（≤1100）：任务详情的两栏内容改为上下排 ——— */
@@ -1021,11 +1027,6 @@ a.algo-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
   .table--numbers th, .table--numbers td { padding-inline: 10px; }
   .table--numbers th:first-child, .table--numbers td:first-child { padding-left: var(--space-3); }
   .table--numbers th:last-child, .table--numbers td:last-child { padding-right: var(--space-3); }
-}
-
-/* 很窄的手机：底部栏只留主操作，"取消"用页面顶部的面包屑返回 */
-@media (max-width: 480px) {
-  .order-bar-cancel { display: none; }
 }
 
 /* 触屏：点击目标至少 44px */

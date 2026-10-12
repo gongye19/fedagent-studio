@@ -2,7 +2,7 @@ import { SelectField } from "./SelectField";
 import { ModelPicker } from "./ModelPicker";
 import { InfoTip } from "./InfoTip";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useId, useRef, useState, type Dispatch, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type Dispatch, type MouseEvent } from "react";
 import { api, ApiError, type TaskConfigIn } from "../api/client";
 import {
   algorithmOf,
@@ -42,10 +42,10 @@ import {
   type Participant,
 } from "../domain/resources";
 import { createTask, taskRequest } from "../state/actions";
-import { flashFor, showFlash } from "../state/flash";
+import { showFlash } from "../state/flash";
 import { hrefOf, navigate, type Route } from "../state/route";
 import { datasetsOf, participantOf, type Action, type State } from "../state/store";
-import { Collapsible, Confirm, Meta, Notice, PageHead, PanelEmpty, Tag } from "./common";
+import { Collapsible, Confirm, Meta, PageHead, PanelEmpty, Tag } from "./common";
 import { Choices, Field, FieldGroup, Panel, UnitInput } from "./console";
 import { formatDuration, formatNumber, formatTokens, formatYuan } from "./format";
 import { useDebounced } from "./hooks";
@@ -62,8 +62,7 @@ const NEW_PARTICIPANT: Route = { page: "newParticipant", from: "newTask" };
 const NEW_DATASET: Route = { page: "newDataset", from: "newTask" };
 const endpointRoute = (id: string): Route => ({ page: "editEndpoint", id, from: "newTask" });
 
-type Restored = { kind: "copy"; source: string } | { kind: "draft" } | null;
-type Pending = "full" | "leave" | "restart" | null;
+type Pending = "full" | "restart" | null;
 
 /**
  * 新建横向联邦任务：按云平台"创建实例"的方式，分区块配置，右侧是配置摘要和预估。
@@ -78,13 +77,8 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
   const resetOnOpen = useRef(!draft.touched);
   const [openedAt] = useState(() => new Date());
   const [pending, setPending] = useState<Pending>(null);
-  const issuesId = useId();
-  // 打开时草稿里已经有用户的内容：要么是上次没填完，要么是从任务"复制为新任务"带过来的。
-  // 从新增参与方、配置接口回来时顶部已经有结果提示，不再重复提示"已恢复"。
-  const [restored, setRestored] = useState<Restored>(() => {
-    if (!draft.touched || flashFor({ page: "newTask", scenario: SCENARIO })) return null;
-    return draft.name?.endsWith("（副本）") ? { kind: "copy", source: draft.name.slice(0, -"（副本）".length) } : { kind: "draft" };
-  });
+  const [attempted, setAttempted] = useState(false);
+  const formRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!resetOnOpen.current) return;
@@ -128,8 +122,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
   const issues: Issue[] = [...localIssues, ...serverIssues.map((issue) => issue as Issue).filter((issue) => !localIssues.some((item) => item.message === issue.message))];
   const result: Estimate | null = joined.length && requestCurrent && !check.error ? check.data?.estimate ?? null : null;
   const canCreate = !issues.length && !validationPending && !validationError && Boolean(result);
-  const statusText = issues.length ? `还需要：${issues.map((issue) => issue.message).join("；")}`
-    : validationError ? `检查失败：${validationError}` : validationPending ? "正在检查配置和预估用量…" : "";
+  const fieldError = (field: Issue["field"]) => attempted ? issues.filter((issue) => issue.field === field).map((issue) => issue.message).join("；") || undefined : undefined;
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const full = draft.mode === "full";
@@ -158,27 +151,36 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
   function restart() {
     dispatch({ type: "resetDraft" });
     setPending(null);
-    setRestored(null);
+    setAttempted(false);
     setCreateError(null);
     dispatch({ type: "chooseScenario", scenario: SCENARIO, auto: true });
   }
 
-  function leave() {
-    dispatch({ type: "resetDraft" });
-    navigate(back);
-  }
-
-  /** 正式运行调用量大，先确认一次；试跑直接开始。 */
-  function start() {
-    if (!canCreate || creating) return;
+  /** 缺项在尝试开始时原位提示；最终创建仍以服务端校验为准。 */
+  function start(event: MouseEvent<HTMLButtonElement>) {
+    if (creating || validationPending) return;
+    if (!canCreate) {
+      setAttempted(true);
+      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (!reduced) {
+        event.currentTarget.getAnimations().forEach((animation) => animation.cancel());
+        event.currentTarget.animate([{ transform: "translateX(0)" }, { transform: "translateX(-4px)" }, { transform: "translateX(4px)" }, { transform: "translateX(-2px)" }, { transform: "translateX(0)" }], { duration: 260, easing: "ease-out" });
+      }
+      requestAnimationFrame(() => {
+        const error = formRef.current?.querySelector<HTMLElement>(".field-error");
+        const region = error?.closest(".field, section, details");
+        const disclosure = error?.closest("details");
+        if (disclosure) disclosure.open = true;
+        if (!region || !error) return;
+        error.scrollIntoView({ block: "center", behavior: reduced ? "instant" : "smooth" });
+        const control = region.matches("details") || error.id === "models-error" ? null : region.querySelector<HTMLElement>('input:not(:disabled):not([type="hidden"]), button[role="radio"]:not(:disabled), [role="combobox"]:not(:disabled)') ?? region.querySelector<HTMLElement>('button:not(:disabled):not(.info-tip-trigger), a');
+        if (control) control.focus({ preventScroll: true });
+        else { error.tabIndex = -1; error.focus({ preventScroll: true }); }
+      });
+      return;
+    }
     if (full) { setCreateError(null); setPending("full"); }
     else void create();
-  }
-
-  /** 动过的草稿要确认才放弃；没动过的直接离开。 */
-  function cancel() {
-    if (draft.touched) setPending("leave");
-    else navigate(back);
   }
 
   const startLabel = full ? "创建并正式运行" : "创建并试跑";
@@ -199,37 +201,21 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
       tone: "primary" as const,
       onConfirm: create,
     }
-    : pending === "leave"
+    : pending === "restart"
       ? {
-        title: "放弃这次的配置？",
-        text: "已选的参与方和设置都会清空。",
-        confirmLabel: "放弃",
+        title: "重置这次的配置？",
+        text: "任务名称、已选的任务类型、算法、参与方和设置都会恢复到初始状态。",
+        confirmLabel: "重置",
         cancelLabel: "继续编辑",
         tone: "danger" as const,
-        onConfirm: leave,
+        onConfirm: restart,
       }
-      : pending === "restart"
-        ? {
-          title: "重置这次的配置？",
-          text: "任务名称、已选的任务类型、算法、参与方和设置都会恢复到初始状态。",
-          confirmLabel: "重置",
-          cancelLabel: "继续编辑",
-          tone: "danger" as const,
-          onConfirm: restart,
-        }
-        : null;
+      : null;
 
   return (
     <>
       <PageHead title="新建横向联邦任务" crumbs={[{ label: "联邦任务", route: back }]} />
-      {createError && pending !== "full" ? <Notice tone="warning" onDismiss={() => setCreateError(null)}>没有创建：{createError}</Notice> : null}
-      {restored && draft.scenario ? (
-        <Notice onDismiss={() => setRestored(null)}>
-          {restored.kind === "copy" ? `已带入“${restored.source}”的配置。` : "已恢复上次没填完的配置。"}
-        </Notice>
-      ) : null}
-
-      <div className="order-layout task-config">
+      <div className="order-layout task-config" ref={formRef}>
         <div className="order-main">
           <Panel title="任务配置" id="scenario" step={1}>
             <div className="form-body">
@@ -237,8 +223,8 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
                 <Field label="任务名称" htmlFor="task-name" wide>
                   <input id="task-name" name="task-name" autoComplete="off" value={draft.name ?? autoName} placeholder={autoName} maxLength={60} onChange={(event) => update({ name: event.target.value })} />
                 </Field>
-                <TaskTypeChoice scenario={SCENARIO} value={draft.taskType} onChange={(taskType) => dispatch({ type: "chooseTaskType", taskType })} />
-                <AlgorithmField scenario={SCENARIO} taskType={draft.taskType} value={draft.algorithm} onChange={(id) => dispatch({ type: "chooseAlgorithm", algorithm: id })} />
+                <TaskTypeChoice error={fieldError("taskType") ?? fieldError("scenario")} scenario={SCENARIO} value={draft.taskType} onChange={(taskType) => dispatch({ type: "chooseTaskType", taskType })} />
+                <AlgorithmField error={fieldError("algorithm")} scenario={SCENARIO} taskType={draft.taskType} value={draft.algorithm} onChange={(id) => dispatch({ type: "chooseAlgorithm", algorithm: id })} />
               </FieldGroup>
             </div>
           </Panel>
@@ -259,26 +245,22 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
             {!algorithm || !scenarioId || !taskType ? (
               <PanelEmpty>请先选择任务类型和算法，再勾选参与方及其数据集。</PanelEmpty>
             ) : candidates.length ? (
-              <ParticipantTable draft={draft} dispatch={dispatch} candidates={candidates} />
+              <ParticipantTable error={fieldError("participants")} draft={draft} dispatch={dispatch} candidates={candidates} />
             ) : (
               <PanelEmpty>暂无可用于“{usageText(scenarioId, taskType)}”的参与方。</PanelEmpty>
             )}
+            <InlineError id="participants-error" message={fieldError("participants")} />
           </Panel>
 
           <Panel title="运行配置" id="settings" step={3}>
-            <RunSettings state={state} draft={draft} update={update} algorithm={algorithm} />
+            <RunSettings state={state} draft={draft} update={update} algorithm={algorithm} roundsError={fieldError("rounds")} modelsError={fieldError("models")} />
           </Panel>
 
-          <AdvancedPanel state={state} draft={draft} update={update} algorithm={algorithm} joined={joined.map((item) => item.participantId)} />
-          <div className="task-config-actions">
-            <button type="button" className="button button--secondary" disabled={!draft.touched || creating} onClick={() => setPending("restart")}>
-              重置配置
-            </button>
-          </div>
+          <AdvancedPanel state={state} draft={draft} update={update} algorithm={algorithm} joined={joined.map((item) => item.participantId)} error={fieldError("params")} />
         </div>
 
         <aside className="order-summary" aria-label="配置摘要" id="task-summary">
-          <Panel title="配置摘要" className="summary-panel">
+          <Panel title="配置摘要" className="summary-panel" actions={<button type="button" className="button button--ghost button--compact summary-reset" disabled={!draft.touched || creating} onClick={() => setPending("restart")}>重置配置</button>}>
             <dl className="summary-list">
               <div><dt>场景</dt><dd>{draft.scenario ? scenarioOf(draft.scenario).short : "—"}</dd></div>
               <div><dt>任务类型</dt><dd>{draft.taskType ? TASK_TYPES[draft.taskType].label : "—"}</dd></div>
@@ -291,11 +273,10 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
             </dl>
             {result ? <EstimateBlock result={result} priceHref={hrefOf(endpointRoute(priceEndpoint))} /> : null}
             <div className="summary-actions">
-              <button type="button" className="button button--primary button--block summary-start" disabled={!canCreate || creating} aria-describedby={statusText ? issuesId : undefined} onClick={start}>{creating ? "正在创建…" : startLabel}</button>
-              <button type="button" className="button button--ghost button--block" disabled={creating} onClick={cancel}>取消</button>
+              <button type="button" className="button button--primary button--block summary-start" disabled={creating || validationPending} data-ready={canCreate} aria-describedby="task-action-status" onClick={start}>{creating ? "正在创建…" : startLabel}</button>
+              <p className="summary-issues" id="task-action-status" aria-live="polite">{validationPending ? "正在检查配置…" : validationError || (pending !== "full" ? createError : null)}</p>
+              {validationError ? <button type="button" className="link-button" onClick={() => void check.refetch()}>重新检查</button> : null}
             </div>
-            <p className="summary-issues" id={issuesId} aria-live="polite">{statusText}</p>
-            {validationError ? <button type="button" className="link-button" onClick={() => void check.refetch()}>重新检查</button> : null}
           </Panel>
         </aside>
       </div>
@@ -307,45 +288,50 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
       ) : null}
       <div className="order-bar" aria-label="创建任务">
         <div>
-          <strong className={issues.length || validationError ? "order-bar-issue" : undefined}>{statusText || `${joined.length} 个参与方 · 至少 ${formatNumber((result?.participantCalls ?? 0) + (result?.serverCalls ?? 0))} 次调用`}</strong>
+          <strong>{validationPending ? "正在检查配置…" : result && !issues.length ? `${joined.length} 个参与方 · 至少 ${formatNumber(result.participantCalls + result.serverCalls)} 次调用` : ""}</strong>
           {result && !issues.length ? <small>{formatDuration(result.seconds)}</small> : null}
         </div>
         <div className="order-bar-actions">
-          <button type="button" className="button button--ghost order-bar-cancel" disabled={creating} onClick={cancel}>取消</button>
-          <button type="button" className="button button--primary" disabled={!canCreate || creating} onClick={start}>{creating ? "正在创建…" : startLabel}</button>
+          <p className="order-bar-error" role="alert">{validationError || (pending !== "full" ? createError : null)}</p>
+          <button type="button" className="button button--primary" disabled={creating || validationPending} data-ready={canCreate} aria-describedby="task-action-status" onClick={start}>{creating ? "正在创建…" : startLabel}</button>
         </div>
       </div>
     </>
   );
 }
 
+/** 表格错误留在对应面板内，供键盘和读屏定位。 */
+function InlineError({ id, message }: { id: string; message?: string }) {
+  return message ? <p className="field-error task-section-error" id={id} role="alert"><Icon name="alert" />{message}</p> : null;
+}
+
 /** 任务类型：列出这个场景里有算法能处理的类型，由用户选；指标跟着任务类型走。最后留一个"待接入"的空位。 */
-function TaskTypeChoice({ scenario, value, onChange }: { scenario: ScenarioId; value: TaskType | null; onChange: (type: TaskType) => void }) {
+function TaskTypeChoice({ scenario, value, onChange, error }: { error?: string; scenario: ScenarioId; value: TaskType | null; onChange: (type: TaskType) => void }) {
   const types = taskTypesFor(scenario);
   return (
-    <Field label="任务类型" labelId="task-type-label" wide info="任务类型决定数据格式、评估指标，以及可选择的算法与参与方数据。">
+    <Field label="任务类型" labelId="task-type-label" wide error={error} info="任务类型决定数据格式、评估指标，以及可选择的算法与参与方数据。">
       {types.length ? (
-        <Choices labelledBy="task-type-label" value={value} options={types.map((type) => ({ value: type, label: TASK_TYPES[type].label }))} placeholder="更多类型" onChange={onChange} />
+        <Choices error={error} labelledBy="task-type-label" value={value} options={types.map((type) => ({ value: type, label: TASK_TYPES[type].label }))} placeholder="更多类型" onChange={onChange} />
       ) : <p className="field-static">这个场景还没有可用的任务类型。</p>}
     </Field>
   );
 }
 
 /** 算法按注册表列出；短名称供选择，说明、交换内容与产出通过 ⓘ 查看。 */
-function AlgorithmField({ scenario, taskType, value, onChange }: { scenario: ScenarioId; taskType: TaskType | null; value: Draft["algorithm"]; onChange: (id: Algorithm["id"]) => void }) {
+function AlgorithmField({ scenario, taskType, value, onChange, error }: { error?: string; scenario: ScenarioId; taskType: TaskType | null; value: Draft["algorithm"]; onChange: (id: Algorithm["id"]) => void }) {
   const algorithms = algorithmsFor(scenario, taskType);
   return (
-    <Field label="算法" labelId="algorithm-label" wide>
+    <Field label="算法" labelId="algorithm-label" wide error={error}>
       {!taskType ? <p className="field-static" id="algorithm-prerequisite">请先选择任务类型</p> : null}
-      {algorithms.length ? <AlgorithmTable algorithms={algorithms} value={value} onChange={onChange} disabled={!taskType} /> : <p className="field-static">这种任务类型在这个场景下还没有算法。</p>}
+      {algorithms.length ? <AlgorithmTable error={error} algorithms={algorithms} value={value} onChange={onChange} disabled={!taskType} /> : <p className="field-static">这种任务类型在这个场景下还没有算法。</p>}
     </Field>
   );
 }
 
 /** 算法短名称等宽选择，详细说明通过独立 ⓘ 浮层查看。 */
-function AlgorithmTable({ algorithms, value, onChange, disabled }: { algorithms: readonly Algorithm[]; value: Draft["algorithm"]; onChange: (id: Algorithm["id"]) => void; disabled: boolean }) {
+function AlgorithmTable({ algorithms, value, onChange, disabled, error }: { error?: string; algorithms: readonly Algorithm[]; value: Draft["algorithm"]; onChange: (id: Algorithm["id"]) => void; disabled: boolean }) {
   return (
-    <div className="algorithm-options" role="radiogroup" aria-labelledby="algorithm-label">
+    <div className="algorithm-options" role="radiogroup" aria-labelledby="algorithm-label" aria-invalid={Boolean(error)} aria-describedby={error ? "algorithm-label-error" : undefined}>
       {algorithms.map((item) => (
         <div key={item.id} className={`algorithm-choice${value === item.id ? " algorithm-choice--checked" : ""}${disabled ? " algorithm-choice--disabled" : ""}`}>
           <label className="algorithm-choice-main" htmlFor={`algorithm-${item.id}`}>
@@ -382,7 +368,7 @@ type Candidate = { participant: Participant; datasets: Dataset[] };
  * 参与方：带复选框的表格，一行一个参与方，表头可以全选。每个参与方出一份数据集，
  * 只展示在线且有匹配、已就绪数据集的参与方，多份可用数据集在行内选择。
  */
-function ParticipantTable({ draft, dispatch, candidates }: { draft: Draft; dispatch: Dispatch<Action>; candidates: readonly Candidate[] }) {
+function ParticipantTable({ draft, dispatch, candidates, error }: { error?: string; draft: Draft; dispatch: Dispatch<Action>; candidates: readonly Candidate[] }) {
   const head = useRef<HTMLInputElement>(null);
   const picks = new Map(draft.participants.map((item) => [item.participantId, item.datasetId]));
   const open = candidates.map(({ participant, datasets }) => ({ participant, ready: datasets, picked: datasets.find((dataset) => dataset.id === picks.get(participant.id)) }));
@@ -403,12 +389,12 @@ function ParticipantTable({ draft, dispatch, candidates }: { draft: Draft; dispa
 
   return (
     <div className="table-shell">
-      <table className="table table--select">
+      <table className="table table--select" aria-describedby={error ? "participants-error" : undefined}>
         <caption className="visually-hidden">选择参加任务的参与方</caption>
         <thead>
           <tr>
             <th scope="col" className="select-cell">
-              <input ref={head} type="checkbox" aria-label="全选" checked={all} disabled={!open.length} onChange={selectAll} />
+              <input ref={head} type="checkbox" aria-label="全选" aria-invalid={Boolean(error)} aria-describedby={error ? "participants-error" : undefined} checked={all} disabled={!open.length} onChange={selectAll} />
             </th>
             <th scope="col">参与方</th>
             {/* 手机上也要看得到、选得了数据集，收起的是样本数和运行位置 */}
@@ -464,8 +450,10 @@ function serverUsesModel(algorithm: Algorithm): boolean {
 }
 
 function RunSettings({
-  state, draft, update, algorithm,
+  state, draft, update, algorithm, roundsError, modelsError,
 }: {
+  roundsError?: string;
+  modelsError?: string;
   state: State;
   draft: Draft;
   update: (patch: Partial<Draft>) => void;
@@ -483,35 +471,36 @@ function RunSettings({
         <Field label="试跑样本数" htmlFor="trial-cap" info="每份数据集使用的样本上限，仅影响试跑。">
           <UnitInput id="trial-cap" unit="条 / 数据集" name="trial-cap" type="number" inputMode="numeric" autoComplete="off" min={1} max={50} value={draft.mode === "trial" ? draft.trialCap : ""} disabled={draft.mode !== "trial"} placeholder="全部样本" onChange={(event) => update({ trialCap: clampInt(event.target.value, 1, 50, draft.trialCap) })} />
         </Field>
-        <Field label="轮次" htmlFor={algorithm ? undefined : "rounds-pending"} labelId="rounds-label" wide info={algorithm ? `第 1 轮各方单独作答，作为本地基线；之后每轮都带上上一轮的${algorithm.output.name}再作答。` : undefined}>
-          {algorithm ? <Choices name="rounds" labelledBy="rounds-label" value={draft.rounds} options={rounds.map((value) => ({ value, label: `${value} 轮` }))} onChange={(value) => update({ rounds: value })} /> : (
+        <Field label="轮次" error={roundsError} htmlFor={algorithm ? undefined : "rounds-pending"} labelId="rounds-label" wide info={algorithm ? `第 1 轮各方单独作答，作为本地基线；之后每轮都带上上一轮的${algorithm.output.name}再作答。` : undefined}>
+          {algorithm ? <Choices error={roundsError} name="rounds" labelledBy="rounds-label" value={draft.rounds} options={rounds.map((value) => ({ value, label: `${value} 轮` }))} onChange={(value) => update({ rounds: value })} /> : (
             <SelectField id="rounds-pending" disabled value=""><option value="">请先选择算法</option></SelectField>
           )}
         </Field>
         {options.length === 1 ? (
-          <ModelField state={state} />
+          <ModelField state={state} error={modelsError} />
         ) : (
           <>
             <Field label="参与方模型" htmlFor="client-model">
-              <ModelPicker id="client-model" name="client-model" value={draft.clientModel} onValueChange={(value) => update({ clientModel: value })} options={options} endpoints={state.endpoints} />
+              <ModelPicker aria-describedby={modelsError ? "models-error" : undefined} id="client-model" name="client-model" value={draft.clientModel} onValueChange={(value) => update({ clientModel: value })} options={options} endpoints={state.endpoints} />
             </Field>
             {!algorithm || serverUsesModel(algorithm) ? (
               <Field label="服务端模型" htmlFor="server-model" info="服务端每轮要读完各方上传的内容，需要长上下文的模型。">
-                <ModelPicker id="server-model" name="server-model" value={draft.serverModel} onValueChange={(value) => update({ serverModel: value })} options={options} endpoints={state.endpoints} />
+                <ModelPicker aria-describedby={modelsError ? "models-error" : undefined} id="server-model" name="server-model" value={draft.serverModel} onValueChange={(value) => update({ serverModel: value })} options={options} endpoints={state.endpoints} />
               </Field>
             ) : null}
           </>
         )}
       </FieldGroup>
+      {options.length !== 1 ? <InlineError id="models-error" message={modelsError} /> : null}
     </div>
   );
 }
 
 /** 只有一个模型可用时不做成下拉：参与方和服务端都用它；接口还没配置时给出去配置的入口。 */
-function ModelField({ state }: { state: State }) {
+function ModelField({ state, error }: { state: State; error?: string }) {
   const endpoint = state.endpoints.find((item) => item.id === DEFAULT_ENDPOINT_ID);
   return (
-    <Field label="模型" wide>
+    <Field label="模型" wide labelId="model-label" error={error}>
       <p className="field-static">
         <span>{modelLabel(DEFAULT_MODEL, state.endpoints)}</span>
         {endpoint && !isConfigured(endpoint) ? <a className="text-link" href={hrefOf(endpointRoute(endpoint.id))}>去配置</a> : null}
@@ -524,8 +513,9 @@ const GENERAL_KEYS = ["seed", "workers"] as const;
 
 /** 高级配置默认收起：算法参数按注册表生成，另有几项通用设置。 */
 function AdvancedPanel({
-  state, draft, update, algorithm, joined,
+  state, draft, update, algorithm, joined, error,
 }: {
+  error?: string;
   state: State;
   draft: Draft;
   update: (patch: Partial<Draft>) => void;
@@ -549,6 +539,7 @@ function AdvancedPanel({
           {algorithm ? algorithm.params.map((def) => (
             <ParamField key={def.key} def={def} params={draft.params} onChange={(value) => update({ params: { ...draft.params, [def.key]: value } })} />
           )) : <p className="field-static">请先选择算法</p>}
+          <InlineError id="params-error" message={error} />
         </FieldGroup>
         <FieldGroup title="通用">
           <Field label="并发数" htmlFor="workers" info="同时发出的模型调用数，所有参与方共用。">

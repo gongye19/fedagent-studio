@@ -81,7 +81,7 @@ export function Field({
         {info ? <InfoTip label={typeof label === "string" ? label : "字段"}>{info}</InfoTip> : null}
       </div>
       <div className="field-control">{children}</div>
-      {error ? <p className="field-error" id={htmlFor ? `${htmlFor}-error` : undefined}><Icon name="alert" />{error}</p> : null}
+      {error ? <p className="field-error" role="alert" id={htmlFor || labelId ? `${htmlFor ?? labelId}-error` : undefined}><Icon name="alert" />{error}</p> : null}
     </div>
   );
 }
@@ -105,8 +105,9 @@ export type Choice<T> = { value: T; label: ReactNode; disabled?: boolean; badge?
  * placeholder 在最后留一个"待接入"的空位（虚线框、不能选），表示之后还会接入别的选项。
  */
 export function Choices<T extends string | number>({
-  value, options, onChange, labelledBy, label, placeholder, name,
+  value, options, onChange, labelledBy, label, placeholder, name, error,
 }: {
+  error?: string;
   value: T | null;
   options: readonly Choice<T>[];
   onChange: (value: T) => void;
@@ -134,7 +135,7 @@ export function Choices<T extends string | number>({
   // 少量互斥选项适合直接比较；超过三项收进既有菜单，保留原值类型与业务回调。
   if (options.length > 3) {
     return (
-      <SelectField name={name} aria-labelledby={labelledBy} aria-label={labelledBy ? undefined : label}
+      <SelectField name={name} aria-invalid={Boolean(error)} aria-describedby={error && labelledBy ? `${labelledBy}-error` : undefined} aria-labelledby={labelledBy} aria-label={labelledBy ? undefined : label}
         value={value ?? ""} onValueChange={(next) => {
           const option = options.find((item) => String(item.value) === next);
           if (option && !option.disabled) onChange(option.value);
@@ -146,7 +147,7 @@ export function Choices<T extends string | number>({
     );
   }
   return (
-    <div className={`choices${badged ? " choices--badged" : ""}`} role="radiogroup" aria-labelledby={labelledBy} aria-label={labelledBy ? undefined : label}>
+    <div className={`choices${badged ? " choices--badged" : ""}`} role="radiogroup" aria-invalid={Boolean(error)} aria-describedby={error && labelledBy ? `${labelledBy}-error` : undefined} aria-labelledby={labelledBy} aria-label={labelledBy ? undefined : label}>
       {options.map((option, index) => {
         const checked = option.value === value;
         return (

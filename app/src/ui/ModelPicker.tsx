@@ -11,6 +11,8 @@ type Props = {
   id?: string;
   name?: string;
   "aria-label"?: string;
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
   value: string;
   onValueChange: (value: string) => void;
   options: readonly { ref: string; label: string }[];
@@ -19,7 +21,7 @@ type Props = {
 };
 
 /** 模型多时使用 AI Elements；仅展示平台已登记的选项，不添加示例供应商。 */
-export function ModelPicker({ id, name, value, onValueChange, options, endpoints, disabled, "aria-label": ariaLabel }: Props) {
+export function ModelPicker({ id, name, value, onValueChange, options, endpoints, disabled, "aria-label": ariaLabel, "aria-invalid": invalid, "aria-describedby": describedBy }: Props) {
   const [open, setOpen] = useState(false);
   const search = useRef<HTMLInputElement>(null);
   const groups = endpoints.map((endpoint) => ({
@@ -31,7 +33,7 @@ export function ModelPicker({ id, name, value, onValueChange, options, endpoints
     <ModelSelector open={open && !disabled} onOpenChange={setOpen}>
       {name ? <input type="hidden" name={name} value={value} disabled={disabled} /> : null}
       <ModelSelectorTrigger asChild>
-        <button type="button" id={id} aria-label={label} disabled={disabled} title={title} className="select-trigger model-picker-trigger" data-model-name={name}>
+        <button type="button" id={id} aria-invalid={invalid} aria-describedby={describedBy} aria-label={label} disabled={disabled} title={title} className="select-trigger model-picker-trigger" data-model-name={name}>
           <ModelSelectorName>{title}</ModelSelectorName><span className="select-chevron"><Icon name="chevron" /></span>
         </button>
       </ModelSelectorTrigger>

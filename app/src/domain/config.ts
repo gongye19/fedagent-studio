@@ -43,7 +43,7 @@ export type Draft = Omit<TaskConfig, "scenario" | "taskType" | "algorithm"> & {
   scenario: ScenarioId | null;
   taskType: TaskType | null;
   algorithm: AlgorithmId | null;
-  /** 用户动过这份草稿（从场景入口带进来的场景不算）。只有动过的草稿，再打开时才提示"已恢复"。 */
+  /** 用户动过这份草稿（从场景入口带进来的场景不算）。只有动过的草稿，再打开时才保留配置；静默恢复。 */
   touched: boolean;
 };
 
@@ -78,7 +78,7 @@ export function withDefaults(draft: Partial<Draft>): Draft {
 /** 后端的调用量预估：服务端调用模型的步骤每轮各一次（结果不合法时会重试，所以是下限）；用到的接口都设置了单价才估算费用，单位：元。 */
 export type Estimate = components["schemas"]["EstimateOut"];
 
-export type Issue = { field: "scenario" | "taskType" | "algorithm" | "participants" | "models" | "rounds"; message: string };
+export type Issue = { field: "scenario" | "taskType" | "algorithm" | "participants" | "models" | "rounds" | "params"; message: string };
 
 /** 草稿能否创建任务；返回全部未满足的条件，按页面顺序排列。 */
 export function draftIssues(

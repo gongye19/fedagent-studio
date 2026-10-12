@@ -23,7 +23,7 @@ try{
   const touch=width===390;await viewport(send,{width,height:touch?844:900,mobile:touch});await open(send,base+'#/tasks/new/horizontal');
   check('首次打开固定区域齐全且未替用户选 '+width,await evaluate(send,"document.querySelector('.task-config')&&document.getElementById('rounds-pending').disabled&&document.getElementById('trial-cap')&&!document.querySelector('input[name=algorithm]:checked')&&document.querySelectorAll('button[role=radio][aria-checked=true]').length===1&&document.querySelector('main').textContent.includes('参与方')"));
   check('名称并入配置且只有三个固定分区 '+width,await evaluate(send,"!document.getElementById('basic')&&document.getElementById('task-name').closest('section').id==='scenario'&&document.querySelectorAll('.order-main > section.panel').length===3"));
-  check('重置在配置下方且页头无配置操作 '+width,await evaluate(send,"document.querySelector('.task-config-actions button').textContent.trim()==='重置配置'&&document.querySelector('.task-config-actions button').disabled&&!document.querySelector('.page-actions')&&document.querySelector('details.module').nextElementSibling.classList.contains('task-config-actions')"));
+  check('重置紧邻摘要且无页头操作及页面取消 '+width,await evaluate(send,"document.querySelector('.summary-reset').closest('.panel-head').querySelector('h2').textContent==='配置摘要'&&document.querySelector('.summary-reset').disabled&&!document.querySelector('.page-actions')&&![...document.querySelectorAll('.summary-actions button,.order-bar button')].some(b=>b.textContent==='取消')"));
   check('配置与控件宽度受限 '+width,await evaluate(send,"document.querySelector('.order-main').getBoundingClientRect().width<=601&&document.getElementById('task-name').getBoundingClientRect().width<=560"));
   await click(tip,touch);
   check('前置未选仍能阅读算法且不误选 '+width,await evaluate(send,"Boolean(document.querySelector('[role=tooltip]'))&&!document.querySelector('input[name=algorithm]:checked')&&document.querySelector('[role=tooltip]').textContent.includes('经验库')"));
@@ -72,16 +72,16 @@ try{
   check('高级参数解释不占配置行 '+width,await evaluate(send,"document.querySelector('[role=tooltip]').textContent.includes('同时发出的模型调用数')&&!document.querySelector('.field-help')"));
   await shot('advanced-tip-'+width);await key('Escape');
   check('无横向溢出且业务写入为零 '+width,await evaluate(send,"document.documentElement.scrollWidth<=innerWidth&&window.__writes===0"));
-  await evaluate(send,"document.querySelector('details.module').open=false;window.scrollTo(0,0);void 0");await sleep(350);await shot('config-'+width);await evaluate(send,"document.querySelector('.task-config-actions').scrollIntoView({block:'end'});void 0");await sleep(250);await shot('config-actions-'+width);
+  await evaluate(send,"document.querySelector('details.module').open=false;window.scrollTo(0,0);void 0");await sleep(350);await shot('config-'+width);await evaluate(send,"document.querySelector('.order-summary').scrollIntoView({block:'end'});void 0");await sleep(250);await shot('config-actions-'+width);
   await evaluate(send,SEARCH('task-name','配置重置验证'));
   await open(send,base+'#/tasks/new/horizontal',undefined,{reset:false});
-  check('恢复提示只含信息和关闭操作 '+width,await evaluate(send,"[...document.querySelectorAll('.notice')].some(n=>n.textContent.includes('已恢复'))&&![...document.querySelectorAll('.notice button')].some(b=>b.textContent.includes('清空')||b.textContent.includes('重置'))&&Boolean(document.querySelector('.task-config-actions button:not(:disabled)'))"));
-  await click('.task-config-actions button',touch);
-  check('重置确认居中且默认继续编辑 '+width,await evaluate(send,"document.querySelectorAll('dialog[open]').length===1&&document.querySelector('dialog').matches(':modal')&&document.activeElement.textContent==='继续编辑'&&document.querySelector('.notice').textContent.includes('已恢复')"));
+  check('草稿静默恢复且无顶部提示 '+width,await evaluate(send,"!document.querySelector('.notice')&&document.getElementById('task-name').value==='配置重置验证'&&Boolean(document.querySelector('.summary-reset:not(:disabled)'))"));
+  await click('.summary-reset',touch);
+  check('重置确认居中且默认继续编辑 '+width,await evaluate(send,"document.querySelectorAll('dialog[open]').length===1&&document.querySelector('dialog').matches(':modal')&&document.activeElement.textContent==='继续编辑'&&!document.querySelector('.notice')"));
   await shot('reset-confirm-'+width);await key('Escape');
-  check('取消重置保留草稿并恢复按钮焦点 '+width,await evaluate(send,"document.getElementById('task-name').value==='配置重置验证'&&document.querySelector('input[name=rounds]').value==='2'&&document.querySelector('#pick-p-a').checked&&document.activeElement===document.querySelector('.task-config-actions button')"));
-  await click('.task-config-actions button',touch);await click('dialog .button--danger-solid',touch);
-  check('确认重置清理选择名称及恢复提示 '+width,await evaluate(send,"!document.querySelector('dialog[open]')&&!document.querySelector('.notice')&&document.getElementById('task-name').value!=='配置重置验证'&&!document.querySelector('input[name=algorithm]:checked')&&document.getElementById('rounds-pending').disabled&&document.getElementById('trial-cap').value==='5'&&document.querySelector('.task-config-actions button').disabled"));
+  check('取消重置保留草稿并恢复按钮焦点 '+width,await evaluate(send,"document.getElementById('task-name').value==='配置重置验证'&&document.querySelector('input[name=rounds]').value==='2'&&document.querySelector('#pick-p-a').checked&&document.activeElement===document.querySelector('.summary-reset')"));
+  await click('.summary-reset',touch);await click('dialog .button--danger-solid',touch);
+  check('确认重置清理选择名称及旧错误 '+width,await evaluate(send,"!document.querySelector('dialog[open]')&&!document.querySelector('.notice')&&document.getElementById('task-name').value!=='配置重置验证'&&!document.querySelector('input[name=algorithm]:checked')&&document.getElementById('rounds-pending').disabled&&document.getElementById('trial-cap').value==='5'&&document.querySelector('.summary-reset').disabled"));
   check('重置后页面无溢出且未触发业务写入 '+width,await evaluate(send,"document.documentElement.scrollWidth<=innerWidth&&window.__writes===0"));
   await evaluate(send,"window.scrollTo(0,0);void 0");await sleep(250);await shot('config-initial-'+width);
 
@@ -90,9 +90,9 @@ try{
   for(const width of [1280,390]){
    await viewport(send,{width,height:width===390?844:900,mobile:width===390});await open(send,base+'#/tasks/new/horizontal');await evaluate(send,NEW_TASK_ALL);
    await open(send,base+'?qaAvailability=mixed#/tasks/new/horizontal',undefined,{reset:false});
-   check('失效选择不计入参与方且仅保留就绪题库 '+width,await evaluate(send,"!document.getElementById('pick-p-a')&&document.getElementById('pick-p-b').checked&&!document.querySelector('[data-select-name=dataset-p-b]')&&document.querySelector('.summary-start').disabled&&document.querySelectorAll('#participants tbody tr').length===1"));
+   check('失效选择不计入参与方且仅保留就绪题库 '+width,await evaluate(send,"!document.getElementById('pick-p-a')&&document.getElementById('pick-p-b').checked&&!document.querySelector('[data-select-name=dataset-p-b]')&&document.querySelector('.summary-start').dataset.ready==='false'&&document.querySelectorAll('#participants tbody tr').length===1"));
    await open(send,base+'?qaAvailability=none#/tasks/new/horizontal');await evaluate(send,NEW_TASK_ALL);
-   check('无可用参与方时提示清楚并禁用运行 '+width,await evaluate(send,"!document.querySelector('#participants table')&&document.querySelector('.summary-start').disabled&&document.querySelector('#participants .panel-empty').textContent.includes('\u6682\u65e0\u53ef\u7528')&&window.__writes===0"));
+   check('无可用参与方时提示清楚且禁止创建 '+width,await evaluate(send,"!document.querySelector('#participants table')&&document.querySelector('.summary-start').dataset.ready==='false'&&document.querySelector('#participants .panel-empty').textContent.includes('\u6682\u65e0\u53ef\u7528')&&window.__writes===0"));
    await shot('participants-empty-'+width);
   }
  }
