@@ -66,8 +66,7 @@ describe("route", () => {
   it("falls back for unknown pages and tabs", () => {
     expect(parseHash("#/nowhere")).toEqual({ page: "home" });
     expect(parseHash("#/tasks")).toEqual({ page: "tasks" });
-    // 新建任务一定带场景；没带场景的旧地址回到任务列表
-    expect(parseHash("#/tasks/new")).toEqual({ page: "tasks" });
+    expect(parseHash("#/tasks/new")).toEqual({ page: "newTask" });
     expect(parseHash("#/tasks/new/nowhere")).toEqual({ page: "tasks" });
     expect(parseHash("#/libraries/lib-1")).toEqual({ page: "app", id: "lib-1", tab: undefined });
     expect(parseHash("#/tasks/t1/uploads")).toEqual({ page: "task", id: "t1", tab: undefined });
@@ -75,5 +74,10 @@ describe("route", () => {
     // 数据集已并入"参与方与数据"
     expect(parseHash("#/datasets")).toEqual({ page: "participants" });
     expect(parseHash("#/datasets/ds-amc")).toEqual({ page: "participants" });
+  });
+
+  it("keeps resource space, kind and selected resource in navigable URLs", () => {
+    const routes:Route[] = [{page:"newTask"},{page:"resources",space:"workspace",kind:"data",id:"ds-own"},{page:"resources",space:"public",kind:"models"},{page:"resources",space:"workspace",kind:"agents"}];
+    for (const route of routes) expect(parseHash(hrefOf(route))).toEqual({...route,...(route.page==="resources"&&!('id' in route)?{id:undefined}:{})});
   });
 });

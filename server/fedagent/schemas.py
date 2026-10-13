@@ -110,6 +110,16 @@ class SourceOut(Model):
     code_url: str | None
 
 
+class ResourceRequirementsOut(Model):
+    data_required: bool
+    min_sources: int
+    min_samples: int
+    participant_model: bool
+    server_model: bool
+    execution_label: str
+    execution_modes: list[Literal["platform", "local"]]
+
+
 class AlgorithmOut(Model):
     id: str
     version: str
@@ -129,6 +139,7 @@ class AlgorithmOut(Model):
     max_rounds: int
     default_rounds: int
     source: SourceOut
+    requirements: ResourceRequirementsOut
 
 
 class RegistryOut(Model):
@@ -196,6 +207,7 @@ class DatasetOut(Model):
     count: int
     answered: int
     source: Literal["builtin", "upload", "local"]
+    resource_space: Literal["workspace", "public"]
     sample: SampleOut | None
     ready: bool
     """平台托管的已有样本文件；本地的已由客户端上报样本数。"""
@@ -215,6 +227,11 @@ class DatasetCheckOut(Model):
     sample: SampleOut | None
 
 
+class DataResourceOut(Model):
+    dataset: DatasetOut
+    source: ParticipantOut
+
+
 class EndpointIn(Model):
     name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)]
     base_url: str = Field(default="", max_length=400)
@@ -229,6 +246,7 @@ class EndpointIn(Model):
 
 class EndpointOut(Model):
     id: str
+    resource_space: Literal["workspace", "public"]
     name: str
     kind: Literal["openai", "fake"]
     base_url: str

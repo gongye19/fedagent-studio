@@ -22,7 +22,7 @@ const rows=`(()=>{const rows=[...document.querySelectorAll('.task-config .field-
 try{
  for(const width of [1280,390]){
   const touch=width===390;await viewport(send,{width,height:touch?844:900,mobile:touch});await open(send,base+'#/tasks/new/horizontal');
-  check('首次打开固定区域齐全且未替用户选 '+width,await evaluate(send,"document.querySelector('.task-config')&&document.getElementById('rounds-pending').disabled&&document.getElementById('trial-cap')&&!document.querySelector('input[name=algorithm]:checked')&&document.querySelectorAll('button[role=radio][aria-checked=true]').length===1&&document.querySelector('main').textContent.includes('参与方')"));
+  check('首次打开固定区域齐全且未替用户选 '+width,await evaluate(send,"document.querySelector('.task-config')&&document.getElementById('rounds-pending').disabled&&document.getElementById('trial-cap')&&!document.querySelector('input[name=algorithm]:checked')&&document.querySelectorAll('button[role=radio][aria-checked=true]').length===2&&document.querySelector('main').textContent.includes('所需资源')"));
   check('名称并入配置且只有三个固定分区 '+width,await evaluate(send,"!document.getElementById('basic')&&document.getElementById('task-name').closest('section').id==='scenario'&&document.querySelectorAll('.order-main > section.panel').length===3"));
   check('重置紧邻摘要且无页头操作及页面取消 '+width,await evaluate(send,"document.querySelector('.summary-reset').closest('.panel-head').querySelector('h2').textContent==='配置摘要'&&document.querySelector('.summary-reset').disabled&&!document.querySelector('.page-actions')&&![...document.querySelectorAll('.summary-actions button,.order-bar button')].some(b=>b.textContent==='取消')"));
   check('配置与控件宽度受限 '+width,await evaluate(send,"document.querySelector('.order-main').getBoundingClientRect().width<=601&&document.getElementById('task-name').getBoundingClientRect().width<=560"));
@@ -41,15 +41,16 @@ try{
   check('浮层在视口内 '+width,await evaluate(send,"(()=>{const r=document.querySelector('.info-tip').getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight})()"));
   await click(tip,touch);check('再次点击收起 '+width,await evaluate(send,"!document.querySelector('[role=tooltip]')"));
   if(!touch){
+   await key('Escape');await evaluate(send,"document.querySelector('button[aria-label=\"FoT说明\"]').blur();void 0");
    await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:1,y:1});await sleep(300);
    const r=await point(tip);await send('Input.dispatchMouseEvent',{type:'mouseMoved',...r});await sleep(450);
    check('真实鼠标悬停展示说明 '+width,await evaluate(send,"Boolean(document.querySelector('[role=tooltip]'))"));
-   await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:1,y:1});await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:2,y:2});await sleep(350);
-   check('离开悬停收起 '+width,await evaluate(send,"!document.querySelector('[role=tooltip]')"));
+   await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:1,y:1});await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:2,y:2});await sleep(650);
+   check('离开悬停收起 '+width,await evaluate(send,"![...document.querySelectorAll('[role=tooltip]')].some(e=>e.textContent.includes('经验库'))"));
   }
   await evaluate(send,"document.getElementById('algorithm-fot').focus();void 0");await key('Tab');await sleep(350);
   check('键盘聚焦可读说明 '+width,await evaluate(send,"Boolean(document.querySelector('[role=tooltip]'))"));
-  await key('Tab');check('移走键盘焦点关闭说明 '+width,await evaluate(send,"!document.querySelector('[role=tooltip]')"));
+  await key('Tab');check('移走键盘焦点关闭原算法说明 '+width,await evaluate(send,"![...document.querySelectorAll('[role=tooltip]')].some(e=>e.textContent.includes('经验库'))"));
   await click(tip,touch);await click('h1',touch);check('点击外部关闭 '+width,await evaluate(send,"!document.querySelector('[role=tooltip]')"));
   const layout=await evaluate(send,rows);
   check('普通字段逐项排布且标签控件对齐 '+width,layout.every((r,i)=>touch?r.c.y>=r.h.b-1:Math.abs(r.c.x-layout[0].c.x)<1)&&layout.every((r,i)=>i===0||r.h.y>layout[i-1].h.y));
@@ -99,7 +100,7 @@ try{
    await open(send,base+'?qaAvailability=mixed#/tasks/new/horizontal',undefined,{reset:false});
    check('失效选择不计入参与方且仅保留就绪题库 '+width,await evaluate(send,"!document.getElementById('pick-p-a')&&document.getElementById('pick-p-b').checked&&!document.querySelector('[data-select-name=dataset-p-b]')&&document.querySelector('.summary-start').dataset.ready==='false'&&document.querySelectorAll('#participants tbody tr').length===1"));
    await open(send,base+'?qaAvailability=none#/tasks/new/horizontal');await evaluate(send,NEW_TASK_ALL);
-   check('无可用参与方时提示清楚且禁止创建 '+width,await evaluate(send,"!document.querySelector('#participants table')&&document.querySelector('.summary-start').dataset.ready==='false'&&document.querySelector('#participants .panel-empty').textContent.includes('\u6682\u65e0\u53ef\u7528')&&window.__writes===0"));
+   check('无可用数据时提示清楚且禁止创建 '+width,await evaluate(send,"!document.querySelector('#participants table')&&document.querySelector('.summary-start').dataset.ready==='false'&&document.querySelector('#participants .panel-empty').textContent.includes('暂无匹配的公用数据')&&window.__writes===0"));
    await shot('participants-empty-'+width);
   }
  }

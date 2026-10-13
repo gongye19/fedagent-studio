@@ -1,241 +1,412 @@
 {
- "scenarios": [
-  {
-   "id": "horizontal",
-   "name": "横向联邦 Agent",
-   "short": "横向联邦",
-   "summary": "各方做同类任务、数据不同，只共享经验，一起提升",
-   "status": "available"
-  },
-  {
-   "id": "vertical",
-   "name": "纵向联邦 Agent",
-   "short": "纵向联邦",
-   "summary": "同一批对象，信息分散在各方，结合起来才能回答",
-   "status": "planned"
-  },
-  {
-   "id": "transfer",
-   "name": "联邦迁移 Agent",
-   "short": "联邦迁移",
-   "summary": "把已有参与方的经验，迁移到新领域",
-   "status": "planned"
-  }
- ],
- "taskTypes": [
-  {
-   "id": "math-reasoning",
-   "label": "数学推理",
-   "metric": "准确率",
-   "grader": "math-answer",
-   "graders": [
+  "scenarios": [
     {
-     "id": "math-answer",
-     "label": "答案比对",
-     "detail": "抽取 \\boxed{} 里的答案，规范化后与标准答案比较（论文兼容口径）"
+      "id": "horizontal",
+      "name": "横向联邦 Agent",
+      "short": "横向联邦",
+      "summary": "各方做同类任务、数据不同，只共享经验，一起提升",
+      "status": "available"
     },
     {
-     "id": "math-answer-strict",
-     "label": "答案比对（严格）",
-     "detail": "只认最后一个 \\boxed{} 里的答案，规范化后整体相等才算对"
+      "id": "vertical",
+      "name": "纵向联邦 Agent",
+      "short": "纵向联邦",
+      "summary": "同一批对象，信息分散在各方，结合起来才能回答",
+      "status": "planned"
+    },
+    {
+      "id": "transfer",
+      "name": "联邦迁移 Agent",
+      "short": "联邦迁移",
+      "summary": "把已有参与方的经验，迁移到新领域",
+      "status": "planned"
     }
-   ],
-   "format": "{\"id\", \"question\", \"answer\"}",
-   "unlabeledNote": "没有 answer 的样本不计入指标",
-   "placeholder": "输入一道数学题…"
-  }
- ],
- "algorithms": [
-  {
-   "id": "fot",
-   "version": "1.0.0",
-   "scenario": "horizontal",
-   "name": "FoT",
-   "fullName": "Federation over Text",
-   "summary": "各方上传解题经验，服务端汇总成共享的经验库",
-   "exchange": "解题经验（文本）",
-   "output": {
-    "name": "经验库",
-    "unit": "条经验"
-   },
-   "stages": [
+  ],
+  "taskTypes": [
     {
-     "id": "solve",
-     "label": "解题",
-     "side": "participant",
-     "role": "participant",
-     "per": "item",
-     "result": "metric",
-     "seconds": 45.0,
-     "tokens": 7000,
-     "model": true
+      "id": "medical-diagnosis",
+      "label": "医疗诊断",
+      "metric": "诊断匹配率",
+      "grader": "diagnosis-exact",
+      "graders": [
+        {
+          "id": "diagnosis-exact",
+          "label": "诊断名称匹配",
+          "detail": "去掉诊断前缀、大小写与标点后匹配完整名称；参考诊断可用 | 分隔明确的别名。此指标不是临床有效性评价。"
+        }
+      ],
+      "format": "{\"id\", \"patient\", \"objective\", \"examination\", \"tests\", \"answer\", \"split\"}；也可上传 MedAgentSim OSCE JSONL",
+      "unlabeledNote": "经验生成病例需要参考诊断；未指定 split 时按文件顺序留出末尾 20% 作独立评测；至少 2 条病例",
+      "placeholder": "填写病人信息与诊断目标",
+      "schemaVersion": "1.0",
+      "structuredInput": true,
+      "inputLabel": "病例",
+      "answerLabel": "参考诊断",
+      "inputFields": [
+        {
+          "key": "patient",
+          "label": "病人信息",
+          "kind": "textarea",
+          "required": true,
+          "help": "主诉、病史和病人可回答的信息。不要在这里放参考诊断。"
+        },
+        {
+          "key": "objective",
+          "label": "诊断目标",
+          "kind": "textarea",
+          "required": true,
+          "help": ""
+        },
+        {
+          "key": "examination",
+          "label": "查体",
+          "kind": "textarea",
+          "required": false,
+          "help": ""
+        },
+        {
+          "key": "tests",
+          "label": "检查结果",
+          "kind": "json",
+          "required": false,
+          "help": "JSON 对象，键为检查名称，值为实际检查结果；没有时可留空。"
+        }
+      ]
     },
     {
-     "id": "reflect",
-     "label": "反思",
-     "side": "participant",
-     "role": "participant",
-     "per": "item",
-     "result": null,
-     "seconds": 15.0,
-     "tokens": 3500,
-     "model": true
-    },
-    {
-     "id": "extract",
-     "label": "提取经验",
-     "side": "participant",
-     "role": "participant",
-     "per": "item",
-     "result": "uploads",
-     "seconds": 12.0,
-     "tokens": 2500,
-     "model": true
-    },
-    {
-     "id": "collect",
-     "label": "汇总",
-     "side": "server",
-     "role": "server",
-     "per": "site",
-     "result": "received",
-     "seconds": 5.0,
-     "tokens": null,
-     "model": false
-    },
-    {
-     "id": "profile",
-     "label": "归类",
-     "side": "server",
-     "role": "server",
-     "per": "site",
-     "result": "groups",
-     "seconds": 90.0,
-     "tokens": 8000,
-     "model": true
-    },
-    {
-     "id": "library",
-     "label": "生成经验库",
-     "side": "server",
-     "role": "server",
-     "per": "site",
-     "result": "output",
-     "seconds": 90.0,
-     "tokens": 8000,
-     "model": true
+      "id": "math-reasoning",
+      "label": "数学推理",
+      "metric": "准确率",
+      "grader": "math-answer",
+      "graders": [
+        {
+          "id": "math-answer",
+          "label": "答案比对",
+          "detail": "抽取 \\boxed{} 里的答案，规范化后与标准答案比较（论文兼容口径）"
+        },
+        {
+          "id": "math-answer-strict",
+          "label": "答案比对（严格）",
+          "detail": "只认最后一个 \\boxed{} 里的答案，规范化后整体相等才算对"
+        }
+      ],
+      "format": "{\"id\", \"question\", \"answer\"}",
+      "unlabeledNote": "没有 answer 的样本不计入指标",
+      "placeholder": "输入一道数学题…",
+      "schemaVersion": "1.0",
+      "structuredInput": false,
+      "inputLabel": "问题",
+      "answerLabel": "标准答案",
+      "inputFields": [
+        {
+          "key": "question",
+          "label": "问题",
+          "kind": "textarea",
+          "required": true,
+          "help": ""
+        }
+      ]
     }
-   ],
-   "accepts": [
-    "math-reasoning"
-   ],
-   "roles": {
-    "participant": {
-     "label": "参与方",
-     "min": 2,
-     "max": null,
-     "evaluated": true
-    }
-   },
-   "params": [
+  ],
+  "algorithms": [
     {
-     "key": "insightTarget",
-     "label": "经验库条数",
-     "help": "服务端每轮把各方的经验汇总成多少条。默认由服务端模型决定，和论文一致；也可以按上传条数计算，或固定条数做对比实验。",
-     "kind": "select",
-     "options": [
-      {
-       "value": "paper-auto",
-       "label": "模型决定（默认）"
+      "id": "evomedclaw",
+      "version": "1.0.0",
+      "scenario": "horizontal",
+      "name": "EvoMedClaw",
+      "fullName": "EvoMedClaw · 医疗过程经验协作",
+      "summary": "各方完成诊断并提炼过程经验，聚合后用于下一轮诊断",
+      "exchange": "医疗过程经验卡",
+      "output": {
+        "name": "医疗经验库",
+        "unit": "张过程卡"
       },
-      {
-       "value": "author-formula",
-       "label": "按上传条数计算"
+      "stages": [
+        {
+          "id": "diagnose",
+          "label": "本方诊断",
+          "side": "participant",
+          "role": "participant",
+          "per": "item",
+          "result": "metric",
+          "seconds": 100.0,
+          "tokens": 18000,
+          "model": true
+        },
+        {
+          "id": "learn",
+          "label": "提炼并提交经验",
+          "side": "participant",
+          "role": "participant",
+          "per": "site",
+          "result": "uploads",
+          "seconds": 2.0,
+          "tokens": null,
+          "model": false
+        },
+        {
+          "id": "aggregate",
+          "label": "聚合医疗经验库",
+          "side": "server",
+          "role": "server",
+          "per": "site",
+          "result": "output",
+          "seconds": 2.0,
+          "tokens": null,
+          "model": false
+        }
+      ],
+      "accepts": [
+        "medical-diagnosis"
+      ],
+      "roles": {
+        "participant": {
+          "label": "参与方",
+          "min": 2,
+          "max": null,
+          "evaluated": true
+        }
       },
-      {
-       "value": "fixed-11",
-       "label": "固定 11 条"
+      "params": [
+        {
+          "key": "maxTurns",
+          "label": "每病例最多问诊回合",
+          "help": "限制医生的行动次数，接近上限时要求形成最终诊断。调用数按正常路径上限估算，接口重试另计；Token、费用和时长为估计值。",
+          "kind": "number",
+          "options": [],
+          "min": 4.0,
+          "max": 12.0,
+          "unit": "回合",
+          "default": 6
+        }
+      ],
+      "minParticipants": 2,
+      "minSamples": 2,
+      "minRounds": 2,
+      "maxRounds": 6,
+      "defaultRounds": 2,
+      "requirements": {
+        "dataRequired": true,
+        "minSources": 2,
+        "minSamples": 2,
+        "participantModel": true,
+        "serverModel": false,
+        "executionLabel": "EvoMedClaw 执行流程",
+        "executionModes": [
+          "platform",
+          "local"
+        ]
       },
-      {
-       "value": "fixed-37",
-       "label": "固定 37 条"
+      "source": {
+        "paper": null,
+        "paperUrl": null,
+        "code": "github.com/xschen-beb/EvoMedClaw",
+        "codeUrl": "https://github.com/xschen-beb/EvoMedClaw"
       }
-     ],
-     "min": null,
-     "max": null,
-     "unit": null,
-     "default": "paper-auto"
     },
     {
-     "key": "traceDensity",
-     "label": "经验提取量",
-     "help": "每条样本提取多少条经验上传。全部提取和上游代码一致；每条样本 1 条更接近论文里的通信量。",
-     "kind": "select",
-     "options": [
-      {
-       "value": "native",
-       "label": "全部提取（默认）"
+      "id": "fot",
+      "version": "1.0.0",
+      "scenario": "horizontal",
+      "name": "FoT",
+      "fullName": "Federation over Text",
+      "summary": "各方上传解题经验，服务端汇总成共享的经验库",
+      "exchange": "解题经验（文本）",
+      "output": {
+        "name": "经验库",
+        "unit": "条经验"
       },
-      {
-       "value": "paper-gemini",
-       "label": "每条样本 1 条"
+      "stages": [
+        {
+          "id": "solve",
+          "label": "解题",
+          "side": "participant",
+          "role": "participant",
+          "per": "item",
+          "result": "metric",
+          "seconds": 45.0,
+          "tokens": 7000,
+          "model": true
+        },
+        {
+          "id": "reflect",
+          "label": "反思",
+          "side": "participant",
+          "role": "participant",
+          "per": "item",
+          "result": null,
+          "seconds": 15.0,
+          "tokens": 3500,
+          "model": true
+        },
+        {
+          "id": "extract",
+          "label": "提取经验",
+          "side": "participant",
+          "role": "participant",
+          "per": "item",
+          "result": "uploads",
+          "seconds": 12.0,
+          "tokens": 2500,
+          "model": true
+        },
+        {
+          "id": "collect",
+          "label": "汇总",
+          "side": "server",
+          "role": "server",
+          "per": "site",
+          "result": "received",
+          "seconds": 5.0,
+          "tokens": null,
+          "model": false
+        },
+        {
+          "id": "profile",
+          "label": "归类",
+          "side": "server",
+          "role": "server",
+          "per": "site",
+          "result": "groups",
+          "seconds": 90.0,
+          "tokens": 8000,
+          "model": true
+        },
+        {
+          "id": "library",
+          "label": "生成经验库",
+          "side": "server",
+          "role": "server",
+          "per": "site",
+          "result": "output",
+          "seconds": 90.0,
+          "tokens": 8000,
+          "model": true
+        }
+      ],
+      "accepts": [
+        "math-reasoning"
+      ],
+      "roles": {
+        "participant": {
+          "label": "参与方",
+          "min": 2,
+          "max": null,
+          "evaluated": true
+        }
+      },
+      "params": [
+        {
+          "key": "insightTarget",
+          "label": "经验库条数",
+          "help": "服务端每轮把各方的经验汇总成多少条。默认由服务端模型决定，和论文一致；也可以按上传条数计算，或固定条数做对比实验。",
+          "kind": "select",
+          "options": [
+            {
+              "value": "paper-auto",
+              "label": "模型决定（默认）"
+            },
+            {
+              "value": "author-formula",
+              "label": "按上传条数计算"
+            },
+            {
+              "value": "fixed-11",
+              "label": "固定 11 条"
+            },
+            {
+              "value": "fixed-37",
+              "label": "固定 37 条"
+            }
+          ],
+          "min": null,
+          "max": null,
+          "unit": null,
+          "default": "paper-auto"
+        },
+        {
+          "key": "traceDensity",
+          "label": "经验提取量",
+          "help": "每条样本提取多少条经验上传。全部提取和上游代码一致；每条样本 1 条更接近论文里的通信量。",
+          "kind": "select",
+          "options": [
+            {
+              "value": "native",
+              "label": "全部提取（默认）"
+            },
+            {
+              "value": "paper-gemini",
+              "label": "每条样本 1 条"
+            }
+          ],
+          "min": null,
+          "max": null,
+          "unit": null,
+          "default": "native"
+        },
+        {
+          "key": "maxTracesPerItem",
+          "label": "每条样本最多上传",
+          "help": "限制每条样本最多上传几条经验，用来控制通信量。",
+          "kind": "select-number",
+          "options": [
+            {
+              "value": null,
+              "label": "不限（默认）"
+            },
+            {
+              "value": 1,
+              "label": "1 条"
+            },
+            {
+              "value": 2,
+              "label": "2 条"
+            },
+            {
+              "value": 3,
+              "label": "3 条"
+            }
+          ],
+          "min": null,
+          "max": null,
+          "unit": null,
+          "default": null
+        },
+        {
+          "key": "aggregationRetries",
+          "label": "汇总重试上限",
+          "help": "服务端汇总的结果不合法时重试几次；超过上限后任务暂停，避免费用失控。",
+          "kind": "number",
+          "options": [],
+          "min": 1.0,
+          "max": 20.0,
+          "unit": "次",
+          "default": 5
+        }
+      ],
+      "minParticipants": 2,
+      "minSamples": 1,
+      "minRounds": 2,
+      "maxRounds": 6,
+      "defaultRounds": 3,
+      "requirements": {
+        "dataRequired": true,
+        "minSources": 2,
+        "minSamples": 1,
+        "participantModel": true,
+        "serverModel": true,
+        "executionLabel": "FoT 执行流程",
+        "executionModes": [
+          "platform",
+          "local"
+        ]
+      },
+      "source": {
+        "paper": "arXiv:2604.16778",
+        "paperUrl": "https://arxiv.org/abs/2604.16778",
+        "code": "github.com/dixiyao/FoT",
+        "codeUrl": "https://github.com/dixiyao/FoT"
       }
-     ],
-     "min": null,
-     "max": null,
-     "unit": null,
-     "default": "native"
-    },
-    {
-     "key": "maxTracesPerItem",
-     "label": "每条样本最多上传",
-     "help": "限制每条样本最多上传几条经验，用来控制通信量。",
-     "kind": "select-number",
-     "options": [
-      {
-       "value": null,
-       "label": "不限（默认）"
-      },
-      {
-       "value": 1,
-       "label": "1 条"
-      },
-      {
-       "value": 2,
-       "label": "2 条"
-      },
-      {
-       "value": 3,
-       "label": "3 条"
-      }
-     ],
-     "min": null,
-     "max": null,
-     "unit": null,
-     "default": null
-    },
-    {
-     "key": "aggregationRetries",
-     "label": "汇总重试上限",
-     "help": "服务端汇总的结果不合法时重试几次；超过上限后任务暂停，避免费用失控。",
-     "kind": "number",
-     "options": [],
-     "min": 1.0,
-     "max": 20.0,
-     "unit": "次",
-     "default": 5
     }
-   ],
-   "minParticipants": 2,
-   "minRounds": 2,
-   "maxRounds": 6,
-   "defaultRounds": 3,
-   "source": {
-    "paper": "arXiv:2604.16778",
-    "paperUrl": "https://arxiv.org/abs/2604.16778",
-    "code": "github.com/dixiyao/FoT",
-    "codeUrl": "https://github.com/dixiyao/FoT"
-   }
-  }
- ]
+  ]
 }

@@ -1,5 +1,5 @@
 import { defaultParams, paramText, scenarioOf, TASK_TYPES, type Algorithm } from "../domain/catalog";
-import { Facts, PageHead, Tag } from "./common";
+import { Facts, Meta, PageHead, Tag } from "./common";
 import { Panel } from "./console";
 
 /** 算法详情：概况、每轮步骤、参数（默认值和说明）、来源。页面只读注册表，不针对某个算法写死。 */
@@ -25,8 +25,8 @@ export default function AlgorithmPage({ algorithm }: { algorithm: Algorithm }) {
             ["任务类型", algorithm.accepts.map((type) => TASK_TYPES[type].label).join("、")],
             ["通信内容", algorithm.exchange],
             ["产出", algorithm.output.name],
-            ["参与方", `至少 ${algorithm.minParticipants} 个`],
-            ["轮次", `${algorithm.minRounds}–${algorithm.maxRounds} 轮，第 1 轮是本地基线`],
+            ["数据来源", `至少 ${algorithm.minParticipants} 个`],
+            ["轮次", <Meta key="rounds" parts={[`${algorithm.minRounds}–${algorithm.maxRounds} 轮`,"第 1 轮为本地基线"]} />],
           ]} />
         </Panel>
 
@@ -74,7 +74,7 @@ export default function AlgorithmPage({ algorithm }: { algorithm: Algorithm }) {
         <Panel title="来源">
           <Facts items={[
             ["论文", <a key="paper" className="text-link" href={algorithm.source.paperUrl} target="_blank" rel="noreferrer">{algorithm.source.paper}</a>],
-            ["代码", <a key="code" className="text-link" href={algorithm.source.codeUrl} target="_blank" rel="noreferrer">{algorithm.source.code}</a>],
+            ["代码", <a key="code" className="text-link" href={algorithm.source.codeUrl} title={algorithm.source.code} target="_blank" rel="noreferrer">{algorithm.name} 源码</a>],
           ]} />
         </Panel>
       </div>

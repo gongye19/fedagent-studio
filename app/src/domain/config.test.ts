@@ -45,7 +45,7 @@ describe("draft", () => {
     const one = draft({ participants: [BOTH[0]], serverModel: "missing:model" });
     const issues = draftIssues(one, DATASETS, PARTICIPANTS, ENDPOINTS);
     expect(issues.map((issue) => issue.field)).toEqual(["participants", "models"]);
-    expect(issues[0].message).toBe("至少选 2 个参与方");
+    expect(issues[0].message).toBe("至少选择 2 个可用的数据来源");
     expect(draftIssues(draft(), DATASETS, PARTICIPANTS, ENDPOINTS)).toEqual([]);
     expect(draft().clientModel).toBe("default");
   });
@@ -72,15 +72,24 @@ describe("draft", () => {
     expect(setParticipants(swapped, [BOTH[1], { participantId: "p-b", datasetId: "x" }]).participants).toEqual([BOTH[1]]);
   });
 
-  it("only lets in ready datasets of the task's scenario and task type, held by online participants", () => {
+  it("reuses compatible data across scenarios but excludes offline sources and unready files", () => {
     const vertical: Dataset = { ...DATASETS[0], id: "ds-vertical", scenario: "vertical" };
     const offline = PARTICIPANTS.map((participant) => (participant.id === "p-b" ? { ...participant, status: "offline" as const } : participant));
     const mixed = draft({ participants: [{ participantId: "p-a", datasetId: "ds-vertical" }, BOTH[1], { participantId: "p-c", datasetId: "ds-amc" }] });
-    // 场景不同、持有方离线、题目文件还没导入的都不算
-    expect(joinable(mixed, [...DATASETS, vertical], offline)).toEqual([]);
+    // 数据不永久绑定上传时的场景；当前任务类型、来源归属和就绪状态仍校验。
+    expect(joinable(mixed, [...DATASETS, vertical], offline)).toEqual([mixed.participants[0]]);
+    expect(joinable(mixed, [...DATASETS, {...vertical,taskType:"medical-diagnosis"}], offline)).toEqual([]);
     expect(joinable(draft(), DATASETS, PARTICIPANTS)).toEqual(BOTH);
     // 数据集必须属于这个参与方
     expect(joinable(draft({ participants: [{ participantId: "p-b", datasetId: "ds-aime24" }] }), DATASETS, PARTICIPANTS)).toEqual([]);
+  });
+
+  it("allows public trials and requires at least one workspace dataset for a formal run", () => {
+    expect(draftIssues(draft(),DATASETS,PARTICIPANTS,ENDPOINTS)).toEqual([]);
+    expect(draftIssues(draft({mode:"full"}),DATASETS,PARTICIPANTS,ENDPOINTS)[0].message).toContain("我的数据");
+    const own = DATASETS.map(d => d.id === BOTH[0].datasetId ? {...d,resourceSpace:"workspace" as const} : d);
+    expect(draftIssues(draft({mode:"full"}),own,PARTICIPANTS,ENDPOINTS)).toEqual([]);
+    expect(joinable(draft(),own,PARTICIPANTS)).toEqual(BOTH);
   });
 
   it("drops per-participant models of deselected participants", () => {
@@ -103,7 +112,7 @@ describe("models", () => {
     const renamed: Endpoint[] = [{ ...ENDPOINTS[0], name: "实验室网关", baseUrl: "http://x/v1", models: ["m1", "m2"], configured: true }];
     expect(modelLabel("default", renamed)).toBe("实验室网关 · m1");
     expect(modelOptions(renamed).map((option) => option.ref)).toEqual(["default", "default:m2"]);
-    expect(modelOptions(ENDPOINTS).map((option) => option.ref)).toEqual(["default", "fake:fake", "ep-1:m1", "ep-1:m2"]);
+    expect(modelOptions(ENDPOINTS).map((option) => option.ref)).toEqual(["fake:fake", "ep-1:m1", "ep-1:m2"]);
   });
 });
 

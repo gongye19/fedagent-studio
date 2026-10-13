@@ -110,9 +110,16 @@ export function draftIssues(
     return issues;
   }
   if (joinable(draft, datasets, participants).length < algorithm.minParticipants) {
-    issues.push({ field: "participants", message: `至少选 ${algorithm.minParticipants} 个参与方` });
+    issues.push({ field: "participants", message: `至少选择 ${algorithm.minParticipants} 个可用的数据来源` });
   }
-  const refs = [draft.clientModel, ...Object.values(activeOverrides(draft)),
+  const chosen = joinable(draft, datasets, participants);
+  const overrides = activeOverrides(draft);
+  if (draft.mode === "full" && chosen.length && !chosen.some(p => datasets.find(d => d.id === p.datasetId)?.resourceSpace === "workspace")) {
+    issues.push({ field: "participants", message: "正式任务至少需要一份我的数据；公用数据可以先用于试跑" });
+  }
+  const refs = [
+    ...(algorithm.requirements.participantModel ? chosen.filter(p => participants.find(owner => owner.id === p.participantId)?.hosting === "platform")
+      .map(p => overrides[p.participantId] || draft.clientModel) : []),
     ...(algorithm.stages.some((stage) => stage.side === "server" && stage.model) ? [draft.serverModel] : [])];
   if (refs.some((ref) => !endpointOf(ref, endpoints))) {
     issues.push({ field: "models", message: "所选的模型接口已不存在，请重新选择" });

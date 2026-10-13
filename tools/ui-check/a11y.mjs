@@ -63,6 +63,8 @@ try {
       await open(send, BASE + route);
       try {
         if (script) { await evaluate(send, script); await sleep(300); }
+        // 配置预检会解除禁用并触发按钮颜色过渡；读取稳定样式，避免把过渡中间色当作对比度。
+        await evaluate(send, "(async()=>{const b=document.querySelector('.summary-start');if(!b)return;for(let i=0;i<30&&b.disabled;i++)await new Promise(r=>setTimeout(r,100));await Promise.all([...document.querySelectorAll('.summary-start,.order-bar button')].flatMap(e=>e.getAnimations()).map(a=>a.finished.catch(()=>{})))})()");
         report[`${width} ${name}`] = await evaluate(send, CHECK);
       } catch (error) {
         report[`${width} ${name}`] = String(error.message);

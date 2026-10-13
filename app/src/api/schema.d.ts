@@ -129,6 +129,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/resources/data": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Data Resource
+         * @description 用户接入自己的数据：选择既有执行来源或与第一份数据原子登记，无需先新建参与方。
+         */
+        post: operations["create_data_resource_v1_resources_data_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/resources/data/{dataset_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Data Resource */
+        delete: operations["delete_data_resource_v1_resources_data__dataset_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/datasets": {
         parameters: {
             query?: never;
@@ -650,6 +687,7 @@ export interface components {
             /** Defaultrounds */
             defaultRounds: number;
             source: components["schemas"]["SourceOut"];
+            requirements: components["schemas"]["ResourceRequirementsOut"];
         };
         /** AppIn */
         AppIn: {
@@ -732,6 +770,31 @@ export interface components {
             taskType: string;
             /** File */
             file: string;
+        };
+        /** Body_create_data_resource_v1_resources_data_post */
+        Body_create_data_resource_v1_resources_data_post: {
+            /** Name */
+            name: string;
+            /** Tasktype */
+            taskType: string;
+            /** Hosting */
+            hosting: string;
+            /** Scenario */
+            scenario?: string | null;
+            /** Sourceid */
+            sourceId?: string | null;
+            /**
+             * Sourcename
+             * @default
+             */
+            sourceName: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** File */
+            file?: string | null;
         };
         /** Body_create_dataset_v1_datasets_post */
         Body_create_dataset_v1_datasets_post: {
@@ -967,6 +1030,11 @@ export interface components {
              */
             ticks: number;
         };
+        /** DataResourceOut */
+        DataResourceOut: {
+            dataset: components["schemas"]["DatasetOut"];
+            source: components["schemas"]["ParticipantOut"];
+        };
         /** DatasetCheckOut */
         DatasetCheckOut: {
             /** Ok */
@@ -1013,6 +1081,11 @@ export interface components {
              * @enum {string}
              */
             source: "builtin" | "upload" | "local";
+            /**
+             * Resourcespace
+             * @enum {string}
+             */
+            resourceSpace: "workspace" | "public";
             sample: components["schemas"]["SampleOut"] | null;
             /** Ready */
             ready: boolean;
@@ -1060,6 +1133,11 @@ export interface components {
         EndpointOut: {
             /** Id */
             id: string;
+            /**
+             * Resourcespace
+             * @enum {string}
+             */
+            resourceSpace: "workspace" | "public";
             /** Name */
             name: string;
             /**
@@ -1400,6 +1478,23 @@ export interface components {
             taskTypes: components["schemas"]["TaskTypeOut"][];
             /** Algorithms */
             algorithms: components["schemas"]["AlgorithmOut"][];
+        };
+        /** ResourceRequirementsOut */
+        ResourceRequirementsOut: {
+            /** Datarequired */
+            dataRequired: boolean;
+            /** Minsources */
+            minSources: number;
+            /** Minsamples */
+            minSamples: number;
+            /** Participantmodel */
+            participantModel: boolean;
+            /** Servermodel */
+            serverModel: boolean;
+            /** Executionlabel */
+            executionLabel: string;
+            /** Executionmodes */
+            executionModes: ("platform" | "local")[];
         };
         /** RoleOut */
         RoleOut: {
@@ -1992,6 +2087,72 @@ export interface operations {
             };
             path: {
                 token_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_data_resource_v1_resources_data_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_create_data_resource_v1_resources_data_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResourceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_data_resource_v1_resources_data__dataset_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                dataset_id: string;
             };
             cookie?: never;
         };

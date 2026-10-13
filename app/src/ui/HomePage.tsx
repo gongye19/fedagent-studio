@@ -12,7 +12,7 @@ import { ScenarioArt } from "./ScenarioArt";
 export default function HomePage() {
   return (
     <div className="home">
-      <PageHead title="选择联邦场景" meta="点一种场景，进入后配置这个场景的联邦任务。" className="page-head--center" />
+      <PageHead title="选择联邦场景" meta="先选场景、任务和算法，再提交或选择所需资源。" className="page-head--center" />
       {/* 按内容区宽度决定三张并排还是上下排，见 styles.css */}
       <div className="scenario-picker">
         <ul className="scenario-list" aria-label="联邦场景">

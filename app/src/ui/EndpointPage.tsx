@@ -27,7 +27,10 @@ export default function EndpointPage({ state, id, from }: Props) {
   return <EndpointForm key={id ?? "new"} state={state} endpoint={endpoint} from={from} />;
 }
 
-function EndpointForm({ state, endpoint, from }: { state: State; endpoint?: Endpoint; from?: From }) {
+export function EndpointForm({ state, endpoint, from, onSaved, onCancel, onBusyChange }: {
+  state: State; endpoint?: Endpoint; from?: From; onSaved?: (endpoint: Endpoint) => void; onCancel?: () => void;
+  onBusyChange?: (value: boolean) => void;
+}) {
   const [name, setName] = useState(endpoint?.name ?? "");
   const [baseUrl, setBaseUrl] = useState(endpoint?.baseUrl ?? "");
   const [model, setModel] = useState(endpoint?.models[0] ?? "");
@@ -66,12 +69,13 @@ function EndpointForm({ state, endpoint, from }: { state: State; endpoint?: Endp
     model.trim() ? null : "模型",
     validPrice ? null : "正确的单价",
   ].filter((item): item is string => Boolean(item));
-  const back = backTo(from, { page: "models" }, state.draft.scenario);
+  const back = backTo(from, endpoint?.resourceSpace === "workspace" ? { page: "resources",space:"workspace",kind:"models" } : { page: "models" }, state.draft.scenario);
   const title = endpoint ? `编辑“${endpoint.name}”` : "新增接口";
 
   async function save() {
     if (missing.length || saving) return;
     setSaving(true);
+    onBusyChange?.(true);
     setError(null);
     try {
       const saved = await saveEndpoint(endpoint?.id ?? null, {
@@ -85,20 +89,22 @@ function EndpointForm({ state, endpoint, from }: { state: State; endpoint?: Endp
         timeout: endpoint?.timeout ?? 600,
         maxRetries: endpoint?.maxRetries ?? 8,
       });
+      if (onSaved) {onSaved(saved);return;}
       showFlash(back, endpoint ? `已保存“${saved.name}”。` : `已添加“${saved.name}”，新建任务时可以选它。`);
       navigate(back);
     } catch (failure) {
       setError(failure instanceof ApiError ? failure.message : "保存失败，稍后再试");
     } finally {
       setSaving(false);
+      onBusyChange?.(false);
     }
   }
 
   async function remove() {
     if (!endpoint) return;
     await deleteEndpoint(endpoint.id);
-    showFlash({ page: "models" }, `已删除“${endpoint.name}”。`);
-    navigate({ page: "models" });
+    showFlash(back, `已删除“${endpoint.name}”。`);
+    navigate(back);
   }
 
   async function test() {
@@ -124,7 +130,7 @@ function EndpointForm({ state, endpoint, from }: { state: State; endpoint?: Endp
   ) : null;
   return (
     <>
-      <PageHead title={title} crumbs={[{ label: "模型接口", route: { page: "models" } }]} actions={actions} />
+      {!onSaved ? <PageHead title={title} crumbs={[{ label: endpoint?.resourceSpace === "workspace" && !from ? "我的模型接口" : "模型接口", route: back }]} actions={actions} /> : null}
       {testError ? <Notice tone="warning" onDismiss={() => setTestError(null)}>{`测试失败：${testError}`}</Notice> : null}
       {removing && endpoint ? (
         <Confirm title={`删除“${endpoint.name}”？`} confirmLabel="删除" onConfirm={() => remove()} onCancel={() => setRemoving(false)}>
@@ -193,7 +199,7 @@ function EndpointForm({ state, endpoint, from }: { state: State; endpoint?: Endp
             </FieldGroup>
           </div>
         </Panel>
-        <FormActions missing={missing} saving={saving} error={error} saveLabel={endpoint ? "保存修改" : "保存接口"} onCancel={() => navigate(back)} onSave={() => void save()} />
+        <FormActions missing={missing} saving={saving} error={error} saveLabel={endpoint ? "保存修改" : "保存接口"} onCancel={onCancel ?? (() => navigate(back))} onSave={() => void save()} />
       </div>
     </>
   );

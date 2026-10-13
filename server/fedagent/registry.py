@@ -151,6 +151,15 @@ class Registry:
             "minRounds": manifest.rounds.min,
             "maxRounds": manifest.rounds.max,
             "defaultRounds": manifest.rounds.default,
+            "requirements": {
+                "dataRequired": True,
+                "minSources": manifest.min_participants,
+                "minSamples": algorithm.min_samples_per_site,
+                "participantModel": any(step.at != SERVER and step.model for step in manifest.steps),
+                "serverModel": any(step.at == SERVER and step.model for step in manifest.steps),
+                "executionLabel": f"{manifest.name} 执行流程",
+                "executionModes": ["platform", "local"],
+            },
             "source": {
                 "paper": manifest.source.paper,
                 "paperUrl": manifest.source.paper_url,

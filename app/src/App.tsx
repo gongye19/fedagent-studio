@@ -20,14 +20,17 @@ import NewDatasetPage from "./ui/NewDatasetPage";
 import NewParticipantPage from "./ui/NewParticipantPage";
 import HorizontalTaskPage from "./ui/HorizontalTaskPage";
 import ParticipantsPage from "./ui/ParticipantsPage";
+import ResourcesPage from "./ui/ResourcesPage";
 import TaskPage from "./ui/TaskPage";
 import TasksPage from "./ui/TasksPage";
 import { useContentMotion } from "./ui/hooks";
 
-type NavKey = "home" | "tasks" | "apps" | "participants" | "algorithms" | "models";
+type NavKey = "home" | "tasks" | "apps" | "participants" | "algorithms" | "models" | "resources" | "publicResources";
 
 function navKeyOf(route: Route): NavKey {
   switch (route.page) {
+    case "resources":
+      return route.space === "public" ? "publicResources" : "resources";
     case "tasks":
     case "newTask":
     case "task":
@@ -60,10 +63,11 @@ const NAV: readonly NavItem[] = [
   { key: "home", label: "首页", icon: "home", route: { page: "home" } },
   { key: "tasks", label: "联邦任务", icon: "tasks", route: { page: "tasks" } },
   { key: "apps", label: "应用", icon: "apps", route: { page: "apps" } },
+  { key: "resources", label: "我的资源", icon: "resources", route: { page: "resources", space: "workspace" } },
 ];
 
 const MANAGE: readonly NavItem[] = [
-  { key: "participants", label: "参与方与数据", icon: "participants", route: { page: "participants" } },
+  { key: "publicResources", label: "公用资源", icon: "resources", route: { page: "resources", space: "public" } },
   { key: "algorithms", label: "算法", icon: "algorithm", route: { page: "algorithms" } },
   { key: "models", label: "模型接口", icon: "model", route: { page: "models" } },
 ];
@@ -186,9 +190,11 @@ function Page({ state, dispatch, route }: { state: State; dispatch: Dispatch<Act
       return <TasksPage state={state} />;
     case "newTask":
       // 每个场景有自己的任务配置页（场景不同，要配置的东西不同）；目前只有横向联邦。
-      return route.scenario === "horizontal"
-        ? <HorizontalTaskPage state={state} dispatch={dispatch} />
+      return !route.scenario || scenarioOf(route.scenario).status === "available"
+        ? <HorizontalTaskPage state={state} dispatch={dispatch} initialScenario={route.scenario} />
         : <PlannedTaskConfig scenario={route.scenario} />;
+    case "resources":
+      return <ResourcesPage state={state} space={route.space} kind={route.kind} selectedId={route.id} />;
     case "task": {
       const task = taskOf(state, route.id);
       return task ? <TaskPage key={task.id} task={task} state={state} dispatch={dispatch} tab={route.tab} /> : <NotFound kind="任务" back={{ page: "tasks" }} backLabel="联邦任务" />;

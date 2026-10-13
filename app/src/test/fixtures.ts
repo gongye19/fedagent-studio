@@ -16,7 +16,7 @@ const participant = (id: string, name: string, extra: Partial<Participant> = {})
 
 const dataset = (id: string, participantId: string, extra: Partial<Dataset> = {}): Dataset => ({
   id, name: id.replace(/^ds-/, "").toUpperCase(), participantId, description: "", origin: null, scenario: "horizontal",
-  taskType: "math-reasoning", schemaVersion: "1.0", sourceHash: null, count: 30, answered: 30, source: "builtin", sample: null, ready: true, ...extra,
+  taskType: "math-reasoning", schemaVersion: "1.0", sourceHash: null, resourceSpace: "public", count: 30, answered: 30, source: "builtin", sample: null, ready: true, ...extra,
 });
 
 export const PARTICIPANTS: Participant[] = [
@@ -35,9 +35,9 @@ export const DATASETS: Dataset[] = [
 ];
 
 export const ENDPOINTS: Endpoint[] = [
-  { id: "default", name: "默认 LLM 接口", kind: "openai", baseUrl: "", models: [], concurrency: 8, price: null, hasKey: false, builtin: true, configured: false, timeout: 600, maxRetries: 8 },
-  { id: "fake", name: "测试用假模型", kind: "fake", baseUrl: "", models: ["fake"], concurrency: 16, price: null, hasKey: false, builtin: true, configured: true, timeout: 600, maxRetries: 8 },
-  { id: "ep-1", name: "实验室模型", kind: "openai", baseUrl: "https://llm.example/v1", models: ["m1", "m2"], concurrency: 8, price: 2, hasKey: true, builtin: false, configured: true, timeout: 600, maxRetries: 8 },
+  { id: "default", resourceSpace: "public", name: "默认 LLM 接口", kind: "openai", baseUrl: "", models: [], concurrency: 8, price: null, hasKey: false, builtin: true, configured: false, timeout: 600, maxRetries: 8 },
+  { id: "fake", resourceSpace: "public", name: "测试用假模型", kind: "fake", baseUrl: "", models: ["fake"], concurrency: 16, price: null, hasKey: false, builtin: true, configured: true, timeout: 600, maxRetries: 8 },
+  { id: "ep-1", resourceSpace: "workspace", name: "实验室模型", kind: "openai", baseUrl: "https://llm.example/v1", models: ["m1", "m2"], concurrency: 8, price: 2, hasKey: true, builtin: false, configured: true, timeout: 600, maxRetries: 8 },
 ];
 
 /** 已完成的 3 轮任务：A 从 10 题对 3 到对 6，B 从对 5 降到对 4（负迁移）。 */

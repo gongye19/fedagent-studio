@@ -124,6 +124,7 @@ def dataset_out(dataset: m.Dataset) -> DatasetOut:
         count=dataset.count,
         answered=dataset.answered,
         source=dataset.source,  # type: ignore[arg-type]
+        resource_space=dataset.resource_space,  # type: ignore[arg-type]
         sample=SampleOut.model_validate(sample) if sample else None,
         ready=dataset_ready(dataset),
     )
@@ -231,10 +232,27 @@ def delete_dataset(session: Session, dataset_id: str) -> None:
 # —— 模型接口 ——
 
 
+def delete_data_resource(session: Session, dataset_id: str) -> None:
+    """工作区数据可独立删除；本地连接保留，空的托管来源清理。已有任务文件仍保留。"""
+    dataset = session.get(m.Dataset, dataset_id)
+    if dataset is None:
+        raise not_found("数据资源")
+    if dataset.resource_space != "workspace" or dataset.source == "builtin":
+        raise HTTPException(409, "公用数据由平台维护，不能在我的资源中删除")
+    require_unused(session, m.TaskSite.dataset_id, dataset.id, "数据")
+    source = session.get(m.Participant, dataset.participant_id)
+    remaining = session.scalar(select(func.count()).where(m.Dataset.participant_id == dataset.participant_id)) or 0
+    session.delete(dataset)
+    if remaining == 1 and source is not None and source.hosting == "platform" and not source.builtin:
+        require_unused(session, m.TaskSite.participant_id, source.id, "数据来源")
+        session.delete(source)
+
+
 def endpoint_out(endpoint: m.Endpoint) -> EndpointOut:
     configured = endpoint.kind == "fake" or (bool(endpoint.base_url.strip()) and bool(endpoint.models))
     return EndpointOut(
         id=endpoint.id,
+        resource_space=endpoint.resource_space,  # type: ignore[arg-type]
         name=endpoint.name,
         kind=endpoint.kind,  # type: ignore[arg-type]
         base_url=endpoint.base_url,

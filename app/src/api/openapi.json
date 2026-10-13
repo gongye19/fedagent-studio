@@ -530,6 +530,117 @@
     }
    }
   },
+  "/v1/resources/data": {
+   "post": {
+    "tags": [
+     "resources"
+    ],
+    "summary": "Create Data Resource",
+    "description": "用户接入自己的数据：选择既有执行来源或与第一份数据原子登记，无需先新建参与方。",
+    "operationId": "create_data_resource_v1_resources_data_post",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_create_data_resource_v1_resources_data_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DataResourceOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/resources/data/{dataset_id}": {
+   "delete": {
+    "tags": [
+     "resources"
+    ],
+    "summary": "Delete Data Resource",
+    "operationId": "delete_data_resource_v1_resources_data__dataset_id__delete",
+    "parameters": [
+     {
+      "name": "dataset_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Dataset Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/v1/datasets": {
    "get": {
     "tags": [
@@ -2839,6 +2950,9 @@
      },
      "source": {
       "$ref": "#/components/schemas/SourceOut"
+     },
+     "requirements": {
+      "$ref": "#/components/schemas/ResourceRequirementsOut"
      }
     },
     "type": "object",
@@ -2859,7 +2973,8 @@
      "minRounds",
      "maxRounds",
      "defaultRounds",
-     "source"
+     "source",
+     "requirements"
     ],
     "title": "AlgorithmOut"
    },
@@ -3074,6 +3189,78 @@
      "file"
     ],
     "title": "Body_check_dataset_v1_datasets_check_post"
+   },
+   "Body_create_data_resource_v1_resources_data_post": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Name"
+     },
+     "taskType": {
+      "type": "string",
+      "title": "Tasktype"
+     },
+     "hosting": {
+      "type": "string",
+      "pattern": "^(platform|local)$",
+      "title": "Hosting"
+     },
+     "scenario": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Scenario"
+     },
+     "sourceId": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sourceid"
+     },
+     "sourceName": {
+      "type": "string",
+      "maxLength": 40,
+      "title": "Sourcename",
+      "default": ""
+     },
+     "description": {
+      "type": "string",
+      "maxLength": 120,
+      "title": "Description",
+      "default": ""
+     },
+     "file": {
+      "anyOf": [
+       {
+        "type": "string",
+        "contentMediaType": "application/octet-stream"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "File"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "taskType",
+     "hosting"
+    ],
+    "title": "Body_create_data_resource_v1_resources_data_post"
    },
    "Body_create_dataset_v1_datasets_post": {
     "properties": {
@@ -3602,6 +3789,22 @@
     ],
     "title": "CursorOut"
    },
+   "DataResourceOut": {
+    "properties": {
+     "dataset": {
+      "$ref": "#/components/schemas/DatasetOut"
+     },
+     "source": {
+      "$ref": "#/components/schemas/ParticipantOut"
+     }
+    },
+    "type": "object",
+    "required": [
+     "dataset",
+     "source"
+    ],
+    "title": "DataResourceOut"
+   },
    "DatasetCheckOut": {
     "properties": {
      "ok": {
@@ -3719,6 +3922,14 @@
       ],
       "title": "Source"
      },
+     "resourceSpace": {
+      "type": "string",
+      "enum": [
+       "workspace",
+       "public"
+      ],
+      "title": "Resourcespace"
+     },
      "sample": {
       "anyOf": [
        {
@@ -3746,6 +3957,7 @@
      "count",
      "answered",
      "source",
+     "resourceSpace",
      "sample",
      "ready"
     ],
@@ -3847,6 +4059,14 @@
       "type": "string",
       "title": "Id"
      },
+     "resourceSpace": {
+      "type": "string",
+      "enum": [
+       "workspace",
+       "public"
+      ],
+      "title": "Resourcespace"
+     },
      "name": {
       "type": "string",
       "title": "Name"
@@ -3909,6 +4129,7 @@
     "type": "object",
     "required": [
      "id",
+     "resourceSpace",
      "name",
      "kind",
      "baseUrl",
@@ -4812,6 +5033,56 @@
      "algorithms"
     ],
     "title": "RegistryOut"
+   },
+   "ResourceRequirementsOut": {
+    "properties": {
+     "dataRequired": {
+      "type": "boolean",
+      "title": "Datarequired"
+     },
+     "minSources": {
+      "type": "integer",
+      "title": "Minsources"
+     },
+     "minSamples": {
+      "type": "integer",
+      "title": "Minsamples"
+     },
+     "participantModel": {
+      "type": "boolean",
+      "title": "Participantmodel"
+     },
+     "serverModel": {
+      "type": "boolean",
+      "title": "Servermodel"
+     },
+     "executionLabel": {
+      "type": "string",
+      "title": "Executionlabel"
+     },
+     "executionModes": {
+      "items": {
+       "type": "string",
+       "enum": [
+        "platform",
+        "local"
+       ]
+      },
+      "type": "array",
+      "title": "Executionmodes"
+     }
+    },
+    "type": "object",
+    "required": [
+     "dataRequired",
+     "minSources",
+     "minSamples",
+     "participantModel",
+     "serverModel",
+     "executionLabel",
+     "executionModes"
+    ],
+    "title": "ResourceRequirementsOut"
    },
    "RoleOut": {
     "properties": {

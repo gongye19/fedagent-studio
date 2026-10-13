@@ -246,7 +246,7 @@ function RowDetail({
  * 本地参与方的连接步骤：签发客户端令牌（只显示这一次，平台只存哈希），在参与方的环境里装好客户端和算法插件后运行。
  * 令牌和模型密钥都放进环境变量，不写在命令行里。
  */
-function LocalConnect({ participantId, datasetIds }: { participantId: string; datasetIds: string[] }) {
+export function LocalConnect({ participantId, datasetIds }: { participantId: string; datasetIds: string[] }) {
   const [token, setToken] = useState<string | null>(null);
   const [issuing, setIssuing] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
@@ -274,7 +274,7 @@ function LocalConnect({ participantId, datasetIds }: { participantId: string; da
   return (
     <Collapsible title="客户端连接" className="participant-connect">
       <div className="connect-steps">
-        <p className="connect-requirement">在参与方环境执行，需要 Python 3.12 或更高版本。</p>
+        <p className="connect-requirement">在本地运行环境执行，需要 Python 3.12 或更高版本。</p>
         {meta.isPending ? <p role="status">正在读取安装包…</p> : meta.isError ? (
           <Notice tone="warning" action={<button type="button" className="link-button" onClick={() => void meta.refetch()}>重试</button>}>无法读取客户端安装包</Notice>
         ) : install ? <CodeBlock title="1. 安装客户端" code={install} /> : <Notice tone="warning">服务器尚未发布客户端安装包</Notice>}

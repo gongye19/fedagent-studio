@@ -10,9 +10,10 @@
  * 内置的数学题库分给平台托管的参与方（参与方 A–H），每方一份；它们由后端初始化。
  */
 import type { components } from "../api/schema";
-import type { ScenarioId, TaskType } from "./catalog";
+import { taskTypesFor, type ScenarioId, type TaskType } from "./catalog";
 
 export type Hosting = "platform" | "local";
+export type ResourceSpace = "workspace" | "public";
 export type ParticipantStatus = "online" | "offline" | "waiting";
 
 export type Participant = components["schemas"]["ParticipantOut"];
@@ -27,8 +28,8 @@ export type Dataset = components["schemas"]["DatasetOut"];
 export type Endpoint = components["schemas"]["EndpointOut"];
 
 export const HOSTING_LABELS: Record<Hosting, string> = {
-  platform: "平台托管",
-  local: "参与方本地",
+  platform: "平台运行",
+  local: "本地客户端",
 };
 
 export const PARTICIPANT_STATUS: Record<ParticipantStatus, string> = {
@@ -71,7 +72,7 @@ export function parseModelRef(ref: string): { endpointId: string; model: string 
 /** 可选的模型。默认接口的第一个模型就是"默认"那一项，不再重复列出。 */
 export function modelOptions(endpoints: readonly Endpoint[]): { ref: string; label: string }[] {
   return [
-    ...(endpoints.some((endpoint) => endpoint.id === DEFAULT_ENDPOINT_ID) ? [{ ref: DEFAULT_MODEL, label: defaultModelLabel(endpoints) }] : []),
+    ...(endpoints.some((endpoint) => endpoint.id === DEFAULT_ENDPOINT_ID && endpoint.models.length) ? [{ ref: DEFAULT_MODEL, label: defaultModelLabel(endpoints) }] : []),
     ...endpoints.flatMap((endpoint) => endpoint.models
       .filter((_, index) => !(endpoint.id === DEFAULT_ENDPOINT_ID && index === 0))
       .map((model) => ({ ref: modelRef(endpoint.id, model), label: `${model} · ${endpoint.name}` }))),
@@ -117,5 +118,5 @@ export function pendingNote(dataset: Dataset): string {
 
 /** 数据集能不能用于某个场景、某种任务类型的联邦任务。 */
 export function fits(dataset: Dataset, scenario: ScenarioId, taskType: TaskType): boolean {
-  return dataset.scenario === scenario && dataset.taskType === taskType;
+  return dataset.taskType === taskType && taskTypesFor(scenario).includes(taskType);
 }

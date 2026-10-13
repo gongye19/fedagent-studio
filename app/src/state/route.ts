@@ -19,6 +19,9 @@
  */
 import { useEffect, useState } from "react";
 import type { ScenarioId } from "../domain/catalog";
+import type { ResourceSpace } from "../domain/resources";
+
+export type ResourceKind = "data" | "models" | "agents";
 
 /** 三种场景是平台内置的（后端核心里的规则），地址里只认这三个；注册表还没读到时也能解析地址。 */
 const SCENARIO_IDS: readonly ScenarioId[] = ["horizontal", "vertical", "transfer"];
@@ -35,7 +38,8 @@ export type From = "newTask";
 export type Route =
   | { page: "home" }
   | { page: "tasks" }
-  | { page: "newTask"; scenario: ScenarioId }
+  | { page: "newTask"; scenario?: ScenarioId }
+  | { page: "resources"; space?: ResourceSpace; kind?: ResourceKind; id?: string }
   | { page: "task"; id: string; tab?: TaskTab }
   | { page: "apps" }
   | { page: "app"; id: string; tab?: AppTab }
@@ -61,9 +65,10 @@ export function parseHash(hash: string): Route {
     case "tasks":
       if (!second) return { page: "tasks" };
       if (second === "new") {
-        // 新建任务一定先选场景；没带场景的旧地址回到任务列表，在那里按场景新建。
+        // 通用入口在配置页选择场景；首页场景入口可带入用户刚选的场景。
         const scenario = oneOf(SCENARIO_IDS, third);
-        return scenario ? { page: "newTask", scenario } : { page: "tasks" };
+        if (third && !scenario) return {page:"tasks"};
+        return scenario ? { page: "newTask", scenario } : { page: "newTask" };
       }
       return { page: "task", id: second, tab: oneOf(TASK_TABS, third) };
     case "apps":
@@ -75,6 +80,11 @@ export function parseHash(hash: string): Route {
       if (scenario) return third ? { page: "participants", scenario, id: third } : { page: "participants", scenario };
       // 旧地址 #/participants/:id：由页面按这个参与方的数据集决定打开哪个场景
       return second ? { page: "participants", id: second } : { page: "participants" };
+    }
+    case "resources": {
+      const parts = path.split("/").filter(Boolean).map(decodeURIComponent);
+      return {page:"resources",space:second === "public" ? "public" : "workspace",
+        kind:oneOf(["data","models","agents"] as const,third) ?? "data",id:parts[3]};
     }
     case "datasets": {
       // 数据集已并入"参与方与数据"，旧的列表地址回到那里
@@ -99,7 +109,9 @@ export function hrefOf(route: Route): string {
     case "tasks":
       return "#/tasks";
     case "newTask":
-      return `#/tasks/new/${route.scenario}`;
+      return `#/tasks/new${route.scenario ? `/${route.scenario}` : ""}`;
+    case "resources":
+      return `#/resources/${route.space === "public" ? "public" : "mine"}/${route.kind ?? "data"}${route.id ? `/${part(route.id)}` : ""}`;
     case "task":
       return `#/tasks/${part(route.id)}${route.tab ? `/${route.tab}` : ""}`;
     case "apps":
@@ -162,7 +174,7 @@ export function navigate(route: Route, options: { keepScroll?: boolean } = {}): 
  */
 export function backTo(from: From | undefined, list: Route, scenario: ScenarioId | null): Route {
   if (from !== "newTask") return list;
-  return scenario ? { page: "newTask", scenario } : { page: "tasks" };
+  return { page: "newTask",scenario:scenario??undefined };
 }
 
 export function useRoute(): Route {

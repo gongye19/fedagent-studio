@@ -116,8 +116,8 @@ def validate(platform: Platform, session: Session, body: TaskConfigIn) -> tuple[
             issue("participants", f"{participant.name} 只能出一份数据集")
             continue
         seen.add(participant.id)
-        if dataset.scenario != body.scenario or dataset.task_type != body.task_type:
-            issue("participants", f"{dataset.name} 登记的场景或任务类型和任务不一致")
+        if dataset.task_type != body.task_type:
+            issue("participants", f"{dataset.name} 的任务类型和所选算法要求不一致")
             continue
         if dataset.schema_version != registry.task_type(body.task_type).schema_version:
             issue("participants", f"{dataset.name} 的数据规范版本不兼容，请按当前模板重新上传或登记")
@@ -143,7 +143,9 @@ def validate(platform: Platform, session: Session, body: TaskConfigIn) -> tuple[
         model_ref = body.client_overrides.get(participant.id) or body.client_model
         prepared.sites.append(PreparedSite(participant, dataset, items, labeled, model_ref))
     if len(prepared.sites) < manifest.min_participants:
-        issue("participants", f"至少要选 {manifest.min_participants} 个可以参加的参与方")
+        issue("participants", f"至少选择 {manifest.min_participants} 个可用的数据来源，每个来源选择一份数据")
+    if body.mode == "full" and prepared.sites and not any(site.dataset.resource_space == "workspace" for site in prepared.sites):
+        issue("participants", "正式任务至少需要一份我的数据；公用数据可以先用于试跑")
 
     refs = {site.model_ref for site in prepared.sites if site.participant.hosting == "platform"}
     if any(step.at == SERVER and step.model for step in manifest.steps):
@@ -235,6 +237,7 @@ def create(platform: Platform, session: Session, body: TaskConfigIn) -> m.Task:
         "datasets": {site.dataset.id: site.dataset.content_hash for site in prepared.sites},
         "datasetSchemas": {site.dataset.id: site.dataset.schema_version for site in prepared.sites},
         "datasetSources": {site.dataset.id: site.dataset.source_hash for site in prepared.sites},
+        "resourceSpaces": {site.dataset.id: site.dataset.resource_space for site in prepared.sites},
         "createdAt": m.now().isoformat(),
     }
     task = m.Task(

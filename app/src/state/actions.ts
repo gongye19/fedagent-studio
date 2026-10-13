@@ -72,6 +72,17 @@ export async function deleteDataset(id: string): Promise<void> {
   await refresh(keys.datasets);
 }
 
+export async function createDataResource(form: FormData) {
+  const resource = await api.createDataResource(form);
+  await refresh(keys.datasets, keys.participants);
+  return resource;
+}
+
+export async function deleteDataResource(id: string): Promise<void> {
+  await api.deleteDataResource(id);
+  await refresh(keys.datasets, keys.participants);
+}
+
 export async function deleteParticipant(id: string): Promise<void> {
   await api.deleteParticipant(id);
   await refresh(keys.participants, keys.datasets);

@@ -59,7 +59,7 @@ def sync_fake_endpoint(platform: Platform) -> None:
     with platform.db.session() as session:
         row = session.get(m.Endpoint, FAKE_ENDPOINT)
         if platform.settings.fake_endpoint and row is None:
-            session.add(m.Endpoint(id=FAKE_ENDPOINT, name="测试用假模型", kind="fake", models=["fake"], concurrency=16, builtin=True))
+            session.add(m.Endpoint(id=FAKE_ENDPOINT, name="测试用假模型", kind="fake", models=["fake"], concurrency=16, builtin=True, resource_space="public"))
         elif not platform.settings.fake_endpoint and row is not None:
             session.delete(row)
 
@@ -82,7 +82,7 @@ def seed(platform: Platform) -> bool:
                 origin=origin,
                 scenario="horizontal",
                 task_type=TASK_TYPE,
-                source="builtin",
+                source="builtin", resource_space="public",
                 count=0,
                 answered=0,
             )
@@ -91,7 +91,7 @@ def seed(platform: Platform) -> bool:
             if file.exists():
                 rows = [json.loads(line) for line in file.read_text(encoding="utf-8").splitlines() if line.strip()]
                 _store(platform, dataset, rows)
-        session.add(m.Endpoint(id=DEFAULT_ENDPOINT, name="默认 LLM 接口", kind="openai", builtin=True))
+        session.add(m.Endpoint(id=DEFAULT_ENDPOINT, name="默认 LLM 接口", kind="openai", builtin=True, resource_space="public"))
     return True
 
 

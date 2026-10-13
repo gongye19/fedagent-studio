@@ -52,6 +52,7 @@ class Dataset(Base):
     origin: Mapped[str | None] = mapped_column(String(120), default=None)
     scenario: Mapped[str] = mapped_column(String(32))
     task_type: Mapped[str] = mapped_column(String(64))
+    resource_space: Mapped[str] = mapped_column(String(16), default="workspace")
     schema_version: Mapped[str] = mapped_column(String(32), default="1.0")
     source_hash: Mapped[str | None] = mapped_column(String(64), default=None)
     source: Mapped[str] = mapped_column(String(16))
@@ -72,6 +73,7 @@ class Endpoint(Base):
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     name: Mapped[str] = mapped_column(String(80))
     kind: Mapped[str] = mapped_column(String(16), default="openai")
+    resource_space: Mapped[str] = mapped_column(String(16), default="workspace")
     """openai：OpenAI 兼容接口；fake：测试用的假模型。"""
     base_url: Mapped[str] = mapped_column(String(400), default="")
     models: Mapped[list[Any]] = mapped_column(default=list)

@@ -6,6 +6,8 @@ import { useEffect, useRef, useState, type Dispatch, type MouseEvent } from "rea
 import { api, ApiError, type TaskConfigIn } from "../api/client";
 import {
   algorithmOf,
+  ALGORITHMS,
+  SCENARIOS,
   algorithmsFor,
   paramValue,
   scenarioOf,
@@ -39,6 +41,7 @@ import {
   modelOptions,
   type Dataset,
   type Participant,
+  type ResourceSpace,
 } from "../domain/resources";
 import { createTask, taskRequest } from "../state/actions";
 import { showFlash } from "../state/flash";
@@ -47,18 +50,13 @@ import { datasetsOf, participantOf, type Action, type State } from "../state/sto
 import { Collapsible, Confirm, Meta, PageHead, PanelEmpty, Tag } from "./common";
 import { Choices, Field, FieldGroup, Panel, UnitInput } from "./console";
 import { formatDuration, formatNumber, formatTokens, formatYuan } from "./format";
-import { useDebounced } from "./hooks";
+import { useContentMotion, useDebounced } from "./hooks";
 import { Icon } from "./icons";
-import { usageText } from "./labels";
+import { ResourceDialog } from "./ResourceDialog";
+import { DataResourceForm } from "./DataResourceForm";
+import { EndpointForm } from "./EndpointPage";
 
-type Props = { state: State; dispatch: Dispatch<Action> };
-
-/** 这个配置页只用于横向联邦：每个场景要配置的东西不同，各有自己的配置页。 */
-const SCENARIO: ScenarioId = "horizontal";
-
-/** 从新建任务出发去新增参与方、数据集，配置接口，保存后回到这里。 */
-const NEW_PARTICIPANT: Route = { page: "newParticipant", from: "newTask" };
-const NEW_DATASET: Route = { page: "newDataset", from: "newTask" };
+type Props = { state: State; dispatch: Dispatch<Action>; initialScenario?: ScenarioId };
 const endpointRoute = (id: string): Route => ({ page: "editEndpoint", id, from: "newTask" });
 
 type Pending = "full" | "restart" | null;
@@ -69,7 +67,7 @@ type Pending = "full" | "restart" | null;
  * 任务类型、算法、参数都来自注册表，页面不针对某个算法写死；每一步都由用户自己选，不替用户默认。
  * 从首页的横向联邦卡片、或"联邦任务"页横向联邦一栏的"新建联邦任务"进来，都是这一页。
  */
-export default function HorizontalTaskPage({ state, dispatch }: Props) {
+export default function HorizontalTaskPage({ state, dispatch, initialScenario }: Props) {
   const draft = state.draft;
   const back: Route = { page: "tasks" };
   // 没动过的草稿不保留：每次打开都按当前的参与方和数据重新选，默认名称也按这次打开的时间生成。
@@ -78,6 +76,10 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
   const [pending, setPending] = useState<Pending>(null);
   const [attempted, setAttempted] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
+  const [space, setSpace] = useState<ResourceSpace>(() => draft.participants.length && draft.participants.every(p => state.datasets.find(d=>d.id===p.datasetId)?.resourceSpace === "public") ? "public" : "workspace");
+  const [intake, setIntake] = useState<"data" | "clientModel" | "serverModel" | null>(null);
+  const [intakeBusy, setIntakeBusy] = useState(false);
+  const dataMotion = useContentMotion(space,true);
 
   useEffect(() => {
     if (!resetOnOpen.current) return;
@@ -86,9 +88,8 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
   }, [dispatch]);
 
   useEffect(() => {
-    // 场景就是横向联邦：草稿里记下场景（已经是横向时不变），不算用户动过草稿。
-    dispatch({ type: "chooseScenario", scenario: SCENARIO, auto: true });
-  }, [dispatch]);
+    if (initialScenario) dispatch({ type: "chooseScenario", scenario: initialScenario, auto: true });
+  }, [dispatch, initialScenario]);
 
   const update = (patch: Partial<Draft>) => dispatch({ type: "updateDraft", patch });
   const algorithm = draft.algorithm ? algorithmOf(draft.algorithm) : null;
@@ -99,7 +100,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
     ? state.participants.flatMap((participant) => {
       if (participant.status !== "online") return [];
       if (participant.hosting === "local" && participant.clientPlugins?.[algorithm.id] !== algorithm.version) return [];
-      const datasets = compatibleDatasets(scenarioId, taskType, datasetsOf(state, participant.id)).filter((dataset) => dataset.ready);
+      const datasets = compatibleDatasets(scenarioId, taskType, datasetsOf(state, participant.id)).filter((dataset) => dataset.ready && dataset.resourceSpace === space);
       return datasets.length ? [{ participant, datasets }] : [];
     })
     : [];
@@ -153,7 +154,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
     setPending(null);
     setAttempted(false);
     setCreateError(null);
-    dispatch({ type: "chooseScenario", scenario: SCENARIO, auto: true });
+    navigate({ page: "newTask" });
   }
 
   /** 缺项在尝试开始时原位提示；最终创建仍以服务端校验为准。 */
@@ -191,7 +192,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
       title: "开始正式运行？",
       text: (
         <>
-          <Meta parts={[`${joined.length} 个参与方`, `${formatNumber(result.problems)} 条样本`, `${draft.rounds} 轮`]} />
+          <Meta parts={[`${joined.length} 个数据来源`, `${formatNumber(result.problems)} 条样本`, `${draft.rounds} 轮`]} />
           <Meta parts={[formatDuration(result.seconds), cost]} />
           <span>创建后配置不能修改，运行中可以暂停或取消。</span>
         </>
@@ -204,7 +205,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
     : pending === "restart"
       ? {
         title: "重置这次的配置？",
-        text: "任务名称、已选的任务类型、算法、参与方和设置都会恢复到初始状态。",
+        text: "清空本次选择和运行配置，已保存到我的资源的数据与模型接口会保留。",
         confirmLabel: "重置",
         cancelLabel: "继续编辑",
         tone: "danger" as const,
@@ -214,7 +215,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
 
   return (
     <>
-      <PageHead title="新建横向联邦任务" crumbs={[{ label: "联邦任务", route: back }]} />
+      <PageHead title="新建联邦任务" crumbs={[{ label: "联邦任务", route: back }]} />
       <div className="order-layout task-config" ref={formRef}>
         <div className="order-main">
           <Panel title="任务配置" id="scenario" step={1}>
@@ -223,37 +224,37 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
                 <Field label="任务名称" htmlFor="task-name" wide>
                   <input id="task-name" name="task-name" autoComplete="off" value={draft.name ?? autoName} placeholder={autoName} maxLength={60} onChange={(event) => update({ name: event.target.value })} />
                 </Field>
-                <TaskTypeChoice error={fieldError("taskType") ?? fieldError("scenario")} scenario={SCENARIO} value={draft.taskType} onChange={(taskType) => dispatch({ type: "chooseTaskType", taskType })} />
-                <AlgorithmField error={fieldError("algorithm")} scenario={SCENARIO} taskType={draft.taskType} value={draft.algorithm} onChange={(id) => dispatch({ type: "chooseAlgorithm", algorithm: id })} />
+                <Field label="场景" labelId="scenario-label" error={fieldError("scenario")} info="横向：各来源处理同类任务、持有不同样本；纵向：同一对象的信息分布在不同来源；迁移：把已有领域经验用于新领域。" wide>
+                  <Choices labelledBy="scenario-label" value={scenarioId} error={fieldError("scenario")} options={SCENARIOS.map(s => ({value:s.id,label:s.short,disabled:s.status !== "available",badge:s.status !== "available" ? "待接入" : undefined}))} onChange={scenario => dispatch({type:"chooseScenario",scenario})} />
+                </Field>
+                <TaskTypeChoice error={fieldError("taskType")} scenario={scenarioId} value={draft.taskType} onChange={(taskType) => dispatch({ type: "chooseTaskType", taskType })} />
+                <AlgorithmField error={fieldError("algorithm")} scenario={scenarioId} taskType={draft.taskType} value={draft.algorithm} onChange={(id) => dispatch({ type: "chooseAlgorithm", algorithm: id })} />
               </FieldGroup>
             </div>
           </Panel>
 
-          <Panel
-            title="参与方"
-            id="participants"
-            step={2}
-            extra={algorithm ? `已选 ${joined.length} 个` : "待选择"}
-            actions={(
-              <>
-                <a className="button button--secondary button--compact" href={hrefOf(NEW_DATASET)}><Icon name="plus" />新增数据集</a>
-                <a className="button button--secondary button--compact" href={hrefOf(NEW_PARTICIPANT)}><Icon name="plus" />新增参与方</a>
-              </>
-            )}
-            flush
-          >
-            {!algorithm || !scenarioId || !taskType ? (
-              <PanelEmpty>请先选择任务类型和算法，再勾选参与方及其数据集。</PanelEmpty>
-            ) : candidates.length ? (
-              <ParticipantTable error={fieldError("participants")} draft={draft} dispatch={dispatch} candidates={candidates} />
-            ) : (
-              <PanelEmpty>暂无可用于“{usageText(scenarioId, taskType)}”的参与方。</PanelEmpty>
-            )}
+          <Panel title="所需资源" id="participants" step={2} extra={algorithm ? `已选 ${joined.length} 个来源` : undefined}>
+            <div className="task-data-head">
+              <div><strong>数据</strong><InfoTip label="数据选择">每个数据来源选择一份文件，同一来源的多份数据不能充当多个联邦节点。正式任务至少使用一份我的数据，公用数据可以先试跑。</InfoTip></div>
+              <button type="button" className="button button--secondary button--compact" disabled={!algorithm || !scenarioId || !taskType} onClick={() => setIntake("data")}><Icon name="plus" />接入数据</button>
+            </div>
+            <div className="resource-space-bar" role="group" aria-label="数据资源范围">
+              <button type="button" aria-pressed={space === "workspace"} className={space === "workspace" ? "active" : ""} onClick={() => setSpace("workspace")}>我的资源</button>
+              <button type="button" aria-pressed={space === "public"} className={space === "public" ? "active" : ""} onClick={() => setSpace("public")}>公用资源</button>
+            </div>
+            <div ref={dataMotion}>{!algorithm || !scenarioId || !taskType ? <PanelEmpty>先选择场景、任务类型和算法，再提交或选择数据。</PanelEmpty>
+              : candidates.length ? <ParticipantTable error={fieldError("participants")} draft={draft} dispatch={dispatch} candidates={candidates} />
+                : <PanelEmpty>{space === "workspace" ? "暂无匹配的可用数据。接入自己的数据，或切换到公用资源试跑。" : "暂无匹配的公用数据。"}</PanelEmpty>}</div>
+            {algorithm && state.datasets.some(d => d.resourceSpace === space && d.taskType === taskType && !d.ready) ? <a className="text-link resource-return" href={hrefOf({page:"resources",space,kind:"data"})}>查看待连接的数据</a> : null}
+            {joined.length ? <div className="resource-selection" aria-label="已选择的数据">{joined.map(p => <span key={p.participantId}>
+              <span>{state.datasets.find(d => d.id === p.datasetId)?.name}</span><button type="button" aria-label={`移除 ${state.datasets.find(d => d.id === p.datasetId)?.name}`} onClick={() => dispatch({type:"pickDataset",participantId:p.participantId,datasetId:null})}><Icon name="x" /></button>
+            </span>)}</div> : null}
             <InlineError id="participants-error" message={fieldError("participants")} />
+            <ResourceModels state={state} draft={draft} update={update} algorithm={algorithm} modelsError={fieldError("models")} onIntake={setIntake} allLocal={joined.length > 0 && joined.every(p => participantOf(state,p.participantId)?.hosting === "local")} />
           </Panel>
 
           <Panel title="运行配置" id="settings" step={3}>
-            <RunSettings state={state} draft={draft} update={update} algorithm={algorithm} roundsError={fieldError("rounds")} modelsError={fieldError("models")} />
+            <RunSettings draft={draft} update={update} algorithm={algorithm} roundsError={fieldError("rounds")} />
           </Panel>
 
           <AdvancedPanel state={state} draft={draft} update={update} algorithm={algorithm} joined={joined.map((item) => item.participantId)} error={fieldError("params")} />
@@ -265,7 +266,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
               <div><dt>场景</dt><dd>{draft.scenario ? scenarioOf(draft.scenario).short : "—"}</dd></div>
               <div><dt>任务类型</dt><dd>{draft.taskType ? TASK_TYPES[draft.taskType].label : "—"}</dd></div>
               <div><dt>算法</dt><dd>{algorithm ? algorithm.name : "—"}</dd></div>
-              <div><dt>参与方</dt><dd>{joined.length ? `${joined.length} 个` : "—"}</dd></div>
+              <div><dt>数据来源</dt><dd>{joined.length ? `${joined.length} 个` : "—"}</dd></div>
               <div><dt>样本</dt><dd>{result ? `${formatNumber(result.problems)} 条${full ? "" : `（每份前 ${draft.trialCap} 条）`}` : "—"}</dd></div>
               <div><dt>运行</dt><dd>{full ? "正式运行" : "试跑"} · {algorithm ? `${draft.rounds} 轮` : "轮次待选"}</dd></div>
               <div><dt>模型</dt><dd>{algorithm ? modelSummary(draft, state, algorithm) : modelLabel(draft.clientModel, state.endpoints)}</dd></div>
@@ -288,7 +289,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
       ) : null}
       <div className="order-bar" aria-label="创建任务">
         <div>
-          <strong>{validationPending ? "正在检查配置…" : result && !issues.length ? `${joined.length} 个参与方 · ${result.callsAreUpperBound ? "最多" : "至少"} ${formatNumber(result.participantCalls + result.serverCalls)} 次调用` : ""}</strong>
+          <strong>{validationPending ? "正在检查配置…" : result && !issues.length ? `${joined.length} 个数据来源 · ${result.callsAreUpperBound ? "最多" : "至少"} ${formatNumber(result.participantCalls + result.serverCalls)} 次调用` : ""}</strong>
           {result && !issues.length ? <small>{formatDuration(result.seconds)}</small> : null}
         </div>
         <div className="order-bar-actions">
@@ -296,6 +297,11 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
           <button type="button" className="button button--primary" disabled={creating || validationPending} data-ready={canCreate} aria-describedby="task-action-status" onClick={start}>{creating ? "正在创建…" : startLabel}</button>
         </div>
       </div>
+      <ResourceDialog title={intake === "data" ? "接入数据" : "接入模型接口"} open={intake !== null} busy={intakeBusy} onOpenChange={open => {if (!open) setIntake(null);}}>
+        {intake === "data" && scenarioId && taskType ? <DataResourceForm state={state} category={{scenario:scenarioId,taskType}} onBusyChange={setIntakeBusy} onCancel={() => setIntake(null)} onSaved={resource => {
+          setSpace("workspace");if (resource.dataset.ready) dispatch({type:"pickDataset",participantId:resource.source.id,datasetId:resource.dataset.id});setIntake(null);
+        }} /> : intake === "clientModel" || intake === "serverModel" ? <EndpointForm state={state} onBusyChange={setIntakeBusy} onCancel={() => setIntake(null)} onSaved={endpoint => {update({[intake]:`${endpoint.id}:${endpoint.models[0]}`});setIntake(null);}} /> : null}
+      </ResourceDialog>
     </>
   );
 }
@@ -306,23 +312,23 @@ function InlineError({ id, message }: { id: string; message?: string }) {
 }
 
 /** 任务类型：列出这个场景里有算法能处理的类型，由用户选；指标跟着任务类型走。最后留一个"待接入"的空位。 */
-function TaskTypeChoice({ scenario, value, onChange, error }: { error?: string; scenario: ScenarioId; value: TaskType | null; onChange: (type: TaskType) => void }) {
-  const types = taskTypesFor(scenario);
+function TaskTypeChoice({ scenario, value, onChange, error }: { error?: string; scenario: ScenarioId | null; value: TaskType | null; onChange: (type: TaskType) => void }) {
+  const types = scenario ? taskTypesFor(scenario) : Object.keys(TASK_TYPES);
   return (
     <Field label="任务类型" labelId="task-type-label" wide error={error} info="任务类型决定数据格式、评估指标，以及可选择的算法与参与方数据。">
       {types.length ? (
-        <Choices error={error} labelledBy="task-type-label" value={value} options={types.map((type) => ({ value: type, label: TASK_TYPES[type].label }))} placeholder="更多类型" onChange={onChange} />
+        <Choices error={error} labelledBy="task-type-label" value={value} options={types.map((type) => ({ value: type, label: TASK_TYPES[type].label, disabled:!scenario }))} placeholder="更多类型" onChange={onChange} />
       ) : <p className="field-static">这个场景还没有可用的任务类型。</p>}
     </Field>
   );
 }
 
 /** 算法按注册表列出；短名称供选择，说明、交换内容与产出通过 ⓘ 查看。 */
-function AlgorithmField({ scenario, taskType, value, onChange, error }: { error?: string; scenario: ScenarioId; taskType: TaskType | null; value: Draft["algorithm"]; onChange: (id: Algorithm["id"]) => void }) {
-  const algorithms = algorithmsFor(scenario, taskType);
+function AlgorithmField({ scenario, taskType, value, onChange, error }: { error?: string; scenario: ScenarioId | null; taskType: TaskType | null; value: Draft["algorithm"]; onChange: (id: Algorithm["id"]) => void }) {
+  const algorithms = scenario ? algorithmsFor(scenario, taskType) : ALGORITHMS;
   return (
     <Field label="算法" labelId="algorithm-label" wide error={error}>
-      {!taskType ? <p className="field-static" id="algorithm-prerequisite">请先选择任务类型</p> : null}
+      {!taskType ? <p className="field-static" id="algorithm-prerequisite">请先选择{scenario ? "任务类型" : "场景和任务类型"}</p> : null}
       {algorithms.length ? <AlgorithmTable error={error} algorithms={algorithms} value={value} onChange={onChange} disabled={!taskType} /> : <p className="field-static">这种任务类型在这个场景下还没有算法。</p>}
     </Field>
   );
@@ -380,22 +386,22 @@ function ParticipantTable({ draft, dispatch, candidates, error }: { error?: stri
   }, [some]);
 
   function selectAll() {
+    const visible = new Set(open.map(row => row.participant.id));
     dispatch({
       type: "setParticipants",
-      participants: all ? [] : open.map(({ participant, ready, picked }) => ({ participantId: participant.id, datasetId: (picked ?? ready[0]).id })),
+      participants: [...draft.participants.filter(p => !visible.has(p.participantId)), ...(all ? [] : open.map(({ participant, ready, picked }) => ({ participantId: participant.id, datasetId: (picked ?? ready[0]).id })))],
     });
   }
 
   return (
     <div className="table-shell">
       <table className="table table--select" aria-describedby={error ? "participants-error" : undefined}>
-        <caption className="visually-hidden">选择参加任务的参与方</caption>
+        <caption className="visually-hidden">选择任务数据，每个来源一份</caption>
         <thead>
           <tr>
             <th scope="col" className="select-cell">
               <input ref={head} type="checkbox" aria-label="全选" aria-invalid={Boolean(error)} aria-describedby={error ? "participants-error" : undefined} checked={all} disabled={!open.length} onChange={selectAll} />
             </th>
-            <th scope="col">参与方</th>
             {/* 手机上也要看得到、选得了数据集，收起的是样本数和运行位置 */}
             <th scope="col">数据集</th>
             <th scope="col" className="numeric col-optional">样本</th>
@@ -411,9 +417,8 @@ function ParticipantTable({ draft, dispatch, candidates, error }: { error?: stri
             const inputId = `pick-${participant.id}`;
             return (
               <tr key={participant.id} className={`select-row${checked ? " select-row--checked" : ""}`} onClick={rowToggle(true, toggle)}>
-                <td className="select-cell"><input id={inputId} type="checkbox" checked={checked} onChange={toggle} /></td>
-                <th scope="row"><label htmlFor={inputId}>{participant.name}</label></th>
-                <td>
+                <td className="select-cell"><input id={inputId} type="checkbox" aria-label={`选择 ${shown.name}`} checked={checked} onChange={toggle} /></td>
+                <th scope="row">
                   {choices.length > 1 ? (
                     <SelectField
                       className="cell-select"
@@ -425,8 +430,9 @@ function ParticipantTable({ draft, dispatch, candidates, error }: { error?: stri
                     >
                       {choices.map((dataset) => <option key={dataset.id} value={dataset.id}>{dataset.name}</option>)}
                     </SelectField>
-                  ) : shown.name}
-                </td>
+                  ) : <label htmlFor={inputId}>{shown.name}</label>}
+                  <InfoTip label={`${shown.name} 的来源`}>{participant.name} · {HOSTING_LABELS[participant.hosting]}</InfoTip>
+                </th>
                 <td className="numeric col-optional">{formatNumber(shown.count)}</td>
                 <td className="col-optional">{HOSTING_LABELS[participant.hosting]}</td>
               </tr>
@@ -449,16 +455,13 @@ function serverUsesModel(algorithm: Algorithm): boolean {
 }
 
 function RunSettings({
-  state, draft, update, algorithm, roundsError, modelsError,
+  draft, update, algorithm, roundsError,
 }: {
   roundsError?: string;
-  modelsError?: string;
-  state: State;
   draft: Draft;
   update: (patch: Partial<Draft>) => void;
   algorithm: Algorithm | null;
 }) {
-  const options = modelOptions(state.endpoints);
   const rounds = algorithm ? Array.from({ length: algorithm.maxRounds - algorithm.minRounds + 1 }, (_, index) => algorithm.minRounds + index) : [];
 
   return (
@@ -475,20 +478,31 @@ function RunSettings({
             <SelectField id="rounds-pending" disabled value=""><option value="">请先选择算法</option></SelectField>
           )}
         </Field>
-        <Field label="参与方模型" htmlFor="client-model">
-          <ModelPicker aria-describedby={modelsError ? "models-error" : undefined} id="client-model" name="client-model" value={draft.clientModel} onValueChange={(value) => update({ clientModel: value })} options={options} endpoints={state.endpoints} />
-          <EndpointSetupLink model={draft.clientModel} state={state} />
-        </Field>
-        {!algorithm || serverUsesModel(algorithm) ? (
-          <Field label="服务端模型" htmlFor="server-model" info="服务端每轮要读完各方上传的内容，需要长上下文的模型。">
-            <ModelPicker aria-describedby={modelsError ? "models-error" : undefined} id="server-model" name="server-model" value={draft.serverModel} onValueChange={(value) => update({ serverModel: value })} options={options} endpoints={state.endpoints} />
-            <EndpointSetupLink model={draft.serverModel} state={state} />
-          </Field>
-        ) : null}
       </FieldGroup>
-      <InlineError id="models-error" message={modelsError} />
     </div>
   );
+}
+
+function ResourceModels({state,draft,update,algorithm,modelsError,onIntake,allLocal}: {
+  state:State;draft:Draft;update:(patch:Partial<Draft>)=>void;algorithm:Algorithm|null;modelsError?:string;
+  onIntake:(kind:"clientModel"|"serverModel")=>void;allLocal:boolean;
+}) {
+  const options = modelOptions(state.endpoints);
+  return <div className="resource-models"><FieldGroup>
+    <Field label="执行流程" info="算法提供完整执行流程，选择数据即可使用；本地运行需安装对应算法插件。现有外部 Agent 服务的接入尚未支持。">
+      <p className="field-static">{algorithm?.requirements.executionLabel ?? "请先选择算法"}</p>
+    </Field>
+    {(["clientModel","serverModel"] as const).filter(role => !algorithm || (role === "clientModel" ? algorithm.requirements.participantModel : algorithm.requirements.serverModel)).map(role => {
+      const local = role === "clientModel" && allLocal;
+      const id = role === "clientModel" ? "client-model" : "server-model";
+      return <Field key={role} label={role === "clientModel" ? "运行模型" : "汇总模型"} htmlFor={local ? undefined : id} info={role === "clientModel" ? "用于平台运行的数据来源。本地客户端自行配置模型，不使用这里的密钥。" : "用于算法在服务端汇总各来源的交换内容。"}>
+        {local ? <p className="field-static">由本地客户端配置</p> : <><div className="resource-model-control">
+          <ModelPicker id={id} name={id} value={draft[role]} disabled={!algorithm} placeholder={!algorithm ? "请先选择算法" : undefined} aria-describedby={modelsError ? "models-error" : undefined} onValueChange={value => update({[role]:value})} options={options} endpoints={state.endpoints} />
+          <button type="button" className="button button--secondary button--compact" disabled={!algorithm} onClick={() => onIntake(role)}>接入模型</button>
+        </div>{algorithm ? <EndpointSetupLink model={draft[role]} state={state} /> : null}</>}
+      </Field>;
+    })}
+  </FieldGroup><InlineError id="models-error" message={modelsError} /></div>;
 }
 
 function EndpointSetupLink({ model, state }: { model: string; state: State }) {

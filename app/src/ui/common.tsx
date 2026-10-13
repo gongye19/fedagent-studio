@@ -332,7 +332,7 @@ export function FormActions({
       {/* 始终保留这个区域，读屏软件才能在缺项变化时播报 */}
       <span className={`form-status${error && !saving ? " form-status--error" : ""}`} id={id} aria-live="polite">{status}</span>
       <div className="form-buttons">
-        <button type="button" className={`button button--secondary${size}`} onClick={onCancel}>{cancelLabel}</button>
+        <button type="button" className={`button button--secondary${size}`} disabled={saving} onClick={onCancel}>{cancelLabel}</button>
         <button type="button" className={`button button--primary${size}`} disabled={missing.length > 0 || saving} aria-describedby={status ? id : undefined} onClick={onSave}>{saveLabel}</button>
       </div>
     </div>

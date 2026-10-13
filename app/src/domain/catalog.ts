@@ -93,6 +93,7 @@ export type Algorithm = {
   maxRounds: number;
   defaultRounds: number;
   source: { paper: string; paperUrl: string; code: string; codeUrl: string };
+  requirements: components["schemas"]["ResourceRequirementsOut"];
 };
 
 export const SCENARIOS: Scenario[] = [];
@@ -144,6 +145,7 @@ export function installRegistry(registry: Registry): void {
     ...registry.algorithms.map((item): Algorithm => ({
       id: item.id,
       version: item.version,
+      requirements: item.requirements,
       scenario: item.scenario,
       name: item.name,
       fullName: item.fullName,

@@ -114,7 +114,7 @@ def test_validation_issues(client: TestClient, platform: Platform) -> None:
     result = client.post("/v1/tasks/validate", json=config(chosen, clientModel="default")).json()
     messages = [issue["message"] for issue in result["issues"]]
     assert "AMC 还没有样本（题目文件待导入）" in messages
-    assert any("至少要选 2 个" in message for message in messages)
+    assert any("至少选择 2 个可用的数据来源" in message for message in messages)
     assert any("默认 LLM 接口" in message and "还没有配置" in message for message in messages)
 
 

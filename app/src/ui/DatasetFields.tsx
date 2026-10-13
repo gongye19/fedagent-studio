@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import { SCENARIOS, TASK_TYPES, taskTypesFor } from "../domain/catalog";
+import { ALGORITHMS, SCENARIOS, TASK_TYPES, taskTypesFor } from "../domain/catalog";
 import type { Hosting } from "../domain/resources";
 import { MAX_FILE_BYTES, MAX_PROBLEMS } from "../domain/validate";
 import { api, ApiError } from "../api/client";
@@ -12,7 +12,10 @@ import { Icon } from "./icons";
  * 数据集的登记字段：场景 → 任务类型 → 平台托管时选文件并在浏览器里检查，参与方本地时只填名称和说明。
  * 只列出这个场景里有算法能处理的任务类型；规划中的场景不能选。新增参与方页和新增数据集页共用。
  */
-export function DatasetFields({ form, hosting, onChange }: { form: DatasetForm; hosting: Hosting; onChange: Dispatch<SetStateAction<DatasetForm>> }) {
+export function DatasetFields({ form, hosting, onChange, resourceIntake = false, categoryLocked = false, disabled = false }: {
+  form: DatasetForm; hosting: Hosting; onChange: Dispatch<SetStateAction<DatasetForm>>;
+  resourceIntake?: boolean; categoryLocked?: boolean; disabled?: boolean;
+}) {
   // 同一页可能有别的表单，id 不能写死。
   const uid = useId();
   const ids = { scenario: `${uid}-scenario`, type: `${uid}-type`, file: `${uid}-file`, format: `${uid}-format`, name: `${uid}-name`, description: `${uid}-description` };
@@ -26,7 +29,7 @@ export function DatasetFields({ form, hosting, onChange }: { form: DatasetForm; 
     pending.current?.abort();
     return () => { selection.current += 1; pending.current?.abort(); };
   }, [hosting, form.scenario, form.taskType]);
-  const types = form.scenario ? taskTypesFor(form.scenario) : [];
+  const types = resourceIntake ? Object.keys(TASK_TYPES) : form.scenario ? taskTypesFor(form.scenario) : [];
   const type = form.taskType ? TASK_TYPES[form.taskType] : null;
   const file = form.file;
   const failed = file && !file.checking && !file.check?.ok;
@@ -76,7 +79,7 @@ export function DatasetFields({ form, hosting, onChange }: { form: DatasetForm; 
 
   return (
     <>
-      <Field label="场景" labelId={ids.scenario} wide>
+      {!resourceIntake ? <Field label="场景" labelId={ids.scenario} wide>
         <Choices
           labelledBy={ids.scenario}
           value={form.scenario}
@@ -84,26 +87,28 @@ export function DatasetFields({ form, hosting, onChange }: { form: DatasetForm; 
           // 换了场景，任务类型要重新选。
           onChange={(scenario) => onChange((current) => (current.scenario === scenario ? current : { ...current, scenario, taskType: null, file: null }))}
         />
-      </Field>
-      {form.scenario ? (
+      </Field> : null}
+      {!categoryLocked && (form.scenario || resourceIntake) ? (
         <Field label="任务类型" labelId={ids.type} wide>
           {types.length ? (
-            <Choices labelledBy={ids.type} value={form.taskType} options={types.map((item) => ({ value: item, label: TASK_TYPES[item].label }))} placeholder="更多类型" onChange={(taskType) => onChange((current) => current.taskType === taskType ? current : { ...current, taskType, file: null })} />
+            <Choices labelledBy={ids.type} value={form.taskType} options={types.map((item) => ({ value: item, label: TASK_TYPES[item].label }))} placeholder="更多类型" onChange={(taskType) => onChange((current) => current.taskType === taskType ? current : {
+              ...current, taskType, file: null, scenario: resourceIntake ? ALGORITHMS.find(a => a.accepts.includes(taskType))?.scenario ?? null : current.scenario,
+            })} />
           ) : <p className="field-static">这个场景还没有可用的任务类型。</p>}
           {type && hosting === "local" ? <><button type="button" className="text-link" disabled={downloading} onClick={() => void downloadTemplate()}>{downloading ? "正在下载…" : "下载数据模板"}</button>
             {templateError ? <p className="field-error" role="alert">{templateError}</p> : null}</> : null}
         </Field>
       ) : null}
 
-      {type && hosting === "platform" ? (
-        <Field label="数据集文件" labelId={ids.file} info={<>每行一条 <code>{type.format}</code>。{type.unlabeledNote}。文件不超过 20 MB。</>} wide>
+      {(type || resourceIntake) && hosting === "platform" ? (
+        <Field label="数据文件" labelId={ids.file} info={type ? <>每行一条 <code>{type.format}</code>。{type.unlabeledNote}。文件不超过 20 MB。</> : undefined} wide>
           <label className="upload-zone">
-            <input ref={input} name="dataset-file" type="file" accept=".jsonl,.json,application/json" aria-labelledby={ids.file} aria-describedby={ids.format} onChange={(event) => pick(event.target.files?.[0])} />
+            <input ref={input} name="dataset-file" type="file" disabled={!type || disabled} accept=".jsonl,.json,application/json" aria-labelledby={ids.file} aria-describedby={ids.format} onChange={(event) => pick(event.target.files?.[0])} />
             <Icon name="upload" />
             <strong>{file ? file.name : "选择 JSONL 文件"}</strong>
-            <span id={ids.format}>JSONL · {type.label} · 最多 20 MB</span>
+            <span id={ids.format}>{type ? `JSONL · ${type.label} · 最多 20 MB` : "先选择任务类型"}</span>
           </label>
-          <button type="button" className="text-link" disabled={downloading} onClick={() => void downloadTemplate()}>{downloading ? "正在下载…" : "下载数据模板"}</button>
+          <button type="button" className="text-link" disabled={!type || downloading} onClick={() => void downloadTemplate()}>{downloading ? "正在下载…" : "下载数据模板"}</button>
           {templateError ? <p className="field-error" role="alert">{templateError}</p> : null}
           {file ? (
             <div className={`check-result${failed ? " check-result--failed" : " check-result--ok"}`} aria-live="polite">
@@ -130,7 +135,11 @@ export function DatasetFields({ form, hosting, onChange }: { form: DatasetForm; 
         </Field>
       ) : null}
 
-      {type && (hosting === "local" || file?.check?.ok) ? (
+      {categoryLocked && hosting === "local" && type ? <Field label="数据模板" wide>
+        <button type="button" className="text-link" disabled={downloading} onClick={() => void downloadTemplate()}>{downloading ? "正在下载…" : "下载数据模板"}</button>
+        {templateError ? <p className="field-error" role="alert">{templateError}</p> : null}
+      </Field> : null}
+      {resourceIntake || type && (hosting === "local" || file?.check?.ok) ? (
         <>
           <Field label="数据集名称" optional={hosting === "platform"} htmlFor={ids.name}>
             <input
@@ -138,13 +147,13 @@ export function DatasetFields({ form, hosting, onChange }: { form: DatasetForm; 
               name="dataset-name"
               autoComplete="off"
               value={form.name}
-              placeholder={file?.check?.ok ? file.name.replace(/\.jsonl?$/i, "") : "例如：内部评测集"}
+              placeholder={file?.check?.ok ? file.name.replace(/\.jsonl?$/i, "") : hosting === "platform" ? "留空使用文件名" : "填写数据名称"}
               maxLength={40}
               onChange={(event) => onChange((current) => ({ ...current, name: event.target.value }))}
             />
           </Field>
           <Field label="说明" optional htmlFor={ids.description}>
-            <input id={ids.description} name="dataset-description" autoComplete="off" value={form.description} placeholder="例如：2024 年收集的样本" maxLength={60} onChange={(event) => onChange((current) => ({ ...current, description: event.target.value }))} />
+            <input id={ids.description} name="dataset-description" autoComplete="off" value={form.description} placeholder="记录数据用途或来源" maxLength={60} onChange={(event) => onChange((current) => ({ ...current, description: event.target.value }))} />
           </Field>
         </>
       ) : null}

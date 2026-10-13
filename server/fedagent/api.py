@@ -27,6 +27,7 @@ from . import __version__, apps, clients, resources, tasks
 from . import models as m
 from .data import MAX_FILE_BYTES, check_file
 from .platform import Platform
+from .registry import SCENARIOS
 from .schemas import (
     AlgorithmOut,
     AppIn,
@@ -41,6 +42,7 @@ from .schemas import (
     ClientTokenOut,
     ClientUnitOut,
     CompleteIn,
+    DataResourceOut,
     DatasetCheckOut,
     DatasetOut,
     EndpointIn,
@@ -223,6 +225,51 @@ def revoke_client_token(token_id: str, session: SessionDep) -> Response:
 
 
 # —— 数据集 ——
+
+
+@admin.post("/resources/data", response_model=DataResourceOut, status_code=201, tags=["resources"])
+async def create_data_resource(
+    platform: PlatformDep,
+    session: SessionDep,
+    name: Annotated[str, Form(min_length=1, max_length=40)],
+    task_type: Annotated[str, Form(alias="taskType")],
+    hosting: Annotated[str, Form(pattern="^(platform|local)$")],
+    scenario: Annotated[str | None, Form()] = None,
+    source_id: Annotated[str | None, Form(alias="sourceId")] = None,
+    source_name: Annotated[str, Form(alias="sourceName", max_length=40)] = "",
+    description: Annotated[str, Form(max_length=120)] = "",
+    file: Annotated[UploadFile | None, File()] = None,
+) -> DataResourceOut:
+    """用户接入自己的数据：选择既有执行来源或与第一份数据原子登记，无需先新建参与方。"""
+    from .schemas import ParticipantIn
+
+    supported = [item.id for item in SCENARIOS if task_type in platform.registry.task_types_for(item.id)]
+    if not supported:
+        raise HTTPException(422, "还没有算法支持这种任务类型")
+    category = scenario or supported[0]
+    if source_id:
+        source = session.get(m.Participant, source_id)
+        if source is None:
+            raise resources.not_found("数据来源")
+        if source.builtin:
+            raise HTTPException(409, "请选择自己的数据来源，或新建来源；公用来源由平台维护")
+        if source.hosting != hosting:
+            raise HTTPException(422, "运行位置和已有数据来源不一致")
+    else:
+        source = resources.create_participant(session, ParticipantIn(name=source_name.strip() or name, hosting=hosting))  # type: ignore[arg-type]
+    dataset, checked = resources.create_dataset(platform, session, participant_id=source.id, name=name,
+                                               description=description, scenario=category, task_type=task_type,
+                                               raw=await _read_upload(file))
+    if dataset is None:
+        session.rollback()
+        raise HTTPException(422, {"message": "数据文件检查不通过", "check": checked.model_dump() if checked else None})
+    return DataResourceOut(dataset=resources.dataset_out(dataset), source=resources.participant_out(platform, source))
+
+
+@admin.delete("/resources/data/{dataset_id}", status_code=204, tags=["resources"])
+def delete_data_resource(dataset_id: str, session: SessionDep) -> Response:
+    resources.delete_data_resource(session, dataset_id)
+    return Response(status_code=204)
 
 
 @admin.get("/datasets", response_model=list[DatasetOut], tags=["datasets"])
