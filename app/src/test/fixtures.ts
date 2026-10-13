@@ -11,12 +11,12 @@ import registry from "./registry.json";
 installRegistry(registry as unknown as components["schemas"]["RegistryOut"]);
 
 const participant = (id: string, name: string, extra: Partial<Participant> = {}): Participant => ({
-  id, name, org: "内置数据", intro: "", hosting: "platform", status: "online", builtin: true, lastSeenAt: null, ...extra,
+  id, name, org: "内置数据", intro: "", hosting: "platform", status: "online", builtin: true, lastSeenAt: null, clientPlugins: {}, ...extra,
 });
 
 const dataset = (id: string, participantId: string, extra: Partial<Dataset> = {}): Dataset => ({
   id, name: id.replace(/^ds-/, "").toUpperCase(), participantId, description: "", origin: null, scenario: "horizontal",
-  taskType: "math-reasoning", count: 30, answered: 30, source: "builtin", sample: null, ready: true, ...extra,
+  taskType: "math-reasoning", schemaVersion: "1.0", sourceHash: null, count: 30, answered: 30, source: "builtin", sample: null, ready: true, ...extra,
 });
 
 export const PARTICIPANTS: Participant[] = [

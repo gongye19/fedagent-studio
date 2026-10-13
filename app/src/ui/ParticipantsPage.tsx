@@ -207,8 +207,10 @@ function RowDetail({
           {dataset.sample ? (
             <Collapsible title="样本预览" className="sample-preview">
               <div className="sample-question">
-                <p lang="en">{dataset.sample.question}</p>
-                {dataset.sample.answer ? <p className="sample-answer" lang="en">标注：{dataset.sample.answer}</p> : null}
+                {dataset.sample.fields?.length ? dataset.sample.fields.map((field) => (
+                  <div key={field.label}><strong>{field.label}</strong><p>{field.text}</p></div>
+                )) : <><p>{dataset.sample.question}</p>
+                  {dataset.sample.answer ? <p className="sample-answer">标注：{dataset.sample.answer}</p> : null}</>}
               </div>
             </Collapsible>
           ) : null}

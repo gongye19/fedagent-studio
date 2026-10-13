@@ -15,7 +15,9 @@
 | `config.mjs` | 可用参与方／空态与失效草稿／限宽／摘要旁重置、三分区／轮次菜单／静默恢复、任务逐行配置、ⓘ真实悬停／键盘／触屏／关闭、无重排、运行方式、模型搜索／空状态／焦点恢复 | `node config.mjs`；本地响应夹具；线上 `CONFIG_FIXTURES=0`；禁止业务写入与模型调用 |
 | `task-form.mjs` | 静默恢复、字段原位错误／焦点／键盘、短促开始反馈、减少动态、后端配置错误定位；阻止业务写入 | `node task-form.mjs`；线上只读，本地补充预检响应夹具；CDP_OUT指定证据目录 |
 | `task-flow.mjs` | 本地真接口、假模型、runner 的配置 → 完成 → 发布 → 对比 | `node task-flow.mjs`；仅允许 localhost／127.0.0.1；核对 fake 接口，只清理自己创建的任务／应用并逐项保留原有记录 |
+| `medical-flow.mjs` | 公开病例的浏览器上传／错误／模板 → runner 两轮 → 发布 → 结构化试用／JSON错误 → 实际格式导出 | `node medical-flow.mjs`；仅允许本地假模型。`MEDICAL_DATA_DIR` 指向包含 medqa-group-1/2.jsonl 的目录，来源见 docs/medical-data-manifest.json；只删除本次任务／应用／上传数据集，保留原有资源 |
 | `real-data-flow.mjs` | C、H两方新题库各1题／2轮真实运行→发布→试用→清理自己记录 | 只有明确安排真实模型验证时运行：`REAL_MODEL_VERIFY=1 node real-data-flow.mjs`；约$0.1–0.2，不得作为普通UI回归自动调用；失败未完成任务不会强删，owned.json保留核验ID |
+| `real-medical-flow.mjs` | 两方公开医疗病例各2条／2轮→发布→对比→单次调用／导出→清理自己记录 | 仅显式安排时用 `REAL_MODEL_VERIFY=1 node real-medical-flow.mjs`；预计$0.3–1，保留真实数据；未完成任务不强删，owned.json保存本次ID |
 | `docshots.json` | 文档里的 14 张截图（`docs/screenshots/`） | `CDP_OUT=../../docs/screenshots node cdp.mjs docshots.json` |
 
 环境变量：

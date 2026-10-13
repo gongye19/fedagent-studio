@@ -186,7 +186,7 @@ class FoT(Algorithm):
     def apply(self, artifact: Artifact | None, request: ApplyRequest, model: Model) -> ApplyResult:
         """带经验库时按解题提示词（Prompt 1）把整份经验库放进上下文；不带时只给题目。"""
         library = artifact.content if artifact is not None else {}
-        reply = model.chat(prompts.solve_prompt(prompts.problem_text(request.input), library), max_tokens=MAX_TOKENS["solve"], **GENERATION)
+        reply = model.chat(prompts.solve_prompt(prompts.problem_text(str(request.input)), library), max_tokens=MAX_TOKENS["solve"], **GENERATION)
         return ApplyResult(output=reply.text, usage=reply.usage)
 
     def export(self, artifact: Artifact, fmt: str = "json") -> tuple[str, str, bytes]:

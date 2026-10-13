@@ -164,6 +164,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/task-types/{task_type}/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dataset Template */
+        get: operations["dataset_template_v1_task_types__task_type__template_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/datasets/{dataset_id}": {
         parameters: {
             query?: never;
@@ -452,6 +469,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/apps/{app_id}/invoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Invoke App */
+        post: operations["invoke_app_v1_apps__app_id__invoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/apps/{app_id}/export": {
         parameters: {
             query?: never;
@@ -604,6 +638,11 @@ export interface components {
             params: components["schemas"]["ParamOut"][];
             /** Minparticipants */
             minParticipants: number;
+            /**
+             * Minsamples
+             * @default 1
+             */
+            minSamples: number;
             /** Minrounds */
             minRounds: number;
             /** Maxrounds */
@@ -655,7 +694,9 @@ export interface components {
         /** ApplyIn */
         ApplyIn: {
             /** Input */
-            input: string;
+            input: string | {
+                [key: string]: unknown;
+            };
             /** Answer */
             answer?: string | null;
             /**
@@ -677,6 +718,13 @@ export interface components {
             correct: boolean | null;
             /** Tokens */
             tokens: number;
+            /**
+             * Details
+             * @default {}
+             */
+            details: {
+                [key: string]: unknown;
+            };
         };
         /** Body_check_dataset_v1_datasets_check_post */
         Body_check_dataset_v1_datasets_check_post: {
@@ -795,6 +843,20 @@ export interface components {
             participant: string;
             /** Datasets */
             datasets: string[];
+            /**
+             * Tasktypes
+             * @default {}
+             */
+            taskTypes: {
+                [key: string]: string;
+            };
+            /**
+             * Schemaversions
+             * @default {}
+             */
+            schemaVersions: {
+                [key: string]: string;
+            };
         };
         /** ClientMessage */
         ClientMessage: {
@@ -935,6 +997,13 @@ export interface components {
             scenario: string;
             /** Tasktype */
             taskType: string;
+            /**
+             * Schemaversion
+             * @default 1.0
+             */
+            schemaVersion: string;
+            /** Sourcehash */
+            sourceHash?: string | null;
             /** Count */
             count: number;
             /** Answered */
@@ -1043,6 +1112,11 @@ export interface components {
             problems: number;
             /** Participantcalls */
             participantCalls: number;
+            /**
+             * Callsareupperbound
+             * @default false
+             */
+            callsAreUpperBound: boolean;
             /** Servercalls */
             serverCalls: number;
             /** Participanttokens */
@@ -1109,6 +1183,28 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** InputFieldOut */
+        InputFieldOut: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "text" | "textarea" | "json";
+            /**
+             * Required
+             * @default true
+             */
+            required: boolean;
+            /**
+             * Help
+             * @default
+             */
+            help: string;
         };
         /** IssueOut */
         IssueOut: {
@@ -1272,6 +1368,13 @@ export interface components {
             builtin: boolean;
             /** Lastseenat */
             lastSeenAt: string | null;
+            /**
+             * Clientplugins
+             * @default {}
+             */
+            clientPlugins: {
+                [key: string]: string;
+            };
         };
         /** ParticipantPatch */
         ParticipantPatch: {
@@ -1281,6 +1384,13 @@ export interface components {
             org?: string | null;
             /** Intro */
             intro?: string | null;
+        };
+        /** PreviewFieldOut */
+        PreviewFieldOut: {
+            /** Label */
+            label: string;
+            /** Text */
+            text: string;
         };
         /** RegistryOut */
         RegistryOut: {
@@ -1322,10 +1432,18 @@ export interface components {
         };
         /** SampleOut */
         SampleOut: {
-            /** Question */
+            /**
+             * Question
+             * @default
+             */
             question: string;
             /** Answer */
             answer?: string | null;
+            /**
+             * Fields
+             * @default []
+             */
+            fields: components["schemas"]["PreviewFieldOut"][];
         };
         /** ScenarioOut */
         ScenarioOut: {
@@ -1520,6 +1638,31 @@ export interface components {
             unlabeledNote: string;
             /** Placeholder */
             placeholder: string;
+            /**
+             * Schemaversion
+             * @default 1.0
+             */
+            schemaVersion: string;
+            /**
+             * Structuredinput
+             * @default false
+             */
+            structuredInput: boolean;
+            /**
+             * Inputlabel
+             * @default 问题
+             */
+            inputLabel: string;
+            /**
+             * Answerlabel
+             * @default 标准答案
+             */
+            answerLabel: string;
+            /**
+             * Inputfields
+             * @default []
+             */
+            inputFields: components["schemas"]["InputFieldOut"][];
         };
         /** UnitInputsOut */
         UnitInputsOut: {
@@ -1964,6 +2107,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DatasetCheckOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dataset_template_v1_task_types__task_type__template_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                task_type: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -2742,6 +2918,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApplyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    invoke_app_v1_apps__app_id__invoke_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplySide"];
                 };
             };
             /** @description Validation Error */

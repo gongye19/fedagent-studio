@@ -34,6 +34,7 @@ def step(step_id: str) -> Callable[[StepFunction], StepFunction]:
 
 class Algorithm:
     manifest: ClassVar[Manifest]
+    min_samples_per_site: ClassVar[int] = 1
 
     def __init__(self) -> None:
         self._steps: dict[str, Callable[[StepContext], None]] = {}

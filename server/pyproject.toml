@@ -7,6 +7,7 @@ dependencies = [
   "fedagent-sdk",
   "fedagent-fot",
   "fedagent-math-reasoning",
+  "fedagent-evomedclaw",
   "fastapi>=0.142.2",
   "uvicorn>=0.30",
   "sqlalchemy>=2.0.30",
@@ -31,13 +32,14 @@ dev = [
 ]
 
 [tool.uv.workspace]
-members = ["sdk", "plugins/fot", "plugins/math_reasoning", "client"]
+members = ["sdk", "plugins/fot", "plugins/math_reasoning", "plugins/evomedclaw", "client"]
 
 [tool.uv.sources]
 fedagent-sdk = { workspace = true }
 fedagent-fot = { workspace = true }
 fedagent-math-reasoning = { workspace = true }
 fedagent-client = { workspace = true }
+fedagent-evomedclaw = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]
@@ -49,7 +51,7 @@ packages = ["fedagent"]
 [tool.ruff]
 line-length = 160
 target-version = "py312"
-extend-exclude = ["fedagent/migrations/versions"]
+extend-exclude = ["fedagent/migrations/versions", "plugins/evomedclaw/fedagent_evomed/vendor"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
@@ -68,3 +70,4 @@ filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`"]
 include = ["fedagent", "sdk", "plugins", "client"]
 pythonVersion = "3.12"
 typeCheckingMode = "basic"
+exclude = ["plugins/evomedclaw/fedagent_evomed/vendor"]

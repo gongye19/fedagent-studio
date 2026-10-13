@@ -9,7 +9,7 @@ from .algorithm import Algorithm, step
 from .context import OutgoingMessage, SiteInfo, StepContext, StepIO, UnitResult
 from .manifest import SERVER, Manifest, ParamDef, StepDef, load_manifest
 from .model import ChatResult, Model, ModelError
-from .tasktype import CheckIssue, CheckReport, Grader, Row, TaskType
+from .tasktype import CheckIssue, CheckReport, Grader, InputField, Row, TaskType
 from .types import (
     ApplyRequest,
     ApplyResult,
@@ -37,6 +37,7 @@ __all__ = [
     "CheckReport",
     "Estimate",
     "Grader",
+    "InputField",
     "Issue",
     "Item",
     "Manifest",

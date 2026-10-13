@@ -83,6 +83,7 @@ class TaskSpec:
 class Estimate:
     participant_calls: int = 0
     server_calls: int = 0
+    calls_are_upper_bound: bool = False
     """服务端调用模型的步骤每轮各一次；结果不合法时会重试，所以是下限。"""
     participant_tokens: int = 0
     server_tokens: int = 0
@@ -101,7 +102,7 @@ class Issue:
 class ApplyRequest:
     """使用产出（应用试用、API）：一条输入。answer 有值时自动判分。"""
 
-    input: str
+    input: str | dict[str, Any]
     answer: str | None = None
     options: dict[str, Any] = field(default_factory=dict)
 

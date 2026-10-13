@@ -21,11 +21,6 @@ import { useContentMotion } from "./hooks";
 type Props = { item: Published; task: Task | undefined; state: State; tab?: AppTab };
 type Comparison = components["schemas"]["ApplyOut"];
 
-/** 导出的 JSON：条目名 → 内容（FoT 经验库的格式，和复现器的 library_r{n}.json 一样）。 */
-function bodyOf(item: Published): Record<string, string> {
-  return Object.fromEntries(item.items.map((entry) => [entry.key, entry.text]));
-}
-
 /** 应用详情：试用、查看内容、接入方式。选好应用、输入、运行、看结果。 */
 export default function AppPage({ item, task, state, tab }: Props) {
   const [editing, setEditing] = useState<"rename" | "unpublish" | null>(null);
@@ -101,7 +96,7 @@ export default function AppPage({ item, task, state, tab }: Props) {
         routeOf={(id) => ({ page: "app", id: item.id, tab: id })}
       />
       <div className="tab-panel" ref={panelMotion}>
-        {active === "try" ? <TryPanel item={item} state={state} /> : null}
+        {active === "try" ? <TryPanel key={item.id} item={item} state={state} /> : null}
         {active === "content" ? (
           <Panel title={algorithm.output.name} extra={`${item.items.length} 条`}>
             <OutputGroups items={item.items} />
@@ -151,22 +146,42 @@ function TryPanel({ item, state }: { item: Published; state: State }) {
   const model = options.some((option) => option.ref === chosenModel) ? chosenModel : options[0]?.ref ?? "";
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
+  const [values, setValues] = useState<Record<string, string>>({});
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<{ comparison: Comparison; input: string; answer: string; model: string } | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const type = TASK_TYPES[item.taskType];
-  const missing = !model ? "还需配置可用的模型接口" : question.trim() ? "" : "还需填写：问题";
-  const outdated = result && (question.trim() !== result.input || answer.trim() !== result.answer || model !== result.model);
+  const fields = type?.inputFields ?? [];
+  const fieldErrors: Record<string, string> = {};
+  const structured: Record<string, unknown> = {};
+  if (type?.structuredInput) {
+    for (const field of fields) {
+      const raw = values[field.key]?.trim() ?? "";
+      if (field.required && !raw) fieldErrors[field.key] = `请填写${field.label}`;
+      if (field.kind === "json" && raw) {
+        try {
+          const parsed: unknown = JSON.parse(raw);
+          if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) throw new Error();
+          structured[field.key] = parsed;
+        } catch { fieldErrors[field.key] = "请填写合法的 JSON 对象"; }
+      } else if (raw) structured[field.key] = raw;
+    }
+  }
+  const submittedInput = type?.structuredInput ? structured : question.trim();
+  const snapshot = typeof submittedInput === "string" ? submittedInput : JSON.stringify(submittedInput, null, 2);
+  const missing = !model ? "还需配置可用的模型接口" : type?.structuredInput
+    ? Object.values(fieldErrors).join("；") : question.trim() ? "" : "还需填写：问题";
+  const outdated = result && (snapshot !== result.input || answer.trim() !== result.answer || model !== result.model);
 
   async function compare() {
     if (missing || running) return;
-    const submitted = { input: question.trim(), answer: answer.trim() || null, model };
+    const submitted = { input: submittedInput, answer: answer.trim() || null, model };
     setRunning(true);
     setProblem(null);
     setResult(null);
     try {
       const comparison = await api.applyApp(item.id, submitted);
-      setResult({ comparison, input: submitted.input, answer: submitted.answer ?? "", model: submitted.model });
+      setResult({ comparison, input: snapshot, answer: submitted.answer ?? "", model: submitted.model });
     } catch (error) {
       setProblem(error instanceof ApiError ? error.message : "运行失败，稍后再试");
     } finally {
@@ -179,10 +194,20 @@ function TryPanel({ item, state }: { item: Published; state: State }) {
       <Panel>
         <div className="form-body">
           <FieldGroup>
-            <Field label="问题" htmlFor="try-question" wide>
+            {type?.structuredInput ? fields.map((field) => (
+              <Field key={field.key} label={field.label} info={field.help || undefined} optional={!field.required} htmlFor={`try-${field.key}`} wide>
+                {field.kind === "text" ? <input id={`try-${field.key}`} disabled={running} value={values[field.key] ?? ""} maxLength={20000}
+                  onChange={(event) => setValues((current) => ({ ...current, [field.key]: event.target.value }))} /> :
+                  <textarea id={`try-${field.key}`} disabled={running} value={values[field.key] ?? ""} rows={field.kind === "json" ? 3 : 4} maxLength={20000}
+                    placeholder={field.kind === "json" ? "{}" : undefined} aria-invalid={Boolean(values[field.key] && fieldErrors[field.key])}
+                    aria-describedby={values[field.key] && fieldErrors[field.key] ? `try-${field.key}-error` : undefined}
+                    onChange={(event) => setValues((current) => ({ ...current, [field.key]: event.target.value }))} />}
+                {values[field.key] && fieldErrors[field.key] ? <p className="field-error" id={`try-${field.key}-error`}>{fieldErrors[field.key]}</p> : null}
+              </Field>
+            )) : <Field label={type?.inputLabel ?? "问题"} htmlFor="try-question" wide>
               <textarea id="try-question" name="question" autoComplete="off" rows={4} maxLength={20000} disabled={running} value={question} placeholder={type?.placeholder} onChange={(event) => setQuestion(event.target.value)} />
-            </Field>
-            <Field label="标准答案" optional htmlFor="try-answer">
+            </Field>}
+            <Field label={type?.answerLabel ?? "标准答案"} optional htmlFor="try-answer">
               <input id="try-answer" name="answer" autoComplete="off" disabled={running} value={answer} onChange={(event) => setAnswer(event.target.value)} />
             </Field>
             {options.length > 1 ? (
@@ -208,13 +233,13 @@ function TryPanel({ item, state }: { item: Published; state: State }) {
           </div>
         </div>
       </Panel>
-      {problem ? <Notice tone="warning" onDismiss={() => setProblem(null)}>{problem}</Notice> : null}
+      {problem ? <p className="field-error" role="alert">{problem}</p> : null}
       {result ? (
         <Panel title={outdated ? "上次对比结果" : "对比结果"} id="try-result" extra={modelLabel(result.model, state.endpoints)}>
           <details className="comparison-input">
-            <summary>本次问题{result.answer ? "与标准答案" : ""}</summary>
-            <p>{result.input}</p>
-            {result.answer ? <p>标准答案：{result.answer}</p> : null}
+            <summary>本次{type?.inputLabel ?? "问题"}{result.answer ? `与${type?.answerLabel ?? "标准答案"}` : ""}</summary>
+            <p className="input-snapshot">{result.input}</p>
+            {result.answer ? <p>{type?.answerLabel ?? "标准答案"}：{result.answer}</p> : null}
           </details>
           <div className="compare-grid">
             {([["不带应用", result.comparison.without], ["带应用", result.comparison.with]] as const).map(([title, side]) => (
@@ -241,21 +266,28 @@ function TryPanel({ item, state }: { item: Published; state: State }) {
 }
 
 function IntegratePanel({ item }: { item: Published }) {
-  const body = bodyOf(item);
-  const preview = JSON.stringify(Object.fromEntries(Object.entries(body).slice(0, 2)), null, 2);
+  const exported = useQuery({ queryKey: ["app-export", item.id], queryFn: () => api.appContent(item.id) });
+  const body = exported.data;
+  const full = body ? JSON.stringify(body, null, 2) : "";
+  const lines = full.split("\n");
+  const preview = lines.slice(0, 24).join("\n") + (lines.length > 24 ? "\n…" : "");
+  const type = TASK_TYPES[item.taskType];
+  const input = type?.structuredInput ? Object.fromEntries((type.inputFields ?? []).map((field) => [field.key, field.kind === "json" ? {} : "…"])) : "…";
+  const payload = JSON.stringify({ input, model: "default" });
   const origin = window.location.origin;
   // 平台开了访问令牌才需要带令牌
   const meta = useQuery({ queryKey: keys.meta, queryFn: api.meta, staleTime: 60_000 });
   const auth = meta.data?.authRequired ? `  -H "Authorization: Bearer <访问令牌>" \\\n` : "";
   return (
     <div className="panel-stack">
-      <Panel title="导出" extra="JSON 格式，放进自己 Agent 的提示词">
-        <CodeBlock wrap code={Object.keys(body).length > 2 ? `${preview.slice(0, -2)},\n  …\n}` : preview} copyText={`${JSON.stringify(body, null, 2)}\n`} copyLabel="复制完整 JSON" />
+      <Panel title="导出" extra="算法定义的 JSON 格式">
+        {exported.isPending ? <p>正在读取产出…</p> : exported.isError ? <p role="alert">读取失败。<button type="button" className="text-link" onClick={() => void exported.refetch()}>重试</button></p> :
+          <CodeBlock wrap code={preview} copyText={`${full}\n`} copyLabel="复制完整 JSON" />}
       </Panel>
-      <Panel title="API" extra="带应用、不带应用各回答一次；给了标准答案时一起判分">
-        <CodeBlock code={`curl -X POST ${origin}/v1/apps/${item.id}/apply \\
+      <Panel title="API" extra="单次运行已发布成果">
+        <CodeBlock code={`curl -X POST ${origin}/v1/apps/${item.id}/invoke \\
 ${auth}  -H "Content-Type: application/json" \\
-  -d '{"input": "…", "model": "default"}'`} />
+  -d '${payload}'`} />
       </Panel>
     </div>
   );

@@ -1,0 +1,37 @@
+id: evomedclaw
+version: 1.0.0
+name: EvoMedClaw
+full_name: EvoMedClaw · 医疗过程经验协作
+summary: 各方完成诊断并提炼过程经验，聚合后用于下一轮诊断
+scenario: horizontal
+accepts: [medical-diagnosis]
+roles:
+  participant: {label: 参与方, min: 2, evaluated: true}
+rounds: {min: 2, max: 6, default: 2}
+channels:
+  clinical-cards:
+    label: 医疗过程经验卡
+    from: participant
+    to: server
+    kind: json
+    per_item: 1
+    tokens: 250
+artifact: {kind: clinical-memory, name: 医疗经验库, unit: 张过程卡, to: [participant]}
+evaluation: {step: diagnose, baseline: round-1}
+steps:
+  - {id: diagnose, label: 本方诊断, at: participant, per: item, model: true, result: metric, estimate: {seconds: 100, tokens: 18000}, retries: 2}
+  - {id: learn, label: 提炼并提交经验, at: participant, per: site, labels: true, sends: [clinical-cards], result: uploads, estimate: {seconds: 2}, retries: 1}
+  - {id: aggregate, label: 聚合医疗经验库, at: server, reads: [clinical-cards], publishes: true, result: output, estimate: {seconds: 2}, retries: 0}
+params:
+  - key: maxTurns
+    label: 每病例最多问诊回合
+    help: 限制医生的行动次数，接近上限时要求形成最终诊断。调用数按正常路径上限估算，接口重试另计；Token、费用和时长为估计值。
+    kind: number
+    min: 4
+    max: 12
+    unit: 回合
+    default: 6
+source:
+  code: github.com/xschen-beb/EvoMedClaw
+  code_url: https://github.com/xschen-beb/EvoMedClaw
+  commit: ae333ec635fac5900d2b9f4455080444d28c0392

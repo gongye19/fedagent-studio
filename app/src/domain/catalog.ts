@@ -36,6 +36,10 @@ export type TaskTypeDef = {
   unlabeledNote: string;
   /** 试用时输入框的占位文字。 */
   placeholder: string;
+  structuredInput?: boolean;
+  inputLabel?: string;
+  answerLabel?: string;
+  inputFields?: components["schemas"]["InputFieldOut"][];
 };
 
 /** 每轮的步骤：由算法定义，进度页只按这里的定义来。步骤 id 由算法自己取。 */
@@ -84,6 +88,7 @@ export type Algorithm = {
   accepts: readonly TaskType[];
   params: readonly ParamDef[];
   minParticipants: number;
+  minSamples?: number;
   minRounds: number;
   maxRounds: number;
   defaultRounds: number;
@@ -126,6 +131,10 @@ export function installRegistry(registry: Registry): void {
       format: item.format,
       unlabeledNote: item.unlabeledNote,
       placeholder: item.placeholder,
+      structuredInput: item.structuredInput,
+      inputLabel: item.inputLabel,
+      answerLabel: item.answerLabel,
+      inputFields: item.inputFields,
     };
     for (const grader of item.graders) GRADERS[grader.id] = { label: grader.label, detail: grader.detail };
   }
@@ -153,6 +162,7 @@ export function installRegistry(registry: Registry): void {
       accepts: item.accepts,
       params: item.params.map(toParam),
       minParticipants: item.minParticipants,
+      minSamples: item.minSamples,
       minRounds: item.minRounds,
       maxRounds: item.maxRounds,
       defaultRounds: item.defaultRounds,

@@ -1,0 +1,26 @@
+{
+  "repository": "https://huggingface.co/ItsMaxNorm/MedAgentSim-datasets",
+  "revision": "ad770a78ed4902f672548faf1a87abbbc18484bb",
+  "license_statement": "发布者 README 声明 MIT；保留原始来源，未引入 MIMIC-IV 或影像数据。",
+  "source_file": "medqa_v1.jsonl",
+  "source_sha256": "1a4397418e6ce9c68b7c85974b79b6171fede7398bcf2c07e6b373e4c2aef36b",
+  "count": 107,
+  "groups": [
+    {
+      "filename": "medqa-group-1.jsonl",
+      "participant_id": "p-a",
+      "dataset_id": "ds-7cda527c",
+      "count": 54,
+      "sha256": "53cf0d249a44c14c1487c26b8c26c766632e390eb39d7f61dc3167b8f0fe208e",
+      "source_rows": "奇数行"
+    },
+    {
+      "filename": "medqa-group-2.jsonl",
+      "participant_id": "p-b",
+      "dataset_id": "ds-73dafbc1",
+      "count": 53,
+      "sha256": "24a5b868ad80996111704a85823876b7803bf5201d33f24edf6a4e1d128ce361",
+      "source_rows": "偶数行"
+    }
+  ]
+}

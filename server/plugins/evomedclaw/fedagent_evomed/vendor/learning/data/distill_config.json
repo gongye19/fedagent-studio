@@ -1,0 +1,11 @@
+{
+  "backend": "export_only",
+  "memory_dropout": 0.0,
+  "tasks": [
+    "next_action",
+    "next_test",
+    "route_decision",
+    "synthesis_decision",
+    "final_diagnosis"
+  ]
+}

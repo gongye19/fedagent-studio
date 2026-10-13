@@ -29,7 +29,7 @@ def parse_jsonl(text: str) -> list[Row]:
             continue
         try:
             value = json.loads(raw, parse_constant=_reject_constant)
-        except ValueError:
+        except (ValueError, RecursionError):
             rows.append(Row(index, None, "不是合法的 JSON，检查引号和逗号"))
             continue
         if not isinstance(value, dict):

@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import hmac
+import json
 import time
 from collections.abc import Iterator
 from typing import Annotated
@@ -31,6 +32,7 @@ from .schemas import (
     AppIn,
     ApplyIn,
     ApplyOut,
+    ApplySide,
     AppOut,
     AppPatch,
     ClaimIn,
@@ -269,7 +271,19 @@ async def create_dataset(
 @admin.post("/datasets/check", response_model=DatasetCheckOut, tags=["datasets"])
 async def check_dataset(platform: PlatformDep, task_type: Annotated[str, Form(alias="taskType")], file: Annotated[UploadFile, File()]) -> DatasetCheckOut:
     raw = await _read_upload(file)
-    return resources.check_out(check_file(platform.registry.task_type(task_type), raw or b""))
+    plugin = platform.registry.task_types.get(task_type)
+    if plugin is None:
+        raise HTTPException(422, "所选任务类型未安装，请刷新后重新选择")
+    return resources.check_out(check_file(plugin, raw or b""), plugin)
+
+
+@admin.get("/task-types/{task_type}/template", tags=["datasets"])
+def dataset_template(task_type: str, platform: PlatformDep) -> Response:
+    plugin = platform.registry.task_types.get(task_type)
+    if plugin is None:
+        raise HTTPException(404, "任务类型不存在")
+    body = "".join(json.dumps(item, ensure_ascii=False) + "\n" for item in plugin.template)
+    return Response(body, media_type="application/x-ndjson", headers={"Content-Disposition": 'attachment; filename="dataset-template.jsonl"'})
 
 
 @admin.delete("/datasets/{dataset_id}", status_code=204, tags=["datasets"])
@@ -505,6 +519,13 @@ def apply_app(app_id: str, body: ApplyIn, platform: PlatformDep, session: Sessio
     return apps.apply(platform, app, body)
 
 
+@admin.post("/apps/{app_id}/invoke", response_model=ApplySide, tags=["apps"])
+def invoke_app(app_id: str, body: ApplyIn, platform: PlatformDep, session: SessionDep) -> ApplySide:
+    app = apps.get_app(session, app_id)
+    session.expunge(app)
+    return apps.invoke(platform, app, body)
+
+
 @admin.get("/apps/{app_id}/export", tags=["apps"])
 def export_app(app_id: str, platform: PlatformDep, session: SessionDep) -> Response:
     filename, media_type, body = apps.export(platform, apps.get_app(session, app_id))
@@ -526,7 +547,11 @@ AttemptDep = Annotated[int, Header(alias="X-Fedagent-Attempt", ge=1)]
 def client_hello(body: ClientHelloIn, auth: ClientDep, session: SessionDep) -> ClientHelloOut:
     _, participant = auth
     updated = clients.hello(session, participant, body)
-    return ClientHelloOut(participant_id=participant.id, participant=participant.name, datasets=updated)
+    types = {dataset.id: dataset.task_type for dataset in session.scalars(
+        select(m.Dataset).where(m.Dataset.participant_id == participant.id, m.Dataset.source == "local"))}
+    versions = {dataset.id: dataset.schema_version for dataset in session.scalars(
+        select(m.Dataset).where(m.Dataset.participant_id == participant.id, m.Dataset.source == "local"))}
+    return ClientHelloOut(participant_id=participant.id, participant=participant.name, datasets=updated, task_types=types, schema_versions=versions)
 
 
 @client.post("/units/claim", response_model=list[ClientUnitOut])

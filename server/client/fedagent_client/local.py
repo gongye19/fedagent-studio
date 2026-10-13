@@ -159,3 +159,29 @@ class FakeModel:
         digest = hashlib.sha256(text.encode()).hexdigest()
         reply = self.plugin.fake_reply(self.step_id, text, digest) or f"（假模型的回答 {digest[:8]}）"
         return ChatResult(text=reply, model="fake", usage={"prompt_tokens": len(text) // 4, "completion_tokens": len(reply) // 4})
+
+
+class CachedUnitModel:
+    """成功调用按工作单元、调用序号与请求哈希留在本地，重试从相同序号重放。"""
+
+    def __init__(self, model, state: LocalState, unit: dict[str, Any], code_hash: str) -> None:
+        self.model = model
+        self.name = model.name
+        self.state = state
+        self.unit = unit
+        self.code_hash = code_hash
+        self.ordinal = 0
+
+    def chat(self, prompt: str | list[dict[str, Any]], **kwargs: Any) -> ChatResult:
+        digest = hashlib.sha256(json.dumps([prompt, kwargs, self.name, getattr(self.model, "base_url", ""), self.code_hash],
+                                          sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+        key = f"llm:{self.unit['step']}:{self.ordinal}:{digest}"
+        self.ordinal += 1
+        args = (self.unit['taskId'], self.unit['siteId'], self.unit['round'], key, self.unit['unitKey'])
+        cached = self.state.get(*args)
+        if cached is not None:
+            return ChatResult(**cached, cached=True)
+        reply = self.model.chat(prompt, **kwargs)
+        if reply.text.strip():
+            self.state.put(*args, {"text": reply.text, "model": reply.model, "usage": reply.usage, "finish_reason": reply.finish_reason})
+        return reply

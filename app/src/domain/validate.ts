@@ -17,7 +17,7 @@ export type JsonlCheck = {
   problems: JsonlProblem[];
   /** 问题总数（problems 只保留前 MAX_PROBLEMS 条）。 */
   problemCount: number;
-  sample?: { question: string; answer?: string };
+  sample?: { question?: string; answer?: string | null; fields?: { label: string; text: string }[] } | null;
 };
 
 export const MAX_PROBLEMS = 5;

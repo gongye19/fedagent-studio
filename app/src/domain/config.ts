@@ -112,7 +112,8 @@ export function draftIssues(
   if (joinable(draft, datasets, participants).length < algorithm.minParticipants) {
     issues.push({ field: "participants", message: `至少选 ${algorithm.minParticipants} 个参与方` });
   }
-  const refs = [draft.clientModel, draft.serverModel, ...Object.values(activeOverrides(draft))];
+  const refs = [draft.clientModel, ...Object.values(activeOverrides(draft)),
+    ...(algorithm.stages.some((stage) => stage.side === "server" && stage.model) ? [draft.serverModel] : [])];
   if (refs.some((ref) => !endpointOf(ref, endpoints))) {
     issues.push({ field: "models", message: "所选的模型接口已不存在，请重新选择" });
   }
@@ -128,6 +129,11 @@ export function joinable(draft: Draft, datasets: readonly Dataset[], participant
   if (!scenario || !taskType) return [];
   return draft.participants.filter(({ participantId, datasetId }) => {
     const dataset = datasets.find((item) => item.id === datasetId && item.participantId === participantId);
+    const owner = participants.find((item) => item.id === participantId);
+    if (owner?.hosting === "local" && draft.algorithm) {
+      const algorithm = algorithmOf(draft.algorithm);
+      if (owner.clientPlugins?.[algorithm.id] !== algorithm.version) return false;
+    }
     return Boolean(dataset && fits(dataset, scenario, taskType) && usable(dataset, participants));
   });
 }
@@ -199,7 +205,8 @@ export function chooseTaskType(draft: Draft, taskType: TaskType): Draft {
 /** 选算法：参数回到这个算法的推荐值；参与方由用户自己勾选，不替用户选。 */
 export function chooseAlgorithm(draft: Draft, algorithm: AlgorithmId): Draft {
   if (draft.algorithm === algorithm || !draft.taskType) return draft;
-  return { ...draft, algorithm, params: defaultParams(algorithmOf(algorithm)) };
+  const definition = algorithmOf(algorithm);
+  return { ...draft, algorithm, trialCap: Math.max(draft.trialCap, definition.minSamples ?? 1), params: defaultParams(definition) };
 }
 
 /** 选入、换掉或取消某个参与方出的数据集：每个参与方最多一份，换数据集时保留它原来的位置。 */

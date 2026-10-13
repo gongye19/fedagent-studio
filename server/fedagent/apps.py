@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import json
 from concurrent.futures import ThreadPoolExecutor
 
 from fastapi import HTTPException
@@ -76,22 +77,43 @@ def get_app(session: Session, app_id: str) -> m.App:
     return app
 
 
-def apply(platform: Platform, app: m.App, body: ApplyIn) -> ApplyOut:
-    """同一个输入分别带产出、不带产出各跑一次；给了答案时按任务类型的默认判分方式打分。"""
+def _application(platform: Platform, app: m.App, body: ApplyIn):
     registry = platform.registry
     algorithm = registry.algorithm(app.algorithm)
+    if algorithm.version != app.plugin_version:
+        raise HTTPException(409, "应用的算法版本尚未安装，请恢复对应版本后再运行")
     task_type = registry.task_type(app.task_type)
-    grader = registry.grader(task_type.graders[0])
-    request = ApplyRequest(input=body.input.strip(), answer=body.answer)
+    try:
+        if len(json.dumps(body.input, ensure_ascii=False, allow_nan=False)) > 40000:
+            raise ValueError("输入过长，请缩短后重新提交")
+        item = task_type.application_item(body.input, body.answer)
+    except (ValueError, TypeError, RecursionError) as error:
+        raise HTTPException(422, str(error)) from error
+    request = ApplyRequest(input=task_type.application_input(item))
 
     def side(artifact: Artifact | None) -> ApplySide:
         model = platform.gateway.model(body.model, purpose="apply", plugin=algorithm)
         result = algorithm.apply(artifact, request, model)
         correct = None
-        if body.answer and body.answer.strip():
-            correct = grader.grade(result.output, {"id": "try", "question": request.input, "answer": body.answer.strip()})
+        if task_type.is_labeled(item) and task_type.graders:
+            correct = registry.grader(task_type.graders[0]).grade(result.output, item)
         tokens = int(result.usage.get("prompt_tokens", 0)) + int(result.usage.get("completion_tokens", 0))
-        return ApplySide(output=result.output, correct=correct, tokens=tokens)
+        return ApplySide(output=result.output, correct=correct, tokens=tokens, details=result.details)
+
+    return side
+
+
+def invoke(platform: Platform, app: m.App, body: ApplyIn) -> ApplySide:
+    """实际接入默认只运行带产出的一侧，避免每次 API 调用强制付两份推理费用。"""
+    try:
+        return _application(platform, app, body)(artifact_of(app))
+    except ModelError as error:
+        raise HTTPException(502, f"模型调用失败：{error}") from error
+
+
+def apply(platform: Platform, app: m.App, body: ApplyIn) -> ApplyOut:
+    """兼容原接口：同一输入带／不带产出对比。输入与评分由任务类型处理。"""
+    side = _application(platform, app, body)
 
     # 带产出、不带产出两次调用同时发，等待时间按较慢的那次算
     with ThreadPoolExecutor(max_workers=2) as pool:

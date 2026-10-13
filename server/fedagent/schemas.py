@@ -38,6 +38,14 @@ class GraderOut(Model):
     detail: str
 
 
+class InputFieldOut(Model):
+    key: str
+    label: str
+    kind: Literal["text", "textarea", "json"]
+    required: bool = True
+    help: str = ""
+
+
 class TaskTypeOut(Model):
     id: str
     label: str
@@ -47,6 +55,11 @@ class TaskTypeOut(Model):
     format: str
     unlabeled_note: str
     placeholder: str
+    schema_version: str = "1.0"
+    structured_input: bool = False
+    input_label: str = "问题"
+    answer_label: str = "标准答案"
+    input_fields: list[InputFieldOut] = []
 
 
 class StageOut(Model):
@@ -111,6 +124,7 @@ class AlgorithmOut(Model):
     roles: dict[str, RoleOut]
     params: list[ParamOut]
     min_participants: int
+    min_samples: int = 1
     min_rounds: int
     max_rounds: int
     default_rounds: int
@@ -155,11 +169,18 @@ class ParticipantOut(Model):
     status: Literal["online", "offline", "waiting"]
     builtin: bool
     last_seen_at: Time | None
+    client_plugins: dict[str, str] = {}
+
+
+class PreviewFieldOut(Model):
+    label: str
+    text: str
 
 
 class SampleOut(Model):
-    question: str
+    question: str = ""
     answer: str | None = None
+    fields: list[PreviewFieldOut] = []
 
 
 class DatasetOut(Model):
@@ -170,6 +191,8 @@ class DatasetOut(Model):
     origin: str | None
     scenario: str
     task_type: str
+    schema_version: str = "1.0"
+    source_hash: str | None = None
     count: int
     answered: int
     source: Literal["builtin", "upload", "local"]
@@ -284,6 +307,7 @@ class IssueOut(Model):
 class EstimateOut(Model):
     problems: int
     participant_calls: int
+    calls_are_upper_bound: bool = False
     server_calls: int
     participant_tokens: int
     server_tokens: int
@@ -402,7 +426,7 @@ class AppOut(Model):
 
 
 class ApplyIn(Model):
-    input: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=20000)]
+    input: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=20000)] | dict[str, Any]
     answer: str | None = None
     model: str = "default"
 
@@ -411,6 +435,7 @@ class ApplySide(Model):
     output: str
     correct: bool | None
     tokens: int
+    details: dict[str, Any] = {}
 
 
 class ApplyOut(Model):
@@ -445,6 +470,8 @@ class ClientHelloOut(Model):
     participant_id: str
     participant: str
     datasets: list[str]
+    task_types: dict[str, str] = {}
+    schema_versions: dict[str, str] = {}
 
 
 class ClientUnitOut(Model):

@@ -60,6 +60,7 @@ def authenticate(session: Session, raw: str | None) -> tuple[m.ClientToken, m.Pa
 def hello(session: Session, participant: m.Participant, body: ClientHelloIn) -> list[str]:
     """客户端连上：上报本地数据集的描述（样本数、带标注数、样本 id），不上传样本内容。"""
     updated = []
+    participant.client_plugins = dict(body.plugins)
     for item in body.datasets:
         dataset = session.get(m.Dataset, item.dataset_id)
         if dataset is None or dataset.participant_id != participant.id or dataset.source != "local":

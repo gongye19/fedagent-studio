@@ -747,6 +747,62 @@
     }
    }
   },
+  "/v1/task-types/{task_type}/template": {
+   "get": {
+    "tags": [
+     "datasets"
+    ],
+    "summary": "Dataset Template",
+    "operationId": "dataset_template_v1_task_types__task_type__template_get",
+    "parameters": [
+     {
+      "name": "task_type",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Task Type"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/v1/datasets/{dataset_id}": {
    "delete": {
     "tags": [
@@ -2172,6 +2228,74 @@
     }
    }
   },
+  "/v1/apps/{app_id}/invoke": {
+   "post": {
+    "tags": [
+     "apps"
+    ],
+    "summary": "Invoke App",
+    "operationId": "invoke_app_v1_apps__app_id__invoke_post",
+    "parameters": [
+     {
+      "name": "app_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "App Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ApplyIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ApplySide"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/v1/apps/{app_id}/export": {
    "get": {
     "tags": [
@@ -2696,6 +2820,11 @@
       "type": "integer",
       "title": "Minparticipants"
      },
+     "minSamples": {
+      "type": "integer",
+      "title": "Minsamples",
+      "default": 1
+     },
      "minRounds": {
       "type": "integer",
       "title": "Minrounds"
@@ -2839,9 +2968,17 @@
    "ApplyIn": {
     "properties": {
      "input": {
-      "type": "string",
-      "maxLength": 20000,
-      "minLength": 1,
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 20000,
+        "minLength": 1
+       },
+       {
+        "additionalProperties": true,
+        "type": "object"
+       }
+      ],
       "title": "Input"
      },
      "answer": {
@@ -2903,6 +3040,12 @@
      "tokens": {
       "type": "integer",
       "title": "Tokens"
+     },
+     "details": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Details",
+      "default": {}
      }
     },
     "type": "object",
@@ -3184,6 +3327,22 @@
       },
       "type": "array",
       "title": "Datasets"
+     },
+     "taskTypes": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object",
+      "title": "Tasktypes",
+      "default": {}
+     },
+     "schemaVersions": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object",
+      "title": "Schemaversions",
+      "default": {}
      }
     },
     "type": "object",
@@ -3527,6 +3686,22 @@
       "type": "string",
       "title": "Tasktype"
      },
+     "schemaVersion": {
+      "type": "string",
+      "title": "Schemaversion",
+      "default": "1.0"
+     },
+     "sourceHash": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sourcehash"
+     },
      "count": {
       "type": "integer",
       "title": "Count"
@@ -3833,6 +4008,11 @@
       "type": "integer",
       "title": "Participantcalls"
      },
+     "callsAreUpperBound": {
+      "type": "boolean",
+      "title": "Callsareupperbound",
+      "default": false
+     },
      "serverCalls": {
       "type": "integer",
       "title": "Servercalls"
@@ -4000,6 +4180,44 @@
     },
     "type": "object",
     "title": "HTTPValidationError"
+   },
+   "InputFieldOut": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "text",
+       "textarea",
+       "json"
+      ],
+      "title": "Kind"
+     },
+     "required": {
+      "type": "boolean",
+      "title": "Required",
+      "default": true
+     },
+     "help": {
+      "type": "string",
+      "title": "Help",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "label",
+     "kind"
+    ],
+    "title": "InputFieldOut"
    },
    "IssueOut": {
     "properties": {
@@ -4479,6 +4697,14 @@
        }
       ],
       "title": "Lastseenat"
+     },
+     "clientPlugins": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object",
+      "title": "Clientplugins",
+      "default": {}
      }
     },
     "type": "object",
@@ -4536,6 +4762,24 @@
     },
     "type": "object",
     "title": "ParticipantPatch"
+   },
+   "PreviewFieldOut": {
+    "properties": {
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text"
+     }
+    },
+    "type": "object",
+    "required": [
+     "label",
+     "text"
+    ],
+    "title": "PreviewFieldOut"
    },
    "RegistryOut": {
     "properties": {
@@ -4684,7 +4928,8 @@
     "properties": {
      "question": {
       "type": "string",
-      "title": "Question"
+      "title": "Question",
+      "default": ""
      },
      "answer": {
       "anyOf": [
@@ -4696,12 +4941,17 @@
        }
       ],
       "title": "Answer"
+     },
+     "fields": {
+      "items": {
+       "$ref": "#/components/schemas/PreviewFieldOut"
+      },
+      "type": "array",
+      "title": "Fields",
+      "default": []
      }
     },
     "type": "object",
-    "required": [
-     "question"
-    ],
     "title": "SampleOut"
    },
    "ScenarioOut": {
@@ -5218,6 +5468,34 @@
      "placeholder": {
       "type": "string",
       "title": "Placeholder"
+     },
+     "schemaVersion": {
+      "type": "string",
+      "title": "Schemaversion",
+      "default": "1.0"
+     },
+     "structuredInput": {
+      "type": "boolean",
+      "title": "Structuredinput",
+      "default": false
+     },
+     "inputLabel": {
+      "type": "string",
+      "title": "Inputlabel",
+      "default": "问题"
+     },
+     "answerLabel": {
+      "type": "string",
+      "title": "Answerlabel",
+      "default": "标准答案"
+     },
+     "inputFields": {
+      "items": {
+       "$ref": "#/components/schemas/InputFieldOut"
+      },
+      "type": "array",
+      "title": "Inputfields",
+      "default": []
      }
     },
     "type": "object",

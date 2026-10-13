@@ -24,7 +24,7 @@ def prepare(client: TestClient, platform: Platform):
     token = client.post(f'/v1/participants/{pid}/client-tokens').json()['token']
     headers = {'Authorization': f'Bearer {token}'}
     hello = client.post('/v1/client/hello', headers=headers, json={
-        'clientVersion': 'test', 'datasets': [{'datasetId': dataset, 'count': 2, 'answered': 1, 'itemIds': ['1', '2']}],
+        'clientVersion': 'test', 'plugins': {'fot': '1.0.0'}, 'datasets': [{'datasetId': dataset, 'count': 2, 'answered': 1, 'itemIds': ['1', '2']}],
     })
     assert hello.status_code == 200
     task = client.post('/v1/tasks', json=config([

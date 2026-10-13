@@ -6,9 +6,9 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, ClassVar
 
-from fedagent_sdk import CheckReport, Grader, Row, TaskType
+from fedagent_sdk import CheckReport, Grader, InputField, Row, TaskType
 
 from .check import check_rows
 from .grading import paper_grade, strict_grade
@@ -23,6 +23,16 @@ class MathReasoning(TaskType):
     format_hint = '{"id", "question", "answer"}'
     unlabeled_note = "没有 answer 的样本不计入指标"
     placeholder = "输入一道数学题…"
+    input_label = "问题"
+    answer_label = "标准答案"
+    input_fields = (InputField("question", "问题"),)
+    template: ClassVar[list[dict[str, Any]]] = [{"id": "", "question": "", "answer": ""}]
+
+    def preview(self, item: Mapping[str, Any]) -> list[dict[str, str]]:
+        fields = [{"label": "问题", "text": str(item.get("question", ""))}]
+        if item.get("answer") is not None:
+            fields.append({"label": "标注", "text": str(item["answer"])})
+        return fields
 
     def check(self, rows: list[Row]) -> CheckReport:
         return check_rows(rows)

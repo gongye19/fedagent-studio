@@ -119,12 +119,18 @@ def validate(platform: Platform, session: Session, body: TaskConfigIn) -> tuple[
         if dataset.scenario != body.scenario or dataset.task_type != body.task_type:
             issue("participants", f"{dataset.name} 登记的场景或任务类型和任务不一致")
             continue
+        if dataset.schema_version != registry.task_type(body.task_type).schema_version:
+            issue("participants", f"{dataset.name} 的数据规范版本不兼容，请按当前模板重新上传或登记")
+            continue
         if not dataset_ready(dataset):
             issue("participants", f"{dataset.name} 还没有样本（{'客户端连上后上报' if dataset.source == 'local' else '题目文件待导入'}）")
             continue
         status = participant_status(platform, participant)
         if status != "online":
             issue("participants", f"{participant.name} {STATUS_LABELS.get(status, status)}，连上后才能加入任务")
+            continue
+        if participant.hosting == "local" and participant.client_plugins.get(algorithm.id) != algorithm.version:
+            issue("participants", f"{participant.name} 需要安装 {manifest.name} {algorithm.version} 并重新连接客户端")
             continue
         try:
             items, labeled = _items_of(platform, dataset, cap)
@@ -149,6 +155,9 @@ def validate(platform: Platform, session: Session, body: TaskConfigIn) -> tuple[
                 issue("models", f"设置费用上限前，请先登记接口“{endpoint.name}”的单价")
         except ModelError as error:
             issue("models", str(error))
+    if not issues:
+        for problem in algorithm.validate(_spec(body, prepared)):
+            issue(problem.field, problem.message)
     return issues, prepared
 
 
@@ -190,6 +199,7 @@ def estimate(platform: Platform, body: TaskConfigIn, prepared: Prepared) -> Esti
     return EstimateOut(
         problems=problems,
         participant_calls=result.participant_calls,
+        calls_are_upper_bound=result.calls_are_upper_bound,
         server_calls=result.server_calls,
         participant_tokens=result.participant_tokens,
         server_tokens=result.server_tokens,
@@ -214,13 +224,17 @@ def create(platform: Platform, session: Session, body: TaskConfigIn) -> m.Task:
     config["name"] = name
     config["params"] = algorithm.manifest.params_of(body.params)
     config["grader"] = body.grader or platform.registry.task_type(body.task_type).graders[0]
-    refs = [site.model_ref for site in prepared.sites] + [body.server_model]
+    refs = [site.model_ref for site in prepared.sites]
+    if any(step.at == SERVER and step.model for step in algorithm.manifest.steps):
+        refs.append(body.server_model)
     fake = any(parse_ref(ref)[0] == FAKE_ENDPOINT for ref in refs)
     audit = {
         "pluginVersion": algorithm.version,
         "pluginHash": algorithm.code_hash(),
         "promptHashes": algorithm.prompt_hashes(),
         "datasets": {site.dataset.id: site.dataset.content_hash for site in prepared.sites},
+        "datasetSchemas": {site.dataset.id: site.dataset.schema_version for site in prepared.sites},
+        "datasetSources": {site.dataset.id: site.dataset.source_hash for site in prepared.sites},
         "createdAt": m.now().isoformat(),
     }
     task = m.Task(

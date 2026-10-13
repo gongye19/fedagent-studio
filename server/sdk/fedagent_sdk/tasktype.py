@@ -6,11 +6,24 @@
 
 from __future__ import annotations
 
+import copy
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, Literal
 
 MAX_ISSUES = 5
+
+
+@dataclass(frozen=True)
+class InputField:
+    key: str
+    label: str
+    kind: Literal["text", "textarea", "json"] = "textarea"
+    required: bool = True
+    help: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"key": self.key, "label": self.label, "kind": self.kind, "required": self.required, "help": self.help}
 
 
 @dataclass(frozen=True)
@@ -62,6 +75,28 @@ class TaskType:
     unlabeled_note: ClassVar[str] = ""
     placeholder: ClassVar[str] = ""
     """应用试用时输入框的提示。"""
+    schema_version: ClassVar[str] = "1.0"
+    input_fields: ClassVar[tuple[InputField, ...]] = ()
+    input_label: ClassVar[str] = "输入"
+    answer_label: ClassVar[str] = "参考答案"
+    structured_input: ClassVar[bool] = False
+    template: ClassVar[list[dict[str, Any]]] = []
+
+    def preview(self, item: Mapping[str, Any]) -> list[dict[str, str]]:
+        """仅供资源预览；具体类型可覆盖，核心不假设 question／answer。"""
+        return [{"label": self.input_label, "text": self.input_of(item)}]
+
+    def application_item(self, value: str | dict[str, Any], answer: str | None = None) -> dict[str, Any]:
+        """从应用输入构造本任务类型的评测样本；标注不交给 apply。"""
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError("请填写输入文本")
+        report = self.check([Row(1, {"id": "apply", "question": value.strip(), "answer": answer.strip() if answer and answer.strip() else None})])
+        if not report.ok:
+            raise ValueError(report.issues[0].message)
+        return report.items[0]
+
+    def application_input(self, item: Mapping[str, Any]) -> str | dict[str, Any]:
+        return self.strip_labels(item) if self.structured_input else self.input_of(item)
 
     def check(self, rows: list[Row]) -> CheckReport:
         raise NotImplementedError
@@ -70,10 +105,26 @@ class TaskType:
         return str(item["id"])
 
     def is_labeled(self, item: Mapping[str, Any]) -> bool:
-        return all(_present(item.get(name)) for name in self.label_fields)
+        def get(path: str) -> Any:
+            value: Any = item
+            for name in path.split("."):
+                value = value.get(name) if isinstance(value, Mapping) else None
+            return value
+        return bool(self.label_fields) and all(_present(get(name)) for name in self.label_fields)
 
     def strip_labels(self, item: Mapping[str, Any]) -> dict[str, Any]:
-        return {key: value for key, value in item.items() if key not in self.label_fields}
+        result = copy.deepcopy(dict(item))
+        for path in self.label_fields:
+            parts = path.split(".")
+            parent = result
+            for name in parts[:-1]:
+                child = parent.get(name)
+                if not isinstance(child, dict):
+                    break
+                parent = child
+            else:
+                parent.pop(parts[-1], None)
+        return result
 
     def input_of(self, item: Mapping[str, Any]) -> str:
         """一条样本的输入文本（试用、日志用）。"""

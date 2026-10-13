@@ -14,10 +14,10 @@ from pathlib import Path
 from typing import Any
 
 import httpx
-from fedagent_sdk import Algorithm, Artifact, Grader, Message, Model, SiteInfo, StepContext, StepFailed, TaskType
+from fedagent_sdk import Algorithm, Artifact, Grader, Message, Model, Row, SiteInfo, StepContext, StepFailed, TaskType
 
 from . import __version__
-from .local import ClientStepIO, FakeModel, LocalModel, LocalState, load_jsonl
+from .local import CachedUnitModel, ClientStepIO, FakeModel, LocalModel, LocalState, load_jsonl
 
 log = logging.getLogger("fedagent_client")
 Review = Callable[[str, Any], bool]
@@ -72,13 +72,24 @@ class Worker:
     def hello(self) -> dict[str, Any]:
         """连上平台，上报本地数据集的描述（样本数、带标注数、样本 id），不上传内容。"""
         reported = []
+        plugins = {name: plugin.version for name, plugin in self.algorithms.items()}
+        metadata = self._request("POST", "/v1/client/hello", json={"clientVersion": __version__, "plugins": plugins}).json()
         for dataset_id, path in self.config.datasets.items():
-            rows = load_jsonl(path)
+            type_id = metadata.get("taskTypes", {}).get(dataset_id)
+            if type_id not in self.task_types:
+                raise RuntimeError(f"数据集 {dataset_id} 对应的任务类型未安装，请安装支持该任务的插件")
+            task_type = self.task_types[type_id]
+            if task_type.schema_version != metadata.get("schemaVersions", {}).get(dataset_id, "1.0"):
+                raise RuntimeError(f"数据集 {dataset_id} 的规范版本不兼容，请升级对应插件或重新登记")
+            report = task_type.check([Row(index, row) for index, row in enumerate(load_jsonl(path), start=1)])
+            if not report.ok:
+                problem = report.issues[0]
+                raise RuntimeError(f"本地文件 {path.name} 第 {problem.line} 行：{problem.message}")
+            rows = report.items
             records = {str(row["id"]): row for row in rows}
             self.records[dataset_id] = records
-            answered = sum(1 for row in rows if row.get("answer") is not None and str(row["answer"]).strip())
+            answered = sum(1 for row in rows if task_type.is_labeled(row))
             reported.append({"datasetId": dataset_id, "count": len(rows), "answered": answered, "itemIds": list(records)})
-        plugins = {name: plugin.version for name, plugin in self.algorithms.items()}
         return self._request("POST", "/v1/client/hello", json={"clientVersion": __version__, "plugins": plugins, "datasets": reported}).json()
 
     def _model(self, plugin: Algorithm, step_id: str) -> Model:
@@ -168,7 +179,7 @@ class Worker:
                 rounds=unit["rounds"],
                 params=unit["params"],
                 io=ClientStepIO(self.state, unit["taskId"], unit["siteId"], records, task_type, step.labels, inbox, artifact),
-                model=self._model(plugin, step.id) if step.model else None,
+                model=CachedUnitModel(self._model(plugin, step.id), self.state, unit, plugin.code_hash()) if step.model else None,
                 item=item,
                 log=lambda text: log.info("unit %s: %s", unit_id, text),
             )

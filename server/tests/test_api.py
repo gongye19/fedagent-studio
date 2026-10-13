@@ -44,7 +44,7 @@ def test_registry_describes_plugins(client: TestClient) -> None:
     fot = next(item for item in data["algorithms"] if item["id"] == "fot")
     assert [stage["id"] for stage in fot["stages"]] == ["solve", "reflect", "extract", "collect", "profile", "library"]
     assert fot["output"] == {"name": "经验库", "unit": "条经验"} and fot["minParticipants"] == 2
-    assert data["taskTypes"][0]["grader"] == "math-answer"
+    assert next(item for item in data["taskTypes"] if item["id"] == "math-reasoning")["grader"] == "math-answer"
 
 
 def test_seed_and_participants(client: TestClient) -> None:

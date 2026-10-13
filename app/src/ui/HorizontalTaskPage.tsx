@@ -99,6 +99,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
   const candidates: Candidate[] = algorithm && scenarioId && taskType
     ? state.participants.flatMap((participant) => {
       if (participant.status !== "online") return [];
+      if (participant.hosting === "local" && participant.clientPlugins?.[algorithm.id] !== algorithm.version) return [];
       const datasets = compatibleDatasets(scenarioId, taskType, datasetsOf(state, participant.id)).filter((dataset) => dataset.ready);
       return datasets.length ? [{ participant, datasets }] : [];
     })
@@ -288,7 +289,7 @@ export default function HorizontalTaskPage({ state, dispatch }: Props) {
       ) : null}
       <div className="order-bar" aria-label="创建任务">
         <div>
-          <strong>{validationPending ? "正在检查配置…" : result && !issues.length ? `${joined.length} 个参与方 · 至少 ${formatNumber(result.participantCalls + result.serverCalls)} 次调用` : ""}</strong>
+          <strong>{validationPending ? "正在检查配置…" : result && !issues.length ? `${joined.length} 个参与方 · ${result.callsAreUpperBound ? "最多" : "至少"} ${formatNumber(result.participantCalls + result.serverCalls)} 次调用` : ""}</strong>
           {result && !issues.length ? <small>{formatDuration(result.seconds)}</small> : null}
         </div>
         <div className="order-bar-actions">
@@ -469,7 +470,7 @@ function RunSettings({
           <Choices labelledBy="mode-label" value={draft.mode} options={MODES} onChange={(mode) => update({ mode })} />
         </Field>
         <Field label="试跑样本数" htmlFor="trial-cap" info="每份数据集使用的样本上限，仅影响试跑。">
-          <UnitInput id="trial-cap" unit="条 / 数据集" name="trial-cap" type="number" inputMode="numeric" autoComplete="off" min={1} max={50} value={draft.mode === "trial" ? draft.trialCap : ""} disabled={draft.mode !== "trial"} placeholder="全部样本" onChange={(event) => update({ trialCap: clampInt(event.target.value, 1, 50, draft.trialCap) })} />
+          <UnitInput id="trial-cap" unit="条 / 数据集" name="trial-cap" type="number" inputMode="numeric" autoComplete="off" min={algorithm?.minSamples ?? 1} max={50} value={draft.mode === "trial" ? draft.trialCap : ""} disabled={draft.mode !== "trial"} placeholder="全部样本" onChange={(event) => update({ trialCap: clampInt(event.target.value, algorithm?.minSamples ?? 1, 50, draft.trialCap) })} />
         </Field>
         <Field label="轮次" error={roundsError} htmlFor={algorithm ? undefined : "rounds-pending"} labelId="rounds-label" wide info={algorithm ? `第 1 轮各方单独作答，作为本地基线；之后每轮都带上上一轮的${algorithm.output.name}再作答。` : undefined}>
           {algorithm ? <Choices error={roundsError} name="rounds" labelledBy="rounds-label" value={draft.rounds} options={rounds.map((value) => ({ value, label: `${value} 轮` }))} onChange={(value) => update({ rounds: value })} /> : (
@@ -667,8 +668,8 @@ function EstimateBlock({ result, priceHref }: { result: Estimate; priceHref: str
     <div className="summary-estimate">
       <h3>预估</h3>
       <dl className="summary-list">
-        <div><dt>参与方调用</dt><dd>{formatNumber(result.participantCalls)} 次</dd></div>
-        <div><dt>服务端调用</dt><dd>至少 {result.serverCalls} 次</dd></div>
+        <div><dt>参与方调用</dt><dd>{result.callsAreUpperBound ? "最多 " : ""}{formatNumber(result.participantCalls)} 次</dd></div>
+        <div><dt>服务端调用</dt><dd>{result.serverCalls ? "至少 " : ""}{result.serverCalls} 次</dd></div>
         <div><dt>Token</dt><dd>约 {formatTokens(result.participantTokens + result.serverTokens)}</dd></div>
         <div><dt>时长</dt><dd>{formatDuration(result.seconds)}</dd></div>
         <div><dt>费用</dt><dd>{result.cost === null ? <a className="text-link" href={priceHref}>未设置单价</a> : formatYuan(result.cost)}</dd></div>

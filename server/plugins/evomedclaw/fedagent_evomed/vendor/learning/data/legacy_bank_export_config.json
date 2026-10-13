@@ -1,0 +1,26 @@
+{
+  "summary_trigger_limit": 2,
+  "required_evidence_limit": 8,
+  "contraindication_limit": 8,
+  "stopwords": [
+    "a",
+    "an",
+    "and",
+    "for",
+    "in",
+    "of",
+    "or",
+    "the",
+    "to",
+    "with"
+  ],
+  "negation_tokens": [
+    "absent",
+    "denied",
+    "denies",
+    "negative",
+    "no",
+    "not",
+    "without"
+  ]
+}

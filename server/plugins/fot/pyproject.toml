@@ -1,9 +1,9 @@
 [project]
 name = "fedagent-fot"
-version = "0.1.0"
+version = "0.1.1"
 description = "算法插件：FoT（Federation over Text，arXiv:2604.16778），横向联邦"
 requires-python = ">=3.12"
-dependencies = ["fedagent-sdk"]
+dependencies = ["fedagent-sdk>=0.2.0"]
 
 [project.entry-points."fedagent.algorithms"]
 fot = "fedagent_fot:FoT"

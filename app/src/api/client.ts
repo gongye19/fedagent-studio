@@ -65,7 +65,7 @@ function messageOf(status: number, detail: unknown): string {
   return `请求失败（${status}）`;
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function request<T>(method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
   const headers: Record<string, string> = {};
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -77,7 +77,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   }
   let response: Response;
   try {
-    response = await fetch(path, { method, headers, body: payload, cache: "no-store" });
+    response = await fetch(path, { method, headers, body: payload, cache: "no-store", signal });
   } catch {
     throw new ApiError(0, null);
   }
@@ -120,6 +120,13 @@ export const api = {
   issueClientToken: (id: string) => post<S["ClientTokenOut"]>(`/v1/participants/${encodeURIComponent(id)}/client-tokens`),
 
   datasets: () => get<S["DatasetOut"][]>("/v1/datasets"),
+  checkDataset: (taskType: string, file: File, signal?: AbortSignal) => {
+    const data = new FormData();
+    data.set("taskType", taskType);
+    data.set("file", file, file.name);
+    return request<S["DatasetCheckOut"]>("POST", "/v1/datasets/check", data, signal);
+  },
+  downloadTemplate: (taskType: string) => download(`/v1/task-types/${encodeURIComponent(taskType)}/template`, "dataset-template.jsonl"),
   createDataset: (form: FormData) => post<S["DatasetOut"]>("/v1/datasets", form),
   deleteDataset: (id: string) => del(`/v1/datasets/${encodeURIComponent(id)}`),
 
@@ -141,6 +148,7 @@ export const api = {
     get<S["MessageOut"][]>(`/v1/tasks/${encodeURIComponent(id)}/messages${query(filter)}`),
   taskEvents: (id: string) => get<S["EventOut"][]>(`/v1/tasks/${encodeURIComponent(id)}/events`),
 
+  appContent: (id: string) => get<unknown>(`/v1/apps/${encodeURIComponent(id)}/export`),
   apps: () => get<S["AppOut"][]>("/v1/apps"),
   publish: (body: S["AppIn"]) => post<S["AppOut"]>("/v1/apps", body),
   renameApp: (id: string, name: string) => patch<S["AppOut"]>(`/v1/apps/${encodeURIComponent(id)}`, { name }),
@@ -148,19 +156,21 @@ export const api = {
   applyApp: (id: string, body: S["ApplyIn"]) => post<S["ApplyOut"]>(`/v1/apps/${encodeURIComponent(id)}/apply`, body),
 
   /** 下载应用的导出文件（带上访问令牌，所以不能直接用链接）。 */
-  async exportApp(id: string): Promise<void> {
+  exportApp: (id: string) => download(`/v1/apps/${encodeURIComponent(id)}/export`, "export.json"),
+};
+
+async function download(path: string, fallback: string): Promise<void> {
     const headers: Record<string, string> = {};
     const token = getToken();
     if (token) headers.Authorization = `Bearer ${token}`;
-    const response = await fetch(`/v1/apps/${encodeURIComponent(id)}/export`, { headers });
+    const response = await fetch(path, { headers });
     if (!response.ok) throw new ApiError(response.status, null);
     const disposition = response.headers.get("content-disposition") ?? "";
-    const filename = /filename="([^"]+)"/.exec(disposition)?.[1] ?? "export.json";
+    const filename = /filename="([^"]+)"/.exec(disposition)?.[1] ?? fallback;
     const url = URL.createObjectURL(await response.blob());
     const link = document.createElement("a");
     link.href = url;
     link.download = filename;
     link.click();
     URL.revokeObjectURL(url);
-  },
-};
+}

@@ -1,7 +1,8 @@
-import { useEffect, useId, useRef, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useId, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { SCENARIOS, TASK_TYPES, taskTypesFor } from "../domain/catalog";
 import type { Hosting } from "../domain/resources";
-import { checkJsonl, MAX_FILE_BYTES, MAX_PROBLEMS } from "../domain/validate";
+import { MAX_FILE_BYTES, MAX_PROBLEMS } from "../domain/validate";
+import { api, ApiError } from "../api/client";
 import { Choices, Field } from "./console";
 import type { DatasetForm } from "./datasetForm";
 import { formatNumber } from "./format";
@@ -17,9 +18,13 @@ export function DatasetFields({ form, hosting, onChange }: { form: DatasetForm; 
   const ids = { scenario: `${uid}-scenario`, type: `${uid}-type`, file: `${uid}-file`, format: `${uid}-format`, name: `${uid}-name`, description: `${uid}-description` };
   const input = useRef<HTMLInputElement>(null);
   const selection = useRef(0);
+  const pending = useRef<AbortController | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [templateError, setTemplateError] = useState<string | null>(null);
   useEffect(() => {
     selection.current += 1;
-    return () => { selection.current += 1; };
+    pending.current?.abort();
+    return () => { selection.current += 1; pending.current?.abort(); };
   }, [hosting, form.scenario, form.taskType]);
   const types = form.scenario ? taskTypesFor(form.scenario) : [];
   const type = form.taskType ? TASK_TYPES[form.taskType] : null;
@@ -29,19 +34,26 @@ export function DatasetFields({ form, hosting, onChange }: { form: DatasetForm; 
   async function pick(selected: File | undefined) {
     if (!selected) return;
     const version = ++selection.current;
+    pending.current?.abort();
     if (selected.size > MAX_FILE_BYTES) {
       onChange((current) => ({ ...current, file: { name: selected.name, size: selected.size, check: null, error: "文件超过 20 MB，请拆分后再选择" } }));
       return;
     }
     onChange((current) => ({ ...current, file: { name: selected.name, size: selected.size, check: null, checking: true } }));
     try {
-      const text = new TextDecoder("utf-8", { fatal: true }).decode(await selected.arrayBuffer());
+      new TextDecoder("utf-8", { fatal: true }).decode(await selected.arrayBuffer());
       if (selection.current !== version) return;
-      const check = checkJsonl(text);
+      if (!form.taskType) return;
+      const controller = new AbortController();
+      pending.current = controller;
+      const check = await api.checkDataset(form.taskType, selected, controller.signal);
+      if (selection.current !== version) return;
       onChange((current) => ({ ...current, file: { name: selected.name, size: selected.size, check, blob: selected } }));
-    } catch {
+    } catch (error) {
       if (selection.current !== version) return;
-      onChange((current) => ({ ...current, file: { name: selected.name, size: selected.size, check: null, error: "无法读取 UTF-8 文本，请检查文件编码后重新选择" } }));
+      onChange((current) => ({ ...current, file: { name: selected.name, size: selected.size, check: null,
+        blob: error instanceof ApiError ? selected : undefined,
+        error: error instanceof ApiError ? error.message : "无法读取 UTF-8 文本，请检查文件编码后重新选择" } }));
     }
   }
 
@@ -49,6 +61,17 @@ export function DatasetFields({ form, hosting, onChange }: { form: DatasetForm; 
     // 同一个文件改好后再次选择时也要触发检查。
     if (input.current) input.current.value = "";
     input.current?.click();
+  }
+
+  async function downloadTemplate() {
+    if (!form.taskType || downloading) return;
+    const version = selection.current;
+    setDownloading(true);
+    setTemplateError(null);
+    try { await api.downloadTemplate(form.taskType); }
+    catch (error) {
+      if (selection.current === version) setTemplateError(error instanceof ApiError ? error.message : "模板下载失败，请重试");
+    } finally { setDownloading(false); }
   }
 
   return (
@@ -67,20 +90,24 @@ export function DatasetFields({ form, hosting, onChange }: { form: DatasetForm; 
           {types.length ? (
             <Choices labelledBy={ids.type} value={form.taskType} options={types.map((item) => ({ value: item, label: TASK_TYPES[item].label }))} placeholder="更多类型" onChange={(taskType) => onChange((current) => current.taskType === taskType ? current : { ...current, taskType, file: null })} />
           ) : <p className="field-static">这个场景还没有可用的任务类型。</p>}
+          {type && hosting === "local" ? <><button type="button" className="text-link" disabled={downloading} onClick={() => void downloadTemplate()}>{downloading ? "正在下载…" : "下载数据模板"}</button>
+            {templateError ? <p className="field-error" role="alert">{templateError}</p> : null}</> : null}
         </Field>
       ) : null}
 
       {type && hosting === "platform" ? (
-        <Field label="数据集文件" labelId={ids.file} wide>
+        <Field label="数据集文件" labelId={ids.file} info={<>每行一条 <code>{type.format}</code>。{type.unlabeledNote}。文件不超过 20 MB。</>} wide>
           <label className="upload-zone">
             <input ref={input} name="dataset-file" type="file" accept=".jsonl,.json,application/json" aria-labelledby={ids.file} aria-describedby={ids.format} onChange={(event) => pick(event.target.files?.[0])} />
             <Icon name="upload" />
             <strong>{file ? file.name : "选择 JSONL 文件"}</strong>
-            <span id={ids.format}>每行一条 <code>{type.format}</code>；{type.unlabeledNote}；不超过 20&nbsp;MB</span>
+            <span id={ids.format}>JSONL · {type.label} · 最多 20 MB</span>
           </label>
+          <button type="button" className="text-link" disabled={downloading} onClick={() => void downloadTemplate()}>{downloading ? "正在下载…" : "下载数据模板"}</button>
+          {templateError ? <p className="field-error" role="alert">{templateError}</p> : null}
           {file ? (
             <div className={`check-result${failed ? " check-result--failed" : " check-result--ok"}`} aria-live="polite">
-              {file.checking ? <p>正在读取并检查文件…</p> : null}
+              {file.checking ? <p>正在校验文件…</p> : null}
               {file.error ? <p><Icon name="x" />{file.error}</p> : null}
               {file.check?.ok ? (
                 <p><Icon name="check" />检查通过：{formatNumber(file.check.count)} 条样本，其中 {formatNumber(file.check.answered)} 条有标注。</p>
@@ -95,7 +122,9 @@ export function DatasetFields({ form, hosting, onChange }: { form: DatasetForm; 
                   </ul>
                 </>
               ) : null}
-              {failed ? <button type="button" className="button button--secondary button--compact check-retry" onClick={choose}>改好后重新选择文件</button> : null}
+              {failed ? <button type="button" className="button button--secondary button--compact check-retry"
+                onClick={file.error && file.blob ? () => void pick(file.blob) : choose}>
+                {file.error && file.blob ? "重试校验" : "改好后重新选择文件"}</button> : null}
             </div>
           ) : null}
         </Field>

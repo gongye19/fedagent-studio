@@ -38,6 +38,7 @@ class Participant(Base):
     """platform：平台托管；local：参与方本地（客户端）。"""
     builtin: Mapped[bool] = mapped_column(default=False)
     last_seen_at: Mapped[datetime | None] = mapped_column(default=None)
+    client_plugins: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(default=now)
 
 
@@ -51,6 +52,8 @@ class Dataset(Base):
     origin: Mapped[str | None] = mapped_column(String(120), default=None)
     scenario: Mapped[str] = mapped_column(String(32))
     task_type: Mapped[str] = mapped_column(String(64))
+    schema_version: Mapped[str] = mapped_column(String(32), default="1.0")
+    source_hash: Mapped[str | None] = mapped_column(String(64), default=None)
     source: Mapped[str] = mapped_column(String(16))
     """builtin：内置数据；upload：上传到平台；local：留在参与方本地。"""
     count: Mapped[int] = mapped_column(default=0)

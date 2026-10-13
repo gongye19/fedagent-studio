@@ -1,0 +1,166 @@
+{
+  "repository": "https://github.com/xschen-beb/EvoMedClaw",
+  "commit": "ae333ec635fac5900d2b9f4455080444d28c0392",
+  "files": [
+    {
+      "path": "federated/__init__.py",
+      "sha256": "81514182d02f31c3f13f15020b5d44bcba182e6128651ea38b67284c6ad7446d"
+    },
+    {
+      "path": "federated/aggregate.py",
+      "sha256": "04162ee82513cd46ee666c19fc7e46eea2a85fa6dd7a3f02d326f518a2da581c"
+    },
+    {
+      "path": "federated/sanitize.py",
+      "sha256": "d9e673b5a74827507ca7d03e8c23d3b5fbda9cebfd91325b1f904cb9abbffa6c"
+    },
+    {
+      "path": "federated/signature.py",
+      "sha256": "21b09c7d7e8b6f975ae33cbcf99416e0d69868e8aadc83f565b7da036f9042c2"
+    },
+    {
+      "path": "federated/types.py",
+      "sha256": "2c94fdded6f6fbefd8ec2ce13b40620f742afee0cd83936b5f1bef51b5d85af6"
+    },
+    {
+      "path": "learning/__init__.py",
+      "sha256": "cebf7e9d47994901c84a8a413f19c357052c119bd4eeed1e7c4e038622371bc2"
+    },
+    {
+      "path": "learning/card_bank.py",
+      "sha256": "7bed25490d37f1e72e9364696d20dcc757066c98f3ccd834f61c5e104c07fe92"
+    },
+    {
+      "path": "learning/card_compiler.py",
+      "sha256": "05f1fb3545ec95fb2638ac25fb12b9c59448c92340c35f542aa11981776aee19"
+    },
+    {
+      "path": "learning/card_types.py",
+      "sha256": "5a0504ede2fc8655e7712eeafbc6bc61b3e83b248a4d9c45cc4e0f53e84dd6f2"
+    },
+    {
+      "path": "learning/legacy_bank_export.py",
+      "sha256": "0bb9f9af0830d730fc47955e70e263d756dfb75fa72b0bc0091970d3d0017b49"
+    },
+    {
+      "path": "learning/retrieve_index.py",
+      "sha256": "9b3cc051b4ae25e9da433c4353e1881b1218f9ae47148ff6865435f81dfc8b38"
+    },
+    {
+      "path": "learning/retrieve_ranker.py",
+      "sha256": "eb86027af4b5fa1f34951f9a7b8b2ce025368c7c31e12abc377806e46fe90eb1"
+    },
+    {
+      "path": "learning/retrieve_trace.py",
+      "sha256": "f34e3b3cb7e5bec400610100ec84b423414041cd046a4c9f617d240be8874cba"
+    },
+    {
+      "path": "learning/skill_attribution.py",
+      "sha256": "642c8445d9e63a95acf800700629ee38a1641e448b05a6d751f78ba1c2fd59f6"
+    },
+    {
+      "path": "learning/trajectory_canonicalizer.py",
+      "sha256": "e77f8222640dedcc20bd7bec0da5a3a00e05434f8a2bf4584aad62be2dfbafc7"
+    },
+    {
+      "path": "learning/trajectory_loader.py",
+      "sha256": "1f8b86a0acde7830fbfd513490240bf9a0fd93d520a333b4e9ceedb1729d9725"
+    },
+    {
+      "path": "learning/types.py",
+      "sha256": "c901f8db7a96a4a21421a6242f04fac26fb42151b4e681b392bec75ab32fb327"
+    },
+    {
+      "path": "runtime/__init__.py",
+      "sha256": "51f75cfe0a49f328e5a0314fdb6e558b8f621a723f18b868805820441dfa3e96"
+    },
+    {
+      "path": "runtime/config/__init__.py",
+      "sha256": "7bc8bcf0162b74bf55a51fb736b5fe3182b57fb7c51b62251b3a86f1ecebf6fc"
+    },
+    {
+      "path": "runtime/config/loader.py",
+      "sha256": "7fef4f935cd92c3bbb3dfb32c12b24a11cba50e7671c06a63bff471c5a753936"
+    },
+    {
+      "path": "runtime/department_first/__init__.py",
+      "sha256": "a8c6318501e611bf6ccc58bcba088266ab1078febe0f45e034018efb80acca7a"
+    },
+    {
+      "path": "runtime/department_first/core/__init__.py",
+      "sha256": "2dc5f540b615de03e53f32d0f10f985122bca77e24ccd209da5144d4fa7af9a9"
+    },
+    {
+      "path": "runtime/department_first/core/arbiter_agent.py",
+      "sha256": "da446af88c0f49284bae50bf9ba5a698c907fc62ac30ac8543dc177e002111c5"
+    },
+    {
+      "path": "runtime/department_first/core/department_memory.py",
+      "sha256": "56226bf8e31f22a0b77236e5e318f0443ae4b2fed3e027df3ee8d6896e9414fe"
+    },
+    {
+      "path": "runtime/department_first/core/department_router.py",
+      "sha256": "31814445b133aabb6c0f03611621fb216e0aa26a1af415a4354d295f3f857cad"
+    },
+    {
+      "path": "runtime/department_first/core/prompt_composer.py",
+      "sha256": "90a0c803fba0cedf1cd31a45e465d53ff012602fe01a5287e227b56442be3fef"
+    },
+    {
+      "path": "runtime/department_first/core/prompt_registry.py",
+      "sha256": "afae65b8defab3bce8ad8f90fe71fbc8d6e8c41d3b0e87ce10002fa2f3a2cfef"
+    },
+    {
+      "path": "runtime/department_first/core/runtime.py",
+      "sha256": "6d0c67e0df5201575b454478b88429db10921b6137f683b74cf1e319ba53a3d5"
+    },
+    {
+      "path": "runtime/department_first/core/specialist_agent.py",
+      "sha256": "83efb6a2a777ff447ade6a1397077c51e8af789694d9f06b3ac17fd6dd4dc963"
+    },
+    {
+      "path": "runtime/department_first/core/types.py",
+      "sha256": "a76d8ffbbab45153890d7f7071d17de0746d18442d849d1efb9e304b8b181e72"
+    },
+    {
+      "path": "runtime/department_first/core/verifier.py",
+      "sha256": "ab45dd2bd2b6d1fe7f6565fe48e56624051a0a6eb9c1f3c57fe2e2cc05543864"
+    },
+    {
+      "path": "runtime/department_first/standalone.py",
+      "sha256": "2c99aaeb9a1f15788b0b01bbc9781c1090b87eb235d450cab94167e0e925e093"
+    },
+    {
+      "path": "runtime/department_first/telemetry.py",
+      "sha256": "d978f7ebdf408bb29f5e0f3dddb02948b2499fdae0742b71f38303a62099abe4"
+    },
+    {
+      "path": "runtime/memory/__init__.py",
+      "sha256": "f15b95cfdb306992d38ca0bfa291af98a52d036aec9cdcee21238201161d7a20"
+    },
+    {
+      "path": "runtime/memory/retrieval.py",
+      "sha256": "2d828791442eedc4e88b8938077946b5b1e62fdd9afe81f2df60cb2f16062ea2"
+    },
+    {
+      "path": "runtime/metrics/__init__.py",
+      "sha256": "88d080ec08edcd903ac3ce840af21189f3fba0ecc6272429f9596d6c6ae21280"
+    },
+    {
+      "path": "runtime/metrics/token_usage.py",
+      "sha256": "862e692c8d6af767c9fbcb4798715cfda1424c16feb3dfd8ebf8510485d9a9e8"
+    },
+    {
+      "path": "runtime/skill_runtime.py",
+      "sha256": "c68164654a44e64939dd7d787dcbb4326b0ee4bd394a31ff782275b0ad5501a1"
+    },
+    {
+      "path": "learning/trajectory_canonicalizer.py",
+      "sha256": "e77f8222640dedcc20bd7bec0da5a3a00e05434f8a2bf4584aad62be2dfbafc7"
+    },
+    {
+      "path": "learning/trajectory_loader.py",
+      "sha256": "1f8b86a0acde7830fbfd513490240bf9a0fd93d520a333b4e9ceedb1729d9725"
+    }
+  ]
+}

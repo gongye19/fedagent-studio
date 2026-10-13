@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import secrets
 from datetime import timedelta
 from typing import Any
@@ -67,6 +68,7 @@ def participant_out(platform: Platform, participant: m.Participant) -> Participa
         status=participant_status(platform, participant),  # type: ignore[arg-type]
         builtin=participant.builtin,
         last_seen_at=participant.last_seen_at,
+        client_plugins=dict(participant.client_plugins or {}),
     )
 
 
@@ -117,22 +119,27 @@ def dataset_out(dataset: m.Dataset) -> DatasetOut:
         origin=dataset.origin,
         scenario=dataset.scenario,
         task_type=dataset.task_type,
+        schema_version=dataset.schema_version,
+        source_hash=dataset.source_hash,
         count=dataset.count,
         answered=dataset.answered,
         source=dataset.source,  # type: ignore[arg-type]
-        sample=SampleOut(question=str(sample.get("question", "")), answer=sample.get("answer")) if sample else None,
+        sample=SampleOut.model_validate(sample) if sample else None,
         ready=dataset_ready(dataset),
     )
 
 
-def check_out(report: Any) -> DatasetCheckOut:
+def check_out(report: Any, task_type: Any = None) -> DatasetCheckOut:
+    sample = dict(report.sample) if report.sample else None
+    if sample is not None and task_type is not None:
+        sample["fields"] = task_type.preview(sample)
     return DatasetCheckOut(
         ok=report.ok,
         count=report.count,
         answered=report.answered,
         problems=[CheckProblem(line=issue.line, message=issue.message) for issue in report.issues],
         problem_count=report.issue_count,
-        sample=SampleOut(**report.sample) if report.sample else None,
+        sample=SampleOut.model_validate(sample) if sample else None,
     )
 
 
@@ -173,6 +180,7 @@ def create_dataset(
             description=description.strip(),
             scenario=scenario,
             task_type=task_type,
+            schema_version=platform.registry.task_type(task_type).schema_version,
             source="local",
         )
         session.add(dataset)
@@ -181,7 +189,7 @@ def create_dataset(
     if raw is None:
         raise HTTPException(422, "平台托管的参与方要上传数据文件")
     report = check_file(platform.registry.task_type(task_type), raw)
-    checked = check_out(report)
+    checked = check_out(report, platform.registry.task_type(task_type))
     if not report.ok:
         return None, checked
     path, digest = platform.files.save(dataset_id, report.items)
@@ -192,10 +200,12 @@ def create_dataset(
         description=description.strip() or name.strip(),
         scenario=scenario,
         task_type=task_type,
+        schema_version=platform.registry.task_type(task_type).schema_version,
+        source_hash=hashlib.sha256(raw).hexdigest(),
         source="upload",
         count=report.count,
         answered=report.answered,
-        sample=report.sample,
+        sample=checked.sample.model_dump() if checked.sample else None,
         content_path=path,
         content_hash=digest,
     )

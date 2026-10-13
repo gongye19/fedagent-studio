@@ -6,6 +6,7 @@ requires-python = ">=3.12"
 members = [
     "fedagent",
     "fedagent-client",
+    "fedagent-evomedclaw",
     "fedagent-fot",
     "fedagent-math-reasoning",
     "fedagent-sdk",
@@ -256,6 +257,7 @@ dependencies = [
     { name = "alembic" },
     { name = "cryptography" },
     { name = "fastapi" },
+    { name = "fedagent-evomedclaw" },
     { name = "fedagent-fot" },
     { name = "fedagent-math-reasoning" },
     { name = "fedagent-sdk" },
@@ -281,6 +283,7 @@ requires-dist = [
     { name = "alembic", specifier = ">=1.13" },
     { name = "cryptography", specifier = ">=42" },
     { name = "fastapi", specifier = ">=0.142.2" },
+    { name = "fedagent-evomedclaw", editable = "plugins/evomedclaw" },
     { name = "fedagent-fot", editable = "plugins/fot" },
     { name = "fedagent-math-reasoning", editable = "plugins/math_reasoning" },
     { name = "fedagent-sdk", editable = "sdk" },
@@ -303,7 +306,7 @@ dev = [
 
 [[package]]
 name = "fedagent-client"
-version = "0.1.1"
+version = "0.1.2"
 source = { editable = "client" }
 dependencies = [
     { name = "fedagent-sdk" },
@@ -317,8 +320,23 @@ requires-dist = [
 ]
 
 [[package]]
-name = "fedagent-fot"
+name = "fedagent-evomedclaw"
 version = "0.1.0"
+source = { editable = "plugins/evomedclaw" }
+dependencies = [
+    { name = "fedagent-sdk" },
+    { name = "pyyaml" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fedagent-sdk", editable = "sdk" },
+    { name = "pyyaml", specifier = ">=6.0" },
+]
+
+[[package]]
+name = "fedagent-fot"
+version = "0.1.1"
 source = { editable = "plugins/fot" }
 dependencies = [
     { name = "fedagent-sdk" },
@@ -329,7 +347,7 @@ requires-dist = [{ name = "fedagent-sdk", editable = "sdk" }]
 
 [[package]]
 name = "fedagent-math-reasoning"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "plugins/math_reasoning" }
 dependencies = [
     { name = "fedagent-sdk" },
@@ -340,7 +358,7 @@ requires-dist = [{ name = "fedagent-sdk", editable = "sdk" }]
 
 [[package]]
 name = "fedagent-sdk"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "sdk" }
 dependencies = [
     { name = "pydantic" },

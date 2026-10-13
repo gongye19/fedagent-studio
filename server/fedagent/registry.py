@@ -82,7 +82,8 @@ class Registry:
         merged: dict[str, Any] = {}
         for algorithm in self.algorithms.values():
             for key, value in algorithm.model_settings().items():
-                merged[key] = max(int(merged.get(key, 0)), int(value)) if key == "max_tokens" else merged.get(key, value)
+                current = merged.get(key)
+                merged[key] = max(current, value) if isinstance(current, int | float) and isinstance(value, int | float) else value
         return merged or {"max_tokens": 16}
 
     def task_type(self, task_type_id: str) -> TaskType:
@@ -146,6 +147,7 @@ class Registry:
             "roles": {key: role.model_dump() for key, role in manifest.roles.items()},
             "params": [param.model_dump(exclude_none=False) for param in manifest.params],
             "minParticipants": manifest.min_participants,
+            "minSamples": algorithm.min_samples_per_site,
             "minRounds": manifest.rounds.min,
             "maxRounds": manifest.rounds.max,
             "defaultRounds": manifest.rounds.default,
@@ -168,6 +170,11 @@ class Registry:
             "format": task_type.format_hint,
             "unlabeledNote": task_type.unlabeled_note,
             "placeholder": task_type.placeholder,
+            "schemaVersion": task_type.schema_version,
+            "structuredInput": task_type.structured_input,
+            "inputLabel": task_type.input_label,
+            "answerLabel": task_type.answer_label,
+            "inputFields": [field.to_dict() for field in task_type.input_fields],
         }
 
     def describe(self) -> dict[str, Any]:
