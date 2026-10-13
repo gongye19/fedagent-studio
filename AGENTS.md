@@ -40,6 +40,8 @@ FedAgent Studio 是通用的联邦 Agent 平台：多个参与方的 Agent 在�
 
 T76／D73配置密度：少量选项按内容宽度排列，不再强制等宽拉伸；待接入占位只显示一次，不放虚假的单选圆点。桌面选项约36px、手机44px，任务标签栏112px、面板内边距与字段间距16px，高级配置保持同一轴线；长标签均衡折行，解释仍放独立ⓘ。沿用已确认参考与组件，不新增内容或依赖。
 
+T77／D74覆盖此前单模型直接显示的规则：模型始终可选择，即使只有一个选项。新建任务的参与方／服务端模型用ModelPicker，应用试用用SelectField，选项只来自接口登记；回传实际模型引用，不把唯一的非默认接口写成default。服务端不调用模型的算法仍不显示该角色；没有可用模型时保留配置入口，不增加假模型选项。
+
 ```text
 app/        前端：React 19 + TypeScript 6 + Vite 8、TanStack Query、ECharts（命令在 app/）
 server/     后端：Python 3.12、FastAPI、SQLAlchemy 2 + Alembic（SQLite）、httpx；uv workspace（命令在 server/）

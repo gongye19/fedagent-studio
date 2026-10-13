@@ -32,7 +32,6 @@ import {
 } from "../domain/config";
 import {
   DEFAULT_ENDPOINT_ID,
-  DEFAULT_MODEL,
   endpointOf,
   HOSTING_LABELS,
   isConfigured,
@@ -476,37 +475,26 @@ function RunSettings({
             <SelectField id="rounds-pending" disabled value=""><option value="">请先选择算法</option></SelectField>
           )}
         </Field>
-        {options.length === 1 ? (
-          <ModelField state={state} error={modelsError} />
-        ) : (
-          <>
-            <Field label="参与方模型" htmlFor="client-model">
-              <ModelPicker aria-describedby={modelsError ? "models-error" : undefined} id="client-model" name="client-model" value={draft.clientModel} onValueChange={(value) => update({ clientModel: value })} options={options} endpoints={state.endpoints} />
-            </Field>
-            {!algorithm || serverUsesModel(algorithm) ? (
-              <Field label="服务端模型" htmlFor="server-model" info="服务端每轮要读完各方上传的内容，需要长上下文的模型。">
-                <ModelPicker aria-describedby={modelsError ? "models-error" : undefined} id="server-model" name="server-model" value={draft.serverModel} onValueChange={(value) => update({ serverModel: value })} options={options} endpoints={state.endpoints} />
-              </Field>
-            ) : null}
-          </>
-        )}
+        <Field label="参与方模型" htmlFor="client-model">
+          <ModelPicker aria-describedby={modelsError ? "models-error" : undefined} id="client-model" name="client-model" value={draft.clientModel} onValueChange={(value) => update({ clientModel: value })} options={options} endpoints={state.endpoints} />
+          <EndpointSetupLink model={draft.clientModel} state={state} />
+        </Field>
+        {!algorithm || serverUsesModel(algorithm) ? (
+          <Field label="服务端模型" htmlFor="server-model" info="服务端每轮要读完各方上传的内容，需要长上下文的模型。">
+            <ModelPicker aria-describedby={modelsError ? "models-error" : undefined} id="server-model" name="server-model" value={draft.serverModel} onValueChange={(value) => update({ serverModel: value })} options={options} endpoints={state.endpoints} />
+            <EndpointSetupLink model={draft.serverModel} state={state} />
+          </Field>
+        ) : null}
       </FieldGroup>
-      {options.length !== 1 ? <InlineError id="models-error" message={modelsError} /> : null}
+      <InlineError id="models-error" message={modelsError} />
     </div>
   );
 }
 
-/** 只有一个模型可用时不做成下拉：参与方和服务端都用它；接口还没配置时给出去配置的入口。 */
-function ModelField({ state, error }: { state: State; error?: string }) {
-  const endpoint = state.endpoints.find((item) => item.id === DEFAULT_ENDPOINT_ID);
-  return (
-    <Field label="模型" wide labelId="model-label" error={error}>
-      <p className="field-static">
-        <span>{modelLabel(DEFAULT_MODEL, state.endpoints)}</span>
-        {endpoint && !isConfigured(endpoint) ? <a className="text-link" href={hrefOf(endpointRoute(endpoint.id))}>去配置</a> : null}
-      </p>
-    </Field>
-  );
+function EndpointSetupLink({ model, state }: { model: string; state: State }) {
+  const endpoint = endpointOf(model, state.endpoints);
+  return endpoint && !isConfigured(endpoint)
+    ? <a className="text-link" href={hrefOf(endpointRoute(endpoint.id))}>去配置接口</a> : null;
 }
 
 const GENERAL_KEYS = ["seed", "workers"] as const;

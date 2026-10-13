@@ -20,7 +20,7 @@ type Props = {
   disabled?: boolean;
 };
 
-/** 模型多时使用 AI Elements；仅展示平台已登记的选项，不添加示例供应商。 */
+/** 统一模型选择：只有一个模型也可展开；选项只来自平台登记，不添加供应商。 */
 export function ModelPicker({ id, name, value, onValueChange, options, endpoints, disabled, "aria-label": ariaLabel, "aria-invalid": invalid, "aria-describedby": describedBy }: Props) {
   const [open, setOpen] = useState(false);
   const search = useRef<HTMLInputElement>(null);
@@ -28,7 +28,8 @@ export function ModelPicker({ id, name, value, onValueChange, options, endpoints
     endpoint, options: options.filter((option) => endpointOf(option.ref, endpoints)?.id === endpoint.id),
   })).filter((group) => group.options.length);
   const label = ariaLabel ?? (id ? undefined : "模型");
-  const title = modelLabel(value, endpoints);
+  const title = options.some((option) => option.ref === value)
+    ? modelLabel(value, endpoints) : options.length ? "请选择模型" : "没有可选模型";
   return (
     <ModelSelector open={open && !disabled} onOpenChange={setOpen}>
       {name ? <input type="hidden" name={name} value={value} disabled={disabled} /> : null}

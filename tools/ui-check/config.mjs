@@ -5,7 +5,8 @@ import {launch,viewport,open,evaluate,sleep,NEW_TASK_ALL,OPEN_ADVANCED,PICK,SEAR
 const base=process.env.BASE??'http://127.0.0.1:8880/';
 const fixture=process.env.CONFIG_FIXTURES!=='0'&&['localhost','127.0.0.1'].includes(new URL(base).hostname);
 const out=process.env.CDP_OUT??'/tmp/fedagent-config';mkdirSync(out,{recursive:true});
-const [participants,datasets]=await Promise.all(['participants','datasets'].map(async(resource)=>(await fetch(base+'v1/'+resource)).json()));
+const [participants,datasets,endpoints]=await Promise.all(['participants','datasets','endpoints'].map(async(resource)=>(await fetch(base+'v1/'+resource)).json()));
+const registeredRefs=endpoints.flatMap(e=>e.models.map((model,index)=>e.id==='default'&&index===0?'default':e.id+':'+model));
 const available=participants.filter(p=>p.status==='online'&&datasets.some(d=>d.participantId===p.id&&d.ready&&d.scenario==='horizontal'&&d.taskType==='math-reasoning')).map(p=>'pick-'+p.id).sort();
 const {send,close}=await launch({port:Number(process.env.CDP_PORT??9390),profile:'/tmp/fedagent-config-profile'});
 const evidence=[];
@@ -66,7 +67,13 @@ try{
    await click('[data-model-name=client-model]',touch);await send('Input.insertText',{text:'missing-no-model'});await sleep(250);
    check('搜索空状态准确且不改已选模型 '+width,await evaluate(send,"document.querySelector('[cmdk-empty]').textContent==='没有匹配的模型'&&document.querySelector('input[name=client-model]').value==='fake:config-beta'"));
    await key('Escape');check('取消模型选择恢复焦点 '+width,await evaluate(send,"!document.querySelector('[role=dialog]')&&document.activeElement.dataset.modelName==='client-model'"));
-  }else{check('线上只有一个模型直接展示 '+width,await evaluate(send,"!document.querySelector('[data-model-name=client-model]')&&document.querySelector('.task-config').textContent.includes('gpt-5.6-luna')"))}
+  }else{
+   await click('[data-model-name=client-model]',touch);
+   check('模型选择数量与登记一致，单模型也可打开 '+width,JSON.stringify((await evaluate(send,"[...document.querySelectorAll('[cmdk-item]')].map(e=>e.dataset.modelValue)")).sort())===JSON.stringify([...registeredRefs].sort()));
+   const selected=await evaluate(send,"document.querySelector('[cmdk-item][data-selected=true]')?.dataset.modelValue??document.querySelector('[cmdk-item]')?.dataset.modelValue");
+   await shot('single-model-menu-'+width);await key('Enter');
+   check('模型选择保留真实引用并恢复焦点 '+width,await evaluate(send,`document.querySelector('input[name=client-model]').value===${JSON.stringify(selected)}&&document.activeElement.dataset.modelName==='client-model'&&!document.querySelector('[role=dialog]')`));
+  }
   await evaluate(send,"document.getElementById('settings').scrollIntoView({block:'start'});window.scrollBy(0,innerWidth>900?-16:-72);void 0");await sleep(350);await shot('config-settings-'+width);
   await evaluate(send,OPEN_ADVANCED);await sleep(300);await click('button[aria-label="并发数说明"]',touch);
   check('高级参数解释不占配置行 '+width,await evaluate(send,"document.querySelector('[role=tooltip]').textContent.includes('同时发出的模型调用数')&&!document.querySelector('.field-help')"));

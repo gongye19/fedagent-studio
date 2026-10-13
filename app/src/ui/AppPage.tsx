@@ -210,20 +210,13 @@ function TryPanel({ item, state }: { item: Published; state: State }) {
             <Field label={type?.answerLabel ?? "标准答案"} optional htmlFor="try-answer">
               <input id="try-answer" name="answer" autoComplete="off" disabled={running} value={answer} onChange={(event) => setAnswer(event.target.value)} />
             </Field>
-            {options.length > 1 ? (
-              <Field label="模型" htmlFor="try-model">
-                <SelectField id="try-model" name="model" disabled={running} value={model} onValueChange={(value) => setModel(value)}>
-                  {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
-                </SelectField>
-              </Field>
-            ) : (
-              <Field label="模型">
-                <p className="field-static">
-                  <span>{model ? modelLabel(model, state.endpoints) : "没有可用的模型接口"}</span>
-                  {!model ? <a className="text-link" href={hrefOf(state.endpoints.some((endpoint) => endpoint.id === DEFAULT_ENDPOINT_ID) ? { page: "editEndpoint", id: DEFAULT_ENDPOINT_ID } : { page: "newEndpoint" })}>去配置</a> : null}
-                </p>
-              </Field>
-            )}
+            <Field label="模型" htmlFor="try-model">
+              <SelectField id="try-model" name="model" disabled={running || !options.length} value={model} onValueChange={(value) => setModel(value)}>
+                {!options.length ? <option value="" disabled>没有可用的模型接口</option> : null}
+                {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
+              </SelectField>
+              {!model ? <a className="text-link" href={hrefOf(state.endpoints.some((endpoint) => endpoint.id === DEFAULT_ENDPOINT_ID) ? { page: "editEndpoint", id: DEFAULT_ENDPOINT_ID } : { page: "newEndpoint" })}>去配置</a> : null}
+            </Field>
           </FieldGroup>
           <div className="form-actions">
             <span className="form-status" id="try-status" aria-live="polite">{running ? "正在运行，两次调用需要一些时间…" : missing}</span>
