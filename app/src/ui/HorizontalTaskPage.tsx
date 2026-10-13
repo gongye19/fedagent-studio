@@ -329,7 +329,7 @@ function AlgorithmField({ scenario, taskType, value, onChange, error }: { error?
   );
 }
 
-/** 算法短名称等宽选择，详细说明通过独立 ⓘ 浮层查看。 */
+/** 算法短名称紧凑选择，详细说明通过独立 ⓘ 浮层查看。 */
 function AlgorithmTable({ algorithms, value, onChange, disabled, error }: { error?: string; algorithms: readonly Algorithm[]; value: Draft["algorithm"]; onChange: (id: Algorithm["id"]) => void; disabled: boolean }) {
   return (
     <div className="algorithm-options" role="radiogroup" aria-labelledby="algorithm-label" aria-invalid={Boolean(error)} aria-describedby={error ? "algorithm-label-error" : undefined}>
@@ -347,9 +347,8 @@ function AlgorithmTable({ algorithms, value, onChange, disabled, error }: { erro
           </InfoTip>
         </div>
       ))}
-      <div className="algorithm-choice algorithm-choice--placeholder" aria-disabled="true">
-        <label className="algorithm-choice-main"><input type="radio" name="algorithm" disabled aria-label="更多算法（待接入）" /><span>更多算法</span></label>
-        <Tag>待接入</Tag>
+      <div className="algorithm-choice algorithm-choice--placeholder" aria-disabled="true" aria-label="更多算法，待接入">
+        <span>待接入</span>
       </div>
     </div>
   );

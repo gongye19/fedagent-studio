@@ -1,5 +1,9 @@
 # FedAgent Studio 界面参考研究
 
+T76为已确认方向下的常规密度修正：复用既有Choices／单选／InfoTip，选项按内容宽度排列、待接入只显示一次，112px标签栏与16px间距，桌面36px／手机44px。没有新增主参考或功能，设计与验收见D73／HISTORY T76。实际配置截图片段：
+
+![紧凑任务配置](./screenshots/task-config-compact.png)
+
 T75 沿用已确认参考，无新视觉方向。流程为类型→文件→检查→原位修复／重试→保存→任务→发布→结构化试用；复用 Field／InfoTip／SelectField／ModelPicker 与确认。文件提供空模板，解释通过 ⓘ，JSON错误对应字段、运行时锁定；样本按类型预览，接入复制真实 JSON 与单次 API。390px算法单列，名称完整显示。验收覆盖模板、坏文件不保存、网络重试、独立评测、结构化调用和实际导出，medical-flow保存桌面／手机证据；不增加导航和管理模块。
 
 日期：2026-10-07。已通过 Mobbin Pro 网页和官方 MCP 获取参考，保存 7 个产品、11 个流程、51 张原图，并检查各流程截图。完整来源及图片顺序见 [清单](./ui-reference-manifest.json)，操作方法见 [MOBBIN.md](./MOBBIN.md)。

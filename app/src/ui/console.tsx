@@ -163,14 +163,14 @@ export function Choices<T extends string | number>({
             onClick={() => onChange(option.value)}
             onKeyDown={(event) => onKeyDown(event, index)}
           >
-            {option.label}
+            <span className="choice-label">{option.label}</span>
             {option.badge ? <span className="choice-badge">{option.badge}</span> : null}
           </button>
         );
       })}
       {placeholder ? (
         <button type="button" role="radio" aria-checked={false} disabled tabIndex={-1} className="choice choice--placeholder">
-          {placeholder}
+          <span className="choice-label">{placeholder}</span>
           <span className="choice-badge">待接入</span>
         </button>
       ) : null}

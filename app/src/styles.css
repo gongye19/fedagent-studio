@@ -1081,27 +1081,35 @@ a.algo-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 }
 
 /* T68：任务配置每项一行，标签／控件共用固定轴线，名单独立。 */
-.task-config .field-grid { grid-template-columns: minmax(0, 1fr); gap: 20px; }
-.task-config .field { grid-template-columns: 148px minmax(0, 1fr); column-gap: 20px; align-items: start; }
+.task-config .panel-head { min-height: 44px; padding: 10px 16px; }
+.task-config .panel-body:not(.panel-body--flush) { padding: 16px; }
+.task-config .panel--collapsible > summary, .task-config .panel--collapsible > .module-body { padding-inline: 16px; }
+.task-config .form-body { padding-block: 0; }
+.task-config .field-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.task-config .field { grid-template-columns: 112px minmax(0, 1fr); column-gap: 16px; align-items: start; }
 .task-config .field-head { min-height: 36px; align-items: center; gap: 4px; }
+.task-config .field-label { white-space: normal; text-wrap: balance; }
 .task-config .field-control { grid-column: 2; }
 .task-config .field-error { grid-column: 2; }
-.task-config .choices { display: grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; gap: 8px; }
-.task-config .choice { width: 100%; justify-content: center; }
+.task-config .choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.task-config .choice { width: auto; min-width: 0; flex: none; padding: 7px 12px; justify-content: center; }
+.task-config .choice-label { white-space: nowrap; }
 .task-config .choices--badged { flex-direction: initial; }
-.task-config .choices--badged .choice { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.task-config .choices--badged .choice { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; }
 .task-config .choices--badged .choice-badge { margin-left: 0; }
-.algorithm-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.algorithm-choice { display: flex; align-items: center; gap: 4px; min-width: 0; min-height: 44px;
+.task-config .choice--placeholder .choice-label { display: none; }
+.task-config .choice--placeholder .choice-badge { font-size: var(--text-sm); }
+.algorithm-options { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.algorithm-choice { display: flex; align-items: center; gap: 8px; min-width: 128px; min-height: 36px;
   padding: 0 8px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--background); }
-.algorithm-choice-main { display: flex; align-items: center; gap: 8px; padding: 10px 0; min-width: 0; flex: 1; cursor: pointer; }
+.algorithm-choice-main { display: flex; align-items: center; gap: 8px; padding: 6px 0; min-height: 34px; min-width: 0; flex: 1; cursor: pointer; }
 .algorithm-choice-main > span { white-space: nowrap; font-size: var(--text-sm); }
 .algorithm-choice:hover:not(.algorithm-choice--disabled, .algorithm-choice--placeholder) { border-color: var(--border-hover); background: var(--surface); }
 .algorithm-choice--checked { border-color: var(--accent); background: var(--accent-soft); }
 .algorithm-choice--checked .algorithm-choice-main { color: var(--accent-strong); font-weight: var(--weight-medium); }
 .algorithm-choice--disabled .algorithm-choice-main, .algorithm-choice--placeholder { color: var(--muted); }
 .algorithm-choice--disabled .algorithm-choice-main, .algorithm-choice--placeholder .algorithm-choice-main { cursor: not-allowed; }
-.algorithm-choice--placeholder { border-style: dashed; background: var(--surface); }
+.algorithm-choice--placeholder { min-width: 0; padding-inline: 12px; border-style: dashed; background: transparent; font-size: var(--text-sm); }
 .algorithm-choice .tag { padding-inline: 6px; }
 .algorithm-choice:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
 @container (max-width: 480px) {
@@ -1112,6 +1120,7 @@ a.algo-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 @media (max-width: 640px) {
   .info-tip-trigger { width: 44px; height: 44px; margin-block: -12px; }
   .algorithm-choice { min-height: 44px; }
+  .algorithm-choice-main { min-height: 42px; }
   .task-config .override-row { grid-template-columns: minmax(0, 1fr); }
   .task-config .override-head { display: none; }
 }
@@ -1137,4 +1146,3 @@ a.algo-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .model-picker [cmdk-empty] { padding: 24px 16px; text-align: center; color: var(--muted); font-size: var(--text-sm); }
 @media (max-width: 640px) { .model-picker-close, .model-picker [cmdk-item] { min-height: 44px; } .model-picker-close { width: 44px; } }
 .input-snapshot { white-space: pre-wrap; overflow-wrap: anywhere; }
-@media (max-width: 480px) { .algorithm-options { grid-template-columns: 1fr; } }
