@@ -51,11 +51,10 @@ export default function ResourcesPage({
   const flows = ALGORITHMS.filter(
     (a) => (!keyword || a.name.toLowerCase().includes(keyword)) && (taskType === "all" || a.accepts.includes(taskType)),
   );
-  const title = own ? "我的资源" : "公用资源";
   return (
     <>
       <PageHead
-        title={title}
+        title="资源"
         meta={own ? "接入一次，后续任务可直接选择使用。" : "平台提供的基准数据、模型与执行流程。"}
         actions={
           own && kind !== "agents" ? (
@@ -70,16 +69,18 @@ export default function ResourcesPage({
           ) : undefined
         }
       />
-      <div className="resource-space-bar">
+      <nav className="resource-space-bar" aria-label="资源归属">
         <a
           className={own ? "resource-space-link resource-space-link--active" : "resource-space-link"}
           href={hrefOf({ page: "resources", space: "workspace", kind })}
+          aria-current={own ? "page" : undefined}
         >
           我的资源
         </a>
         <a
           className={!own ? "resource-space-link resource-space-link--active" : "resource-space-link"}
           href={hrefOf({ page: "resources", space: "public", kind })}
+          aria-current={!own ? "page" : undefined}
         >
           公用资源
         </a>
@@ -88,7 +89,7 @@ export default function ResourcesPage({
             当前平台共用一个工作区，“我的资源”是此工作区接入的数据、模型接口和本地执行连接；多用户账号隔离尚未开放。平台运行的数据会存入这个工作区。
           </InfoTip>
         ) : null}
-      </div>
+      </nav>
       <TabLinks
         label="资源类型"
         active={kind}

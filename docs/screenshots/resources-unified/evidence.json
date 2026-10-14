@@ -1,0 +1,25 @@
+{
+  "base": "http://100.111.198.54:8880/",
+  "evidence": [
+    "six_navigation_1280",
+    "unified_resource_title_1280",
+    "workspace_intake_1280",
+    "intake_focus_restored_1280",
+    "public_scope_same_navigation_1280",
+    "kind_preserved_between_scopes_1280",
+    "execution_resources_available_1280",
+    "task_scope_switch_keeps_selection_1280",
+    "visible_navigation_and_no_overflow_1280",
+    "no_business_writes_1280",
+    "six_navigation_390",
+    "unified_resource_title_390",
+    "workspace_intake_390",
+    "intake_focus_restored_390",
+    "public_scope_same_navigation_390",
+    "kind_preserved_between_scopes_390",
+    "execution_resources_available_390",
+    "task_scope_switch_keeps_selection_390",
+    "visible_navigation_and_no_overflow_390",
+    "no_business_writes_390"
+  ]
+}

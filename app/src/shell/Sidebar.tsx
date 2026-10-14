@@ -3,12 +3,12 @@ import { hrefOf, type Route } from "../state/route";
 import { type State } from "../state/store";
 import { Icon, type IconName } from "../ui/icons";
 
-type NavKey = "home" | "tasks" | "apps" | "algorithms" | "models" | "resources" | "publicResources";
+type NavKey = "home" | "tasks" | "apps" | "algorithms" | "models" | "resources";
 
 function navKeyOf(route: Route): NavKey {
   switch (route.page) {
     case "resources":
-      return route.space === "public" ? "publicResources" : "resources";
+      return "resources";
     case "tasks":
     case "newTask":
     case "task":
@@ -38,8 +38,7 @@ const NAV: readonly NavItem[] = [
   { key: "home", label: "首页", icon: "home", route: { page: "home" } },
   { key: "tasks", label: "联邦任务", icon: "tasks", route: { page: "tasks" } },
   { key: "apps", label: "应用", icon: "apps", route: { page: "apps" } },
-  { key: "resources", label: "我的资源", icon: "resources", route: { page: "resources", space: "workspace" } },
-  { key: "publicResources", label: "公用资源", icon: "resources", route: { page: "resources", space: "public" } },
+  { key: "resources", label: "资源", icon: "resources", route: { page: "resources", space: "workspace" } },
   { key: "algorithms", label: "算法", icon: "algorithm", route: { page: "algorithms" } },
   { key: "models", label: "模型接口", icon: "model", route: { page: "models" } },
 ];
