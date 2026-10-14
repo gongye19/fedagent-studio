@@ -1,0 +1,66 @@
+/* T68：任务配置每项一行，标签／控件共用固定轴线，名单独立。 */
+.task-config .panel-head { min-height: 44px; padding: 10px 16px; }
+.task-config .panel-body:not(.panel-body--flush) { padding: 16px; }
+.task-config .panel--collapsible > summary, .task-config .panel--collapsible > .module-body { padding-inline: 16px; }
+.task-config .form-body { padding-block: 0; }
+.task-config .field-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.task-config .field { grid-template-columns: 112px minmax(0, 1fr); column-gap: 16px; align-items: start; }
+.task-config .field-head { min-height: 36px; align-items: center; gap: 4px; }
+.task-config .field-label { white-space: normal; text-wrap: balance; }
+.task-config .field-control { grid-column: 2; }
+.task-config .field-error { grid-column: 2; }
+.task-config .choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.task-config .choice { width: auto; min-width: 0; flex: none; padding: 7px 12px; justify-content: center; }
+.task-config .choice-label { white-space: nowrap; }
+.task-config .choices--badged { flex-direction: initial; }
+.task-config .choices--badged .choice { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; }
+.task-config .choices--badged .choice-badge { margin-left: 0; }
+.task-config .choice--placeholder .choice-label { display: none; }
+.task-config .choice--placeholder .choice-badge { font-size: var(--text-sm); }
+.algorithm-options { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.algorithm-choice { display: flex; align-items: center; gap: 8px; min-width: 128px; min-height: 36px;
+  padding: 0 8px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--background); }
+.algorithm-choice-main { display: flex; align-items: center; gap: 8px; padding: 6px 0; min-height: 34px; min-width: 0; flex: 1; cursor: pointer; }
+.algorithm-choice-main > span { white-space: nowrap; font-size: var(--text-sm); }
+.algorithm-choice:hover:not(.algorithm-choice--disabled, .algorithm-choice--placeholder) { border-color: var(--border-hover); background: var(--surface); }
+.algorithm-choice--checked { border-color: var(--accent); background: var(--accent-soft); }
+.algorithm-choice--checked .algorithm-choice-main { color: var(--accent-strong); font-weight: var(--weight-medium); }
+.algorithm-choice--disabled .algorithm-choice-main, .algorithm-choice--placeholder { color: var(--muted); }
+.algorithm-choice--disabled .algorithm-choice-main, .algorithm-choice--placeholder .algorithm-choice-main { cursor: not-allowed; }
+.algorithm-choice--placeholder { min-width: 0; padding-inline: 12px; border-style: dashed; background: transparent; font-size: var(--text-sm); }
+.algorithm-choice .tag { padding-inline: 6px; }
+.algorithm-choice:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+@container (max-width: 480px) {
+  .task-config .field { grid-template-columns: minmax(0, 1fr); }
+  .task-config .field-control, .task-config .field-error { grid-column: 1; }
+  .task-config .field-head { min-height: 24px; }
+}
+@media (max-width: 640px) {
+  .info-tip-trigger { width: 44px; height: 44px; margin-block: -12px; }
+  .algorithm-choice { min-height: 44px; }
+  .algorithm-choice-main { min-height: 42px; }
+  .task-config .override-row { grid-template-columns: minmax(0, 1fr); }
+  .task-config .override-head { display: none; }
+}
+/* AI Elements ModelSelector 源码适配，复用 Radix Dialog 与 cmdk。 */
+.model-picker-trigger[data-state="open"] .select-chevron { transform: rotate(-90deg); }
+.model-picker-overlay { position: fixed; inset: 0; z-index: 140; background: rgb(24 24 27 / 35%); animation: backdrop-enter 150ms var(--motion-ease); }
+.model-picker { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 141;
+  width: min(480px, calc(100vw - 32px)); max-height: min(540px, calc(100dvh - 48px));
+  overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background: var(--background);
+  box-shadow: 0 16px 48px rgb(24 24 27 / 20%); outline: none; }
+.model-picker-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px 10px 16px; border-bottom: 1px solid var(--border); }
+.model-picker-head h2 { font-size: var(--text-md); }
+.model-picker-close { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; background: none; border: 0; border-radius: 6px; cursor: pointer; }
+.model-picker-close:hover { background: var(--surface-hover); }
+.model-picker [cmdk-input] { display: block; width: calc(100% - 24px); margin: 12px; }
+.model-picker [cmdk-list] { overflow-y: auto; max-height: min(380px, calc(100dvh - 200px)); padding: 0 8px 8px; overscroll-behavior: contain; }
+.model-picker [cmdk-group-heading] { padding: 8px; font-size: var(--text-xs); color: var(--muted); }
+.model-picker [cmdk-item] { display: flex; align-items: center; gap: 8px; padding: 10px; min-height: 40px; border-radius: 6px; font-size: var(--text-sm); cursor: pointer; }
+.model-picker [cmdk-item][data-selected="true"] { background: var(--surface-hover); }
+.model-picker [cmdk-item] > .icon { flex: none; color: var(--accent-strong); }
+.model-picker-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.model-picker [cmdk-item] .model-picker-name { white-space: normal; overflow-wrap: anywhere; }
+.model-picker [cmdk-empty] { padding: 24px 16px; text-align: center; color: var(--muted); font-size: var(--text-sm); }
+@media (max-width: 640px) { .model-picker-close, .model-picker [cmdk-item] { min-height: 44px; } .model-picker-close { width: 44px; } }
+.input-snapshot { white-space: pre-wrap; overflow-wrap: anywhere; }

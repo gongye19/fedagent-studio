@@ -6,9 +6,30 @@
  * 算法参数按注册表的定义保存（键和默认值由算法声明）。调用量预估和最终的校验由后端做（POST /v1/tasks/validate），
  * 预估按算法插件声明的步骤和交换量计算，费用按接口单价算。
  */
-import { algorithmOf, defaultParams, paramsOf, scenarioOf, TASK_TYPES, type AlgorithmId, type Params, type ScenarioId, type TaskType } from "./catalog";
+import {
+  algorithmOf,
+  defaultParams,
+  paramsOf,
+  scenarioOf,
+  TASK_TYPES,
+  type AlgorithmId,
+  type Params,
+  type ScenarioId,
+  type TaskType,
+} from "./catalog";
 import type { components } from "../api/schema";
-import { DEFAULT_MODEL, endpointOf, fits, usable, type Dataset, type Endpoint, type Participant } from "./resources";
+import type { Algorithm } from "./catalog";
+import {
+  DEFAULT_MODEL,
+  endpointOf,
+  fits,
+  modelLabel,
+  usable,
+  type Dataset,
+  type Endpoint,
+  type Participant,
+  type ResourceSpace,
+} from "./resources";
 
 export type RunMode = "trial" | "full";
 
@@ -78,7 +99,33 @@ export function withDefaults(draft: Partial<Draft>): Draft {
 /** 后端的调用量预估：服务端调用模型的步骤每轮各一次（结果不合法时会重试，所以是下限）；用到的接口都设置了单价才估算费用，单位：元。 */
 export type Estimate = components["schemas"]["EstimateOut"];
 
-export type Issue = { field: "scenario" | "taskType" | "algorithm" | "participants" | "models" | "rounds" | "params"; message: string };
+export type Issue = {
+  field: "scenario" | "taskType" | "algorithm" | "participants" | "models" | "rounds" | "params";
+  message: string;
+};
+
+/** 未知插件字段也要显示错误，不能靠类型断言把问题静默丢掉。 */
+export function configIssue(issue: { field: string; message: string }): Issue {
+  switch (issue.field) {
+    case "scenario":
+    case "taskType":
+    case "algorithm":
+    case "participants":
+    case "models":
+    case "rounds":
+    case "params":
+      return { field: issue.field, message: issue.message };
+    default:
+      return { field: "params", message: issue.message };
+  }
+}
+
+export function taskModelSummary(draft: Draft, endpoints: readonly Endpoint[], algorithm: Algorithm): string {
+  const client = modelLabel(draft.clientModel, endpoints);
+  if (!algorithm.requirements.serverModel) return client;
+  const server = modelLabel(draft.serverModel, endpoints);
+  return client === server ? client : `参与方 ${client}；服务端 ${server}`;
+}
 
 /** 草稿能否创建任务；返回全部未满足的条件，按页面顺序排列。 */
 export function draftIssues(
@@ -114,13 +161,21 @@ export function draftIssues(
   }
   const chosen = joinable(draft, datasets, participants);
   const overrides = activeOverrides(draft);
-  if (draft.mode === "full" && chosen.length && !chosen.some(p => datasets.find(d => d.id === p.datasetId)?.resourceSpace === "workspace")) {
+  if (
+    draft.mode === "full" &&
+    chosen.length &&
+    !chosen.some((p) => datasets.find((d) => d.id === p.datasetId)?.resourceSpace === "workspace")
+  ) {
     issues.push({ field: "participants", message: "正式任务至少需要一份我的数据；公用数据可以先用于试跑" });
   }
   const refs = [
-    ...(algorithm.requirements.participantModel ? chosen.filter(p => participants.find(owner => owner.id === p.participantId)?.hosting === "platform")
-      .map(p => overrides[p.participantId] || draft.clientModel) : []),
-    ...(algorithm.stages.some((stage) => stage.side === "server" && stage.model) ? [draft.serverModel] : [])];
+    ...(algorithm.requirements.participantModel
+      ? chosen
+          .filter((p) => participants.find((owner) => owner.id === p.participantId)?.hosting === "platform")
+          .map((p) => overrides[p.participantId] || draft.clientModel)
+      : []),
+    ...(algorithm.stages.some((stage) => stage.side === "server" && stage.model) ? [draft.serverModel] : []),
+  ];
   if (refs.some((ref) => !endpointOf(ref, endpoints))) {
     issues.push({ field: "models", message: "所选的模型接口已不存在，请重新选择" });
   }
@@ -131,7 +186,11 @@ export function draftIssues(
 }
 
 /** 草稿里真正能参加的参与方：数据集还在、属于这个参与方、场景和任务类型一致、持有方在线。 */
-export function joinable(draft: Draft, datasets: readonly Dataset[], participants: readonly Participant[]): TaskParticipant[] {
+export function joinable(
+  draft: Draft,
+  datasets: readonly Dataset[],
+  participants: readonly Participant[],
+): TaskParticipant[] {
   const { scenario, taskType } = draft;
   if (!scenario || !taskType) return [];
   return draft.participants.filter(({ participantId, datasetId }) => {
@@ -142,6 +201,35 @@ export function joinable(draft: Draft, datasets: readonly Dataset[], participant
       if (owner.clientPlugins?.[algorithm.id] !== algorithm.version) return false;
     }
     return Boolean(dataset && fits(dataset, scenario, taskType) && usable(dataset, participants));
+  });
+}
+
+export type DataSourceChoice = { participant: Participant; datasets: Dataset[] };
+
+/** 配置候选与已选校验都依赖真实就绪状态和安装版本；一次按来源分组。 */
+export function availableDataSources(
+  draft: Draft,
+  datasets: readonly Dataset[],
+  participants: readonly Participant[],
+  space: ResourceSpace,
+): DataSourceChoice[] {
+  if (!draft.scenario || !draft.taskType || !draft.algorithm) return [];
+  const algorithm = algorithmOf(draft.algorithm);
+  const grouped = new Map<string, Dataset[]>();
+  for (const dataset of datasets) {
+    if (!dataset.ready || dataset.resourceSpace !== space || !fits(dataset, draft.scenario, draft.taskType)) continue;
+    const group = grouped.get(dataset.participantId) ?? [];
+    group.push(dataset);
+    grouped.set(dataset.participantId, group);
+  }
+  return participants.flatMap((participant) => {
+    if (
+      participant.status !== "online" ||
+      (participant.hosting === "local" && participant.clientPlugins?.[algorithm.id] !== algorithm.version)
+    )
+      return [];
+    const choices = grouped.get(participant.id);
+    return choices?.length ? [{ participant, datasets: choices }] : [];
   });
 }
 
@@ -166,7 +254,11 @@ export function toConfig(draft: Draft): TaskConfig | null {
 
 /** 只保留已选参与方的单独模型设置（取消勾选后，之前的设置不再生效）。 */
 export function activeOverrides(config: Pick<TaskConfig, "participants" | "clientOverrides">): Record<string, string> {
-  return Object.fromEntries(Object.entries(config.clientOverrides).filter(([id]) => config.participants.some((item) => item.participantId === id)));
+  return Object.fromEntries(
+    Object.entries(config.clientOverrides).filter(([id]) =>
+      config.participants.some((item) => item.participantId === id),
+    ),
+  );
 }
 
 /** "复制为新任务"：带上原任务的配置，算作用户动过的草稿。 */
@@ -213,17 +305,25 @@ export function chooseTaskType(draft: Draft, taskType: TaskType): Draft {
 export function chooseAlgorithm(draft: Draft, algorithm: AlgorithmId): Draft {
   if (draft.algorithm === algorithm || !draft.taskType) return draft;
   const definition = algorithmOf(algorithm);
-  return { ...draft, algorithm, trialCap: Math.max(draft.trialCap, definition.minSamples ?? 1), params: defaultParams(definition) };
+  return {
+    ...draft,
+    algorithm,
+    trialCap: Math.max(draft.trialCap, definition.minSamples ?? 1),
+    params: defaultParams(definition),
+  };
 }
 
 /** 选入、换掉或取消某个参与方出的数据集：每个参与方最多一份，换数据集时保留它原来的位置。 */
 export function pickDataset(draft: Draft, participantId: string, datasetId: string | null): Draft {
-  if (!datasetId) return { ...draft, participants: draft.participants.filter((item) => item.participantId !== participantId) };
+  if (!datasetId)
+    return { ...draft, participants: draft.participants.filter((item) => item.participantId !== participantId) };
   const next = { participantId, datasetId };
   const exists = draft.participants.some((item) => item.participantId === participantId);
   return {
     ...draft,
-    participants: exists ? draft.participants.map((item) => (item.participantId === participantId ? next : item)) : [...draft.participants, next],
+    participants: exists
+      ? draft.participants.map((item) => (item.participantId === participantId ? next : item))
+      : [...draft.participants, next],
   };
 }
 

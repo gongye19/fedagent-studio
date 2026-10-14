@@ -8,7 +8,7 @@
 | `a11y.mjs` | 逐页检查可访问性：没有名字的按钮和链接、没有标签的输入框、重复 id、点击区域太小、对比度、横向溢出、标题层级 | `node a11y.mjs`，结果写到 `OUT`（默认 `/tmp/fedagent-audit/a11y.json`） |
 | `wrap.mjs` | 在多个宽度下找断行不当的文字：短文字被折成两行、长文字最后一行只剩一两个字 | `node wrap.mjs`，结果写到 `OUT`（默认 `/tmp/fedagent-audit/wrap.json`） |
 | `summary.py` | 汇总上面两个的结果，过滤已核实的误报 | `python3 summary.py a11y.json wrap.json` |
-| `feedback.mjs` | 确认、失败、焦点、长内容和减少动态的浏览器回归（响应夹具，不修改数据库） | `node feedback.mjs`，仅允许本地 BASE；需已有一个任务和应用作只读模板；CDP_OUT 指定证据目录 |
+| `feedback.mjs` | 确认、失败、焦点、长内容和减少动态的浏览器回归（响应夹具，不修改数据库） | `node feedback.mjs`，仅允许本地 BASE；需一个含工作区数据的数学任务及应用作只读模板，正式预检用其实际绑定；CDP_OUT 指定证据目录 |
 | `participants.mjs` | 信息分区、折叠、连接命令／复制、加载重试与一次性令牌展示（响应夹具） | `node participants.mjs`，真实参与方＋浏览器客户端夹具；不签发真实令牌或调用模型；CDP_OUT 指定证据目录 |
 | `motion.mjs` | 页面／标签动效、快速切换、草稿和编辑状态保留、折叠中间帧、减少动态与焦点 | `node motion.mjs`；只读现有任务／应用，拦截全部写请求；支持线上 BASE，本地另用前端通知夹具检查 Toast |
 | `select.mjs` | 选择菜单、键盘／焦点、筛选、占位／禁用／空值、长菜单与表格事件及标签指示条 | `node select.mjs`；本地响应夹具；线上 `SELECT_FIXTURES=0`，禁止业务写入与模型调用 |

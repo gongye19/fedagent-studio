@@ -81,11 +81,15 @@ app/src/
 │   ├── store.ts / draft.ts  新建任务的草稿（reducer），保存在浏览器里
 │   ├── route.ts        hash 路由
 │   └── flash.ts / ids.ts
+├── shell/             Sidebar（平级导航）、PageRouter、AppStatus（启动／令牌／错误）
 ├── ui/
 │   ├── HomePage.tsx         首页：居中的三张场景卡片（可用的点进去新建这个场景的任务）
 │   ├── ScenarioArt.tsx      源码 SVG 关系图（横向协作、纵向互补、跨域迁移）
 │   ├── TasksPage.tsx        联邦任务：按场景分块列出任务（任务类型是一列），每块一个"新建联邦任务"；名称搜索、任务类型和状态筛选对所有块生效
-│   ├── HorizontalTaskPage.tsx 横向联邦的任务配置页（控制台风格的配置面板 + 右侧配置摘要 + 窄屏吸底操作栏）；校验和预估由后端做
+│   ├── TaskConfigPage.tsx   组合任务配置面板、摘要、操作栏与资源接入；通用于已支持场景
+│   ├── task-config/        useTaskConfig控制草稿／预检／提交；基础、数据、模型、运行、摘要面板只负责对应界面
+│   ├── ResourcesPage.tsx / resources/  资源筛选与路由、数据／模型／执行环境及数据详情
+│   ├── ResourceIntakeDialog.tsx 接入数据／模型的共用窗口，统一提交锁定、关闭和焦点规则
 │   ├── TaskPage.tsx         任务详情（task/ 下是概览、进度、产出、配置四个标签）
 │   ├── AppsPage.tsx         应用列表：和联邦任务一样按场景分块，任务类型是一列；名称搜索、任务类型筛选
 │   ├── AppPage.tsx          应用详情：试用（真实调用，带 / 不带应用对比并判分）、内容、接入（导出 JSON、API）
@@ -100,13 +104,13 @@ app/src/
 │   ├── Chart.tsx            ECharts 封装（按需加载，概览页的哑铃图）
 │   ├── OutputGroups.tsx     按类别列出产出里的条目（任务产出和应用内容共用）
 │   ├── console.tsx          控制台风格的表单组件：Panel、Field / FieldGroup、UnitInput、Choices
-│   ├── common.tsx           共用组件：Tag、PageHead、Confirm、Toast、Notice、FormActions、Meta、CodeBlock、Collapsible、PanelEmpty、Stat、Facts 等
+│   ├── common.tsx / shared/ 共用展示／表单；反馈、代码块和标签导航分别实现，common保留稳定导出
 │   ├── filters.tsx          列表页共用的任务类型筛选
 │   ├── TaskTable.tsx / labels.ts / format.ts / icons.tsx
 ├── test/               测试用的注册表和数据（registry.json 是后端注册表的快照）
-├── App.tsx             外框与侧栏导航；读不到数据时的加载、出错和填访问令牌的页面
+├── App.tsx             启动数据与外框组合，导航和页面分发交给shell
 ├── main.tsx
-└── styles.css
+└── styles.css / styles/ 按原层叠顺序导入主题、外框、组件、页面、响应式、动效、任务配置、资源样式
 ```
 
 ## 增加一个算法
@@ -221,3 +225,15 @@ T76任务配置密度：沿用“选择任务类型→算法→参与方→运�
 后端接口新增后运行`npm run api:types`；资源scope迁移不能误公开其他上传。通用接入使用`createDataResource`，保存后刷新datasets/participants；删除使用专用资源API，不走旧“最后一份要删参与方”的路径。模型保存复用既有EndpointForm与加密写入协议，AI不得代填用户模型密钥。
 
 本地完整回归：仓库根目录`node tools/ui-check/resource-flow.mjs`，隔离数据目录与假模型；真实验证只有明确安排且`REAL_MODEL_VERIFY=1 BASE=http://100.111.198.54:8880/`才允许。使用仓库真实AIME24前两题作为临时输入，不生成演示题；试跑每份1题／2轮，仅清理本次创建的任务、应用、数据和空托管来源，保留原有全部ID。医疗兼容回归使用medical-flow.mjs。新流程覆盖通用入口、原位错误、模态内菜单、上传／自动选择、跨范围保留、正式输入、重置、焦点、窄屏、模型保存与完整成果使用。config.mjs同步资源空态／场景入口／数据说明的焦点变化，继续覆盖只读几何、提示、模型、重置与失效草稿；公共lib的全选先显式切换公用范围。
+
+## T79 模块边界与维护方式
+
+导航不再有基础管理父目录，七项直接显示；手机只折叠整个菜单。旧地址仍可访问。App只组合启动数据、路由与外框，shell持有导航和页面分发，页面自己的交互状态留在页面模块。
+
+任务配置的即时规则在domain/config；useTaskConfig负责草稿、后端预检、费用、创建和重置；task-config的各面板负责各自控件。数据候选统一按就绪、资源归属、任务类型和本地插件版本筛选，表格与校验共享规则；未知插件错误字段保留在高级配置原位显示。任务入口只组合面板和确认窗口，不再混入几百行控件实现。ResourcesPage负责筛选与切换，resources分别维护数据、详情、模型、执行环境；任务与资源页复用同一ResourceIntakeDialog。
+
+后端路由只适配HTTP请求／响应，认证与事务集中在http/dependencies。任务预检、写操作和界面投影分开；核心服务抛ServiceError，由应用工厂映射原状态码和detail，不依赖FastAPI。schemas按领域组织，稳定导出保持旧调用方兼容。test_api_contract完整比较当前OpenAPI与前端生成快照，内部重组不能悄悄破坏已有接口；公开协议确有改动时更新快照和类型。
+
+跨端契约检查在完整仓库运行；只分发server的独立部署跳过这一项，其他后端测试照常运行。完整仓库存在app但缺失快照时仍报错，不把漏生成视为正常跳过。
+
+styles.css只维护导入顺序，不再堆入页面细节。新增业务改对应样式模块，主题／公共组件／响应式／动效规则保持集中；避免复制相同规则到多个页面。以职责内聚为拆分依据，不机械规定行数；Engine和Gateway仍分别承载编排和网关的完整职责。生成接口文件与固定上游vendor源码保留来源和生成流程，不手工拆分。新增功能先进入对应领域模块，入口文件只负责组合，不持续叠补丁。

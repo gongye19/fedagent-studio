@@ -1,0 +1,36 @@
+/* 操作反馈：不延迟导航、不移除焦点、不把动效当作后台任务进度。 */
+@keyframes content-enter {
+  from { opacity: .65; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes dialog-enter {
+  from { opacity: 0; transform: translateY(6px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes backdrop-enter { from { opacity: 0; } to { opacity: 1; } }
+.participant-detail { animation: content-enter var(--motion-content) var(--motion-ease); }
+.confirm-dialog[open] { animation: dialog-enter var(--motion-feedback) var(--motion-ease); }
+.confirm-dialog[open]::backdrop { animation: backdrop-enter var(--motion-feedback) var(--motion-ease); }
+.toast { animation: content-enter var(--motion-feedback) var(--motion-ease); }
+@media (max-width: 900px) {
+  .sidebar--open .side-nav { animation: content-enter var(--motion-feedback) var(--motion-ease); }
+}
+
+/* 原生 details 保留键盘与 open 语义。支持插值的浏览器双向过渡，旧浏览器照常开合。 */
+@supports (interpolate-size: allow-keywords) and selector(details::details-content) {
+  details { interpolate-size: allow-keywords; }
+  details::details-content {
+    block-size: 0;
+    opacity: 0;
+    overflow: clip;
+    transition: block-size var(--motion-content) var(--motion-ease), opacity var(--motion-content) var(--motion-ease), content-visibility var(--motion-content) allow-discrete;
+  }
+  details[open]::details-content { block-size: auto; opacity: 1; }
+}
+
+/* 减少动效：状态照常变化，只是不再有过渡；无限循环的动画只播一次，避免闪烁 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after, .confirm-dialog::backdrop { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+  details::details-content { transition: none; }
+}
+

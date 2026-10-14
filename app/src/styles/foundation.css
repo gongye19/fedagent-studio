@@ -1,0 +1,161 @@
+@font-face {
+  font-family: "Geist Sans";
+  src: url("/fonts/geist-sans.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/fonts/geist-mono.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+/*
+ * 设计规范（T62：已确认 Braintrust / LangSmith / ElevenAgents 参考，沿用通用控制台组件）
+ * - 版式参考 AWS 控制台：灰色画布上放白色面板（.panel）。表单字段（.field）字段名在上、控件在下，
+ *   放在两栏网格（.field-grid）里，控件撑满所在的栏，左右边缘对齐；面板不到 440px 宽时变成一栏。
+ * - 选择控件：
+ *   互斥的少量选项 → 选项按钮组（.choices），选中蓝框加右下角标，不可选的置灰并写原因；
+ *   选项多或是次要设置 → 下拉框；
+ *   算法 → 短名称选项配 ⓘ 浮层；参与方 → 带复选的表格，整行可点；
+ * - T68 任务配置普通字段每项一行，桌面标签在左、控件在右；窄屏同一行块内上下排。
+ *   数值 → 数字输入框，单位贴在输入框右侧（.unit-input）。
+ * - 字段名一行写完，不换行；可以不填的字段在字段名后写"（可选）"。
+ * - 控件下方不放说明小字，只在填错时显示一行错误。字段名本身要说清楚；说不清的操作放进面板标题栏，细节放进折叠的"高级配置"。
+ * - 字号 6 档：12 / 13 / 14 / 16 / 20 / 24；字重 3 档：400 / 500 / 600。页面标题 20，面板标题 14，正文 13–14，字段名和注释 12–13。
+ * - 标签只有一种胶囊（.tag）：黄色 = 需要处理，蓝色 = 进行中或新增，灰色 = 普通属性。
+ * - 颜色：黑色只给主按钮；蓝色表示选中与进行中；绿色表示改善与操作成功；黄色只表示需要处理。
+ * - 状态文字与背景对比度 ≥ 4.5:1。
+ */
+:root {
+  color-scheme: light;
+  --motion-content: 240ms;
+  --motion-feedback: 150ms;
+  --motion-ease: cubic-bezier(.2, .8, .2, 1);
+
+  --background: #ffffff;
+  /* 控制台画布 */
+  --canvas: #f8f9fb;
+  --surface: #f8f9fb;
+  --surface-hover: #f4f4f5;
+  --foreground: #1d1d1f;
+  --secondary: #52525b;
+  /* 灰字要在浅灰底（--surface-hover）上也够 4.5:1 */
+  --muted: #6b6b74;
+  --faint: #a1a1aa;
+  --border: #e5e7eb;
+  --border-strong: #d4d4d8;
+  --border-hover: #a1a1aa;
+  --ink: #18181b;
+  --ink-hover: #27272a;
+  --on-ink: #ffffff;
+
+  --accent: #2563eb;
+  --accent-strong: #1d4ed8;
+  --accent-soft: #eff6ff;
+  --accent-border: #bfdbfe;
+  --selection: #dbeafe;
+  --accent-surface: #f8fbff;
+  --focus-ring: rgb(37 99 235 / 15%);
+
+  --success: #16875f;
+  --success-text: #0f7a53;
+  --success-soft: #ecfdf5;
+  --warning: #d68a1f;
+  --warning-text: #a15c07;
+  --warning-soft: #fffbeb;
+  --warning-border: #fde68a;
+  --danger: #d14343;
+  --danger-text: #b42318;
+  --danger-soft: #fff1f1;
+  --danger-border: #f5c2c0;
+
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  --radius: 10px;
+  --radius-sm: 6px;
+  /* 正文行长：中文约 40 字；英文正文（经验库、上传的经验）另用 --measure-en，约 75 个字母 */
+  --measure: 72ch;
+  --measure-en: 58ch;
+  --sans: "Geist Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --mono: "Geist Mono", "SFMono-Regular", "SF Mono", Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { min-height: 100%; }
+html { scrollbar-gutter: stable; background: var(--background); }
+
+body {
+  margin: 0;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--sans);
+  font-size: var(--text-md);
+  line-height: 1.55;
+  /* 中文只在标点和空格处换行，不把词拆开；一段太长放不下时才在中间断开。段落最后一行不留孤字。 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  text-wrap: pretty;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: rgb(37 99 235 / 12%);
+}
+
+::selection { color: var(--foreground); background: var(--selection); }
+
+h1, h2, h3, h4, p, ul, ol, dl, dd, figure { margin: 0; }
+h1, h2, h3, h4 { font-weight: var(--weight-semibold); text-wrap: balance; }
+ul, ol { padding: 0; list-style: none; }
+strong, b { font-weight: var(--weight-semibold); }
+small { font-size: var(--text-xs); }
+button, input, select, textarea { font: inherit; color: inherit; }
+input, textarea { caret-color: var(--accent); }
+button { cursor: pointer; }
+a, button, label, summary, select, input { touch-action: manipulation; }
+button:active:not(:disabled) { transform: translateY(1px); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+legend { padding: 0; }
+/* Geist Mono 的连字会把 " --" 和 "|=" 合成别的字形，命令和公式里必须关掉。 */
+code, pre { font-family: var(--mono); font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
+code { font-size: max(12px, .92em); }
+a { text-underline-offset: 3px; }
+
+.icon { flex: none; display: block; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.muted { color: var(--muted); }
+.nowrap { white-space: nowrap; }
+.stack { display: grid; gap: var(--space-4); align-content: start; min-width: 0; }
+
+.skip-link {
+  position: fixed;
+  top: -64px;
+  left: 16px;
+  z-index: 30;
+  padding: 8px 12px;
+  color: var(--on-ink);
+  background: var(--ink);
+  border-radius: var(--radius-sm);
+}
+.skip-link:focus { top: 12px; }
+

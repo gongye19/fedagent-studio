@@ -12,12 +12,12 @@ import json
 import secrets
 from datetime import timedelta
 
-from fastapi import HTTPException
 from fedagent_sdk import OutgoingMessage, UnitResult
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from . import models as m
+from .errors import ServiceError
 from .platform import Platform
 from .resources import new_id, not_found
 from .schemas import ClientArtifact, ClientHelloIn, ClientMessage, ClientUnitOut, CompleteIn, FailIn, UnitInputsOut
@@ -35,7 +35,7 @@ def issue_token(session: Session, participant_id: str) -> tuple[m.ClientToken, s
     if participant is None:
         raise not_found("参与方")
     if participant.hosting != "local":
-        raise HTTPException(409, "平台托管的参与方不需要客户端令牌")
+        raise ServiceError(409, "平台托管的参与方不需要客户端令牌")
     raw = "fat_" + secrets.token_urlsafe(32)
     token = m.ClientToken(id=new_id("ct"), participant_id=participant.id, token_hash=_hash(raw))
     session.add(token)
@@ -45,13 +45,13 @@ def issue_token(session: Session, participant_id: str) -> tuple[m.ClientToken, s
 
 def authenticate(session: Session, raw: str | None) -> tuple[m.ClientToken, m.Participant]:
     if not raw:
-        raise HTTPException(401, "缺少客户端令牌")
+        raise ServiceError(401, "缺少客户端令牌")
     token = session.scalars(select(m.ClientToken).where(m.ClientToken.token_hash == _hash(raw))).first()
     if token is None or token.revoked_at is not None:
-        raise HTTPException(401, "客户端令牌无效或已吊销")
+        raise ServiceError(401, "客户端令牌无效或已吊销")
     participant = session.get(m.Participant, token.participant_id)
     if participant is None:
-        raise HTTPException(401, "参与方不存在")
+        raise ServiceError(401, "参与方不存在")
     token.last_used_at = m.now()
     participant.last_seen_at = m.now()
     return token, participant
@@ -64,12 +64,12 @@ def hello(session: Session, participant: m.Participant, body: ClientHelloIn) -> 
     for item in body.datasets:
         dataset = session.get(m.Dataset, item.dataset_id)
         if dataset is None or dataset.participant_id != participant.id or dataset.source != "local":
-            raise HTTPException(422, f"数据集 {item.dataset_id} 不是这个参与方登记的本地数据集")
+            raise ServiceError(422, f"数据集 {item.dataset_id} 不是这个参与方登记的本地数据集")
         ids = [str(value) for value in item.item_ids]
         if len(ids) != item.count or len(set(ids)) != len(ids) or any(not value.strip() for value in ids):
-            raise HTTPException(422, f"数据集 {item.dataset_id} 的样本 id 数量不对或有重复")
+            raise ServiceError(422, f"数据集 {item.dataset_id} 的样本 id 数量不对或有重复")
         if item.answered > item.count:
-            raise HTTPException(422, "带标注的样本数不能大于总样本数")
+            raise ServiceError(422, "带标注的样本数不能大于总样本数")
         dataset.count = item.count
         dataset.answered = min(item.answered, item.count)
         dataset.item_ids = ids
@@ -138,14 +138,14 @@ def _claimed(
     if unit is None or unit.site_id != participant.id or unit.executor != "client":
         raise not_found("工作单元")
     if unit.claimed_by != token.id or unit.attempts != attempt:
-        raise HTTPException(409, "这次领取已过期，或者属于其他客户端")
+        raise ServiceError(409, "这次领取已过期，或者属于其他客户端")
     if allow_done and unit.status == "done":
         return unit  # 网络超时后重复提交同一次完成结果，确认成功但不重复保存。
     task = session.get(m.Task, unit.task_id)
     if unit.status != "claimed" or unit.lease_until is None or m.aware(unit.lease_until) <= m.now():
-        raise HTTPException(409, "这个工作单元没有被领取，或者租约已经过期")
+        raise ServiceError(409, "这个工作单元没有被领取，或者租约已经过期")
     if task is None or task.status != "running" or task.command is not None:
-        raise HTTPException(409, "任务已暂停、取消，或者正在停止")
+        raise ServiceError(409, "任务已暂停、取消，或者正在停止")
     return unit
 
 
@@ -184,29 +184,29 @@ def complete(platform: Platform, session: Session, token: m.ClientToken, partici
     sites = {site.id: site for site in load_sites(session, task.id)}
     for sent in body.sent:
         if sent.channel not in step.sends:
-            raise HTTPException(422, f"这一步没有声明发送通道 {sent.channel}")
+            raise ServiceError(422, f"这一步没有声明发送通道 {sent.channel}")
         try:
             payload = json.dumps(sent.payload, ensure_ascii=False, allow_nan=False)
             resolve_receiver(manifest, sent.channel, sent.to, sites)
         except ValueError as error:
-            raise HTTPException(422, str(error)) from error
+            raise ServiceError(422, str(error)) from error
         if len(payload.encode()) > MAX_MESSAGE_BYTES:
-            raise HTTPException(413, "单条消息超过 1 MB")
+            raise ServiceError(413, "单条消息超过 1 MB")
         if step.per == "item" and sent.item_id not in (None, unit.unit_key):
-            raise HTTPException(422, "消息对应的样本和工作单元不一致")
+            raise ServiceError(422, "消息对应的样本和工作单元不一致")
     if any(name in body.reports for name in ("labeled", "correct")):
-        raise HTTPException(422, "判分汇总只能通过 graded 提交")
+        raise ServiceError(422, "判分汇总只能通过 graded 提交")
     grade_ids = [grade.item_id for grade in body.graded]
     if len(grade_ids) != len(set(grade_ids)) or any(grade.correct and not grade.labeled for grade in body.graded):
-        raise HTTPException(422, "每条样本只能提交一次有效的判分结果")
+        raise ServiceError(422, "每条样本只能提交一次有效的判分结果")
     evaluation = manifest.evaluation
     if body.graded and (evaluation is None or evaluation.step != step.id):
-        raise HTTPException(422, "这一步不是评估用的步骤")
+        raise ServiceError(422, "这一步不是评估用的步骤")
     site = session.get(m.TaskSite, (task.id, unit.site_id))
     assert site is not None
     allowed = {unit.unit_key} if step.per == "item" else set(site.items)
     if any(grade.item_id not in allowed for grade in body.graded):
-        raise HTTPException(422, "判分结果对应的样本和工作单元不一致")
+        raise ServiceError(422, "判分结果对应的样本和工作单元不一致")
     result = UnitResult(
         sent=[
             OutgoingMessage(channel=sent.channel, payload=sent.payload, item_id=sent.item_id or (unit.unit_key if step.per == "item" else None), to=sent.to)

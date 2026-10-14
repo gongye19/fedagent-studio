@@ -1,0 +1,131 @@
+/* ——— 1180px 以下：新建任务的配置摘要移到下方，开始按钮放进吸底操作栏 ———
+ * 侧栏和摘要同时占位时，主栏窄于 600px，参与方表格会把中文挤成两行 */
+@media (max-width: 1180px) {
+  .page:has(.task-config) { width: min(600px, calc(100% - 48px)); }
+  .order-layout { grid-template-columns: minmax(0, 1fr); gap: var(--space-8); }
+  .order-summary > .summary-panel { position: static; }
+  .page:has(.order-bar) { padding-bottom: 104px; }
+  /* 吸底栏不能挡住获得焦点的控件 */
+  html:has(.order-bar) { scroll-padding-bottom: 96px; }
+  .order-bar {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 216px;
+    z-index: 15;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    display: flex;
+    gap: var(--space-3);
+    align-items: center;
+    justify-content: space-between;
+    background: var(--background);
+    border: 0;
+    border-top: 1px solid var(--border);
+    border-radius: 0;
+  }
+  .order-bar strong { display: block; font-size: var(--text-sm); }
+  .order-bar small { display: block; color: var(--muted); }
+  .order-summary .button--block { display: none; }
+  .order-bar-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-2); }
+}
+
+/* ——— 平板（≤1100）：任务详情的两栏内容改为上下排 ——— */
+@media (max-width: 1100px) {
+  .uploads { grid-template-columns: minmax(0, 1fr); }
+  /* 进度保留两组，缩短间距；手机再改为单栏。 */
+  .step-line { gap: var(--space-4); }
+}
+
+/* ——— 窄屏（≤900）：侧栏收成顶栏，导航放进"菜单"，展开后和侧栏一样是一列（基础管理可以展开） ——— */
+@media (max-width: 900px) {
+  .app-shell { display: block; }
+  .sidebar { position: sticky; z-index: 20; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0; padding: 10px 12px; border-right: 0; border-bottom: 1px solid var(--border); }
+  .sidebar-top { width: 100%; display: flex; gap: var(--space-2); align-items: center; padding: 0; border: 0; }
+  .menu-button { margin-left: auto; min-height: 36px; padding: 7px 12px; display: inline-flex; align-items: center; background: var(--background); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); font-size: var(--text-sm); }
+  .side-nav { display: none; }
+  .sidebar--open .side-nav { display: grid; gap: 2px; width: 100%; margin: 0; padding: var(--space-3) 0 var(--space-2); }
+  /* 顶栏和页脚占了高度，首页不再上下居中，从上往下排 */
+  .home { min-height: 0; align-content: start; padding-bottom: 0; }
+  .page { width: calc(100% - 32px); padding-top: var(--space-5); }
+  .page:has(.task-config) { width: min(600px, calc(100% - 32px)); }
+  /* 顶栏吸顶，锚点和焦点滚动时留出它的高度 */
+  html { scroll-padding-top: 72px; }
+  .page-title-row h1 { font-size: var(--text-xl); }
+  .order-bar { left: 0; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: var(--space-5); }
+  .page { width: calc(100% - 32px); }
+}
+
+/* ——— 手机（≤720）：内容改为一栏，表格收起次要列 ——— */
+@media (max-width: 720px) {
+  .compare-grid { grid-template-columns: minmax(0, 1fr); }
+  .panel-head { padding-inline: var(--space-4); }
+  .panel-body { padding-inline: var(--space-4); }
+  .panel-body--flush { padding: 0; }
+  .panel--collapsible > summary, .panel--collapsible > .module-body { padding-inline: var(--space-4); }
+  .facts--columns { grid-template-columns: minmax(0, 1fr); }
+  .algo-steps { grid-template-columns: minmax(0, 1fr); }
+  .choice { min-width: 0; flex: 1 1 0; }
+  .step-line { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+  .step-group ol { grid-template-columns: minmax(0, 1fr); }
+  .facts > div { grid-template-columns: 104px minmax(0, 1fr); }
+  .live-banner { grid-template-columns: minmax(0, 1fr) 40px; }
+  .live-banner .progress { grid-column: 1 / -1; grid-row: 2; }
+  .table th, .table td { padding-inline: var(--space-3); }
+  .detail-row > td { padding: 0 var(--space-3) var(--space-4); }
+  /* 步骤不再缩进到轮次标题下面，给内容留出宽度 */
+  .round > details > .step-line, .round--current > .step-line { padding-left: 0; }
+  /* 面板标题栏的操作换到下一行时左对齐，不被推到右边缩进 */
+  .panel-actions { flex-basis: 100%; margin-left: 0; }
+  /* 列表页的搜索和筛选撑满整行：搜索单独一行，筛选平分下一行，左右边缘和下面的面板对齐 */
+  .list-toolbar .search-field { flex-basis: 100%; max-width: none; }
+  .list-toolbar .select-trigger { flex: 1 1 calc((100% - var(--space-2)) / 2); min-width: 0; }
+  .list-toolbar > .button { margin-left: auto; }
+  /* 表单底部：缺项说明单独一行，两个按钮留在一起 */
+  .form-status:not(:empty) { flex-basis: 100%; }
+  /* 带"规划中"之类标记的选项组竖排，每个选项一样宽 */
+  .choices--badged { flex-direction: column; }
+  .choices--badged .choice { flex: none; width: 100%; }
+
+  /* 列表型表格改为按行堆叠的卡片，字段两列排布，字段名在值上方。 */
+  .table--stack thead { display: none; }
+  .table--stack, .table--stack tbody { display: block; width: 100%; }
+  .table--stack tbody tr { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2) var(--space-4); padding: var(--space-3); border-bottom: 1px solid var(--border); }
+  /* 手机上整张卡片都能点进详情；卡片里另有链接或按钮时，它们浮在上面单独可点 */
+  .table--stack .table-link::after { content: ""; position: absolute; inset: 0; }
+  .table--stack td a, .table--stack td button { position: relative; z-index: 1; }
+  .table--stack tbody tr:last-child { border-bottom: 0; }
+  .table--stack tbody + tbody tr:first-child { border-top: 1px solid var(--border); }
+  .table--stack tbody th, .table--stack tbody td { display: block; padding: 0; border: 0 !important; background: none; }
+  .table--stack tbody tr > th, .table--stack tbody tr > td:not([data-label]) { grid-column: 1 / -1; }
+  .table--stack td[data-label] { display: grid; gap: 2px; align-content: start; text-align: left; white-space: normal; }
+  .table--stack td[data-label]::before { content: attr(data-label); color: var(--muted); font-size: var(--text-xs); }
+  .table--stack td[data-label] small { display: block; margin: 2px 0 0; }
+  .table--stack .progress-cell { min-width: 0; }
+  .table--tasks td[data-label="操作"] { grid-column: 1 / -1; display: flex; justify-content: flex-end; padding-top: var(--space-2); }
+  .table--tasks td[data-label="操作"]::before { display: none; }
+  .table--stack tr.row--open { padding-bottom: var(--space-1); border-bottom: 0; background: var(--surface); }
+  .table--stack tr.detail-row { display: block; padding: 0 var(--space-3) var(--space-4); background: var(--surface); }
+  .table--stack tr.detail-row > td { padding: 0; }
+  .col-optional, .wide-only { display: none; }
+  .table .select-trigger.cell-select { width: 100%; min-width: 0; }
+  .table--numbers th, .table--numbers td { padding-inline: 10px; }
+  .table--numbers th:first-child, .table--numbers td:first-child { padding-left: var(--space-3); }
+  .table--numbers th:last-child, .table--numbers td:last-child { padding-right: var(--space-3); }
+}
+
+/* 触屏：点击目标至少 44px */
+@media (pointer: coarse) {
+  .sample-preview > summary { min-height: 44px; align-items: center; }
+  .button, .nav-link, .choice, .tab, .menu-button, .skip-link { min-height: 44px; }
+  input:not([type="checkbox"], [type="radio"], [type="file"]), select { min-height: 44px; }
+  .table .select-trigger.cell-select { min-height: 44px; margin-block: -10px; }
+  .wordmark { min-height: 44px; align-content: center; }
+  /* 行内链接不改变排版，只把可点区域撑到 44px 左右 */
+  .crumbs a, .text-link, .link-button { padding-block: 12px; margin-block: -12px; }
+  /* 指标链接上下撑开 */
+  .stat-link { display: inline-block; padding-block: 6px; margin-block: -6px; }
+  .button--compact { min-height: 40px; }
+  .cell-button { min-height: 40px; }
+}
+

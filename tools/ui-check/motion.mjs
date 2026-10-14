@@ -45,6 +45,8 @@ try {
     await evaluate(send, "window.__prior=__motions.slice();location.hash='#/tasks';void 0"); await sleep(70);
     check('快速切换取消前一次动画 ' + width, await evaluate(send, "__prior.every(m=>m.animation.playState==='idle')&&__motions.at(-1).animation.playState==='paused'"));
     await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+    // 等媒体查询的样式重算完成，再断言折叠没有过渡（与前面的偏好切换检查一致）。
+    await sleep(60);
     await sleep(60); // matchMedia 的 change 事件由浏览器在渲染周期派发。
     check('偏好中途改变会立即取消动画 ' + width, await evaluate(send, "__motions.at(-1).animation.playState==='idle'"));
     await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] });
@@ -77,6 +79,7 @@ try {
     check('键盘展开连接指南有高度过渡 ' + width, await evaluate(send, `__guide.open&&document.activeElement.tagName==='SUMMARY'&&${middle}>__closed&&${middle}<__guide.getBoundingClientRect().height`));
     await shot('participants-expanded-' + width);
     await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+    await sleep(60); // 媒体查询重算后，折叠应立即完成。
     await evaluate(send, "window.__count=__motions.length;__guide.open=false;void 0"); await sleep(30);
     check('减少动态时折叠立即完成 ' + width, await evaluate(send, "__guide.getBoundingClientRect().height===__closed&&getComputedStyle(__guide,'::details-content').transitionDuration==='0s'"));
     await go('#/tasks');
@@ -92,10 +95,7 @@ try {
     await evaluate(send, "document.querySelector('.dialog-close').click();void 0");
     await go('#/');
     if (width === 390) { await evaluate(send, "document.querySelector('.menu-button').click();void 0"); await sleep(180); }
-    await evaluate(send, "document.querySelector('.nav-parent').click();void 0"); await sleep(350);
-    const expanded = await evaluate(send, "document.querySelector('.nav-sub').getBoundingClientRect().height");
-    await evaluate(send, "document.querySelector('.nav-parent').click();void 0"); await sleep(350);
-    check('导航分组平滑关闭且隐藏链接不可聚焦 ' + width, expanded > 50 && await evaluate(send, "document.querySelector('.nav-sub').getBoundingClientRect().height===0&&document.querySelector('.nav-sub').inert&&getComputedStyle(document.querySelector('.nav-sub')).visibility==='hidden'"));
+    check('所有资源入口同级可见且没有折叠父目录 ' + width, await evaluate(send, "!document.querySelector('.nav-parent,.nav-sub')&&['我的资源','公用资源','算法','模型接口'].every(t=>[...document.querySelectorAll('.side-nav > a')].some(a=>a.textContent.trim()===t&&a.getBoundingClientRect().height>0))"));
     check('页面无横向溢出 ' + width, await evaluate(send, 'document.documentElement.scrollWidth<=innerWidth'));
     if (process.env.DEV_FIXTURES !== '0' && ['127.0.0.1', 'localhost'].includes(new URL(base).hostname)) {
       // 本地仅发布前端通知夹具，验证实际 Toast 组件，不触发任何业务写入。

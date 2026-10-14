@@ -1,6 +1,6 @@
 # 系统架构
 
-最后补充：2026-10-13（T78：资源分区与任务内接入；部署状态见 PROGRESS）
+最后补充：2026-10-14（T79：职责拆分与平级导航；部署状态见 PROGRESS）
 状态：后端第一版已实现（`server/`），前端已接入，部署在实验室服务器（只在 Tailscale 内网访问）。本文既是设计也是实现说明；还没做的写在各节和 §21。
 
 ![整体架构](./agent-platform-design.png)
@@ -411,12 +411,15 @@ GET  /v1/client/units/{id}/inputs          POST /v1/client/units/{id}/heartbeat 
 ```text
 server/                        uv workspace，虚拟环境在 server/.venv
 ├── pyproject.toml / uv.lock
-├── fedagent/                  平台核心（第一版代码量不大，按职责分文件，没有再分子包）
-│   ├── api.py                 FastAPI 路由；schemas.py 是请求和响应的结构（camelCase）
+├── fedagent/                  平台核心，按职责分模块与领域子包
+│   ├── api.py                 FastAPI应用工厂：路由注册、缓存、压缩、错误适配、静态文件
+│   ├── http/                  system／resources／endpoints／tasks／apps／client路由；dependencies集中认证与事务
+│   ├── schemas/               按领域组织Pydantic请求／响应，__init__保留稳定导出与camelCase契约
+│   ├── errors.py              核心服务的ServiceError，由HTTP适配层映射响应
 │   ├── registry.py            场景、插件发现（entry points）、清单校验
 │   ├── platform.py            把配置、数据库、注册表、文件存储、模型网关组装在一起
 │   ├── resources.py           参与方、数据集、模型接口的增删改
-│   ├── tasks.py               任务的校验、预估、创建、控制、删除，以及给界面的任务视图
+│   ├── tasks.py / task_services/ 稳定任务导入入口；preparation预检／预估，commands创建／控制／删除，presentation任务／消息投影
 │   ├── engine.py / units.py   编排：轮次、步骤、工作单元、检查点、消息投递；每一步的读写（StepIO）
 │   ├── runner.py / taskproc.py  任务进程管理：排队、启动、暂停、继续、取消、意外退出后重启
 │   ├── clients.py             本地参与方客户端的令牌、领取、心跳、提交
@@ -644,3 +647,11 @@ EvoMedClaw 首版采用已核验的 no-coevolve 文本路径；完整共演化�
 注册表`requirements`从已安装算法的步骤和最低数量派生所需数据、模型角色与执行方式，当前核心与两算法均需要数据。任务配置按声明展示模型角色；本地来源用自己的模型，汇总角色按实际服务端步骤显示。`dataRequired`不是未来任意无数据算法的支持承诺；新能力仍需扩展核心契约与验证。
 
 数据兼容性看任务类型、规范版本、就绪状态、来源归属和插件版本，不把上传时scenario当永久使用限制。正式任务至少一份工作区数据的规则由服务端执行，不能仅依赖前端提示；试跑可全部使用公用基准。任务审计加入`resourceSpaces`，冻结本次绑定归属。资源文件与来源仍独立，一次任务每个来源最多一份，逻辑托管来源不声称为独立机构。
+
+## 24. T79：按职责维护平台
+
+前端依赖方向为入口／shell → 页面组合／控制器 → 领域规则与API；配置候选与校验共用领域函数，资源接入窗口共用忙碌／关闭／焦点逻辑。反馈、标签、代码块分离于公共展示组件，样式按原顺序分模块导入。不会通过拆文件改变组件生命周期、草稿、轮询或动画语义。
+
+后端依赖方向为api应用工厂 → http路由／依赖 → 领域服务 → 平台、模型、插件SDK。任务服务内部区分preparation、commands、presentation；schemas由各领域共同消费，保持原公开导出。ServiceError集中表达服务错误，FastAPI异常与处理只在HTTP边界。认证、事务提交时机、模型异常和静态缓存保持原行为，完整OpenAPI快照比对覆盖重组后的公开契约。
+
+未改变编排、模型调用、算法、数据库规范和资源归属；当前schema仍为0004。生成的接口快照／TypeScript类型与固定上游算法源码按各自来源流程维护，不为文件行数改写；自有业务模块按职责增长。新功能应放入相关模块并复用共用规则，新增领域再建立模块，不把业务塞回入口。

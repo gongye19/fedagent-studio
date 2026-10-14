@@ -3,6 +3,8 @@ import { DATASETS, ENDPOINTS, PARTICIPANTS } from "../test/fixtures";
 import { algorithmOf, defaultParams, paramText } from "./catalog";
 import {
   activeOverrides,
+  availableDataSources,
+  configIssue,
   chooseAlgorithm,
   chooseScenario,
   chooseTaskType,
@@ -37,6 +39,14 @@ describe("params", () => {
 });
 
 describe("draft", () => {
+  it("keeps compatible resource scopes and client versions in the same admission rules", () => {
+    const own = DATASETS.map(d => d.id === BOTH[0].datasetId ? {...d,resourceSpace:"workspace" as const} : d);
+    expect(availableDataSources(draft(),own,PARTICIPANTS,"workspace").map(c=>c.participant.id)).toEqual(["p-a"]);
+    const local = PARTICIPANTS.map(p=>p.id === "p-a" ? {...p,hosting:"local" as const,clientPlugins:{fot:"incompatible"}} : p);
+    expect(availableDataSources(draft(),own,local,"workspace")).toEqual([]);
+    expect(joinable(draft(),own,local)).toEqual([BOTH[1]]);
+    expect(configIssue({field:"plugin-window",message:"插件窗口配置无效"})).toEqual({field:"params",message:"插件窗口配置无效"});
+  });
   it("lists what is missing in page order", () => {
     const empty = withDefaults({});
     expect(draftIssues(empty, DATASETS, PARTICIPANTS, ENDPOINTS).map((issue) => issue.field)).toEqual(["scenario"]);

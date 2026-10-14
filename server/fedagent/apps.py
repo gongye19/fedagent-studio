@@ -8,12 +8,12 @@ from __future__ import annotations
 import json
 from concurrent.futures import ThreadPoolExecutor
 
-from fastapi import HTTPException
 from fedagent_sdk import ApplyRequest, Artifact, ModelError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from . import models as m
+from .errors import ServiceError
 from .platform import Platform
 from .resources import new_id, not_found
 from .schemas import AppIn, ApplyIn, ApplyOut, ApplySide, AppOut, OutputItem
@@ -28,9 +28,9 @@ def publish(platform: Platform, session: Session, body: AppIn) -> m.App:
     task = get_task(session, body.task_id)
     row = session.scalars(select(m.Artifact).where(m.Artifact.task_id == task.id, m.Artifact.round == body.built_after_round)).first()
     if row is None:
-        raise HTTPException(404, "这一轮还没有产出")
+        raise ServiceError(404, "这一轮还没有产出")
     if session.scalars(select(m.App).where(m.App.task_id == task.id, m.App.version == row.version)).first() is not None:
-        raise HTTPException(409, "这一版已经发布过了")
+        raise ServiceError(409, "这一版已经发布过了")
     app = m.App(
         id=new_id("app"),
         task_id=task.id,
@@ -81,14 +81,14 @@ def _application(platform: Platform, app: m.App, body: ApplyIn):
     registry = platform.registry
     algorithm = registry.algorithm(app.algorithm)
     if algorithm.version != app.plugin_version:
-        raise HTTPException(409, "应用的算法版本尚未安装，请恢复对应版本后再运行")
+        raise ServiceError(409, "应用的算法版本尚未安装，请恢复对应版本后再运行")
     task_type = registry.task_type(app.task_type)
     try:
         if len(json.dumps(body.input, ensure_ascii=False, allow_nan=False)) > 40000:
             raise ValueError("输入过长，请缩短后重新提交")
         item = task_type.application_item(body.input, body.answer)
     except (ValueError, TypeError, RecursionError) as error:
-        raise HTTPException(422, str(error)) from error
+        raise ServiceError(422, str(error)) from error
     request = ApplyRequest(input=task_type.application_input(item))
 
     def side(artifact: Artifact | None) -> ApplySide:
@@ -108,7 +108,7 @@ def invoke(platform: Platform, app: m.App, body: ApplyIn) -> ApplySide:
     try:
         return _application(platform, app, body)(artifact_of(app))
     except ModelError as error:
-        raise HTTPException(502, f"模型调用失败：{error}") from error
+        raise ServiceError(502, f"模型调用失败：{error}") from error
 
 
 def apply(platform: Platform, app: m.App, body: ApplyIn) -> ApplyOut:
@@ -121,7 +121,7 @@ def apply(platform: Platform, app: m.App, body: ApplyIn) -> ApplyOut:
         try:
             sides = {key: future.result() for key, future in futures.items()}
         except ModelError as error:
-            raise HTTPException(502, f"模型调用失败：{error}") from error
+            raise ServiceError(502, f"模型调用失败：{error}") from error
     return ApplyOut.model_validate({"without": sides["without"], "with": sides["with"]})
 
 

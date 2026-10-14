@@ -8,12 +8,12 @@ from datetime import timedelta
 from typing import Any
 from urllib.parse import urlsplit
 
-from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from . import models as m
 from .data import check_file
+from .errors import ServiceError
 from .gateway import FAKE_ENDPOINT
 from .platform import Platform
 from .schemas import (
@@ -33,8 +33,8 @@ def new_id(prefix: str) -> str:
     return f"{prefix}-{secrets.token_hex(4)}"
 
 
-def not_found(what: str) -> HTTPException:
-    return HTTPException(404, f"{what}不存在")
+def not_found(what: str) -> ServiceError:
+    return ServiceError(404, f"{what}不存在")
 
 
 def require_unused(session: Session, column: Any, value: str, label: str) -> None:
@@ -43,7 +43,7 @@ def require_unused(session: Session, column: Any, value: str, label: str) -> Non
         .where(m.Task.status.in_(("queued", "running", "paused")), column == value).limit(1)
     )
     if active is not None:
-        raise HTTPException(409, f"{label}仍被任务“{active}”使用，请先完成或取消任务")
+        raise ServiceError(409, f"{label}仍被任务“{active}”使用，请先完成或取消任务")
 
 
 # —— 参与方 ——
@@ -95,7 +95,7 @@ def delete_participant(session: Session, participant_id: str) -> None:
     if participant is None:
         raise not_found("参与方")
     if participant.builtin:
-        raise HTTPException(409, "平台内置参与方不能删除")
+        raise ServiceError(409, "平台内置参与方不能删除")
     require_unused(session, m.TaskSite.participant_id, participant_id, "参与方")
     session.delete(participant)
 
@@ -147,11 +147,11 @@ def check_out(report: Any, task_type: Any = None) -> DatasetCheckOut:
 def validate_category(platform: Platform, scenario: str, task_type: str) -> None:
     registry = platform.registry
     if registry.scenario(scenario) is None:
-        raise HTTPException(422, f"场景 {scenario} 不存在")
+        raise ServiceError(422, f"场景 {scenario} 不存在")
     if task_type not in registry.task_types:
-        raise HTTPException(422, f"任务类型 {task_type} 没有安装")
+        raise ServiceError(422, f"任务类型 {task_type} 没有安装")
     if task_type not in registry.task_types_for(scenario):
-        raise HTTPException(422, "这个场景里还没有能处理这种任务类型的算法")
+        raise ServiceError(422, "这个场景里还没有能处理这种任务类型的算法")
 
 
 def create_dataset(
@@ -171,7 +171,7 @@ def create_dataset(
         raise not_found("参与方")
     validate_category(platform, scenario, task_type)
     if not name.strip() or len(name.strip()) > 80:
-        raise HTTPException(422, "数据集名称应为 1–80 个字符")
+        raise ServiceError(422, "数据集名称应为 1–80 个字符")
     dataset_id = new_id("ds")
     if participant.hosting == "local":
         dataset = m.Dataset(
@@ -188,7 +188,7 @@ def create_dataset(
         session.flush()
         return dataset, None
     if raw is None:
-        raise HTTPException(422, "平台托管的参与方要上传数据文件")
+        raise ServiceError(422, "平台托管的参与方要上传数据文件")
     report = check_file(platform.registry.task_type(task_type), raw)
     checked = check_out(report, platform.registry.task_type(task_type))
     if not report.ok:
@@ -221,11 +221,11 @@ def delete_dataset(session: Session, dataset_id: str) -> None:
     if dataset is None:
         raise not_found("数据集")
     if dataset.source == "builtin":
-        raise HTTPException(409, "平台内置题库不能删除")
+        raise ServiceError(409, "平台内置题库不能删除")
     require_unused(session, m.TaskSite.dataset_id, dataset_id, "数据集")
     remaining = session.scalar(select(func.count()).where(m.Dataset.participant_id == dataset.participant_id)) or 0
     if remaining <= 1:
-        raise HTTPException(409, "每个参与方至少留一份数据集；要删最后一份，就删除参与方")
+        raise ServiceError(409, "每个参与方至少留一份数据集；要删最后一份，就删除参与方")
     session.delete(dataset)
 
 
@@ -238,7 +238,7 @@ def delete_data_resource(session: Session, dataset_id: str) -> None:
     if dataset is None:
         raise not_found("数据资源")
     if dataset.resource_space != "workspace" or dataset.source == "builtin":
-        raise HTTPException(409, "公用数据由平台维护，不能在我的资源中删除")
+        raise ServiceError(409, "公用数据由平台维护，不能在我的资源中删除")
     require_unused(session, m.TaskSite.dataset_id, dataset.id, "数据")
     source = session.get(m.Participant, dataset.participant_id)
     remaining = session.scalar(select(func.count()).where(m.Dataset.participant_id == dataset.participant_id)) or 0
@@ -285,7 +285,7 @@ def save_endpoint(platform: Platform, session: Session, body: EndpointIn, endpoi
         if endpoint is None:
             raise not_found("模型接口")
         if endpoint.kind == "fake":
-            raise HTTPException(409, "测试用假模型不能修改")
+            raise ServiceError(409, "测试用假模型不能修改")
     base_url = body.base_url.strip()
     try:
         url = urlsplit(base_url)
@@ -295,10 +295,10 @@ def save_endpoint(platform: Platform, session: Session, body: EndpointIn, endpoi
     except ValueError:
         valid_url = False
     if base_url and (not valid_url or any(char.isspace() for char in base_url)):
-        raise HTTPException(422, "接口地址要以 http:// 或 https:// 开头")
+        raise ServiceError(422, "接口地址要以 http:// 或 https:// 开头")
     models = _clean_models(body.models)
     if len(models) > 1:
-        raise HTTPException(422, "每个接口只能选用一个模型；使用其他模型请另登记一个接口")
+        raise ServiceError(422, "每个接口只能选用一个模型；使用其他模型请另登记一个接口")
     endpoint.name = body.name.strip()
     endpoint.base_url = base_url
     endpoint.models = models
@@ -317,7 +317,7 @@ def delete_endpoint(session: Session, endpoint_id: str) -> None:
     if endpoint is None:
         raise not_found("模型接口")
     if endpoint.builtin or endpoint.id == FAKE_ENDPOINT:
-        raise HTTPException(409, "预留的接口不能删除")
+        raise ServiceError(409, "预留的接口不能删除")
     active = session.scalar(
         select(m.Task.name).join(m.TaskSite, m.TaskSite.task_id == m.Task.id)
         .where(m.Task.status.in_(("queued", "running", "paused")),
@@ -325,5 +325,5 @@ def delete_endpoint(session: Session, endpoint_id: str) -> None:
         .limit(1)
     )
     if active is not None:
-        raise HTTPException(409, f"模型接口仍被任务“{active}”使用，请先完成或取消任务")
+        raise ServiceError(409, f"模型接口仍被任务“{active}”使用，请先完成或取消任务")
     session.delete(endpoint)

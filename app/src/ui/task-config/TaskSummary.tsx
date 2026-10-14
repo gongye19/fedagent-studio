@@ -1,0 +1,116 @@
+import { taskModelSummary } from "../../domain/config";
+import { scenarioOf, TASK_TYPES } from "../../domain/catalog";
+import { modelLabel } from "../../domain/resources";
+import { hrefOf, type Route } from "../../state/route";
+import { type State } from "../../state/store";
+import { Panel } from "../console";
+import { formatNumber } from "../format";
+import { EstimateBlock } from "../task-config/TaskEstimate";
+import type { TaskConfigController } from "./useTaskConfig";
+const endpointRoute = (id: string): Route => ({ page: "editEndpoint", id, from: "newTask" });
+
+export function TaskSummary({ state, config }: { state: State; config: TaskConfigController }) {
+  const {
+    draft,
+    pending,
+    setPending,
+    algorithm,
+    joined,
+    result,
+    canCreate,
+    creating,
+    createError,
+    full,
+    overrideCount,
+    priceEndpoint,
+    start,
+    startLabel,
+    validationPending,
+    validationError,
+    check,
+  } = config;
+  return (
+    <aside className="order-summary" aria-label="配置摘要" id="task-summary">
+      <Panel
+        title="配置摘要"
+        className="summary-panel"
+        actions={
+          <button
+            type="button"
+            className="button button--ghost button--compact summary-reset"
+            disabled={!draft.touched || creating}
+            onClick={() => setPending("restart")}
+          >
+            重置配置
+          </button>
+        }
+      >
+        <dl className="summary-list">
+          <div>
+            <dt>场景</dt>
+            <dd>{draft.scenario ? scenarioOf(draft.scenario).short : "—"}</dd>
+          </div>
+          <div>
+            <dt>任务类型</dt>
+            <dd>{draft.taskType ? TASK_TYPES[draft.taskType].label : "—"}</dd>
+          </div>
+          <div>
+            <dt>算法</dt>
+            <dd>{algorithm ? algorithm.name : "—"}</dd>
+          </div>
+          <div>
+            <dt>数据来源</dt>
+            <dd>{joined.length ? `${joined.length} 个` : "—"}</dd>
+          </div>
+          <div>
+            <dt>样本</dt>
+            <dd>
+              {result ? `${formatNumber(result.problems)} 条${full ? "" : `（每份前 ${draft.trialCap} 条）`}` : "—"}
+            </dd>
+          </div>
+          <div>
+            <dt>运行</dt>
+            <dd>
+              {full ? "正式运行" : "试跑"} · {algorithm ? `${draft.rounds} 轮` : "轮次待选"}
+            </dd>
+          </div>
+          <div>
+            <dt>模型</dt>
+            <dd>
+              {algorithm
+                ? taskModelSummary(draft, state.endpoints, algorithm)
+                : modelLabel(draft.clientModel, state.endpoints)}
+            </dd>
+          </div>
+          {overrideCount ? (
+            <div>
+              <dt>单独指定</dt>
+              <dd>{overrideCount} 个参与方</dd>
+            </div>
+          ) : null}
+        </dl>
+        {result ? <EstimateBlock result={result} priceHref={hrefOf(endpointRoute(priceEndpoint))} /> : null}
+        <div className="summary-actions">
+          <button
+            type="button"
+            className="button button--primary button--block summary-start"
+            disabled={creating || validationPending}
+            data-ready={canCreate}
+            aria-describedby="task-action-status"
+            onClick={start}
+          >
+            {creating ? "正在创建…" : startLabel}
+          </button>
+          <p className="summary-issues" id="task-action-status" aria-live="polite">
+            {validationPending ? "正在检查配置…" : validationError || (pending !== "full" ? createError : null)}
+          </p>
+          {validationError ? (
+            <button type="button" className="link-button" onClick={() => void check.refetch()}>
+              重新检查
+            </button>
+          ) : null}
+        </div>
+      </Panel>
+    </aside>
+  );
+}
