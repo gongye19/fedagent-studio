@@ -56,6 +56,10 @@ def main(argv: list[str] | None = None) -> None:
         sub = commands.add_parser(name)
         sub.add_argument("--host")
         sub.add_argument("--port", type=int)
+    agent = commands.add_parser("agent-serve", help="独立参考 Agent 服务，仅用于接入联调")
+    agent.add_argument("--port", type=int, default=9020)
+    agent.add_argument("--model", default="default")
+    agent.add_argument("--store", type=Path, required=True)
     commands.add_parser("runner")
     commands.add_parser("seed")
     resources = commands.add_parser("resources").add_subparsers(dest="action", required=True)
@@ -79,6 +83,12 @@ def main(argv: list[str] | None = None) -> None:
         _serve(True, args.host, args.port)
     elif args.command == "serve":
         _serve(False, args.host, args.port)
+    elif args.command == "agent-serve":
+        import uvicorn
+
+        from .agents.reference import create_reference_app
+
+        uvicorn.run(create_reference_app(_platform(), args.store, args.model), host="127.0.0.1", port=args.port)
     elif args.command == "runner":
         import signal
 

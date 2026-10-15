@@ -138,6 +138,9 @@ class MedicalDiagnosis(TaskType):
         report.sample = report.items[0] if report.items else None
         return report
 
+    def labels_allowed(self, item: Mapping[str, Any]) -> bool:
+        return item.get("split") == "learn"
+
     def strip_labels(self, item: Mapping[str, Any]) -> dict[str, Any]:
         return _remove_reserved(super().strip_labels(item))
 

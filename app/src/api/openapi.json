@@ -1370,6 +1370,508 @@
     }
    }
   },
+  "/v1/agents": {
+   "get": {
+    "tags": [
+     "agents"
+    ],
+    "summary": "List Agents",
+    "operationId": "list_agents_v1_agents_get",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/AgentOut"
+         },
+         "title": "Response List Agents V1 Agents Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "agents"
+    ],
+    "summary": "Create Agent",
+    "operationId": "create_agent_v1_agents_post",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AgentIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AgentOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/agents/{agent_id}": {
+   "put": {
+    "tags": [
+     "agents"
+    ],
+    "summary": "Update Agent",
+    "operationId": "update_agent_v1_agents__agent_id__put",
+    "parameters": [
+     {
+      "name": "agent_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Agent Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AgentIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AgentOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "agents"
+    ],
+    "summary": "Delete Agent",
+    "operationId": "delete_agent_v1_agents__agent_id__delete",
+    "parameters": [
+     {
+      "name": "agent_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Agent Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/agents/{agent_id}/check": {
+   "post": {
+    "tags": [
+     "agents"
+    ],
+    "summary": "Check Agent",
+    "operationId": "check_agent_v1_agents__agent_id__check_post",
+    "parameters": [
+     {
+      "name": "agent_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Agent Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AgentOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/agent-protocol": {
+   "get": {
+    "tags": [
+     "agents"
+    ],
+    "summary": "Download Protocol",
+    "operationId": "download_protocol_v1_agent_protocol_get",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Download Protocol V1 Agent Protocol Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/task-checks": {
+   "post": {
+    "tags": [
+     "tasks"
+    ],
+    "summary": "Test Config",
+    "operationId": "test_config_v1_task_checks_post",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TaskConfigIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "202": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TaskCheckOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/task-checks/{check_id}": {
+   "get": {
+    "tags": [
+     "tasks"
+    ],
+    "summary": "Get Check",
+    "operationId": "get_check_v1_task_checks__check_id__get",
+    "parameters": [
+     {
+      "name": "check_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Check Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TaskCheckOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "tasks"
+    ],
+    "summary": "Remove Check",
+    "operationId": "remove_check_v1_task_checks__check_id__delete",
+    "parameters": [
+     {
+      "name": "check_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Check Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/v1/tasks/validate": {
    "post": {
     "tags": [
@@ -2859,6 +3361,111 @@
  },
  "components": {
   "schemas": {
+   "AgentIn": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "maxLength": 80,
+      "minLength": 1,
+      "title": "Name"
+     },
+     "baseUrl": {
+      "type": "string",
+      "maxLength": 400,
+      "minLength": 1,
+      "title": "Baseurl"
+     },
+     "apiKey": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 2000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Apikey"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "baseUrl"
+    ],
+    "title": "AgentIn"
+   },
+   "AgentOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "baseUrl": {
+      "type": "string",
+      "title": "Baseurl"
+     },
+     "resourceSpace": {
+      "type": "string",
+      "title": "Resourcespace"
+     },
+     "hasKey": {
+      "type": "boolean",
+      "title": "Haskey"
+     },
+     "capabilities": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Capabilities"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "revision": {
+      "type": "integer",
+      "title": "Revision"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "baseUrl",
+     "resourceSpace",
+     "hasKey",
+     "capabilities",
+     "revision"
+    ],
+    "title": "AgentOut"
+   },
+   "AlgorithmCapability": {
+    "properties": {
+     "version": {
+      "type": "string",
+      "title": "Version"
+     },
+     "steps": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Steps"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "version",
+     "steps"
+    ],
+    "title": "AlgorithmCapability"
+   },
    "AlgorithmOut": {
     "properties": {
      "id": {
@@ -3378,6 +3985,29 @@
     ],
     "title": "Body_create_participant_v1_participants_post"
    },
+   "Capabilities": {
+    "properties": {
+     "protocol": {
+      "type": "string",
+      "const": "fedagent-agent/1",
+      "title": "Protocol",
+      "default": "fedagent-agent/1"
+     },
+     "algorithms": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/AlgorithmCapability"
+      },
+      "type": "object",
+      "title": "Algorithms"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "algorithms"
+    ],
+    "title": "Capabilities"
+   },
    "CheckProblem": {
     "properties": {
      "line": {
@@ -3395,6 +4025,39 @@
      "message"
     ],
     "title": "CheckProblem"
+   },
+   "CheckResult": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "resource": {
+      "type": "string",
+      "title": "Resource"
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "passed",
+       "failed",
+       "skipped"
+      ],
+      "title": "Status"
+     },
+     "message": {
+      "type": "string",
+      "title": "Message"
+     }
+    },
+    "type": "object",
+    "required": [
+     "field",
+     "resource",
+     "status",
+     "message"
+    ],
+    "title": "CheckResult"
    },
    "ClaimIn": {
     "properties": {
@@ -4225,6 +4888,11 @@
       "type": "integer",
       "title": "Problems"
      },
+     "remoteExecution": {
+      "type": "boolean",
+      "title": "Remoteexecution",
+      "default": false
+     },
      "participantCalls": {
       "type": "integer",
       "title": "Participantcalls"
@@ -4495,6 +5163,17 @@
      "model": {
       "type": "string",
       "title": "Model"
+     },
+     "agentName": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Agentname"
      }
     },
     "type": "object",
@@ -5439,6 +6118,57 @@
     ],
     "title": "StageOut"
    },
+   "TaskCheckOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "queued",
+       "running",
+       "passed",
+       "failed"
+      ],
+      "title": "Status"
+     },
+     "results": {
+      "items": {
+       "$ref": "#/components/schemas/CheckResult"
+      },
+      "type": "array",
+      "title": "Results"
+     },
+     "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Createdat"
+     },
+     "finishedAt": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Finishedat"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "status",
+     "results",
+     "createdAt",
+     "finishedAt"
+    ],
+    "title": "TaskCheckOut"
+   },
    "TaskConfigIn": {
     "properties": {
      "name": {
@@ -5483,6 +6213,44 @@
       "type": "string",
       "title": "Servermodel",
       "default": "default"
+     },
+     "execution": {
+      "type": "string",
+      "enum": [
+       "builtin",
+       "agent"
+      ],
+      "title": "Execution",
+      "default": "builtin"
+     },
+     "agentId": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Agentid"
+     },
+     "agentOverrides": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object",
+      "title": "Agentoverrides"
+     },
+     "checkId": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Checkid"
      },
      "rounds": {
       "type": "integer",

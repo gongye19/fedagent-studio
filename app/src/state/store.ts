@@ -1,6 +1,7 @@
 // 页面状态：参与方、数据集、模型接口、联邦任务、已发布的应用（都来自后端），以及新建任务的草稿（只在浏览器里）。
 // 规则都在 domain/，这里只负责组合和查找；改动后端数据的操作在 actions.ts。
 
+import type { AgentEndpoint } from "../api/agents";
 import type { components } from "../api/schema";
 import {
   chooseAlgorithm,
@@ -26,6 +27,7 @@ export type State = {
   participants: Participant[];
   datasets: Dataset[];
   endpoints: Endpoint[];
+  agents: AgentEndpoint[];
   tasks: Task[];
   published: Published[];
   /** 新建任务页的草稿；"复制为新任务"会预先填好。 */
@@ -69,6 +71,7 @@ export function withoutMissing(draft: Draft, datasets: readonly Dataset[]): Draf
     ...draft,
     participants,
     clientOverrides: Object.fromEntries(Object.entries(draft.clientOverrides).filter(([id]) => kept.has(id))),
+    agentOverrides: Object.fromEntries(Object.entries(draft.agentOverrides ?? {}).filter(([id]) => kept.has(id))),
   };
 }
 

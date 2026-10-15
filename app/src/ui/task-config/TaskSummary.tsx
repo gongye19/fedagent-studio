@@ -65,7 +65,9 @@ export function TaskSummary({ state, config }: { state: State; config: TaskConfi
           <div>
             <dt>样本</dt>
             <dd>
-              {result ? `${formatNumber(result.problems)} 条${full ? "" : `（每份前 ${draft.trialCap} 条）`}` : "—"}
+              {result
+                ? `${formatNumber(result.problems)} 条${full ? "" : `（每份前 ${draft.trialCap} 条）`}`
+                : "—"}
             </dd>
           </div>
           <div>
@@ -75,10 +77,12 @@ export function TaskSummary({ state, config }: { state: State; config: TaskConfi
             </dd>
           </div>
           <div>
-            <dt>模型</dt>
+            <dt>{draft.execution === "agent" ? "执行" : "模型"}</dt>
             <dd>
               {algorithm
-                ? taskModelSummary(draft, state.endpoints, algorithm)
+                ? draft.execution === "agent"
+                  ? `${state.agents.find((a) => a.id === draft.agentId)?.name ?? "Agent 待选"}${algorithm.requirements.serverModel ? `；汇总 ${modelLabel(draft.serverModel, state.endpoints)}` : ""}`
+                  : taskModelSummary(draft, state.endpoints, algorithm)
                 : modelLabel(draft.clientModel, state.endpoints)}
             </dd>
           </div>
@@ -91,10 +95,22 @@ export function TaskSummary({ state, config }: { state: State; config: TaskConfi
         </dl>
         {result ? <EstimateBlock result={result} priceHref={hrefOf(endpointRoute(priceEndpoint))} /> : null}
         <div className="summary-actions">
+          <a
+            className="button button--secondary button--block"
+            href="#task-config-check"
+            onClick={(e) => {
+              e.preventDefault();
+              document
+                .getElementById("task-config-check")
+                ?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "center" });
+            }}
+          >
+            {config.preflight.valid ? "配置测试已通过" : "查看配置测试"}
+          </a>
           <button
             type="button"
             className="button button--primary button--block summary-start"
-            disabled={creating || validationPending}
+            disabled={creating || validationPending || config.preflight.running}
             data-ready={canCreate}
             aria-describedby="task-action-status"
             onClick={start}
@@ -102,7 +118,9 @@ export function TaskSummary({ state, config }: { state: State; config: TaskConfi
             {creating ? "正在创建…" : startLabel}
           </button>
           <p className="summary-issues" id="task-action-status" aria-live="polite">
-            {validationPending ? "正在检查配置…" : validationError || (pending !== "full" ? createError : null)}
+            {validationPending
+              ? "正在检查配置…"
+              : validationError || (pending !== "full" ? createError : null)}
           </p>
           {validationError ? (
             <button type="button" className="link-button" onClick={() => void check.refetch()}>

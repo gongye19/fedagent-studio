@@ -127,7 +127,7 @@ class TaskSite(Base):
     """participant 或 server。"""
     role: Mapped[str] = mapped_column(String(32))
     executor: Mapped[str] = mapped_column(String(16))
-    """platform：平台执行；client：本地客户端领取。"""
+    """platform：平台执行；client：本地客户端领取；agent：平台调度自有 Agent API。"""
     participant_id: Mapped[str | None] = mapped_column(String(64), default=None)
     participant_name: Mapped[str] = mapped_column(String(80), default="")
     dataset_id: Mapped[str | None] = mapped_column(String(64), default=None)
@@ -294,3 +294,36 @@ class ClientToken(Base):
     created_at: Mapped[datetime] = mapped_column(default=now)
     revoked_at: Mapped[datetime | None] = mapped_column(default=None)
     last_used_at: Mapped[datetime | None] = mapped_column(default=None)
+
+
+class AgentEndpoint(Base):
+    __tablename__ = "agent_endpoints"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    name: Mapped[str] = mapped_column(String(80))
+    base_url: Mapped[str] = mapped_column(String(400))
+    resource_space: Mapped[str] = mapped_column(String(16), default="workspace")
+    api_key_enc: Mapped[str | None] = mapped_column(Text, default=None)
+    capabilities: Mapped[dict[str, Any] | None] = mapped_column(JSON, default=None)
+    revision: Mapped[int] = mapped_column(default=1)
+    created_at: Mapped[datetime] = mapped_column(default=now)
+
+
+class AgentRun(Base):
+    __tablename__ = "agent_runs"
+    id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    task_id: Mapped[str | None] = mapped_column(ForeignKey("tasks.id", ondelete="CASCADE"), default=None, index=True)
+    unit_id: Mapped[int | None] = mapped_column(ForeignKey("work_units.id", ondelete="CASCADE"), default=None, index=True)
+    agent_id: Mapped[str] = mapped_column(String(64))
+    request_hash: Mapped[str] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(16), default="queued")
+    created_at: Mapped[datetime] = mapped_column(default=now)
+
+
+class TaskCheck(Base):
+    __tablename__ = "task_checks"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    fingerprint: Mapped[str] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(16), default="queued")
+    results: Mapped[list[Any]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(default=now)
+    finished_at: Mapped[datetime | None] = mapped_column(default=None)

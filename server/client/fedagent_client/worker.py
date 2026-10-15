@@ -168,7 +168,7 @@ class Worker:
                     raise RuntimeError(f"本地数据里找不到样本 {unit['unitKey']}")
                 from fedagent_sdk import Item
 
-                fields = dict(full) if step.labels else task_type.strip_labels(full)
+                fields = dict(full) if step.labels and task_type.labels_allowed(full) else task_type.strip_labels(full)
                 item = Item(id=unit["unitKey"], fields=fields)
             assert step is not None
             ctx = StepContext(

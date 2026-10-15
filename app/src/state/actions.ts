@@ -16,7 +16,7 @@ function refresh(...queries: readonly (readonly unknown[])[]): Promise<void> {
 export function taskRequest(draft: Draft, name: string, datasets: readonly Dataset[], participants: readonly Participant[]): TaskConfigIn | null {
   const config = toConfig({ ...draft, participants: joinable(draft, datasets, participants) });
   if (!config) return null;
-  return { ...config, name, clientOverrides: activeOverrides(config) };
+  return { ...config, execution: config.execution ?? "builtin", agentOverrides: config.agentOverrides ?? {}, name, clientOverrides: activeOverrides(config) };
 }
 
 export async function createTask(body: TaskConfigIn): Promise<Task> {

@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 
 from fedagent_sdk import SERVER
 from sqlalchemy import delete as sql_delete
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .. import models as m
@@ -29,6 +30,9 @@ def create(platform: Platform, session: Session, body: TaskConfigIn) -> m.Task:
     issues, prepared = validate(platform, session, body)
     if issues or prepared is None:
         raise ServiceError(422, {"message": "任务配置有问题", "issues": [issue.model_dump() for issue in issues]})
+    from ..checks.service import require_check
+
+    require_check(platform, session, body)
     algorithm = prepared.algorithm
     task_id = new_id("task")
     name = body.name.strip() or _default_name(platform, body.task_type)
@@ -36,11 +40,15 @@ def create(platform: Platform, session: Session, body: TaskConfigIn) -> m.Task:
     config["name"] = name
     config["params"] = algorithm.manifest.params_of(body.params)
     config["grader"] = body.grader or platform.registry.task_type(body.task_type).graders[0]
-    refs = [site.model_ref for site in prepared.sites]
+    refs = [site.model_ref for site in prepared.sites] if body.execution == "builtin" else []
     if any(step.at == SERVER and step.model for step in algorithm.manifest.steps):
         refs.append(body.server_model)
     fake = any(parse_ref(ref)[0] == FAKE_ENDPOINT for ref in refs)
+    agent_ids = ({body.agent_overrides.get(site.participant.id) or body.agent_id for site in prepared.sites}
+                 if body.execution == "agent" else set())
     audit = {
+        "agents": {agent_id: {"name": row.name, "revision": row.revision}
+                   for agent_id in agent_ids if agent_id and (row := session.get(m.AgentEndpoint, agent_id))},
         "pluginVersion": algorithm.version,
         "pluginHash": algorithm.code_hash(),
         "promptHashes": algorithm.prompt_hashes(),
@@ -49,6 +57,8 @@ def create(platform: Platform, session: Session, body: TaskConfigIn) -> m.Task:
         "datasetSources": {site.dataset.id: site.dataset.source_hash for site in prepared.sites},
         "resourceSpaces": {site.dataset.id: site.dataset.resource_space for site in prepared.sites},
         "createdAt": m.now().isoformat(),
+        "configCheck": ({"id": check.id, "results": check.results, "finishedAt": check.finished_at.isoformat() if check.finished_at else None}
+                        if body.check_id and (check := session.get(m.TaskCheck, body.check_id)) else None),
     }
     task = m.Task(
         id=task_id,
@@ -74,7 +84,7 @@ def create(platform: Platform, session: Session, body: TaskConfigIn) -> m.Task:
                 ordinal=index,
                 kind="participant",
                 role=role,
-                executor="client" if site.participant.hosting == "local" else "platform",
+                executor="client" if site.participant.hosting == "local" else "agent" if body.execution == "agent" else "platform",
                 participant_id=site.participant.id,
                 participant_name=site.participant.name,
                 dataset_id=site.dataset.id,
@@ -82,7 +92,7 @@ def create(platform: Platform, session: Session, body: TaskConfigIn) -> m.Task:
                 dataset_hash=site.dataset.content_hash,
                 items=site.items,
                 labeled=site.labeled,
-                model_ref=site.model_ref,
+                model_ref=f"agent:{body.agent_overrides.get(site.participant.id) or body.agent_id}" if body.execution == "agent" else site.model_ref,
             )
         )
     session.add(
@@ -143,6 +153,9 @@ def delete_task(session: Session, task_id: str) -> None:
     task = get_task(session, task_id)
     if task.status not in ("completed", "canceled"):
         raise ServiceError(409, "请先取消任务，等任务结束后再删除")
+    if session.scalars(select(m.AgentRun).where(m.AgentRun.task_id == task_id,
+                        m.AgentRun.status.in_(("queued", "running", "canceling")))).first():
+        raise ServiceError(409, "部分 Agent 尚未确认停止，请在 Agent 接口检查能力以同步停止状态")
     if leftover_process(task.pid, task_id):
         raise ServiceError(409, "任务进程正在退出，请稍后再删除")
     # 事件为独立日志表，没有任务外键，需在同一事务里显式清理。

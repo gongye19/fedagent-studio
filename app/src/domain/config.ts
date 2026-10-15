@@ -47,6 +47,9 @@ export type TaskConfig = {
   /** 参与方 id → 模型引用；没有单独指定的参与方用 clientModel。 */
   clientOverrides: Record<string, string>;
   serverModel: string;
+  execution?: "builtin" | "agent";
+  agentId?: string | null;
+  agentOverrides?: Record<string, string>;
   rounds: number;
   mode: RunMode;
   /** 试跑时每份数据集只取前几条样本。 */
@@ -78,6 +81,9 @@ export const DEFAULT_DRAFT: Draft = {
   clientModel: DEFAULT_MODEL,
   clientOverrides: {},
   serverModel: DEFAULT_MODEL,
+  execution: "builtin",
+  agentId: null,
+  agentOverrides: {},
   rounds: 3,
   mode: "trial",
   trialCap: 5,
@@ -92,6 +98,7 @@ export function withDefaults(draft: Partial<Draft>): Draft {
     ...draft,
     participants: [...(draft.participants ?? [])],
     clientOverrides: { ...(draft.clientOverrides ?? {}) },
+    agentOverrides: { ...(draft.agentOverrides ?? {}) },
     params: { ...(draft.params ?? {}) },
   };
 }
@@ -100,7 +107,7 @@ export function withDefaults(draft: Partial<Draft>): Draft {
 export type Estimate = components["schemas"]["EstimateOut"];
 
 export type Issue = {
-  field: "scenario" | "taskType" | "algorithm" | "participants" | "models" | "rounds" | "params";
+  field: "scenario" | "taskType" | "algorithm" | "participants" | "models" | "rounds" | "params" | "check";
   message: string;
 };
 
@@ -114,6 +121,7 @@ export function configIssue(issue: { field: string; message: string }): Issue {
     case "models":
     case "rounds":
     case "params":
+    case "check":
       return { field: issue.field, message: issue.message };
     default:
       return { field: "params", message: issue.message };
@@ -121,7 +129,7 @@ export function configIssue(issue: { field: string; message: string }): Issue {
 }
 
 export function taskModelSummary(draft: Draft, endpoints: readonly Endpoint[], algorithm: Algorithm): string {
-  const client = modelLabel(draft.clientModel, endpoints);
+  const client = draft.execution === "agent" ? "自有 Agent" : modelLabel(draft.clientModel, endpoints);
   if (!algorithm.requirements.serverModel) return client;
   const server = modelLabel(draft.serverModel, endpoints);
   return client === server ? client : `参与方 ${client}；服务端 ${server}`;
@@ -169,13 +177,14 @@ export function draftIssues(
     issues.push({ field: "participants", message: "正式任务至少需要一份我的数据；公用数据可以先用于试跑" });
   }
   const refs = [
-    ...(algorithm.requirements.participantModel
+    ...(algorithm.requirements.participantModel && draft.execution !== "agent"
       ? chosen
           .filter((p) => participants.find((owner) => owner.id === p.participantId)?.hosting === "platform")
           .map((p) => overrides[p.participantId] || draft.clientModel)
       : []),
     ...(algorithm.stages.some((stage) => stage.side === "server" && stage.model) ? [draft.serverModel] : []),
   ];
+  if (draft.execution === "agent" && !draft.agentId) issues.push({ field: "models", message: "选择 Agent 接口" });
   if (refs.some((ref) => !endpointOf(ref, endpoints))) {
     issues.push({ field: "models", message: "所选的模型接口已不存在，请重新选择" });
   }
@@ -243,6 +252,9 @@ export function toConfig(draft: Draft): TaskConfig | null {
     clientModel: draft.clientModel,
     clientOverrides: activeOverrides(draft),
     serverModel: draft.serverModel,
+    execution: draft.execution ?? "builtin",
+    agentId: draft.execution === "agent" ? draft.agentId ?? null : null,
+    agentOverrides: Object.fromEntries(Object.entries(draft.execution === "agent" ? draft.agentOverrides ?? {} : {}).filter(([id]) => draft.participants.some((p) => p.participantId === id))),
     rounds: draft.rounds,
     mode: draft.mode,
     trialCap: draft.trialCap,

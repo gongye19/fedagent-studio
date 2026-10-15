@@ -1,3 +1,4 @@
+import { AgentOverrides } from "./AgentOverrides";
 import { SelectField } from "../SelectField";
 import { ModelPicker } from "../ModelPicker";
 import { paramValue, type Algorithm, type ParamDef, type ParamValue, type Params } from "../../domain/catalog";
@@ -113,7 +114,7 @@ export function AdvancedPanel({
     GENERAL_KEYS.filter((key) => draft[key] !== DEFAULT_DRAFT[key]).length +
     Object.keys(activeOverrides(draft)).length;
   // 只有一个模型时没有可指定的，不显示这一项。
-  const canOverride = modelOptions(state.endpoints).length > 1;
+  const canOverride = draft.execution !== "agent" && modelOptions(state.endpoints).length > 1;
   return (
     <Collapsible
       className="panel panel--collapsible"
@@ -137,7 +138,7 @@ export function AdvancedPanel({
           <InlineError id="params-error" message={error} />
         </FieldGroup>
         <FieldGroup title="通用">
-          <Field label="并发数" htmlFor="workers" info="同时发出的模型调用数，所有参与方共用。">
+          <Field label="并发数" htmlFor="workers" info="同时执行的工作单元数；LLM 或 Agent 服务还会受各自的并发限制。">
             <input
               id="workers"
               name="workers"
@@ -166,6 +167,7 @@ export function AdvancedPanel({
               onChange={(event) => update({ seed: clampInt(event.target.value, 0, 1_000_000, draft.seed) })}
             />
           </Field>
+          {draft.execution === "agent" && state.agents.length > 1 && joined.length ? <Field label="单独指定 Agent" wide><AgentOverrides state={state} draft={draft} joined={joined} update={update} /></Field> : null}
           {canOverride ? (
             <Field label="单独指定模型" labelId="overrides-label" wide>
               <ModelOverrides state={state} draft={draft} update={update} joined={joined} />

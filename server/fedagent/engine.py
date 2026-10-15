@@ -1,7 +1,7 @@
 """任务编排：一个运行中的任务一个进程，按算法清单逐轮、逐步推进。
 
-- 每一步按清单拆成工作单元（每条样本一个，或每个站点一个）。平台托管的参与方和服务端的单元在本进程里并发执行，
-  本地参与方的单元放进队列，等客户端领取；全部完成才进入下一步（每一步是一道栅栏）。
+- 每一步按清单拆成工作单元（每条样本一个，或每个站点一个）。平台调度的单元并发执行内置步骤或调用独立 Agent API，
+  旧本地参与方的单元放进队列，等客户端领取；全部完成才进入下一步（每一步是一道栅栏）。
 - 工作单元的结果写进数据库才算完成。续跑时跳过已完成的单元；单元里已完成的模型调用从调用账本取，不重复计费。
 - 暂停、取消由 API 写进任务的 command，本进程轮询到后停下；正在执行的单元下次续跑时重新执行。
 - 失败：单元按清单的重试次数重试，仍失败就暂停任务并写明原因；插件主动报告 pause 的直接暂停。
@@ -183,7 +183,7 @@ class TaskEngine:
                     m.WorkUnit.task_id == self.task_id,
                     m.WorkUnit.round == round,
                     m.WorkUnit.step == step.id,
-                    m.WorkUnit.executor == "platform",
+                    m.WorkUnit.executor.in_(("platform", "agent")),
                     m.WorkUnit.status == "pending",
                 )
                 .order_by(m.WorkUnit.id)
@@ -215,7 +215,7 @@ class TaskEngine:
         if step.per == "item" and full_item is None:
             return Outcome(False, f"找不到样本 {unit_key}", pause=True)
         model = None
-        if step.model:
+        if step.model and site.executor != "agent":
             ref = site.model_ref or "default"
             try:
                 model = self.platform.gateway.model(
@@ -239,7 +239,13 @@ class TaskEngine:
             log=lambda text: log.info("%s %s r%s %s: %s", self.task_id, site.id, round, step.id, text),
         )
         try:
-            self.plugin.run_step(ctx)
+            if site.executor == "agent":
+                from .agents.adapter import execute
+
+                ctx.result = execute(self.platform, ctx, self.plugin, self.task_type.id, self.task_id,
+                                     unit_id, unit_key, (site.model_ref or "").removeprefix("agent:"), self.site_by_id)
+            else:
+                self.plugin.run_step(ctx)
         except StepFailed as error:
             return Outcome(False, str(error), pause=error.pause)
         except CapabilityError as error:
@@ -257,7 +263,8 @@ class TaskEngine:
             graded.append(Graded(item_id, labeled, correct))
         with self.db.session() as session:
             unit = session.get(m.WorkUnit, unit_id)
-            if unit is None:
+            task = session.get(m.Task, self.task_id)
+            if unit is None or task is None or task.status != "running" or task.command is not None:
                 return Outcome(True)
             stored = store_result(
                 session,
@@ -387,6 +394,7 @@ class TaskEngine:
                 add_event(session, self.task_id, "cancel", "任务已取消", run_dir=self.run_dir)
                 stopped = "canceled"
         if stopped is not None:
+            self._stop_agents()
             raise TaskStopped(stopped)
 
     def _check_budget(self) -> None:
@@ -398,7 +406,14 @@ class TaskEngine:
         if spent >= task.budget:
             raise TaskStopped(self._pause(f"费用 {spent:.2f} 元已达到上限 {task.budget:.2f} 元"))
 
+    def _stop_agents(self) -> None:
+        from .agents.gateway import AgentGateway
+
+        if AgentGateway(self.platform).stop_task(self.task_id):
+            self._event("agent-stop", "平台已停止调度，部分 Agent 尚未确认停止；请在 Agent 服务查看运行状态")
+
     def _pause(self, reason: str) -> str:
+        self._stop_agents()
         with self.db.session() as session:
             task = session.get(m.Task, self.task_id)
             if task is not None:
@@ -436,7 +451,7 @@ class TaskEngine:
         """平台托管的参与方：按冻结时的内容哈希读数据集文件。"""
         records: dict[str, dict[str, dict[str, Any]]] = {}
         for site in self.sites:
-            if site.kind != "participant" or site.executor != "platform" or not site.dataset_hash:
+            if site.kind != "participant" or site.executor not in ("platform", "agent") or not site.dataset_hash:
                 continue
             rows = self.platform.files.load(f"{site.dataset_id}/{site.dataset_hash}.jsonl")
             selected = set(site.items)

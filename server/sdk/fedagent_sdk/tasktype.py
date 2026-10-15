@@ -112,6 +112,10 @@ class TaskType:
             return value
         return bool(self.label_fields) and all(_present(get(name)) for name in self.label_fields)
 
+    def labels_allowed(self, item: Mapping[str, Any]) -> bool:
+        """声明 labels 的学习步骤可读取哪些样本的标注；评测集可覆盖为 False。"""
+        return True
+
     def strip_labels(self, item: Mapping[str, Any]) -> dict[str, Any]:
         result = copy.deepcopy(dict(item))
         for path in self.label_fields:

@@ -77,7 +77,7 @@ class ClientStepIO:
     def items(self) -> list[Item]:
         out = []
         for item_id, record in self.records.items():
-            fields = dict(record) if self.labels else self.task_type.strip_labels(record)
+            fields = dict(record) if self.labels and self.task_type.labels_allowed(record) else self.task_type.strip_labels(record)
             out.append(Item(id=item_id, fields=fields))
         return out
 

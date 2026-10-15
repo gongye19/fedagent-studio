@@ -1,5 +1,5 @@
 import { paramText, scenarioOf, TASK_TYPES } from "../../domain/catalog";
-import { HOSTING_LABELS, modelLabel } from "../../domain/resources";
+import { DATA_LOCATION_LABELS, modelLabel } from "../../domain/resources";
 import { totalProblems, type Member, type Task } from "../../domain/task";
 import type { State } from "../../state/store";
 import { Facts } from "../common";
@@ -18,7 +18,9 @@ export function ConfigTab({ task, state }: { task: Task; state: State }) {
   const config = task.config;
   const algorithm = algorithmOfTask(task);
   const model = uniform(task.members, (member) => member.model);
-  const label = (ref: string) => modelLabel(ref, state.endpoints, { withStatus: false });
+  const label = (ref: string) => ref.startsWith("agent:")
+    ? task.members.find((m) => m.model === ref)?.agentName ?? "自有 Agent"
+    : modelLabel(ref, state.endpoints, { withStatus: false });
 
   return (
     <div className="panel-stack">
@@ -30,7 +32,7 @@ export function ConfigTab({ task, state }: { task: Task; state: State }) {
           ["运行方式", config.mode === "trial" ? `试跑，每个数据集前 ${config.trialCap} 条` : "正式运行，全部样本"],
           ["轮次", `${config.rounds} 轮`],
           ["样本", `${formatNumber(totalProblems(task))} 条`],
-          ["参与方模型", model ? label(model) : "各参与方不同，见下表"],
+          [config.execution === "agent" ? "执行 Agent" : "运行模型", model ? label(model) : "各来源不同，见下表"],
           ...(algorithm.stages.some((stage) => stage.side === "server" && stage.model) ? [["服务端模型", label(config.serverModel)] as const] : []),
           ["并发数", String(config.workers)],
           ["随机种子", String(config.seed)],
@@ -50,8 +52,8 @@ export function ConfigTab({ task, state }: { task: Task; state: State }) {
               <tr>
                 <th scope="col">参与方</th>
                 <th scope="col" className="col-optional">数据集</th>
-                <th scope="col" className="col-optional">运行位置</th>
-                {model ? null : <th scope="col">模型</th>}
+                <th scope="col" className="col-optional">数据位置</th>
+                {model ? null : <th scope="col">{config.execution === "agent" ? "Agent" : "模型"}</th>}
                 <th scope="col" className="numeric">本次样本</th>
               </tr>
             </thead>
@@ -60,7 +62,7 @@ export function ConfigTab({ task, state }: { task: Task; state: State }) {
                 <tr key={member.participantId}>
                   <th scope="row">{member.participant}</th>
                   <td className="col-optional">{member.dataset}</td>
-                  <td className="col-optional">{HOSTING_LABELS[member.hosting]}</td>
+                  <td className="col-optional">{DATA_LOCATION_LABELS[member.hosting]}</td>
                   {model ? null : <td>{label(member.model)}</td>}
                   <td className="numeric">{member.problems}</td>
                 </tr>

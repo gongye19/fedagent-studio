@@ -122,7 +122,7 @@ const ROUTES = [
   "#/participants/new",
   { route: "#/participants/new", name: "#/participants/new 已选", script: PICK(["平台托管", "横向联邦", "数学推理"]) },
   "#/datasets/new",
-  "#/algorithms", "#/algorithms/fot", "#/models", "#/models/new", "#/tasks/nope",
+  "#/algorithms", "#/algorithms/fot", "#/models", "#/models/public", "#/agents", "#/agents/public", "#/models/new", "#/tasks/nope",
 ];
 
 // 本地客户端仅在浏览器回归中注入；不依赖生产初始资源，不签发凭据或写数据库。

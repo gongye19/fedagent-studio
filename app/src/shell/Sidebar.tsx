@@ -3,12 +3,14 @@ import { hrefOf, type Route } from "../state/route";
 import { type State } from "../state/store";
 import { Icon, type IconName } from "../ui/icons";
 
-type NavKey = "home" | "tasks" | "apps" | "algorithms" | "models" | "resources";
+type NavKey = "home" | "tasks" | "apps" | "algorithms" | "models" | "resources" | "agents";
 
 function navKeyOf(route: Route): NavKey {
   switch (route.page) {
     case "resources":
-      return "resources";
+      return route.kind === "models" ? "models" : route.kind === "agents" ? "agents" : "resources";
+    case "agents":
+      return "agents";
     case "tasks":
     case "newTask":
     case "task":
@@ -38,9 +40,10 @@ const NAV: readonly NavItem[] = [
   { key: "home", label: "首页", icon: "home", route: { page: "home" } },
   { key: "tasks", label: "联邦任务", icon: "tasks", route: { page: "tasks" } },
   { key: "apps", label: "应用", icon: "apps", route: { page: "apps" } },
-  { key: "resources", label: "资源", icon: "resources", route: { page: "resources", space: "workspace" } },
+  { key: "resources", label: "数据资源", icon: "resources", route: { page: "resources", space: "workspace" } },
+  { key: "models", label: "LLM 接口", icon: "model", route: { page: "models" } },
+  { key: "agents", label: "Agent 接口", icon: "participants", route: { page: "agents" } },
   { key: "algorithms", label: "算法", icon: "algorithm", route: { page: "algorithms" } },
-  { key: "models", label: "模型接口", icon: "model", route: { page: "models" } },
 ];
 
 export function Sidebar({ route, state }: { route: Route; state: State | null }) {

@@ -22,7 +22,7 @@ export function TaskStartBar({ config }: { config: TaskConfigController }) {
           {validationPending
             ? "正在检查配置…"
             : result && !issues.length
-              ? `${joined.length} 个数据来源 · ${result.callsAreUpperBound ? "最多" : "至少"} ${formatNumber(result.participantCalls + result.serverCalls)} 次调用`
+              ? result.remoteExecution ? `${joined.length} 个数据来源 · 自有 Agent` : `${joined.length} 个数据来源 · ${result.callsAreUpperBound ? "最多" : "至少"} ${formatNumber(result.participantCalls + result.serverCalls)} 次调用`
               : ""}
         </strong>
         {result && !issues.length ? <small>{formatDuration(result.seconds)}</small> : null}
@@ -34,7 +34,7 @@ export function TaskStartBar({ config }: { config: TaskConfigController }) {
         <button
           type="button"
           className="button button--primary"
-          disabled={creating || validationPending}
+          disabled={creating || validationPending || config.preflight.running}
           data-ready={canCreate}
           aria-describedby="task-action-status"
           onClick={start}

@@ -64,3 +64,13 @@
 .model-picker [cmdk-empty] { padding: 24px 16px; text-align: center; color: var(--muted); font-size: var(--text-sm); }
 @media (max-width: 640px) { .model-picker-close, .model-picker [cmdk-item] { min-height: 44px; } .model-picker-close { width: 44px; } }
 .input-snapshot { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.config-check-results { margin-top: 16px; display: grid; gap: 12px; }
+.config-check-row { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; }
+.config-check-row > .icon { flex: none; margin-top: 2px; }
+.config-check-row p { margin: 4px 0 0; color: var(--secondary); overflow-wrap: anywhere; }
+.config-check-row--failed { color: var(--danger); }
+.config-check-success { margin: 0; font-size: 12px; }
+
+.config-check-details > summary { font-size: 12px; cursor: pointer; padding: 8px 0; }
+.config-check-details > .config-check-row { padding-top: 12px; }

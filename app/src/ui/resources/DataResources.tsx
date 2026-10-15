@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import { TASK_TYPES } from "../../domain/catalog";
-import { HOSTING_LABELS, type Dataset } from "../../domain/resources";
+import { DATA_LOCATION_LABELS, type Dataset } from "../../domain/resources";
 import type { State } from "../../state/store";
 import { PanelEmpty, Tag } from "../common";
 import { Panel } from "../console";
@@ -34,7 +34,7 @@ export function DataResources({
               <tr>
                 <th scope="col">数据名称</th>
                 <th scope="col">任务类型</th>
-                <th scope="col">运行位置</th>
+                <th scope="col">存放位置</th>
                 <th scope="col" className="numeric">
                   样本数
                 </th>
@@ -59,7 +59,7 @@ export function DataResources({
                         </button>
                       </th>
                       <td data-label="任务类型">{TASK_TYPES[d.taskType]?.label ?? d.taskType}</td>
-                      <td data-label="运行位置">{p ? HOSTING_LABELS[p.hosting] : "来源已删除"}</td>
+                      <td data-label="存放位置">{p ? DATA_LOCATION_LABELS[p.hosting] : "来源已删除"}</td>
                       <td className="numeric" data-label="样本数">
                         {d.ready ? formatNumber(d.count) : <Tag tone="warning">待连接</Tag>}
                       </td>

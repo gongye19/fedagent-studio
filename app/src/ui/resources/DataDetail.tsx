@@ -64,7 +64,8 @@ export function DataDetail({ state, dataset, onRemoved }: { state: State; datase
             onRemoved();
           }}
         >
-          只删除这份数据的登记。已运行任务的记录保留，本地客户端连接也会保留。
+          只删除这份数据的登记，已运行任务的记录保留。
+          {source?.hosting === "local" ? "本地客户端连接也会保留。" : null}
         </Confirm>
       ) : null}
     </div>

@@ -97,5 +97,5 @@ def select_items(ids: list[str], cap: int | None) -> list[str]:
 
 
 def to_item(task_type: TaskType, record: dict[str, Any], *, labels: bool) -> Item:
-    fields = dict(record) if labels else task_type.strip_labels(record)
+    fields = dict(record) if labels and task_type.labels_allowed(record) else task_type.strip_labels(record)
     return Item(id=task_type.item_id(record), fields=fields)

@@ -95,12 +95,12 @@ try {
     await evaluate(send, "document.querySelector('.dialog-close').click();void 0");
     await go('#/');
     if (width === 390) { await evaluate(send, "document.querySelector('.menu-button').click();void 0"); await sleep(180); }
-    check('资源合并为单个平级入口且没有折叠父目录 ' + width, await evaluate(send, "!document.querySelector('.nav-parent,.nav-sub')&&document.querySelectorAll('.side-nav > a').length===6&&['资源','算法','模型接口'].every(t=>[...document.querySelectorAll('.side-nav > a')].some(a=>a.textContent.trim()===t&&a.getBoundingClientRect().height>0))"));
+    check('三类资源平级展示且没有折叠父目录 ' + width, await evaluate(send, "!document.querySelector('.nav-parent,.nav-sub')&&document.querySelectorAll('.side-nav > a').length===7&&['数据资源','LLM 接口','Agent 接口','算法'].every(t=>[...document.querySelectorAll('.side-nav > a')].some(a=>a.textContent.trim()===t&&a.getBoundingClientRect().height>0))"));
     check('页面无横向溢出 ' + width, await evaluate(send, 'document.documentElement.scrollWidth<=innerWidth'));
     if (process.env.DEV_FIXTURES !== '0' && ['127.0.0.1', 'localhost'].includes(new URL(base).hostname)) {
-      // 本地仅发布前端通知夹具，验证实际 Toast 组件，不触发任何业务写入。
-      await evaluate(send, "(async()=>{const {showFlash}=await import('/src/state/flash.ts');showFlash({page:'home'},'动效回归通知')})()");
-      await sleep(40);
+      // 本地仅发布前端通知夹具；取 App 实际使用的 HMR 模块 URL，避免另建一份外部状态仓库。
+      await evaluate(send, String.raw`(async()=>{const source=await(await fetch('/src/App.tsx')).text();const ref=source.match(/from\s+["']([^"']*state\/flash\.ts[^"']*)["']/)?.[1];if(!ref)throw Error('flash module not found');const {showFlash}=await import(ref);showFlash({page:'home'},'动效回归通知')})()`);
+      await sleep(120);
       check('成功通知有轻量入场且不抢焦点 ' + width, await evaluate(send, "Boolean(document.querySelector('.toast'))&&getComputedStyle(document.querySelector('.toast')).animationName==='content-enter'&&!document.querySelector('.toast').contains(document.activeElement)"));
       await evaluate(send, "document.querySelector('.toast-close').click();void 0");
     }

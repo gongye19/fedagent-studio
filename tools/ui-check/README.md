@@ -38,3 +38,11 @@
 - 本机装了 front-end-quality-check 技能时，还可以跑它的质量门禁（`ui-quality-gate.mjs`）；要在仓库根目录下运行，检测器才会读 `.impeccable/config.json` 里登记的例外。
 
 T78：`resource-flow.mjs`在仓库根目录运行，验证任务内真实文件上传／错误／自动选择、我的／公用切换保留、正式自有输入要求、两轮runner→发布→试用、资源复用／重置／焦点／窄屏和本地模型接入。默认仅本地假模型；真实模型必须显式设置`REAL_MODEL_VERIFY=1`及服务器BASE，约$0.1–0.2。输入来自仓库真实AIME24前两题，通过名字及原始哈希识别本轮资源，逐项保留原有ID并只清理自己的记录；未结束任务保留检查，owned.json记录ID。public范围全选已同步公共lib，config.mjs沿用旧交互检查并适配资源入口。可访问性扫描等待配置预检和颜色过渡完成，避免读取过渡中间色。
+
+
+T81：`agent-flow.mjs`先通过界面登记独立Agent，验证能力、两类任务选择、配置测试／刷新恢复／配置失效、桌面手机、两轮共享产出、发布／invoke／导出，最后逐项清理本次资源与报告。先在独立进程启动`fedagent agent-serve --model fake:fake --store /tmp/自己的联调目录`，默认9020回环端口；本地缺医疗输入时从`.references/medical`公开数据导入，线上仅复用已有数据。线上运行必须`REAL_MODEL_VERIFY=1 BASE=http://100.111.198.54:8880/ AGENT_URL=http://127.0.0.1:9020`，实际请求来自服务器而非浏览器本机。预计US$0.4–1.2；失败时未结束任务保留排查，不删除其他人的资源。测试报告的DELETE只清理同编号的联调运行记录，模型调用账本保留。
+
+T81更新旧脚本：resource-flow移除平台／客户端与来源菜单；task-flow、medical-flow显式执行配置测试；feedback仅用通过报告夹具，不发真实模型请求。motion导航预期为七项；lib加入LLM／Agent归属页，可访问性覆盖三类入口。
+
+
+`agent-ui.mjs`为只读验收：桌面／手机的三类资源、Agent接入窗口、当前协议下载、上传移除客户端、公用LLM取消返回与空Agent引导，拦截全部写请求。`agent-resume.mjs`只用于已明确授权的真实医疗验证恢复，必须提供本轮OWNED_FILE并设置REAL_MODEL_VERIFY=1；只续跑这些ID，发布／调用／导出后清理本轮资源，失败保留检查点，不重建已完成的FoT任务。

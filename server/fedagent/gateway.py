@@ -197,7 +197,7 @@ class Gateway:
 
     def probe(self, endpoint_id: str, model: str, settings: dict[str, Any]) -> ChatResult:
         """按给定的生成参数发一条很短的请求；只重试一次，检查时不久等。"""
-        endpoint = replace(self.endpoint(endpoint_id), max_retries=1)
+        endpoint = replace(self.endpoint(endpoint_id), max_retries=1, timeout=45.0)
         return GatewayModel(self, endpoint, model, ledger=None, purpose="test", plugin=None, step_id=None).chat("Reply with OK.", **settings)
 
 

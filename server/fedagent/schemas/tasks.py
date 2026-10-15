@@ -21,6 +21,10 @@ class TaskConfigIn(Model):
     client_model: str = "default"
     client_overrides: dict[str, str] = Field(default={})
     server_model: str = "default"
+    execution: Literal["builtin", "agent"] = "builtin"
+    agent_id: str | None = None
+    agent_overrides: dict[str, str] = Field(default_factory=dict)
+    check_id: str | None = None
     rounds: int
     mode: Literal["trial", "full"] = "trial"
     trial_cap: int = 5
@@ -38,6 +42,7 @@ class IssueOut(Model):
 
 class EstimateOut(Model):
     problems: int
+    remote_execution: bool = False
     participant_calls: int
     calls_are_upper_bound: bool = False
     server_calls: int
@@ -61,6 +66,7 @@ class MemberOut(Model):
     problems: int
     answered: int
     model: str
+    agent_name: str | None = None
 
 
 class CursorOut(Model):

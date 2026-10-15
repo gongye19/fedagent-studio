@@ -1,3 +1,5 @@
+import type { AgentEndpoint } from "../api/agents";
+import { AgentEndpointForm } from "./AgentEndpointForm";
 import { useState } from "react";
 import type { components } from "../api/schema";
 import type { ScenarioId, TaskType } from "../domain/catalog";
@@ -8,7 +10,7 @@ import { EndpointForm } from "./EndpointPage";
 import { ResourceDialog } from "./ResourceDialog";
 
 export type SavedResource =
-  { kind: "data"; value: components["schemas"]["DataResourceOut"] } | { kind: "model"; value: Endpoint };
+  { kind: "data"; value: components["schemas"]["DataResourceOut"] } | { kind: "model"; value: Endpoint } | { kind: "agent"; value: AgentEndpoint };
 
 /** 任务页与资源页共用接入流程；忙碌、关闭和焦点规则只维护一处。 */
 export function ResourceIntakeDialog({
@@ -19,7 +21,7 @@ export function ResourceIntakeDialog({
   onClose,
   onSaved,
 }: {
-  kind: "data" | "model" | null;
+  kind: "data" | "model" | "agent" | null;
   state: State;
   category?: { scenario: ScenarioId; taskType: TaskType };
   title?: string;
@@ -29,7 +31,7 @@ export function ResourceIntakeDialog({
   const [busy, setBusy] = useState(false);
   return (
     <ResourceDialog
-      title={title ?? (kind === "data" ? "接入数据" : "接入模型接口")}
+      title={title ?? (kind === "data" ? "上传数据" : kind === "agent" ? "接入 Agent" : "接入 LLM 接口")}
       open={kind !== null}
       busy={busy}
       onOpenChange={(open) => {
@@ -38,7 +40,6 @@ export function ResourceIntakeDialog({
     >
       {kind === "data" ? (
         <DataResourceForm
-          state={state}
           category={category}
           onBusyChange={setBusy}
           onCancel={onClose}
@@ -51,7 +52,7 @@ export function ResourceIntakeDialog({
           onCancel={onClose}
           onSaved={(value) => onSaved({ kind: "model", value })}
         />
-      ) : null}
+      ) : kind === "agent" ? <AgentEndpointForm onBusyChange={setBusy} onCancel={onClose} onSaved={(value) => onSaved({ kind: "agent", value })} /> : null}
     </ResourceDialog>
   );
 }

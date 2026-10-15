@@ -2,6 +2,16 @@ import type { Estimate } from "../../domain/config";
 import { formatDuration, formatNumber, formatTokens, formatYuan } from "../format";
 
 export function EstimateBlock({ result, priceHref }: { result: Estimate; priceHref: string }) {
+  if (result.remoteExecution)
+    return (
+      <div className="summary-estimate">
+        <h3>预估</h3>
+        <p className="muted">
+          Agent 内部的调用量、耗时与费用由服务自行管理，平台无法估算。汇总模型
+          {result.serverCalls ? `至少调用 ${result.serverCalls} 次。` : "不产生调用。"}
+        </p>
+      </div>
+    );
   return (
     <div className="summary-estimate">
       <h3>预估</h3>

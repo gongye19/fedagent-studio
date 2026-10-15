@@ -47,7 +47,8 @@ export type Route =
   | { page: "newParticipant"; from?: From }
   | { page: "newDataset"; participant?: string; from?: From }
   | { page: "algorithms"; id?: string }
-  | { page: "models" }
+  | { page: "models"; space?: ResourceSpace }
+  | { page: "agents"; space?: ResourceSpace }
   | { page: "newEndpoint"; from?: From }
   | { page: "editEndpoint"; id: string; from?: From };
 
@@ -94,10 +95,12 @@ export function parseHash(hash: string): Route {
     }
     case "algorithms":
       return second ? { page: "algorithms", id: second } : { page: "algorithms" };
+    case "agents":
+      return second === "public" ? { page: "agents", space: "public" } : { page: "agents" };
     case "models":
       if (second === "new") return withFrom({ page: "newEndpoint" as const });
       if (second && third === "edit") return withFrom({ page: "editEndpoint" as const, id: second });
-      return { page: "models" };
+      return second === "public" ? { page: "models", space: "public" } : { page: "models" };
     default:
       return { page: "home" };
   }
@@ -127,7 +130,9 @@ export function hrefOf(route: Route): string {
     case "algorithms":
       return route.id ? `#/algorithms/${part(route.id)}` : "#/algorithms";
     case "models":
-      return "#/models";
+      return `#/models${route.space === "public" ? "/public" : ""}`;
+    case "agents":
+      return `#/agents${route.space === "public" ? "/public" : ""}`;
     case "newEndpoint":
       return `#/models/new${query({ from: fromValue(route.from) })}`;
     case "editEndpoint":

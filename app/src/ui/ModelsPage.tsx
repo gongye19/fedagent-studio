@@ -1,7 +1,8 @@
-import { endpointOf, isConfigured } from "../domain/resources";
+import { type ResourceSpace, endpointOf, isConfigured } from "../domain/resources";
 import { hrefOf } from "../state/route";
 import type { State } from "../state/store";
-import { PageHead, Tag } from "./common";
+import { PageHead, PanelEmpty, Tag } from "./common";
+import { ResourceScope } from "./resources/ResourceScope";
 import { Panel } from "./console";
 import { Icon } from "./icons";
 
@@ -11,15 +12,17 @@ function usedBy(state: State, endpointId: string): number {
 }
 
 /** 模型接口列表。新增和编辑都是独立页面，和参与方一样。 */
-export default function ModelsPage({ state }: { state: State }) {
+export default function ModelsPage({ state, space = "workspace" }: { state: State; space?: ResourceSpace }) {
   return (
     <>
       <PageHead
-        title="模型接口"
-        meta="平台托管的参与方和服务端通过这些接口调用模型；本地参与方用自己的模型。"
+        title="LLM 接口"
+        meta="提供模型推理能力，供平台内置流程与汇总步骤使用。"
         actions={<a className="button button--primary" href={hrefOf({ page: "newEndpoint" })}><Icon name="plus" />新增接口</a>}
       />
+      <ResourceScope space={space} routeOf={(value) => ({ page: "models", space: value })} />
       <Panel flush>
+        {!state.endpoints.some((e) => e.resourceSpace === space) ? <PanelEmpty>{space === "workspace" ? "尚未接入 LLM，可使用公用接口，或新增自己的接口。" : "暂无公用 LLM 接口。"}</PanelEmpty> : null}
         <div className="table-shell">
           <table className="table table--stack table--fixed">
             <thead>
@@ -33,7 +36,7 @@ export default function ModelsPage({ state }: { state: State }) {
               </tr>
             </thead>
             <tbody>
-              {state.endpoints.map((endpoint) => {
+              {state.endpoints.filter((e) => e.resourceSpace === space).map((endpoint) => {
                 const used = usedBy(state, endpoint.id);
                 return (
                   <tr key={endpoint.id}>

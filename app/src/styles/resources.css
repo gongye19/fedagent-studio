@@ -42,3 +42,6 @@
   .resource-selection button { width: 44px; height: 44px; }
   .task-config .table--select th[scope="row"] { min-width: 0; }
 }
+
+.agent-intake-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 16px; color: var(--muted); font-size: var(--text-sm); }
+.agent-intake-head p { margin: 0; }

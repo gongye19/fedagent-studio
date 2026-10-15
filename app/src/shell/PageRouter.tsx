@@ -9,6 +9,7 @@ import AppsPage from "../ui/AppsPage";
 import { EmptyState, NotFound, PageHead } from "../ui/common";
 import EndpointPage from "../ui/EndpointPage";
 import HomePage from "../ui/HomePage";
+import AgentsPage from "../ui/AgentsPage";
 import ModelsPage from "../ui/ModelsPage";
 import NewDatasetPage from "../ui/NewDatasetPage";
 import NewParticipantPage from "../ui/NewParticipantPage";
@@ -30,7 +31,7 @@ export function PageRouter({ state, dispatch, route }: { state: State; dispatch:
         <PlannedTaskConfig scenario={route.scenario} />
       );
     case "resources":
-      return <ResourcesPage state={state} space={route.space} kind={route.kind} selectedId={route.id} />;
+      return route.kind === "models" ? <ModelsPage state={state} space={route.space} /> : route.kind === "agents" ? <AgentsPage space={route.space} /> : <ResourcesPage state={state} space={route.space} selectedId={route.id} />;
     case "task": {
       const task = taskOf(state, route.id);
       return task ? (
@@ -73,7 +74,9 @@ export function PageRouter({ state, dispatch, route }: { state: State; dispatch:
       );
     }
     case "models":
-      return <ModelsPage state={state} />;
+      return <ModelsPage state={state} space={route.space} />;
+    case "agents":
+      return <AgentsPage space={route.space} />;
     case "newEndpoint":
       return <EndpointPage state={state} from={route.from} />;
     case "editEndpoint":

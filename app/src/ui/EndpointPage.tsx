@@ -23,7 +23,7 @@ type Props = { state: State; id?: string; from?: From };
  */
 export default function EndpointPage({ state, id, from }: Props) {
   const endpoint = id ? state.endpoints.find((item) => item.id === id) : undefined;
-  if (id && (!endpoint || endpoint.kind === "fake")) return <NotFound kind="接口" back={{ page: "models" }} backLabel="模型接口" />;
+  if (id && (!endpoint || endpoint.kind === "fake")) return <NotFound kind="接口" back={{ page: "models" }} backLabel="LLM 接口" />;
   return <EndpointForm key={id ?? "new"} state={state} endpoint={endpoint} from={from} />;
 }
 
@@ -69,7 +69,7 @@ export function EndpointForm({ state, endpoint, from, onSaved, onCancel, onBusyC
     model.trim() ? null : "模型",
     validPrice ? null : "正确的单价",
   ].filter((item): item is string => Boolean(item));
-  const back = backTo(from, endpoint?.resourceSpace === "workspace" ? { page: "resources",space:"workspace",kind:"models" } : { page: "models" }, state.draft.scenario);
+  const back = backTo(from, { page: "models", space: endpoint?.resourceSpace ?? "workspace" }, state.draft.scenario);
   const title = endpoint ? `编辑“${endpoint.name}”` : "新增接口";
 
   async function save() {
@@ -130,7 +130,7 @@ export function EndpointForm({ state, endpoint, from, onSaved, onCancel, onBusyC
   ) : null;
   return (
     <>
-      {!onSaved ? <PageHead title={title} crumbs={[{ label: endpoint?.resourceSpace === "workspace" && !from ? "我的模型接口" : "模型接口", route: back }]} actions={actions} /> : null}
+      {!onSaved ? <PageHead title={title} crumbs={[{ label: endpoint?.resourceSpace === "workspace" && !from ? "我的 LLM 接口" : "LLM 接口", route: back }]} actions={actions} /> : null}
       {testError ? <Notice tone="warning" onDismiss={() => setTestError(null)}>{`测试失败：${testError}`}</Notice> : null}
       {removing && endpoint ? (
         <Confirm title={`删除“${endpoint.name}”？`} confirmLabel="删除" onConfirm={() => remove()} onCancel={() => setRemoving(false)}>

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
@@ -9,7 +11,7 @@ from starlette.types import Scope
 
 from . import __version__
 from .errors import ServiceError
-from .http import apps, client, endpoints, resources, system, tasks
+from .http import agents, apps, checks, client, endpoints, resources, system, tasks
 from .platform import Platform
 
 
@@ -23,7 +25,14 @@ class FrontendFiles(StaticFiles):
 
 
 def create_app(platform: Platform) -> FastAPI:
-    app = FastAPI(title="FedAgent Studio API", version=__version__)
+    from .checks.service import interrupt_checks
+
+    @asynccontextmanager
+    async def lifespan(_app):
+        interrupt_checks(platform)
+        yield
+
+    app = FastAPI(title="FedAgent Studio API", version=__version__, lifespan=lifespan)
     app.state.platform = platform
 
     @app.exception_handler(ServiceError)
@@ -40,7 +49,7 @@ def create_app(platform: Platform) -> FastAPI:
             response.headers["Cache-Control"] = "no-store"
         return response
 
-    for router in (system.public, system.router, resources.router, endpoints.router, tasks.router, apps.router, client.router):
+    for router in (system.public, system.router, resources.router, endpoints.router, agents.router, checks.router, tasks.router, apps.router, client.router):
         app.include_router(router)
 
     @app.exception_handler(ModelError)

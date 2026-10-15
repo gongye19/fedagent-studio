@@ -65,7 +65,7 @@ function messageOf(status: number, detail: unknown): string {
   return `请求失败（${status}）`;
 }
 
-async function request<T>(method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+export async function request<T>(method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
   const headers: Record<string, string> = {};
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -132,6 +132,8 @@ export const api = {
   createDataset: (form: FormData) => post<S["DatasetOut"]>("/v1/datasets", form),
   deleteDataset: (id: string) => del(`/v1/datasets/${encodeURIComponent(id)}`),
 
+  downloadAgentProtocol: () => download("/v1/agent-protocol", "fedagent-agent-v1.json"),
+
   endpoints: () => get<S["EndpointOut"][]>("/v1/endpoints"),
   createEndpoint: (body: S["EndpointIn"]) => post<S["EndpointOut"]>("/v1/endpoints", body),
   updateEndpoint: (id: string, body: S["EndpointIn"]) => put<S["EndpointOut"]>(`/v1/endpoints/${encodeURIComponent(id)}`, body),
@@ -140,6 +142,8 @@ export const api = {
   /** 读接口地址提供的模型（选模型用）；没填密钥时用 endpointId 这个接口已保存的密钥。 */
   previewModels: (body: S["ModelListIn"]) => post<S["EndpointModelsOut"]>("/v1/endpoints/models", body),
 
+  testTask: (body: TaskConfigIn) => post<S["TaskCheckOut"]>("/v1/task-checks", body),
+  taskCheck: (id: string) => get<S["TaskCheckOut"]>(`/v1/task-checks/${encodeURIComponent(id)}`),
   validateTask: (body: TaskConfigIn) => post<S["ValidateOut"]>("/v1/tasks/validate", body),
   createTask: (body: TaskConfigIn) => post<S["TaskOut"]>("/v1/tasks", body),
   tasks: () => get<S["TaskOut"][]>("/v1/tasks"),

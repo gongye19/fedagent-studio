@@ -37,6 +37,8 @@ def task_out(platform: Platform, session: Session, task: m.Task) -> TaskOut:
             problems=len(site.items),
             answered=site.labeled,
             model=site.model_ref or "default",
+            agent_name=(task.audit.get("agents", {}).get((site.model_ref or "").removeprefix("agent:"), {}).get("name")
+                        if site.executor == "agent" else None),
         )
         for site in participants
     ]
@@ -158,7 +160,7 @@ def task_out(platform: Platform, session: Session, task: m.Task) -> TaskOut:
         cursor=cursor,
         rounds=rounds,
         fake=task.fake,
-        cost=cost,
+        cost=None if config.get("execution") == "agent" else cost,
     )
 
 

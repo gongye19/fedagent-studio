@@ -1,13 +1,8 @@
 /**
- * 参与方、数据集和模型接口。
- *
- * - 参与方：参加联邦的一个机构或节点，是一道隐私边界，原始数据不出本方。参与方本身不绑定场景，
- *   它能参加哪些联邦任务，由它登记的数据集决定。参与方有两种运行位置：
- *   平台托管 = 数据上传到平台，由平台代这一方运行 Agent，适合公开数据和算法运行；
- *   参与方本地 = 数据和模型密钥留在参与方自己的环境，由参与方运行客户端，只上传算法需要交换的内容。
- * - 数据集：只属于一个参与方。登记时选定场景和任务类型，只能用于同一场景、同一任务类型的联邦任务；
- *   本地参与方的数据集只登记名称和说明，样本数由客户端连上后上报。
- * 内置的数学题库分给平台托管的参与方（参与方 A–H），每方一份；它们由后端初始化。
+ * 数据来源、数据集与 LLM 接口。参与方是底层数据分组／旧客户端边界，不要求用户先建机构。
+ * hosting 描述数据存放与旧客户端方式；任务执行器单独选择内置流程或 Agent API。
+ * 已上传的样本可按步骤授权发送给所选 Agent，不能因此承诺原始数据不出来源环境。
+ * 数据按任务类型与规范匹配，可用于兼容场景；本地客户端仍只上报样本索引和交换内容。
  */
 import type { components } from "../api/schema";
 import { taskTypesFor, type ScenarioId, type TaskType } from "./catalog";
@@ -26,6 +21,8 @@ export type Dataset = components["schemas"]["DatasetOut"];
 
 /** 模型接口：OpenAI 兼容（kind 为 openai）或测试用的假模型（fake）。密钥只能写入、不能读出，这里只有 hasKey。 */
 export type Endpoint = components["schemas"]["EndpointOut"];
+
+export const DATA_LOCATION_LABELS: Record<Hosting, string> = { platform: "平台存储", local: "来源本地" };
 
 export const HOSTING_LABELS: Record<Hosting, string> = {
   platform: "平台运行",

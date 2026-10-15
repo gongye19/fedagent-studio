@@ -18,6 +18,7 @@ import { createTask, taskRequest } from "../../state/actions";
 import { showFlash } from "../../state/flash";
 import { navigate } from "../../state/route";
 import { type Action, type State } from "../../state/store";
+import { useTaskCheck } from "./useTaskCheck";
 import { useDebounced } from "../hooks";
 
 type Pending = "full" | "restart" | null;
@@ -36,7 +37,7 @@ export function useTaskConfig(state: State, dispatch: Dispatch<Action>, initialS
       ? "public"
       : "workspace",
   );
-  const [intake, setIntake] = useState<"data" | "clientModel" | "serverModel" | null>(null);
+  const [intake, setIntake] = useState<"data" | "clientModel" | "serverModel" | "agent" | null>(null);
 
   useEffect(() => {
     if (!resetOnOpen.current) return;
@@ -84,7 +85,12 @@ export function useTaskConfig(state: State, dispatch: Dispatch<Action>, initialS
   ];
   const result: Estimate | null =
     joined.length && requestCurrent && !check.error ? (check.data?.estimate ?? null) : null;
-  const canCreate = !issues.length && !validationPending && !validationError && Boolean(result);
+  const canTest = !issues.length && !validationPending && !validationError && Boolean(result);
+  const preflight = useTaskCheck(currentRequest, canTest);
+  const canCreate = canTest && preflight.valid;
+  if (attempted && canTest && !preflight.valid && !preflight.running)
+    issues.push({ field: "check", message: preflight.matches && preflight.report?.status === "failed"
+      ? "请修正检查发现的问题后重新测试" : "请先测试当前配置，通过后再开始任务" });
   const fieldError = (field: Issue["field"]) =>
     attempted
       ? issues
@@ -96,7 +102,9 @@ export function useTaskConfig(state: State, dispatch: Dispatch<Action>, initialS
   const [createError, setCreateError] = useState<string | null>(null);
   const full = draft.mode === "full";
   const autoName = defaultTaskName(draft, openedAt);
-  const overrideCount = Object.keys(activeOverrides(draft)).length;
+  const overrideCount = draft.execution === "agent"
+    ? Object.keys(draft.agentOverrides ?? {}).filter((id) => joined.some((p) => p.participantId === id)).length
+    : Object.keys(activeOverrides(draft)).length;
   const priceEndpoint = endpointOf(draft.clientModel, state.endpoints)?.id ?? DEFAULT_ENDPOINT_ID;
 
   async function create() {
@@ -111,7 +119,7 @@ export function useTaskConfig(state: State, dispatch: Dispatch<Action>, initialS
     setCreating(true);
     setCreateError(null);
     try {
-      const task = await createTask(body);
+      const task = await createTask({ ...body, checkId: preflight.id });
       dispatch({ type: "resetDraft" });
       showFlash(
         { page: "task", id: task.id },
@@ -179,6 +187,13 @@ export function useTaskConfig(state: State, dispatch: Dispatch<Action>, initialS
     } else void create();
   }
 
+  function testConfiguration(event: MouseEvent<HTMLButtonElement>) {
+    if (!canTest) { start(event); return; }
+    setAttempted(true);
+    setCreateError(null);
+    void preflight.test();
+  }
+
   const startLabel = full ? "创建并正式运行" : "创建并试跑";
   return {
     draft,
@@ -197,6 +212,9 @@ export function useTaskConfig(state: State, dispatch: Dispatch<Action>, initialS
     joined,
     result,
     canCreate,
+    canTest,
+    preflight,
+    testConfiguration,
     fieldError,
     creating,
     createError,

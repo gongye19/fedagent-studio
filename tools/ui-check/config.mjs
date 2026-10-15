@@ -22,8 +22,8 @@ const rows=`(()=>{const rows=[...document.querySelectorAll('.task-config .field-
 try{
  for(const width of [1280,390]){
   const touch=width===390;await viewport(send,{width,height:touch?844:900,mobile:touch});await open(send,base+'#/tasks/new/horizontal');
-  check('首次打开固定区域齐全且未替用户选 '+width,await evaluate(send,"document.querySelector('.task-config')&&document.getElementById('rounds-pending').disabled&&document.getElementById('trial-cap')&&!document.querySelector('input[name=algorithm]:checked')&&document.querySelectorAll('button[role=radio][aria-checked=true]').length===2&&document.querySelector('main').textContent.includes('所需资源')"));
-  check('名称并入配置且只有三个固定分区 '+width,await evaluate(send,"!document.getElementById('basic')&&document.getElementById('task-name').closest('section').id==='scenario'&&document.querySelectorAll('.order-main > section.panel').length===3"));
+  check('首次打开固定区域齐全且未替用户选 '+width,await evaluate(send,"document.querySelector('.task-config')&&document.getElementById('rounds-pending').disabled&&document.getElementById('trial-cap')&&!document.querySelector('input[name=algorithm]:checked')&&document.querySelectorAll('button[role=radio][aria-checked=true]').length===3&&document.querySelector('main').textContent.includes('所需资源')"));
+  check('名称并入配置，三个固定分区与测试区齐全 '+width,await evaluate(send,"!document.getElementById('basic')&&document.getElementById('task-name').closest('section').id==='scenario'&&document.querySelectorAll('.order-main > section.panel').length===4&&Boolean(document.getElementById('task-config-check'))"));
   check('重置紧邻摘要且无页头操作及页面取消 '+width,await evaluate(send,"document.querySelector('.summary-reset').closest('.panel-head').querySelector('h2').textContent==='配置摘要'&&document.querySelector('.summary-reset').disabled&&!document.querySelector('.page-actions')&&![...document.querySelectorAll('.summary-actions button,.order-bar button')].some(b=>b.textContent==='取消')"));
   check('配置与控件宽度受限 '+width,await evaluate(send,"document.querySelector('.order-main').getBoundingClientRect().width<=601&&document.getElementById('task-name').getBoundingClientRect().width<=560"));
   await click(tip,touch);
@@ -77,7 +77,7 @@ try{
   }
   await evaluate(send,"document.getElementById('settings').scrollIntoView({block:'start'});window.scrollBy(0,innerWidth>900?-16:-72);void 0");await sleep(350);await shot('config-settings-'+width);
   await evaluate(send,OPEN_ADVANCED);await sleep(300);await click('button[aria-label="并发数说明"]',touch);
-  check('高级参数解释不占配置行 '+width,await evaluate(send,"document.querySelector('[role=tooltip]').textContent.includes('同时发出的模型调用数')&&!document.querySelector('.field-help')"));
+  check('高级参数解释不占配置行 '+width,await evaluate(send,"document.querySelector('[role=tooltip]').textContent.includes('同时执行的工作单元数')&&!document.querySelector('.field-help')"));
   await shot('advanced-tip-'+width);await key('Escape');
   check('无横向溢出且业务写入为零 '+width,await evaluate(send,"document.documentElement.scrollWidth<=innerWidth&&window.__writes===0"));
   await evaluate(send,"document.querySelector('details.module').open=false;window.scrollTo(0,0);void 0");await sleep(350);await shot('config-'+width);await evaluate(send,"document.querySelector('.order-summary').scrollIntoView({block:'end'});void 0");await sleep(250);await shot('config-actions-'+width);

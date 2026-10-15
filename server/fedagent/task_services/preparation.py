@@ -117,7 +117,23 @@ def validate(platform: Platform, session: Session, body: TaskConfigIn) -> tuple[
     if body.mode == "full" and prepared.sites and not any(site.dataset.resource_space == "workspace" for site in prepared.sites):
         issue("participants", "正式任务至少需要一份我的数据；公用数据可以先用于试跑")
 
-    refs = {site.model_ref for site in prepared.sites if site.participant.hosting == "platform"}
+    if body.execution == "agent":
+        from ..agents.protocol import Capabilities
+        from ..agents.resources import compatible
+
+        if body.budget is not None:
+            issue("models", "外部 Agent 的费用由其服务管理，暂不能设置平台总费用上限")
+        for site in prepared.sites:
+            if site.participant.hosting == "local":
+                issue("participants", "自有 Agent 当前使用已上传的数据，请选择平台可读取的数据")
+                continue
+            agent_id = body.agent_overrides.get(site.participant.id) or body.agent_id
+            endpoint = session.get(m.AgentEndpoint, agent_id) if agent_id else None
+            if endpoint is None:
+                issue("models", "请为数据来源选择 Agent 接口")
+            elif endpoint.capabilities and not compatible(Capabilities.model_validate(endpoint.capabilities), algorithm):
+                issue("models", f"Agent“{endpoint.name}”不支持该算法的版本或完整步骤")
+    refs = {site.model_ref for site in prepared.sites if site.participant.hosting == "platform" and body.execution == "builtin"}
     if any(step.at == SERVER and step.model for step in manifest.steps):
         refs.add(body.server_model)
     for ref in sorted(refs):
@@ -169,6 +185,7 @@ def estimate(platform: Platform, body: TaskConfigIn, prepared: Prepared) -> Esti
         price = _price(platform, body.server_model)
         cost = None if price is None else cost + result.server_tokens * price / 1_000_000
     return EstimateOut(
+        remote_execution=body.execution == "agent",
         problems=problems,
         participant_calls=result.participant_calls,
         calls_are_upper_bound=result.calls_are_upper_bound,
@@ -176,5 +193,5 @@ def estimate(platform: Platform, body: TaskConfigIn, prepared: Prepared) -> Esti
         participant_tokens=result.participant_tokens,
         server_tokens=result.server_tokens,
         seconds=result.seconds,
-        cost=cost,
+        cost=None if body.execution == "agent" else cost,
     )

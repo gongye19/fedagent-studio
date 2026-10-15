@@ -10,6 +10,7 @@ import { TaskBasicsPanel } from "./task-config/TaskBasicsPanel";
 import { TaskResourcesPanel } from "./task-config/TaskResourcesPanel";
 import { TaskSummary } from "./task-config/TaskSummary";
 import { TaskStartBar } from "./task-config/TaskStartBar";
+import { TaskCheckPanel } from "./task-config/TaskCheckPanel";
 import { ResourceIntakeDialog } from "./ResourceIntakeDialog";
 
 export default function TaskConfigPage({
@@ -83,6 +84,7 @@ export default function TaskConfigPage({
           <Panel title="运行配置" id="settings" step={3}>
             <RunSettings draft={draft} update={update} algorithm={algorithm} roundsError={fieldError("rounds")} />
           </Panel>
+          <TaskCheckPanel config={config} />
           <AdvancedPanel
             state={state}
             draft={draft}
@@ -110,7 +112,7 @@ export default function TaskConfigPage({
       <TaskStartBar config={config} />
       <ResourceIntakeDialog
         state={state}
-        kind={intake === "data" ? "data" : intake ? "model" : null}
+        kind={intake === "data" || intake === "agent" ? intake : intake ? "model" : null}
         category={scenarioId && taskType ? { scenario: scenarioId, taskType } : undefined}
         onClose={() => setIntake(null)}
         onSaved={(saved) => {
@@ -119,6 +121,8 @@ export default function TaskConfigPage({
             setSpace("workspace");
             if (resource.dataset.ready)
               dispatch({ type: "pickDataset", participantId: resource.source.id, datasetId: resource.dataset.id });
+          } else if (saved.kind === "agent") {
+            update({ execution: "agent", agentId: saved.value.id });
           } else if (intake === "clientModel" || intake === "serverModel") {
             update({ [intake]: `${saved.value.id}:${saved.value.models[0]}` });
           }

@@ -2,7 +2,7 @@ import { SelectField } from "../SelectField";
 import { InfoTip } from "../InfoTip";
 import { useEffect, useRef, type Dispatch, type MouseEvent } from "react";
 import { type DataSourceChoice, type Draft } from "../../domain/config";
-import { HOSTING_LABELS } from "../../domain/resources";
+import { DATA_LOCATION_LABELS } from "../../domain/resources";
 import { type Action } from "../../state/store";
 import { formatNumber } from "../format";
 
@@ -78,13 +78,13 @@ export function ParticipantTable({
                 onChange={selectAll}
               />
             </th>
-            {/* 手机上也要看得到、选得了数据集，收起的是样本数和运行位置 */}
+            {/* 手机上也要看得到、选得了数据集，收起的是样本数和存放位置 */}
             <th scope="col">数据集</th>
             <th scope="col" className="numeric col-optional">
               样本
             </th>
             <th scope="col" className="col-optional">
-              运行位置
+              存放位置
             </th>
           </tr>
         </thead>
@@ -133,11 +133,11 @@ export function ParticipantTable({
                     <label htmlFor={inputId}>{shown.name}</label>
                   )}
                   <InfoTip label={`${shown.name} 的来源`}>
-                    {participant.name} · {HOSTING_LABELS[participant.hosting]}
+                    {participant.name} · {DATA_LOCATION_LABELS[participant.hosting]}
                   </InfoTip>
                 </th>
                 <td className="numeric col-optional">{formatNumber(shown.count)}</td>
-                <td className="col-optional">{HOSTING_LABELS[participant.hosting]}</td>
+                <td className="col-optional">{DATA_LOCATION_LABELS[participant.hosting]}</td>
               </tr>
             );
           })}

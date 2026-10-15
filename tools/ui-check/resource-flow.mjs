@@ -35,22 +35,19 @@ try{
   await click('横向联邦');await click('数学推理');await evaluate(send,"document.getElementById('algorithm-fot').click()");await sleep(250);
   check('资源入口按已选算法启用，先看我的数据',await evaluate(send,"document.querySelector('#participants .resource-space-bar button[aria-pressed=true]').textContent==='我的资源'&&document.getElementById('client-model')&&!document.getElementById('client-model').disabled"));
   await click('接入数据');check('任务上下文锁定数据类型，未要求先建参与方',await evaluate(send,"document.querySelector('.resource-context').textContent.includes('数学推理')&&!document.querySelector('.resource-dialog [aria-labelledby$=type]')"));
-  await click('平台运行');await file(`${out}/invalid.jsonl`);await until("document.querySelector('.check-result--failed')");
+  check('普通上传不显示客户端或来源选择',await evaluate(send,"!document.getElementById('resource-hosting-label')&&!document.getElementById('resource-source')"));await file(`${out}/invalid.jsonl`);await until("document.querySelector('.check-result--failed')");
   check('错误文件不能保存，未留下空来源',await evaluate(send,"[...document.querySelectorAll('.resource-dialog button')].find(b=>b.textContent==='保存数据').disabled")&&(await read('v1/participants')).length===original.participants.length);
   await file(`${out}/AIME24-input.jsonl`);await until("document.querySelector('.check-result--ok')?.textContent.includes('检查通过')");
-  // Actual pointer opening validates nested Select's portal and focus trap.
-  await evaluate(send,"document.getElementById('resource-source').focus()");await key('ArrowDown');await until("document.querySelector('[role=listbox]')");
-  check('接入弹窗内菜单位于弹窗上方',await evaluate(send,"(()=>{const e=document.querySelector('[role=listbox]');const r=e.getBoundingClientRect();return Number(getComputedStyle(e).zIndex)>Number(getComputedStyle(document.querySelector('.resource-dialog')).zIndex)&&!!document.elementFromPoint(r.x+10,r.y+10)?.closest('[role=listbox]')})()"));
-  await key('Escape');await click('保存数据');await until("!document.querySelector('.resource-dialog')");
+  await click('保存数据');await until("!document.querySelector('.resource-dialog')");
   const created=(await read('v1/datasets')).find(d=>!original.datasets.includes(d.id)&&d.name==='AIME24-input'&&d.sourceHash===inputHash);assert.ok(created);resource={dataset:created,source:(await read('v1/participants')).find(p=>p.id===created.participantId)};owned();
   check('保存与自动选入真实资源，配置未离开',resource.dataset.resourceSpace==='workspace'&&resource.dataset.count===2&&await evaluate(send,`location.hash==='#/tasks/new'&&document.getElementById('pick-${resource.source.id}').checked&&document.activeElement.textContent.includes('接入数据')`));
   await click('公用资源');await evaluate(send,"document.querySelector('input[aria-label=全选]').click()");await sleep(150);await evaluate(send,"document.querySelector('input[aria-label=全选]').click()");await sleep(150);
   check('另一资源范围全选／取消不清除我的选择',await evaluate(send,"document.querySelector('.resource-selection').textContent.includes('AIME24-input')"));
   await evaluate(send,"document.getElementById('pick-p-b').click()");await sleep(200);
   await evaluate(send,SELECT('rounds','2'));await set('trial-cap','1');await evaluate(send,SELECT('client-model',model));await evaluate(send,SELECT('server-model',model));
-  await click('正式运行');await until("document.querySelector('.summary-start[data-ready=true]:not(:disabled)')");
+  await click('正式运行');await until("document.querySelector('.config-test-trigger[data-ready=true]:not(:disabled)')");
   check('我的与公用数据组合满足正式输入要求',await evaluate(send,"document.querySelector('.summary-start').textContent==='创建并正式运行'"));
-  await click('试跑');await until("document.querySelector('.summary-start[data-ready=true]:not(:disabled)')");await shot('mixed-task-config');
+  await click('试跑');await until("document.querySelector('.config-test-trigger[data-ready=true]:not(:disabled)')");await click('测试配置');await until("document.querySelector('.summary-start[data-ready=true]:not(:disabled)')");await shot('mixed-task-config');
   await click('创建并试跑');await until("location.hash.includes('/tasks/task-')");taskId=await evaluate(send,"location.hash.split('/')[2]");owned();
   let task;const deadline=Date.now()+(local?60000:600000);
   while(Date.now()<deadline){task=await read(`v1/tasks/${taskId}`);if(task.status==='completed')break;assert.ok(!['paused','failed','canceled'].includes(task.status),task.error);await sleep(local?300:3000)}
@@ -66,7 +63,7 @@ try{
   check('窄屏接入窗口可滚动且不横向溢出',await evaluate(send,"document.documentElement.scrollWidth<=390&&document.querySelector('.resource-dialog').getBoundingClientRect().width<=390&&getComputedStyle(document.querySelector('.resource-dialog-body')).overflowY==='auto'"));
   await key('Escape');check('关闭接入保留算法配置并恢复焦点',await evaluate(send,"document.getElementById('algorithm-fot').checked&&!document.querySelector('.resource-dialog')&&document.activeElement.textContent.includes('接入数据')"));
   if(local){
-    await click('接入模型');await set('endpoint-name','本地资源接口验证（完成后清理）');await set('endpoint-model','local-check');await set('endpoint-url','http://127.0.0.1:8000/v1');await click('保存接口');await until("!document.querySelector('.resource-dialog')");
+    await click('接入 LLM');await set('endpoint-name','本地资源接口验证（完成后清理）');await set('endpoint-model','local-check');await set('endpoint-url','http://127.0.0.1:8000/v1');await click('保存接口');await until("!document.querySelector('.resource-dialog')");
     const added=(await read('v1/endpoints')).find(e=>!original.endpoints.includes(e.id));assert.ok(added);modelEndpointId=added.id;
     check('任务中接入模型归入我的资源并写回实际引用',added.resourceSpace==='workspace'&&await evaluate(send,`document.querySelector('input[name=client-model]').value==='${added.id}:local-check'`));
     await open(send,base+'#/resources/mine/models');check('我的模型与公用接口分别展示',await evaluate(send,"document.querySelector('main').textContent.includes('本地资源接口验证')&&!document.querySelector('main').textContent.includes('测试用假模型')"));
