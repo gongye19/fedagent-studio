@@ -46,3 +46,5 @@ T81更新旧脚本：resource-flow移除平台／客户端与来源菜单；task
 
 
 `agent-ui.mjs`为只读验收：桌面／手机的三类资源、Agent接入窗口、当前协议下载、上传移除客户端、公用LLM取消返回与空Agent引导，拦截全部写请求。`agent-resume.mjs`只用于已明确授权的真实医疗验证恢复，必须提供本轮OWNED_FILE并设置REAL_MODEL_VERIFY=1；只续跑这些ID，发布／调用／导出后清理本轮资源，失败保留检查点，不重建已完成的FoT任务。
+
+T82：`medical-agents.mjs`验证FoT原生LLM路径和两份医疗数据分别绑定两个独立医疗API的路径，包含界面登记／自动能力检查、主动完整步骤测试、两轮任务、经验导出及两个原API加载最终经验后继续诊断。默认本地9031／9032，先分别启动`fedagent medical-serve --platform-model fake:fake --store <独立目录> --port <端口>`；本地数据目录FEDAGENT_DATA_DIR应与开发平台一致，测试明确设置FEDAGENT_FAKE_ENDPOINT=1。线上需REAL_MODEL_VERIFY=1，KEEP_AGENTS=1保留团队服务登记，BASE使用实验室地址。Agent登记地址AGENT_A_URL／AGENT_B_URL供平台访问；DIRECT_AGENT_A／B可使用仅监听回环的SSH转发供本机验证原API。预计US$0.5–2，测试报告不代表准确率提升。ONLY_ALGORITHM用于只补测失败的单条流程；脚本仅清理自身任务／应用／数据／报告，原资源逐项保留。medical-flow仍覆盖上传错误与结构化应用，需已启动医疗服务；agent-flow仍测试可选自有FoT执行。

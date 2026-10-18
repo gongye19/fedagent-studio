@@ -94,13 +94,14 @@ class SourceOut(Model):
 
 
 class ResourceRequirementsOut(Model):
+    agent_required: bool = False
     data_required: bool
     min_sources: int
     min_samples: int
     participant_model: bool
     server_model: bool
     execution_label: str
-    execution_modes: list[Literal["platform", "local"]]
+    execution_modes: list[Literal["platform", "local", "agent"]]
 
 
 class AlgorithmOut(Model):

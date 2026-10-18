@@ -138,6 +138,8 @@ class Manifest(_Model):
     summary: str = ""
     scenario: ScenarioId
     accepts: list[str]
+    agent_required: bool = False
+    """本方流程必须由接入方 Agent 执行；不影响 SDK 在用户侧执行插件。"""
     roles: dict[str, RoleDef]
     rounds: RoundsDef = RoundsDef()
     channels: dict[str, ChannelDef] = {}

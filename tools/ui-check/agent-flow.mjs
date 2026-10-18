@@ -23,7 +23,7 @@ async function shot(name,width=1280){const m=await send('Page.getLayoutMetrics')
 try{
  await viewport(send,{width:1280,height:900});await open(send,base+'#/agents',local?1400:4000);
  check('数据／LLM／Agent 三类导航平级',await evaluate(send,"['数据资源','LLM 接口','Agent 接口'].every(t=>[...document.querySelectorAll('.side-nav>a')].some(a=>a.textContent.trim()===t))"));
- await click('接入 Agent');await set('agent-name',`Agent 接入验证 ${stamp}`);await set('agent-url',process.env.AGENT_URL??'http://127.0.0.1:9020');await shot('agent-form');await click('保存接口');await until("!document.querySelector('.resource-dialog')");
+ await click('接入 Agent');await set('agent-name',`Agent 接入验证 ${stamp}`);await set('agent-url',process.env.AGENT_URL??'http://127.0.0.1:9020');await shot('agent-form');await click('保存并检查');await until("!document.querySelector('.resource-dialog')");
  const agent=(await request('agents')).find(a=>a.name===`Agent 接入验证 ${stamp}`);assert.ok(agent);owned.agents.push(agent.id);save();
  await evaluate(send,`[...document.querySelectorAll('tbody tr')].find(r=>r.textContent.includes('Agent 接入验证')).querySelector('button').click()`);await until("[...document.querySelectorAll('tbody tr')].find(r=>r.textContent.includes('Agent 接入验证'))?.textContent.includes('已读取能力')");
  check('注册的 Agent 声明支持两种算法，未要求登记内部 LLM',Boolean((await request('agents')).find(a=>a.id===agent.id).capabilities.algorithms.evomedclaw));
@@ -37,7 +37,7 @@ try{
    const compatible=datasets.filter(d=>d.taskType===type);const selected=(medical?compatible:compatible.sort((a,b)=>a.name.localeCompare(b.name))).slice(0,2);assert.equal(selected.length,2);
    await open(send,base+'#/tasks/new',local?1300:4000);await click('横向联邦');await click(medical?'医疗诊断':'数学推理');await evaluate(send,`document.getElementById('algorithm-${algorithm}').click()`);await sleep(180);
    for(const dataset of selected){await click(dataset.resourceSpace==='public'?'公用资源':'我的资源');await evaluate(send,`document.getElementById('pick-${dataset.participantId}').click()`);await sleep(150)}
-   await click('自有 Agent');await evaluate(send,SELECT('task-agent',agent.id));
+   if(!medical)await click('自有 Agent');await evaluate(send,SELECT('task-agent',agent.id));
    check(`${algorithm}选择 Agent 后不再要求本方 LLM`,await evaluate(send,`!document.getElementById('client-model')&&Boolean(document.getElementById('server-model'))===${!medical}`));
    if(!medical)await evaluate(send,SELECT('server-model',model));
    await evaluate(send,SELECT('rounds','2'));await set('trial-cap',medical?2:1);await set('task-name',`Agent ${algorithm} 验证 ${stamp}`);

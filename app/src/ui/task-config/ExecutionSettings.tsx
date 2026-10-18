@@ -1,4 +1,3 @@
-import { AgentOverrides } from "./AgentOverrides";
 import { SelectField } from "../SelectField";
 import { ModelPicker } from "../ModelPicker";
 import { paramValue, type Algorithm, type ParamDef, type ParamValue, type Params } from "../../domain/catalog";
@@ -167,7 +166,6 @@ export function AdvancedPanel({
               onChange={(event) => update({ seed: clampInt(event.target.value, 0, 1_000_000, draft.seed) })}
             />
           </Field>
-          {draft.execution === "agent" && state.agents.length > 1 && joined.length ? <Field label="单独指定 Agent" wide><AgentOverrides state={state} draft={draft} joined={joined} update={update} /></Field> : null}
           {canOverride ? (
             <Field label="单独指定模型" labelId="overrides-label" wide>
               <ModelOverrides state={state} draft={draft} update={update} joined={joined} />

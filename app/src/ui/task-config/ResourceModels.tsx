@@ -2,11 +2,12 @@ import { SelectField } from "../SelectField";
 import { ModelPicker } from "../ModelPicker";
 import { type Algorithm } from "../../domain/catalog";
 import { type Draft } from "../../domain/config";
-import { endpointOf, isConfigured, modelOptions } from "../../domain/resources";
+import { compatibleAgents, endpointOf, isConfigured, modelOptions } from "../../domain/resources";
 import { hrefOf, type Route } from "../../state/route";
 import { type State } from "../../state/store";
 import { Choices, Field, FieldGroup } from "../console";
 import { InlineError } from "./InlineError";
+import { AgentOverrides } from "./AgentOverrides";
 
 export function ResourceModels({
   state,
@@ -16,6 +17,7 @@ export function ResourceModels({
   modelsError,
   onIntake,
   allLocal,
+  joined,
 }: {
   state: State;
   draft: Draft;
@@ -24,8 +26,10 @@ export function ResourceModels({
   modelsError?: string;
   onIntake: (kind: "clientModel" | "serverModel" | "agent") => void;
   allLocal: boolean;
+  joined: readonly string[];
 }) {
   const options = modelOptions(state.endpoints);
+  const agents = compatibleAgents(state.agents, algorithm);
   return (
     <div className="resource-models">
       <FieldGroup>
@@ -34,7 +38,7 @@ export function ResourceModels({
           labelId="execution-mode"
           info="内置流程由平台使用所选 LLM 执行；自有 Agent 由独立服务执行完整的本方步骤。选择 Agent 将把步骤所需样本发送到该服务，Agent 自己管理模型与工具。"
         >
-          <Choices
+          {algorithm?.requirements.agentRequired ? <p className="field-static">自有 Agent</p> : <Choices
             labelledBy="execution-mode"
             value={draft.execution ?? "builtin"}
             options={[
@@ -42,7 +46,7 @@ export function ResourceModels({
               { value: "agent", label: "自有 Agent", disabled: !algorithm },
             ]}
             onChange={(execution) => update({ execution })}
-          />
+          />}
         </Field>
         {draft.execution === "agent" ? (
           <Field
@@ -57,13 +61,13 @@ export function ResourceModels({
                 id="task-agent"
                 name="task-agent"
                 value={draft.agentId ?? ""}
-                disabled={!algorithm || !state.agents.length}
+                disabled={!algorithm || !agents.length}
                 onValueChange={(agentId) => update({ agentId })}
               >
                 <option value="" disabled>
-                  {state.agents.length ? "选择 Agent 接口" : "暂无 Agent 接口"}
+                  {agents.length ? "选择 Agent 接口" : "暂无匹配的 Agent 接口"}
                 </option>
-                {state.agents.map((agent) => (
+                {agents.map((agent) => (
                   <option key={agent.id} value={agent.id}>
                     {agent.name}
                     {agent.resourceSpace === "public" ? "（公用）" : ""}
@@ -79,6 +83,11 @@ export function ResourceModels({
                 接入 Agent
               </button>
             </div>
+          </Field>
+        ) : null}
+        {draft.execution === "agent" && joined.length > 1 && agents.length > 0 ? (
+          <Field label="分别指定" optional info="默认使用上方接口；需要不同 Agent 执行时，为对应的数据单独指定。">
+            <AgentOverrides state={state} agents={agents} draft={draft} joined={joined} update={update} />
           </Field>
         ) : null}
         {(["clientModel", "serverModel"] as const)

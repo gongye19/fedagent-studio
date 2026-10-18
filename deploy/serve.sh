@@ -67,6 +67,7 @@ stop_one() {
 
 stop_all() {
   stop_one runner
+  [ ! -f "$ROOT/medical-agents.sh" ] || bash "$ROOT/medical-agents.sh" stop
   stop_one api
 }
 
@@ -108,6 +109,7 @@ start_all() {
   # 按 uv.lock 装依赖（不装开发依赖）；需要时先下载 Python 3.12 到 python/
   (cd server && ../bin/uv sync --frozen --no-dev --python 3.12)
   "$FEDAGENT" db upgrade
+  [ ! -f "$ROOT/medical-agents.sh" ] || bash "$ROOT/medical-agents.sh" start
   # 令牌只交给 api 进程
   (
     unset FEDAGENT_ADMIN_TOKEN
@@ -131,6 +133,7 @@ start_all() {
 }
 
 status() {
+  [ ! -f "$ROOT/medical-agents.sh" ] || bash "$ROOT/medical-agents.sh" status
   for name in api runner; do
     if alive "$name"; then echo "$name: running (pid $(cat "run/$name.pid"))"; else echo "$name: stopped"; fi
   done

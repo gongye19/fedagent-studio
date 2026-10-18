@@ -17,7 +17,7 @@ def backup(root: Path) -> Path | None:
     db = data / 'fedagent.db'
     if not db.is_file():
         return None
-    for name in ('api', 'runner'):
+    for name in ('api', 'runner', 'medical-a', 'medical-b'):
         pidfile = root / 'run' / f'{name}.pid'
         if pidfile.exists():
             try:
@@ -25,7 +25,7 @@ def backup(root: Path) -> Path | None:
             except ProcessLookupError:
                 pass
             else:
-                raise RuntimeError('请先停止 API 和 runner，再备份完整数据目录')
+                raise RuntimeError('请先停止 API、runner 和医疗 Agent，再备份完整数据目录')
     backups = root / 'backups'
     backups.mkdir(mode=0o700, exist_ok=True)
     os.chmod(backups, 0o700)
@@ -34,7 +34,9 @@ def backup(root: Path) -> Path | None:
     destination = backups / stamp
     temporary.mkdir(mode=0o700)
     try:
-        shutil.copytree(data, temporary / 'data', ignore=shutil.ignore_patterns('fedagent.db', 'fedagent.db-wal', 'fedagent.db-shm'))
+        shutil.copytree(data, temporary / 'data', ignore=lambda directory, names:
+                        [name for name in names if name in ('fedagent.db', 'fedagent.db-wal', 'fedagent.db-shm')]
+                        if Path(directory) == data else [])
         with closing(sqlite3.connect(f'file:{db}?mode=ro', uri=True)) as source, closing(sqlite3.connect(temporary / 'data' / 'fedagent.db')) as target:
             source.backup(target)
             target.execute('PRAGMA journal_mode=DELETE')

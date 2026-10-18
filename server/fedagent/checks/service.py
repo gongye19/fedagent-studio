@@ -8,17 +8,14 @@ from fedagent_sdk import ModelError, StepFailed
 from sqlalchemy import update
 
 from .. import models as m
-from ..agents.adapter import validate_result
 from ..agents.gateway import AgentGateway
-from ..agents.protocol import AgentRequest
-from ..agents.resources import compatible
-from ..agents.runtime import context_of
-from ..data import check_file, to_item
+from ..data import check_file
 from ..errors import ServiceError
 from ..resources import new_id, not_found
 from ..schemas import TaskConfigIn
 from ..schemas.checks import CheckResult, TaskCheckOut
 from ..task_services.preparation import validate
+from .agent import check_agent
 from .fingerprint import fingerprint
 
 EXPIRY = timedelta(minutes=15)
@@ -114,6 +111,8 @@ def run(platform, check_id: str, body: TaskConfigIn) -> None:
                 return f"{report.count} 条样本的结构、标注规则与文件完整性通过"
 
             attempt("participants", site.dataset.name, check_data)
+        if any(entry.status == "failed" for entry in results):
+            return
         refs = {site.model_ref for site in prepared.sites if body.execution == "builtin" and site.participant.hosting == "platform"}
         if any(step.at == "server" and step.model for step in algorithm.manifest.steps):
             refs.add(body.server_model)
@@ -127,52 +126,19 @@ def run(platform, check_id: str, body: TaskConfigIn) -> None:
                     raise ValueError("模型返回为空，请检查模型与生成参数")
                 return "实际推理请求通过"
 
-            attempt("models", ref, check_model)
+            if not attempt("models", ref, check_model):
+                return
         if body.execution == "agent":
             for site in prepared.sites:
                 agent_id = body.agent_overrides.get(site.participant.id) or body.agent_id
                 if not agent_id or site.participant.id not in records:
                     continue
 
-                def check_agent(agent_id=agent_id, site=site):
-                    gateway = AgentGateway(platform)
-                    cap = gateway.capabilities(agent_id)
-                    if not compatible(cap, algorithm):
-                        raise ValueError("Agent 未声明支持当前算法的版本与全部参与方步骤")
-                    with platform.db.session() as session:
-                        endpoint = session.get(m.AgentEndpoint, agent_id)
-                        if endpoint:
-                            endpoint.capabilities = cap.model_dump(mode="json")
-                    step = algorithm.manifest.step(algorithm.manifest.evaluation.step) if algorithm.manifest.evaluation else None
-                    if step is None or step.per != "item":
-                        raise ValueError("当前算法尚未提供可用于接入测试的单条评估步骤")
-                    rows = records[site.participant.id]
-                    record = next((row for row in rows if row.get("split") == "eval"), rows[0])
-                    item = to_item(task_type, record, labels=False)
-                    body_remote = AgentRequest(
-                        run_id="pending",
-                        algorithm=algorithm.id,
-                        version=algorithm.version,
-                        task_type=body.task_type,
-                        task_id=check_id,
-                        site_id=site.participant.id,
-                        role=step.at,
-                        round=1,
-                        rounds=body.rounds,
-                        step=step.id,
-                        unit_key=item.id,
-                        params=algorithm.manifest.params_of(body.params),
-                        items=[item],
-                    )
-                    status = gateway.execute(agent_id, body_remote, timeout=180)
-                    assert status.result is not None
-                    ctx = context_of(body_remote, algorithm)
-                    value = validate_result(status.result, ctx, {})
-                    if not value.predictions or any(prediction is None or prediction == "" for _, prediction in value.predictions):
-                        raise ValueError("Agent 未返回可用于平台评估的预测，请检查输出适配")
-                    return "能力声明、真实样本执行与预测格式通过"
-
-                attempt("models", f"{site.dataset.name} · Agent", check_agent)
+                if not attempt("models", f"{site.dataset.name} · Agent",
+                        lambda agent_id=agent_id, site=site: check_agent(
+                            platform, agent_id, algorithm, task_type, site,
+                            records[site.participant.id], check_id, body)):
+                    return
         with platform.db.session() as session:
             if get(session, check_id).fingerprint != fingerprint(platform, session, body):
                 result("check", "配置版本", "failed", "测试期间资源发生变化，请重新测试")

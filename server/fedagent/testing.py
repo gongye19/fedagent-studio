@@ -25,6 +25,7 @@ from . import models as m
 from .engine import TaskEngine
 from .gateway import GatewayModel
 from .platform import Platform
+from .registry import Registry
 from .resources import create_dataset, create_participant
 from .schemas import ParticipantIn, TaskConfigIn, TaskParticipantIn
 from .seed import seed
@@ -138,10 +139,12 @@ def run_contract(
 ) -> ContractReport:
     """datasets：参与方名称 → 样本列表（平台托管）。用测试用假模型跑两遍（一次跑完、一次中途暂停再继续）。"""
     root = workdir or Path(tempfile.mkdtemp(prefix="fedagent-contract-"))
-    platform = Platform.create(Settings(data_dir=root, fake_endpoint=True))
+    platform = Platform.create(Settings(data_dir=root, fake_endpoint=True), registry=Registry.discover())
     seed(platform)
     plugin = platform.registry.algorithm(algorithm)
     manifest = plugin.manifest
+    # SDK 内部契约验证本方代码；外部接入另用独立 HTTP 流程测试。
+    manifest.agent_required = False
     task_type = task_type or manifest.accepts[0]
     tt = platform.registry.task_type(task_type)
     report = ContractReport(algorithm=algorithm)

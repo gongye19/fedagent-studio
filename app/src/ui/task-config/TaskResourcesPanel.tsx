@@ -105,6 +105,7 @@ export function TaskResourcesPanel({
         draft={draft}
         update={update}
         algorithm={algorithm}
+        joined={joined.map((p) => p.participantId)}
         modelsError={fieldError("models")}
         onIntake={setIntake}
         allLocal={joined.length > 0 && joined.every((p) => participantOf(state, p.participantId)?.hosting === "local")}

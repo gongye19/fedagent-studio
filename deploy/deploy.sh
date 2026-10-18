@@ -48,7 +48,7 @@ rsync_retry() {
 }
 ssh_retry true
 ssh_retry 'mkdir -p ~/fedagent-studio/backups && chmod 700 ~/fedagent-studio/backups'
-rsync_retry -az -e "${SSH[*]}" deploy/serve.sh deploy/backup.py "$HOST":fedagent-studio/
+rsync_retry -az -e "${SSH[*]}" deploy/serve.sh deploy/backup.py deploy/medical-agents.sh "$HOST":fedagent-studio/
 ssh_retry 'bash ~/fedagent-studio/serve.sh stop'
 # 数据和解密密钥必须一起备份；备份失败时不覆盖服务器代码。
 if ! ssh_retry 'bash ~/fedagent-studio/serve.sh backup'; then

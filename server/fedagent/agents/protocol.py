@@ -69,6 +69,7 @@ class RunStatus(Wire):
     result: AgentResult | None = None
     error: str | None = None
     retryable: bool = False
+    error_code: Literal["diagnosis_incomplete", "model_error", "invalid_output"] | None = None
 
 
 def document(registry) -> dict[str, Any]:
@@ -95,5 +96,8 @@ def document(registry) -> dict[str, Any]:
         "requestSchema": AgentRequest.model_json_schema(),
         "responseSchema": RunStatus.model_json_schema(),
         "algorithms": {algorithm.id: algorithm.manifest.model_dump(mode="json", by_alias=True) for algorithm in registry.algorithms.values()},
+        "outputContracts": {algorithm.id: algorithm.agent_output_contract() for algorithm in registry.algorithms.values()},
+        "dataContracts": {task.id: {"schemaVersion": task.schema_version, "format": task.format_hint,
+                          "rules": task.unlabeled_note, "template": task.template} for task in registry.task_types.values()},
         "implementation": "参考当前算法插件与SDK的StepContext／UnitResult实现，代码安装包可从平台 /client/ 下载。",
     }

@@ -22,6 +22,7 @@ export function AgentEndpointForm({
   const [clearKey, setClearKey] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState(endpoint?.id);
   const missing = [!name.trim() && "接口名称", !baseUrl.trim() && "服务地址"].filter((s): s is string =>
     Boolean(s),
   );
@@ -33,10 +34,17 @@ export function AgentEndpointForm({
     try {
       const agent = await agentsApi.save(
         { name: name.trim(), baseUrl: baseUrl.trim(), apiKey: clearKey ? "" : key.trim() || null },
-        endpoint?.id,
+        savedId,
       );
+      setSavedId(agent.id);
       await queryClient.invalidateQueries({ queryKey: keys.agents });
-      onSaved(agent);
+      try {
+        const checked = await agentsApi.check(agent.id);
+        await queryClient.invalidateQueries({ queryKey: keys.agents });
+        onSaved(checked);
+      } catch (failure) {
+        setError(`接口已保存，但能力检查未通过：${failure instanceof Error ? failure.message : "请检查服务地址和协议"}`);
+      }
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "保存失败，请重试");
     } finally {
@@ -117,7 +125,7 @@ export function AgentEndpointForm({
         missing={missing}
         saving={saving}
         error={error}
-        saveLabel="保存接口"
+        saveLabel="保存并检查"
         onCancel={onCancel}
         onSave={() => void save()}
       />

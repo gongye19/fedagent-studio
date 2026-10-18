@@ -112,10 +112,17 @@ class AgentGateway:
                 if status.result is None:
                     raise AgentError("Agent 报告完成但缺少结果")
                 return status
-            if status.status == "failed" and status.retryable:
-                raise StepFailed(f"Agent 明确报告可重试失败：{run_id}", pause=False)
-            if status.status in ("failed", "canceled"):
-                raise AgentError(f"Agent 执行{'失败' if status.status == 'failed' else '已取消'}，请在该服务中检查运行 {run_id}")
+            if status.status == "failed":
+                guidance = {
+                    "diagnosis_incomplete": "Agent 在问诊上限内未形成最终诊断，请增加高级配置中的问诊回合上限后重新测试",
+                    "model_error": "Agent 的内部模型调用失败，请检查接入方的 LLM 连接和额度",
+                    "invalid_output": "Agent 的业务输出不完整，请按下载的算法输出规范检查服务实现",
+                }.get(status.error_code or "", "Agent 执行失败，请检查该服务的运行记录")
+                if status.retryable:
+                    raise StepFailed(f"{guidance}（运行 {run_id}）", pause=False)
+                raise AgentError(f"{guidance}（运行 {run_id}）")
+            if status.status == "canceled":
+                raise AgentError(f"Agent 执行已取消，请在该服务中检查运行 {run_id}")
             if time.monotonic() - started > timeout:
                 raise AgentError("等待 Agent 结果超时；运行编号已保留，继续任务将查询同一次运行")
             time.sleep(0.2)

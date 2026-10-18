@@ -4,12 +4,18 @@
 
 当前支持 FoT 数学推理与 EvoMedClaw 横向文本诊断。Agent 替代参与方步骤，中心汇总仍由平台执行；FoT 中心需要另选 LLM，医疗聚合不需要中心 LLM。每份数据默认使用同一 Agent，可在高级配置单独指定。不同来源的 task／site／round 状态分别隔离；共用一个 URL 不代表它们是独立机构。
 
+## 当前职责边界（T82）
+
+FoT由平台提供固定LLM流程，用户接入数据和LLM即可；自有FoT Agent仍可作为可选执行方式。医疗任务要求接入方Agent，不能以LLM替代；平台提供联邦规范、编排、聚合和独立评测。插件包保留医疗本方实现作为接入方可复用代码及算法成果的应用运行时，不能因此把平台称为用户的医疗系统。
+
+Agent保存后自动读取/capabilities（不计模型费用）；失败保留同一资源并在窗口原位说明。配置测试会实际执行所有本方步骤：FoT一题solve／reflect／extract，医疗一条learn病例和一条eval病例的diagnose，再执行learn；检测kept过程、预测一致性、经验结构／来源／轮次／版本。医疗经验允许空cards表示无可共享卡，但必须返回规范delta；测试仍需有实际发送的经验消息。数据或接口出现确定失败后停止后续付费检查，修正后由用户重测；单个远程步骤最多等待600秒，报告只显示实际完成项。测试通过不代表准确率或隐私语义已经证明。输出JSON Schema和对应数据模板一并加入/agent-protocol下载。
+
 ## 用户怎么接入
 
 1. 数据资源上传匹配任务类型的 JSONL，上传时完成全文件格式检查；也可选择已有公用数据试跑。
 2. 在 Agent 接口点击接入，可下载当前JSON协议与算法清单（`GET /v1/agent-protocol`），再填写名称、服务根地址和可选 Bearer 密钥，点击“检查能力”。密钥加密保存、不能读回，修改地址后旧密钥清除。
 3. 新建任务依次选择场景、任务类型、算法、数据，执行方式选“自有 Agent”，再选择接口；需要中心 LLM 时单独选择。
-4. 点击“测试配置”，确认会向所选服务发送样本并产生少量费用。测试检查文件完整性／规范、真实 LLM 请求、Agent 能力版本和一条去掉评测答案的实际预测；不会自动创建正式任务、经验库或应用。测试不测算法准确率，也不保证每个后续请求成功。
+4. 点击“测试配置”，确认会向所选服务发送样本并产生少量费用。测试检查文件完整性／规范、真实 LLM 请求、Agent 能力版本以及最小样本的完整本方流程；不会自动创建正式任务、经验库或应用。测试不测算法准确率，也不保证每个后续请求成功。
 5. 报告通过后开始。配置或资源变化、报告超过15分钟均需重测；改任务名称不影响结果。刷新继续读原报告，不重复发送付费请求。服务重启中断的检查显示失败，需手动重测。
 
 当前使用已上传到平台的文件。步骤需要的原始样本会发往所选 Agent，平台的 LLM 密钥不会发送；**没有实现只传远程文件引用或原始数据不出用户环境的外部 Agent 模式**。旧本地客户端仍通过独立领取协议执行，普通上传不再提供客户端选项；旧客户端数据仅核对在线／版本／上报，原文件检查明确标为未由平台读取。
@@ -52,7 +58,7 @@
 
 ### GET /runs/{run_id}
 
-返回 `{run_id, status, result, error, retryable}`。`retryable`默认false；只有明确failed且声明可重试时，平台才按算法步骤的重试上限重做；网络状态不明不据此重新提交。状态为queued／running／succeeded／failed／canceling／canceled。完成时必须有result：
+返回 `{run_id, status, result, error, retryable, error_code}`。error_code可选：diagnosis_incomplete／model_error／invalid_output，平台只将这三种代码映射为固定的修正建议，不展示任意远程错误正文。`retryable`默认false；只有明确failed且声明可重试时，平台才按算法步骤的重试上限重做；网络状态不明不据此重新提交。状态为queued／running／succeeded／failed／canceling／canceled。完成时必须有result：
 
 | result字段 | 内容 |
 |---|---|
@@ -85,3 +91,19 @@ FEDAGENT_DATA_DIR=/实际的平台数据目录 uv run fedagent agent-serve \
 参考服务内部通过原平台Gateway调用已保存接口，不读取或复制模型明文密钥给操作者。运行记录单独持久化，进程退出会停止子进程；启动时把中断运行标为失败。它依赖同机平台数据库做模型联调，不能当作已经部署到用户独立环境的产品。验证结束删除本次任务／应用／Agent登记／检查报告、停止参考服务并清理其临时目录；原始数据、已有接口、密钥与调用账本保留。
 
 发布的是标准算法经验成果；应用的试用／invoke沿用该算法的应用工作流和用户选择的LLM，**不会转发到任务时的自有Agent**。若需要发布用户完整Agent服务，属于独立后续能力，不在本次范围。
+
+## 接入方医疗系统：两个独立 API
+
+`fedagent medical-serve --store <自己的目录> --port 9031 --name 医疗AgentA`仅提供EvoMedClaw能力、完整本方执行及直接诊断接口。第二个服务使用9032和另一目录。真实同机部署通过`--platform-model <已登记模型引用>`复用保存的LLM连接：两个进程与运行／经验库独立，模型连接及调用账本复用平台。此模式用于团队模拟接入方，不代表跨机构隔离。
+
+独立环境可由接入方设置`MEDICAL_LLM_BASE_URL`、`MEDICAL_LLM_MODEL`和`MEDICAL_LLM_API_KEY`后启动，不传`--platform-model`。这些值仅由接入方在自己的环境配置；平台登记Agent地址，不接收Agent内部LLM密钥。该模式自有模型配置与账本保存在store/provider，独立进程和数据存储；仍复用SDK、网关和医疗算法代码，不假称使用不同模型或独立机构。团队同机模式不要求重新录入或复制已有密钥。
+
+- `POST /runs`等遵守前述通用协议，诊断结果由具体算法的validate_participant_result再检查；同一地址不能声明自己不支持的FoT。
+- `POST /experience`请求为`{task_id, site_id, artifact:{version,round,kind:"clinical-memory",content:<平台导出的医疗经验库>}}`。按任务和来源显式保存、启用选定经验，不允许覆盖同一版本或回退旧版本。
+- `POST /diagnose`请求为`{task_id,site_id,case:<规范病例>,turns:12,use_experience:true}`。使用该范围已启用经验，返回diagnosis、trajectory、experience_version、usage；use_experience=false可在同API使用无经验路径。病例标注进入模型前剥离。
+- 轮次执行收到的共享经验也在本方保存，始终按task/site隔离；最后一轮新成果需显式导入，不能把收到倒数一轮经验说成已自动加载最终版本。当前没有平台自动交付／启用用户Agent经验的按钮。
+- 接入测试不激活经验或保存private_state，但幂等运行结果会留在runs.sqlite，包含诊断轨迹，服务运营者需按自己的保留政策管理。两个API只监听127.0.0.1；接入方可用MEDICAL_AGENT_TOKEN开启Bearer鉴权，非本机使用需配置受保护的内网代理。
+
+实验室部署用medical-agents.sh统一启动／停止／查询；data/medical-model.ref是非密钥的模型引用，存在才启用两个服务，端口9031／9032，目录data/medical-agents/medical-a／medical-b。serve.sh随平台一起管理它们，backup.py要求四个服务全部停止后备份完整data目录；服务器重启仍需手动运行serve.sh，不添加开机或cron配置。
+
+医疗任务及团队原API的默认问诊上限为本次真实验证的12回合，可在4–12内自行调整；这是上限，不要求每个病例用满。默认6回合曾触发未形成最终诊断，失败事实保留，增加上限也不保证每个病例收敛。

@@ -25,6 +25,7 @@ from fedagent_sdk import (
     StepContext,
     StepFailed,
     TaskSpec,
+    UnitResult,
     load_manifest,
     step,
 )
@@ -49,6 +50,27 @@ TRACE_ATTEMPTS = 2
 
 class FoT(Algorithm):
     manifest = load_manifest(Path(__file__).with_name("manifest.yaml"))
+
+    def agent_output_contract(self) -> dict[str, Any]:
+        return {
+            "solve": {"keptKey": "solution", "valueType": "nonempty string", "prediction": "与 solution 一致"},
+            "reflect": {"keptKey": "reflection", "valueType": "nonempty string"},
+            "extract": {"channel": "trace", "payload": {"name": "nonempty string", "description": "nonempty string"}},
+        }
+
+    def validate_participant_result(self, ctx: StepContext, result: UnitResult) -> None:
+        if ctx.step.id in ("solve", "reflect"):
+            key = "solution" if ctx.step.id == "solve" else "reflection"
+            saved = [value for name, item_id, value in result.kept if name == key and item_id == ctx.item.id]
+            if len(saved) != 1 or not isinstance(saved[0], str) or not saved[0].strip():
+                raise ValueError(f"FoT Agent 缺少当前题目的 {key}")
+            if ctx.step.id == "solve" and result.predictions != [(ctx.item.id, saved[0])]:
+                raise ValueError("FoT 预测必须与解题结果一致")
+        for message in result.sent:
+            payload = message.payload
+            if message.channel == "trace" and (not isinstance(payload, dict) or
+                not all(isinstance(payload.get(key), str) and payload[key].strip() for key in ("name", "description"))):
+                raise ValueError("FoT 解题经验必须包含非空 name 和 description")
 
     def prompt_hashes(self) -> dict[str, str]:
         texts = {

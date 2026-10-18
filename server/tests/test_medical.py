@@ -3,8 +3,6 @@ from __future__ import annotations
 
 import copy
 import json
-import threading
-import time
 from pathlib import Path
 
 import pytest
@@ -17,7 +15,6 @@ from sqlalchemy import select
 from test_api import run
 
 from fedagent import models as m
-from fedagent.engine import TaskEngine
 from fedagent.platform import Platform
 from fedagent.testing import run_contract
 
@@ -117,11 +114,14 @@ def test_unfinished_diagnosis_is_an_error():
         diagnose(MedicalDiagnosis().strip_labels(cases()[0]), None, QuestionOnly(), turns=4)
 
 
-def test_medical_full_flow_and_single_invoke(client: TestClient, platform: Platform):
+def test_medical_full_flow_and_single_invoke(client: TestClient, platform: Platform, remote):
     chosen = [{'participantId': pid, 'datasetId': medical_dataset(client, pid)} for pid in ('p-a', 'p-b')]
-    config = medical_config(chosen)
+    config = {**medical_config(chosen), "execution": "agent", "agentId": remote[0]}
     invalid = client.post('/v1/tasks/validate', json={**config, 'trialCap': 1}).json()
     assert any('至少取 2' in x['message'] for x in invalid['issues'])
+    checked = client.post("/v1/task-checks", json=config).json()
+    assert client.get("/v1/task-checks/" + checked["id"]).json()["status"] == "passed"
+    config["checkId"] = checked["id"]
     created = client.post('/v1/tasks', json=config)
     assert created.status_code == 201, created.text
     task_id = created.json()['id']
@@ -173,26 +173,9 @@ def test_local_medical_schema_and_plugin_capabilities(client: TestClient, platfo
     assert next(p for p in client.get('/v1/participants').json() if p['id'] == pid)['clientPlugins']['evomedclaw'] == '1.0.0'
     chosen = [{'participantId': 'p-a', 'datasetId': medical_dataset(client, 'p-a')}, {'participantId': pid, 'datasetId': did}]
     config = medical_config(chosen)
-    assert client.post('/v1/tasks/validate', json=config).json()['issues'] == []
-    created = client.post('/v1/tasks', json=config).json()
-    task_id = created['id']
-    with platform.db.session() as session:
-        session.get(m.Task, task_id).status = 'running'
-    result = {}
-    thread = threading.Thread(target=lambda: result.setdefault('status', TaskEngine(platform, task_id, poll=0.01).run()))
-    thread.start()
-    deadline = time.monotonic() + 30
-    while thread.is_alive() and time.monotonic() < deadline:
-        if worker.run_once() == 0:
-            time.sleep(0.02)
-    thread.join(timeout=5)
-    assert result.get('status') == 'completed'
-    with platform.db.session() as session:
-        assert not list(session.scalars(select(m.SiteState).where(m.SiteState.task_id == task_id, m.SiteState.site_id == pid)))
-    assert client.get(f'/v1/tasks/{task_id}').json()['members'][1]['answered'] == 1
-    client.post('/v1/client/hello', headers={'Authorization': f'Bearer {token}'}, json={'clientVersion': 'old', 'plugins': {'evomedclaw': '0.0'}})
     issues = client.post('/v1/tasks/validate', json=config).json()['issues']
-    assert any('需要安装 EvoMedClaw' in x['message'] for x in issues)
+    assert any('需要接入自己的 Agent' in issue['message'] for issue in issues)
+    assert client.post('/v1/tasks', json=config).status_code == 422
     worker.http.close()
 
 

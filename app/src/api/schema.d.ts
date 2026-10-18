@@ -1652,6 +1652,11 @@ export interface components {
         };
         /** ResourceRequirementsOut */
         ResourceRequirementsOut: {
+            /**
+             * Agentrequired
+             * @default false
+             */
+            agentRequired: boolean;
             /** Datarequired */
             dataRequired: boolean;
             /** Minsources */
@@ -1665,7 +1670,7 @@ export interface components {
             /** Executionlabel */
             executionLabel: string;
             /** Executionmodes */
-            executionModes: ("platform" | "local")[];
+            executionModes: ("platform" | "local" | "agent")[];
         };
         /** RoleOut */
         RoleOut: {

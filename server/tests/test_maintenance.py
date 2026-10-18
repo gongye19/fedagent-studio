@@ -27,6 +27,10 @@ def test_backup_restores_database_files_and_matching_key(tmp_path):
     data = tmp_path / "data"
     platform = Platform.create(Settings(data_dir=data, fake_endpoint=True))
     seed(platform)
+    nested = data / "medical-agents" / "a" / "provider"
+    nested.mkdir(parents=True)
+    with sqlite3.connect(nested / "fedagent.db") as db:
+        db.execute("create table independent_provider(value text)")
     cipher = platform.secrets.encrypt("test-only-key")
     # 保持 WAL 连接打开，验证备份 API 会包含已经提交但未 checkpoint 的数据。
     with sqlite3.connect(data / "fedagent.db") as source:
@@ -41,16 +45,18 @@ def test_backup_restores_database_files_and_matching_key(tmp_path):
         secrets = SecretBox.from_settings(destination / "data", None)
         assert secrets.decrypt(saved) == "test-only-key"
         assert list((destination / "data" / "datasets").iterdir())
+        assert (destination / "data" / "medical-agents" / "a" / "provider" / "fedagent.db").is_file()
         assert not (destination / "data" / "fedagent.db-wal").exists()
         assert destination.parent.stat().st_mode & 0o777 == 0o700
         assert (destination / "data" / "secret.key").stat().st_mode & 0o777 == 0o600
         assert backup_module().backup(tmp_path) != destination
 
 
-def test_backup_refuses_running_service(tmp_path):
+@pytest.mark.parametrize("service", ["api", "runner", "medical-a", "medical-b"])
+def test_backup_refuses_running_service(tmp_path, service):
     Platform.create(Settings(data_dir=tmp_path / "data"))
     (tmp_path / "run").mkdir()
-    (tmp_path / "run" / "api.pid").write_text(str(os.getpid()))
+    (tmp_path / "run" / f"{service}.pid").write_text(str(os.getpid()))
     with pytest.raises(RuntimeError, match="先停止"):
         backup_module().backup(tmp_path)
     assert not (tmp_path / "backups").exists()

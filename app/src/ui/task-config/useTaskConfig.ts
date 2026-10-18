@@ -51,6 +51,10 @@ export function useTaskConfig(state: State, dispatch: Dispatch<Action>, initialS
 
   const update = (patch: Partial<Draft>) => dispatch({ type: "updateDraft", patch });
   const algorithm = draft.algorithm ? algorithmOf(draft.algorithm) : null;
+  useEffect(() => {
+    if (algorithm?.requirements.agentRequired && draft.execution !== "agent")
+      dispatch({ type: "updateDraft", patch: { execution: "agent" } });
+  }, [algorithm, draft.execution, dispatch]);
   // 能参加的参与方：名下有登记在这个场景、这种任务类型下的数据集。
   const scenarioId = draft.scenario;
   const taskType = draft.taskType;

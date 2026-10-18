@@ -22,13 +22,22 @@ def _reject_constant(value: str) -> None:
     raise ValueError(f"JSON 不支持 {value}")
 
 
+def _unique_fields(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("JSON 中存在重复字段")
+        result[key] = value
+    return result
+
+
 def parse_jsonl(text: str) -> list[Row]:
     rows: list[Row] = []
     for index, raw in enumerate(text.splitlines(), start=1):
         if not raw.strip():
             continue
         try:
-            value = json.loads(raw, parse_constant=_reject_constant)
+            value = json.loads(raw, parse_constant=_reject_constant, object_pairs_hook=_unique_fields)
         except (ValueError, RecursionError):
             rows.append(Row(index, None, "不是合法的 JSON，检查引号和逗号"))
             continue

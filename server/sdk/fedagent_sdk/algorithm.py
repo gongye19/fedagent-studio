@@ -14,7 +14,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, ClassVar
 
-from .context import StepContext
+from .context import StepContext, UnitResult
 from .manifest import SERVER, Manifest
 from .model import Model
 from .types import ApplyRequest, ApplyResult, Artifact, Estimate, Issue, OutputEntry, TaskSpec
@@ -33,10 +33,11 @@ def step(step_id: str) -> Callable[[StepFunction], StepFunction]:
 
 
 class Algorithm:
-    manifest: ClassVar[Manifest]
+    manifest: Manifest
     min_samples_per_site: ClassVar[int] = 1
 
     def __init__(self) -> None:
+        self.manifest = self.manifest.model_copy(deep=True)
         self._steps: dict[str, Callable[[StepContext], None]] = {}
         for _, member in inspect.getmembers(self, predicate=inspect.ismethod):
             step_id = getattr(member, "__fedagent_step__", None)
@@ -82,6 +83,13 @@ class Algorithm:
 
     def run_step(self, ctx: StepContext) -> None:
         self._steps[ctx.step.id](ctx)
+
+    def validate_participant_result(self, ctx: StepContext, result: UnitResult) -> None:
+        """外部输出的算法业务契约；实现应在不执行模型请求的情况下拒绝不完整结果。"""
+
+    def agent_output_contract(self) -> dict[str, Any]:
+        """可下载的步骤业务规范；通用 RunStatus／AgentResult 结构由平台协议定义。"""
+        return {}
 
     def estimate(self, spec: TaskSpec) -> Estimate:
         """按清单里每一步的预估算调用量：

@@ -36,7 +36,7 @@ def request_of(ctx: StepContext, algorithm: Algorithm, task_type: str, task_id: 
     )
 
 
-def validate_result(result: AgentResult, ctx: StepContext, sites) -> UnitResult:
+def validate_result(result: AgentResult, ctx: StepContext, sites, algorithm: Algorithm | None = None) -> UnitResult:
     if len(result.model_dump_json().encode()) > MAX_BYTES:
         raise AgentError("Agent 结果超过 8 MB")
     allowed = {ctx.item.id} if ctx.step.per == "item" else {item.id for item in ctx.items()}
@@ -60,7 +60,13 @@ def validate_result(result: AgentResult, ctx: StepContext, sites) -> UnitResult:
             resolve_receiver(ctx.manifest, message.channel, message.to, sites)
         except ValueError as error:
             raise AgentError(str(error)) from error
-    return result.unit_result()
+    value = result.unit_result()
+    try:
+        if algorithm is not None:
+            algorithm.validate_participant_result(ctx, value)
+    except ValueError as error:
+        raise AgentError(str(error)) from error
+    return value
 
 
 def execute(platform, ctx: StepContext, algorithm: Algorithm, task_type: str, task_id: str, unit_id: int, unit_key: str, agent_id: str, sites) -> UnitResult:
@@ -75,4 +81,4 @@ def execute(platform, ctx: StepContext, algorithm: Algorithm, task_type: str, ta
     body = request_of(ctx, algorithm, task_type, task_id, unit_key, state)
     status = AgentGateway(platform).execute(agent_id, body, unit_id=unit_id)
     assert status.result is not None
-    return validate_result(status.result, ctx, sites)
+    return validate_result(status.result, ctx, sites, algorithm)

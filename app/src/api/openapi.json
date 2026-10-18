@@ -5715,6 +5715,11 @@
    },
    "ResourceRequirementsOut": {
     "properties": {
+     "agentRequired": {
+      "type": "boolean",
+      "title": "Agentrequired",
+      "default": false
+     },
      "dataRequired": {
       "type": "boolean",
       "title": "Datarequired"
@@ -5744,7 +5749,8 @@
        "type": "string",
        "enum": [
         "platform",
-        "local"
+        "local",
+        "agent"
        ]
       },
       "type": "array",

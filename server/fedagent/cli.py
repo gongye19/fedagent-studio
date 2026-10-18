@@ -60,6 +60,13 @@ def main(argv: list[str] | None = None) -> None:
     agent.add_argument("--port", type=int, default=9020)
     agent.add_argument("--model", default="default")
     agent.add_argument("--store", type=Path, required=True)
+    medical = commands.add_parser("medical-serve", help="运行接入方独立的医疗 Agent API")
+    medical.add_argument("--port", type=int, default=9031)
+    medical.add_argument("--store", type=Path, required=True)
+    medical.add_argument("--name", default="医疗 Agent")
+    provider = medical.add_mutually_exclusive_group()
+    provider.add_argument("--model", help="独立部署使用的模型，接口配置由接入方环境变量提供")
+    provider.add_argument("--platform-model", help="同机模拟时复用已保存的 LLM 接口，不复制模型密钥")
     commands.add_parser("runner")
     commands.add_parser("seed")
     resources = commands.add_parser("resources").add_subparsers(dest="action", required=True)
@@ -89,6 +96,18 @@ def main(argv: list[str] | None = None) -> None:
         from .agents.reference import create_reference_app
 
         uvicorn.run(create_reference_app(_platform(), args.store, args.model), host="127.0.0.1", port=args.port)
+    elif args.command == "medical-serve":
+        import uvicorn
+
+        from .agents.medical import create_medical_app, provider_platform
+
+        try:
+            platform, model_ref = (_platform(), args.platform_model) if args.platform_model else provider_platform(args.store, args.model)
+            platform.gateway.resolve(model_ref)
+        except ValueError as error:
+            parser.error(str(error))
+        uvicorn.run(create_medical_app(platform, args.store, model_ref, name=args.name,
+                                      token=os.environ.get("MEDICAL_AGENT_TOKEN")), host="127.0.0.1", port=args.port)
     elif args.command == "runner":
         import signal
 

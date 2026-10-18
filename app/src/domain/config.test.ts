@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DATASETS, ENDPOINTS, PARTICIPANTS } from "../test/fixtures";
+import type { AgentEndpoint } from "../api/agents";
 import { algorithmOf, defaultParams, paramText } from "./catalog";
 import {
   activeOverrides,
@@ -19,7 +20,24 @@ import {
   type Draft,
   type TaskParticipant,
 } from "./config";
-import { modelLabel, modelOptions, type Dataset, type Endpoint } from "./resources";
+import { compatibleAgents, modelLabel, modelOptions, type Dataset, type Endpoint } from "./resources";
+
+it("requires a user Agent for medical and excludes incompatible interfaces from choices", () => {
+  const medical = algorithmOf("evomedclaw");
+  const selected = chooseAlgorithm(withDefaults({ scenario: "horizontal", taskType: "medical-diagnosis", algorithm: null }), medical.id);
+  expect(selected.execution).toBe("agent");
+  expect(selected.agentId).toBeNull();
+  const agent: AgentEndpoint = { id: "a", name: "医疗 Agent", baseUrl: "https://agent.test", hasKey: false,
+    revision: 1, resourceSpace: "workspace", capabilities: { protocol: "fedagent-agent/1", algorithms: {
+      evomedclaw: { version: medical.version, steps: ["diagnose", "learn"] },
+    } } };
+  expect(compatibleAgents([agent], medical)).toEqual([agent]);
+  expect(compatibleAgents([agent], algorithmOf("fot"))).toEqual([]);
+  expect(compatibleAgents([{ ...agent, capabilities: null }], medical)).toHaveLength(1);
+  expect(compatibleAgents([{ ...agent, capabilities: { protocol: "fedagent-agent/1", algorithms: {
+    evomedclaw: { version: medical.version, steps: ["diagnose"] },
+  } } }], medical)).toEqual([]);
+});
 
 const BOTH: TaskParticipant[] = [{ participantId: "p-a", datasetId: "ds-aime24" }, { participantId: "p-b", datasetId: "ds-aime25" }];
 

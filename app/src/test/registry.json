@@ -177,7 +177,7 @@
           "min": 4.0,
           "max": 12.0,
           "unit": "回合",
-          "default": 6
+          "default": 12
         }
       ],
       "minParticipants": 2,
@@ -186,6 +186,7 @@
       "maxRounds": 6,
       "defaultRounds": 2,
       "requirements": {
+        "agentRequired": true,
         "dataRequired": true,
         "minSources": 2,
         "minSamples": 2,
@@ -193,8 +194,7 @@
         "serverModel": false,
         "executionLabel": "EvoMedClaw 执行流程",
         "executionModes": [
-          "platform",
-          "local"
+          "agent"
         ]
       },
       "source": {
@@ -390,6 +390,7 @@
       "maxRounds": 6,
       "defaultRounds": 3,
       "requirements": {
+        "agentRequired": false,
         "dataRequired": true,
         "minSources": 2,
         "minSamples": 1,
@@ -398,7 +399,8 @@
         "executionLabel": "FoT 执行流程",
         "executionModes": [
           "platform",
-          "local"
+          "local",
+          "agent"
         ]
       },
       "source": {

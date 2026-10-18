@@ -18,11 +18,13 @@ from fedagent_sdk import (
     StepContext,
     StepFailed,
     TaskSpec,
+    UnitResult,
     load_manifest,
     step,
 )
 
 from .bridge import diagnose
+from .contracts import ClinicalDelta, DiagnosticTrajectory, validate_output
 from .medical import DiagnosisExactGrader, MedicalDiagnosis
 from .vendor.federated.aggregate import aggregate_site_deltas
 from .vendor.federated.sanitize import build_federated_site_delta
@@ -41,6 +43,17 @@ class EvoMedClaw(Algorithm):
     manifest = load_manifest(Path(__file__).with_name("manifest.yaml"))
     min_samples_per_site = 2
 
+    def validate_participant_result(self, ctx: StepContext, result: UnitResult) -> None:
+        validate_output(ctx, result)
+
+    def agent_output_contract(self) -> dict[str, Any]:
+        return {
+            "diagnose": {"keptKey": "diagnostic_trajectory", "valueSchema": DiagnosticTrajectory.model_json_schema(),
+                         "prediction": "eval 病例必须返回与 predicted_diagnosis 一致的预测；learn 病例不评测"},
+            "learn": {"channel": "clinical-cards", "payloadSchema": ClinicalDelta.model_json_schema(),
+                      "privacy": "不得上传原始病例、诊断对话、病例编号或自由文本推理；只上传规范内经验字段"},
+        }
+
     def validate(self, spec: TaskSpec) -> list[Issue]:
         return ([Issue("participants", "医疗试跑每方至少取 2 条病例，保留经验生成与独立评测各一条")]
                 if any(site.items < 2 for site in spec.sites) else [])
@@ -50,7 +63,7 @@ class EvoMedClaw(Algorithm):
 
     def estimate(self, spec: TaskSpec) -> Estimate:
         result = super().estimate(spec)
-        calls = int(spec.params.get("maxTurns", 6)) * 3 + 3
+        calls = int(spec.params.get("maxTurns", 12)) * 3 + 3
         result.participant_calls *= calls
         result.calls_are_upper_bound = True
         result.participant_tokens = result.participant_calls * 1800
@@ -61,7 +74,7 @@ class EvoMedClaw(Algorithm):
         artifact = ctx.artifact()
         memory = artifact.content.get("memory") if artifact is not None else None
         case = MedicalDiagnosis().strip_labels(dict(ctx.item.fields))
-        result, _ = diagnose(case, memory, ctx.model, turns=int(ctx.params.get("maxTurns", 6)))
+        result, _ = diagnose(case, memory, ctx.model, turns=int(ctx.params.get("maxTurns", 12)))
         prediction = str(result["predicted_diagnosis"]).strip()
         if not prediction or "[maximum inferences reached]" in prediction:
             raise StepFailed("本方诊断未形成有效结果，请重试或调整问诊上限")

@@ -5,7 +5,18 @@
  * 数据按任务类型与规范匹配，可用于兼容场景；本地客户端仍只上报样本索引和交换内容。
  */
 import type { components } from "../api/schema";
-import { taskTypesFor, type ScenarioId, type TaskType } from "./catalog";
+import { taskTypesFor, type Algorithm, type ScenarioId, type TaskType } from "./catalog";
+
+/** 未检查接口可进入真实测试；已明确不兼容的接口不出现在算法选择中。 */
+export function compatibleAgents(agents: readonly components["schemas"]["AgentOut"][], algorithm: Algorithm | null) {
+  if (!algorithm) return [];
+  const steps = algorithm.stages.filter((step) => step.side === "participant");
+  return agents.filter((agent) => {
+    if (!agent.capabilities) return true;
+    const capability = agent.capabilities.algorithms[algorithm.id];
+    return capability?.version === algorithm.version && steps.every((step) => capability.steps.includes(step.id));
+  });
+}
 
 export type Hosting = "platform" | "local";
 export type ResourceSpace = "workspace" | "public";

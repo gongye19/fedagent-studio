@@ -160,6 +160,9 @@ export function draftIssues(
     return issues;
   }
   const algorithm = algorithmOf(draft.algorithm);
+  if (algorithm.requirements.agentRequired && draft.execution !== "agent") {
+    issues.push({ field: "models", message: "该算法需要选择自己的 Agent 接口" });
+  }
   if (algorithm.scenario !== draft.scenario || !algorithm.accepts.includes(draft.taskType)) {
     issues.push({ field: "algorithm", message: "所选算法不支持这种任务类型" });
     return issues;
@@ -320,6 +323,9 @@ export function chooseAlgorithm(draft: Draft, algorithm: AlgorithmId): Draft {
   return {
     ...draft,
     algorithm,
+    execution: definition.requirements.agentRequired ? "agent" : "builtin",
+    agentId: null,
+    agentOverrides: {},
     trialCap: Math.max(draft.trialCap, definition.minSamples ?? 1),
     params: defaultParams(definition),
   };

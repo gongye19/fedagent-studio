@@ -666,3 +666,15 @@ T80／D77：Sidebar将两种资源归属映射到同一个“资源”导航，R
 schema0005增加agent_endpoints／agent_runs／task_checks；任务执行方式与来源接口覆盖写入冻结配置，Agent名称／版本与配置检查结果写入审计。Agent活动任务阻止编辑或删除接口，凭据不导出；地址修改清除原凭据。配置测试的提交与结果持久化在checks模块，HTTP仅负责触发后台有限检查与查询；重启中断不自动重做付费调用。文件完整性、接口配置、算法代码参与摘要，创建再次校验，测试失效不能绕过Agent执行准入。旧内置API兼容明确保留。
 
 前端沿用领域／状态／页面分工：Agent API使用生成类型，资源页仅数据；LLM和Agent页面各有我的／公用范围，任务preflight独立hook负责报告轮询与会话恢复；ResourceModels切换执行方式，按算法显示真实所需接口。删除不再使用的混合执行环境／重复模型资源组件。SDK0.2.1添加逐样本标注授权，平台与客户端0.1.3均遵守，医疗eval即使在学习步骤也剥离答案。参见[AGENT-API](./AGENT-API.md)。
+
+## 26. 算法规范与用户医疗系统分离（T82／D79）
+
+清单agent_required表达参与方执行边界，注册表requirements.agentRequired驱动页面与服务端准入；医疗新任务必须Agent，FoT保留原生LLM与可选Agent。SDK Algorithm.validate_participant_result是无模型调用的业务校验钩子，agent_output_contract为下载规范；通用adapter先验证角色／样本／通道，再由算法检查solution／reflection、diagnostic_trajectory及clinical-cards。业务格式不进入通用Engine。
+
+checks/agent.py负责最小样本完整本方流程的测试，checks/service.py只协调数据／LLM／Agent检查与持久化；输入标签使用TaskType.labels_allowed和strip_labels，医疗eval答案不进入请求。预检不测准确率，不自动开始任务，不自动启用用户系统经验。
+
+agents/service.py封装可复用HTTP运行器、子进程、幂等、取消与重启恢复；reference.py仅保留旧命令稳定入口。agents/medical.py是可独立运行的接入方医疗实现，复用SDK和固定上游适配代码；平台任务通过AgentGateway访问它，原诊断API通过Bridge使用医疗Agent逻辑。agents/store.py保存本方私有结果及按task/site隔离的经验；最终经验经/experience显式启用，同一/diagnose随后加载该版本并返回版本标识。实际检索是否命中由trajectory中的memory_entry_ids可追踪；加载版本不等于每个病例都会命中经验，更不等于准确率必然提高。
+
+同机团队模拟用两个medical-serve进程及两个独立store，通过--platform-model复用已保存LLM和平台调用账本。独立环境可通过接入方环境变量使用自己的提供者，provider数据库和加密配置保存在自己的store，忽略继承的FEDAGENT_DATABASE_URL和secret_key以避免误连平台。复用SDK代码不意味着用户系统由平台提供；同机部署不代表跨机构／多租户隐私隔离。仅覆盖横向文本医疗任务。
+
+serve.sh管理API、runner、两个可选医疗服务；data/medical-model.ref是启用标记及非密钥引用。四进程停后backup.py复制完整data及服务库，主SQLite使用backup API；嵌套同名fedagent.db不再因主库忽略规则被遗漏。服务器重启仍手动启动，不引入cron或公网监听。
