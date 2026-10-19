@@ -678,3 +678,11 @@ agents/service.py封装可复用HTTP运行器、子进程、幂等、取消与�
 同机团队模拟用两个medical-serve进程及两个独立store，通过--platform-model复用已保存LLM和平台调用账本。独立环境可通过接入方环境变量使用自己的提供者，provider数据库和加密配置保存在自己的store，忽略继承的FEDAGENT_DATABASE_URL和secret_key以避免误连平台。复用SDK代码不意味着用户系统由平台提供；同机部署不代表跨机构／多租户隐私隔离。仅覆盖横向文本医疗任务。
 
 serve.sh管理API、runner、两个可选医疗服务；data/medical-model.ref是启用标记及非密钥引用。四进程停后backup.py复制完整data及服务库，主SQLite使用backup API；嵌套同名fedagent.db不再因主库忽略规则被遗漏。服务器重启仍手动启动，不引入cron或公网监听。
+
+## 27. 算法先行与执行准入（T83／D80）
+
+任务类型与算法仍通过manifest.accepts多对多关联，当前任务配置先按场景列算法，再列该算法accepts；不再反向以任务筛算法。chooseAlgorithm集中重置下游选择，chooseTaskType保留算法和参数；草稿恢复按注册表执行能力修正旧绑定。
+
+清单新增agent_supported，默认true兼容插件；agent_required=true要求它也为true。FoT声明false，describe_algorithm输出platform／local，不再输出agent；任务validate、配置检查和创建共用preparation准入，避免前端隐藏而API仍开放。运行中已有任务与SDK本方步骤不重新套用新建限制。医疗继续agent_required=true，能力只有agent。无数据库迁移。
+
+通用Agent适配器测试使用monkeypatch临时打开当前测试实例FoT的Agent准入，结束恢复；独立产品测试核对真实清单拒绝Agent且不发请求。这样保留协议、幂等与失败重试覆盖，不把测试能力当成生产产品入口。

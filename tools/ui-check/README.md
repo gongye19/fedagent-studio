@@ -16,7 +16,7 @@
 | `task-form.mjs` | 静默恢复、字段原位错误／焦点／键盘、短促开始反馈、减少动态、后端配置错误定位；阻止业务写入 | `node task-form.mjs`；线上只读，本地补充预检响应夹具；CDP_OUT指定证据目录 |
 | `task-flow.mjs` | 本地真接口、假模型、runner 的配置 → 完成 → 发布 → 对比 | `node task-flow.mjs`；仅允许 localhost／127.0.0.1；核对 fake 接口，只清理自己创建的任务／应用并逐项保留原有记录 |
 | `medical-flow.mjs` | 公开病例的浏览器上传／错误／模板 → runner 两轮 → 发布 → 结构化试用／JSON错误 → 实际格式导出 | `node medical-flow.mjs`；仅允许本地假模型。`MEDICAL_DATA_DIR` 指向包含 medqa-group-1/2.jsonl 的目录，来源见 docs/medical-data-manifest.json；只删除本次任务／应用／上传数据集，保留原有资源 |
-| `real-data-flow.mjs` | C、H两方新题库各1题／2轮真实运行→发布→试用→清理自己记录 | 只有明确安排真实模型验证时运行：`REAL_MODEL_VERIFY=1 node real-data-flow.mjs`；约$0.1–0.2，不得作为普通UI回归自动调用；失败未完成任务不会强删，owned.json保留核验ID |
+| `real-data-flow.mjs` | 沿用resource-flow的上传＋公用数据各1题／2轮→测试→发布→试用→清理自己记录 | 只有明确安排真实模型验证时运行：`REAL_MODEL_VERIFY=1 node real-data-flow.mjs`；约$0.1–0.2，不得作为普通UI回归自动调用；失败未完成任务不会强删，owned.json保留核验ID |
 | `real-medical-flow.mjs` | 两方公开医疗病例各2条／2轮→发布→对比→单次调用／导出→清理自己记录 | 仅显式安排时用 `REAL_MODEL_VERIFY=1 node real-medical-flow.mjs`；预计$0.3–1，保留真实数据；未完成任务不强删，owned.json保存本次ID |
 | `docshots.json` | 文档里的 14 张截图（`docs/screenshots/`） | `CDP_OUT=../../docs/screenshots node cdp.mjs docshots.json` |
 
@@ -47,4 +47,6 @@ T81更新旧脚本：resource-flow移除平台／客户端与来源菜单；task
 
 `agent-ui.mjs`为只读验收：桌面／手机的三类资源、Agent接入窗口、当前协议下载、上传移除客户端、公用LLM取消返回与空Agent引导，拦截全部写请求。`agent-resume.mjs`只用于已明确授权的真实医疗验证恢复，必须提供本轮OWNED_FILE并设置REAL_MODEL_VERIFY=1；只续跑这些ID，发布／调用／导出后清理本轮资源，失败保留检查点，不重建已完成的FoT任务。
 
-T82：`medical-agents.mjs`验证FoT原生LLM路径和两份医疗数据分别绑定两个独立医疗API的路径，包含界面登记／自动能力检查、主动完整步骤测试、两轮任务、经验导出及两个原API加载最终经验后继续诊断。默认本地9031／9032，先分别启动`fedagent medical-serve --platform-model fake:fake --store <独立目录> --port <端口>`；本地数据目录FEDAGENT_DATA_DIR应与开发平台一致，测试明确设置FEDAGENT_FAKE_ENDPOINT=1。线上需REAL_MODEL_VERIFY=1，KEEP_AGENTS=1保留团队服务登记，BASE使用实验室地址。Agent登记地址AGENT_A_URL／AGENT_B_URL供平台访问；DIRECT_AGENT_A／B可使用仅监听回环的SSH转发供本机验证原API。预计US$0.5–2，测试报告不代表准确率提升。ONLY_ALGORITHM用于只补测失败的单条流程；脚本仅清理自身任务／应用／数据／报告，原资源逐项保留。medical-flow仍覆盖上传错误与结构化应用，需已启动医疗服务；agent-flow仍测试可选自有FoT执行。
+T82：`medical-agents.mjs`验证FoT原生LLM路径和两份医疗数据分别绑定两个独立医疗API的路径，包含界面登记／自动能力检查、主动完整步骤测试、两轮任务、经验导出及两个原API加载最终经验后继续诊断。默认本地9031／9032，先分别启动`fedagent medical-serve --platform-model fake:fake --store <独立目录> --port <端口>`；本地数据目录FEDAGENT_DATA_DIR应与开发平台一致，测试明确设置FEDAGENT_FAKE_ENDPOINT=1。线上需REAL_MODEL_VERIFY=1，KEEP_AGENTS=1保留团队服务登记，BASE使用实验室地址。Agent登记地址AGENT_A_URL／AGENT_B_URL供平台访问；DIRECT_AGENT_A／B可使用仅监听回环的SSH转发供本机验证原API。预计US$0.5–2，测试报告不代表准确率提升。ONLY_ALGORITHM用于只补测失败的单条流程；脚本仅清理自身任务／应用／数据／报告，原资源逐项保留。medical-flow仍覆盖上传错误与结构化应用，需已启动医疗服务；agent-flow改为仅测试医疗外部Agent；FoT使用medical-agents或resource-flow的原生LLM路径。
+
+T83：`algorithm-config.mjs`只读验证先算法后任务、兼容任务列表、FoT无Agent／医疗必选Agent、跨算法清理、刷新及旧草稿。桌面1280／手机390，阻止业务写入与付费检查。现有配置、上传与真实流程脚本均先选算法；resource-flow清理自己的配置报告并保留调用账本。

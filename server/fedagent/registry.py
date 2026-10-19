@@ -159,7 +159,7 @@ class Registry:
                 "participantModel": any(step.at != SERVER and step.model for step in manifest.steps),
                 "serverModel": any(step.at == SERVER and step.model for step in manifest.steps),
                 "executionLabel": f"{manifest.name} 执行流程",
-                "executionModes": ["agent"] if manifest.agent_required else ["platform", "local", "agent"],
+                "executionModes": ["agent"] if manifest.agent_required else ["platform", "local", *(["agent"] if manifest.agent_supported else [])],
             },
             "source": {
                 "paper": manifest.source.paper,

@@ -26,14 +26,12 @@ try{
  const editable=await evaluate(send,"document.querySelector('tbody a')?.getAttribute('href')??null");
  if(editable){await open(send,base+editable);await click('取消');check('公用 LLM 编辑取消回到公用接口',await evaluate(send,"location.hash==='#/models/public'"))}
  const agents=await(await fetch(new URL('v1/agents',base))).json();
- if(!agents.length){await open(send,base+'#/tasks/new');for(const label of ['横向联邦','数学推理'])await click(label);await evaluate(send,"document.getElementById('algorithm-fot').click()");await sleep(200);await click('自有 Agent');check('没有 Agent 时明确提示并提供接入入口',await evaluate(send,"document.getElementById('task-agent').disabled&&document.getElementById('task-agent').textContent.includes('暂无匹配的 Agent')&&[...document.querySelectorAll('button')].some(b=>b.textContent.includes('接入 Agent')&&!b.disabled)"))}
- await open(send,base+'#/tasks/new');
- for(const label of ['横向联邦','数学推理'])await click(label);
- await evaluate(send,"document.getElementById('algorithm-fot').click()");await sleep(200);await click('自有 Agent');
- const medicalOnly=agents.length>0&&agents.every(a=>a.capabilities?.algorithms.evomedclaw&&!a.capabilities?.algorithms.fot);
- if(medicalOnly)check('FoT 不列出只支持医疗的 Agent',await evaluate(send,"document.getElementById('task-agent').disabled&&document.getElementById('task-agent').textContent.includes('暂无匹配的 Agent')"));
- await click('医疗诊断');await evaluate(send,"document.getElementById('algorithm-evomedclaw').click()");await sleep(200);
+ await open(send,base+'#/tasks/new');await click('横向联邦');
+ await evaluate(send,"document.getElementById('algorithm-fot').click()");await sleep(200);await click('数学推理');
+ check('FoT 只配置运行及汇总 LLM，不出现 Agent 或执行方式',await evaluate(send,"!document.getElementById('task-agent')&&!document.getElementById('execution-mode')&&Boolean(document.getElementById('client-model'))&&Boolean(document.getElementById('server-model'))"));
+ await evaluate(send,"document.getElementById('algorithm-evomedclaw').click()");await sleep(200);await click('医疗诊断');
  check('医疗要求 Agent，运行与汇总 LLM 控件不出现',await evaluate(send,"Boolean(document.getElementById('task-agent'))&&!document.getElementById('client-model')&&!document.getElementById('server-model')&&![...document.querySelectorAll('button[role=radio]')].some(b=>b.textContent.includes('平台内置流程'))"));
+ if(!agents.length)check('没有 Agent 时明确提示并提供接入入口',await evaluate(send,"document.getElementById('task-agent').disabled&&document.getElementById('task-agent').textContent.includes('暂无匹配的 Agent')&&[...document.querySelectorAll('button')].some(b=>b.textContent.includes('接入 Agent')&&!b.disabled)"));
  const registry=await(await fetch(new URL('v1/registry',base))).json();
  const medical=registry.algorithms.find(a=>a.id==='evomedclaw');
  check('医疗默认问诊上限为已验证的12回合，注册表只允许Agent',medical.requirements.executionModes.join(',')==='agent'&&medical.params.find(p=>p.key==='maxTurns').default===12);

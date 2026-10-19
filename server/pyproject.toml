@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "FedAgent Studio 后端：通用的联邦 Agent 平台"
 requires-python = ">=3.12"
 dependencies = [
-  "fedagent-sdk>=0.2.2",
+  "fedagent-sdk>=0.2.3",
   "fedagent-fot",
   "fedagent-math-reasoning",
   "fedagent-evomedclaw",

@@ -39,7 +39,7 @@ try{
   check('参与方变化接通对应表单 '+width,await evaluate(send,"document.querySelector('input[name=dataset-owner]').value==='qa-local-client'&&document.querySelector('main').textContent.includes('参与方本地')"));
   await open(send,base+'#/tasks/new/horizontal');
   check('前置未选的轮次确实禁用 '+width,await evaluate(send,"document.getElementById('rounds-pending').disabled"));
-  await evaluate(send,PICK(['数学推理']));await click('#algorithm-fot');
+  await click('#algorithm-fot');await evaluate(send,PICK(['数学推理']));
   if(fixture){
    await click('[data-select-name="dataset-p-a"]');await click('[data-option-value="fixture-second"]');
    check('表格选择题库保留参与方勾选 '+width,await evaluate(send,"document.querySelector('input[name=dataset-p-a]').value==='fixture-second'&&document.querySelector('[data-select-name=dataset-p-a]').closest('tr').querySelector('input[type=checkbox]').checked"));

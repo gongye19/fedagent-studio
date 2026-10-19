@@ -3,7 +3,6 @@ import {
   ALGORITHMS,
   algorithmsFor,
   TASK_TYPES,
-  taskTypesFor,
   type Algorithm,
   type ScenarioId,
   type TaskType,
@@ -11,38 +10,39 @@ import {
 import { type Draft } from "../../domain/config";
 import { Choices, Field } from "../console";
 
-/** 任务类型：列出这个场景里有算法能处理的类型，由用户选；指标跟着任务类型走。最后留一个"待接入"的空位。 */
+/** 任务类型：列出已选算法支持的类型，由用户选；指标跟着任务类型走。最后留一个"待接入"的空位。 */
 export function TaskTypeChoice({
-  scenario,
+  algorithm,
   value,
   onChange,
   error,
 }: {
   error?: string;
-  scenario: ScenarioId | null;
+  algorithm: Algorithm | null;
   value: TaskType | null;
   onChange: (type: TaskType) => void;
 }) {
-  const types = scenario ? taskTypesFor(scenario) : Object.keys(TASK_TYPES);
+  const types = algorithm ? algorithm.accepts : Object.keys(TASK_TYPES);
   return (
     <Field
       label="任务类型"
       labelId="task-type-label"
       wide
       error={error}
-      info="任务类型决定数据格式、评估指标，以及可选择的算法与参与方数据。"
+      info="只列出已选算法支持的任务；任务类型决定数据模板、评估指标与可用数据。"
     >
+      {!algorithm ? <p className="field-static">请先选择算法</p> : null}
       {types.length ? (
         <Choices
           error={error}
           labelledBy="task-type-label"
           value={value}
-          options={types.map((type) => ({ value: type, label: TASK_TYPES[type].label, disabled: !scenario }))}
+          options={types.map((type) => ({ value: type, label: TASK_TYPES[type].label, disabled: !algorithm }))}
           placeholder="更多类型"
           onChange={onChange}
         />
       ) : (
-        <p className="field-static">这个场景还没有可用的任务类型。</p>
+        <p className="field-static">这个算法还没有可用的任务类型。</p>
       )}
     </Field>
   );
@@ -51,29 +51,27 @@ export function TaskTypeChoice({
 /** 算法按注册表列出；短名称供选择，说明、交换内容与产出通过 ⓘ 查看。 */
 export function AlgorithmField({
   scenario,
-  taskType,
   value,
   onChange,
   error,
 }: {
   error?: string;
   scenario: ScenarioId | null;
-  taskType: TaskType | null;
   value: Draft["algorithm"];
   onChange: (id: Algorithm["id"]) => void;
 }) {
-  const algorithms = scenario ? algorithmsFor(scenario, taskType) : ALGORITHMS;
+  const algorithms = scenario ? algorithmsFor(scenario) : ALGORITHMS;
   return (
     <Field label="算法" labelId="algorithm-label" wide error={error}>
-      {!taskType ? (
+      {!scenario ? (
         <p className="field-static" id="algorithm-prerequisite">
-          请先选择{scenario ? "任务类型" : "场景和任务类型"}
+          请先选择场景
         </p>
       ) : null}
       {algorithms.length ? (
-        <AlgorithmTable error={error} algorithms={algorithms} value={value} onChange={onChange} disabled={!taskType} />
+        <AlgorithmTable error={error} algorithms={algorithms} value={value} onChange={onChange} disabled={!scenario} />
       ) : (
-        <p className="field-static">这种任务类型在这个场景下还没有算法。</p>
+        <p className="field-static">这个场景还没有可用算法。</p>
       )}
     </Field>
   );

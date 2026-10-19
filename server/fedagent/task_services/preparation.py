@@ -60,8 +60,10 @@ def validate(platform: Platform, session: Session, body: TaskConfigIn) -> tuple[
         issue("algorithm", "算法没有安装")
         return issues, None
     manifest = algorithm.manifest
+    if body.execution == "agent" and not manifest.agent_supported:
+        issue("models", "该算法使用数据与 LLM，由平台执行流程，无需接入 Agent 接口")
     if manifest.agent_required and body.execution != "agent":
-        issue("models", "该算法需要接入自己的 Agent 系统，请选择 Agent 接口；LLM 接口不能替代医疗 Agent")
+        issue("models", "该算法需要接入自己的 Agent 系统，请选择 Agent 接口；LLM 接口不能替代完整 Agent")
     if manifest.scenario != body.scenario:
         issue("algorithm", "这个算法不属于所选的场景")
     if body.task_type not in manifest.accepts:

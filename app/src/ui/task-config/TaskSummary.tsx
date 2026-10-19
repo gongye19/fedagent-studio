@@ -51,12 +51,12 @@ export function TaskSummary({ state, config }: { state: State; config: TaskConfi
             <dd>{draft.scenario ? scenarioOf(draft.scenario).short : "—"}</dd>
           </div>
           <div>
-            <dt>任务类型</dt>
-            <dd>{draft.taskType ? TASK_TYPES[draft.taskType].label : "—"}</dd>
-          </div>
-          <div>
             <dt>算法</dt>
             <dd>{algorithm ? algorithm.name : "—"}</dd>
+          </div>
+          <div>
+            <dt>任务类型</dt>
+            <dd>{draft.taskType ? TASK_TYPES[draft.taskType].label : "—"}</dd>
           </div>
           <div>
             <dt>数据来源</dt>
@@ -83,7 +83,7 @@ export function TaskSummary({ state, config }: { state: State; config: TaskConfi
                 ? draft.execution === "agent"
                   ? `${state.agents.find((a) => a.id === draft.agentId)?.name ?? "Agent 待选"}${algorithm.requirements.serverModel ? `；汇总 ${modelLabel(draft.serverModel, state.endpoints)}` : ""}`
                   : taskModelSummary(draft, state.endpoints, algorithm)
-                : modelLabel(draft.clientModel, state.endpoints)}
+                : "—"}
             </dd>
           </div>
           {overrideCount ? (

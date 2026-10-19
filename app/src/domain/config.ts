@@ -1,7 +1,7 @@
 /**
  * 任务配置：默认值和页面上的即时检查。
  *
- * 新建任务依次选场景 → 任务类型 → 算法 → 参与方，每一步都由用户选，页面不替用户默认。
+ * 新建任务依次选场景 → 算法 → 任务类型 → 数据，每一步都由用户选，页面不替用户默认。
  * 参与方只能用登记在同一场景、同一任务类型下的数据集，每方出一份。
  * 算法参数按注册表的定义保存（键和默认值由算法声明）。调用量预估和最终的校验由后端做（POST /v1/tasks/validate），
  * 预估按算法插件声明的步骤和交换量计算，费用按接口单价算。
@@ -38,7 +38,7 @@ export type TaskParticipant = { participantId: string; datasetId: string };
 
 export type TaskConfig = {
   scenario: ScenarioId;
-  /** 任务类型：决定数据格式、评估指标，以及能选哪些算法和数据集。 */
+  /** 任务类型：决定数据格式、评估指标及可用数据。 */
   taskType: TaskType;
   algorithm: AlgorithmId;
   /** 参加的参与方，每方一份数据集，按选择的先后排列。 */
@@ -151,15 +151,18 @@ export function draftIssues(
     issues.push({ field: "scenario", message: "这个场景的算法还在规划中" });
     return issues;
   }
-  if (!draft.taskType) {
-    issues.push({ field: "taskType", message: "选择任务类型" });
-    return issues;
-  }
   if (!draft.algorithm) {
     issues.push({ field: "algorithm", message: "选择算法" });
     return issues;
   }
+  if (!draft.taskType) {
+    issues.push({ field: "taskType", message: "选择任务类型" });
+    return issues;
+  }
   const algorithm = algorithmOf(draft.algorithm);
+  if (draft.execution === "agent" && !algorithm.requirements.executionModes.includes("agent")) {
+    issues.push({ field: "models", message: "该算法使用数据与 LLM，由平台执行流程，无需 Agent 接口" });
+  }
   if (algorithm.requirements.agentRequired && draft.execution !== "agent") {
     issues.push({ field: "models", message: "该算法需要选择自己的 Agent 接口" });
   }
@@ -307,25 +310,29 @@ export function compatibleDatasets(scenario: ScenarioId, taskType: TaskType, dat
 /** 选场景：换场景时清空后面的选择，任务类型、算法和参与方都要用户再选。 */
 export function chooseScenario(draft: Draft, scenario: ScenarioId): Draft {
   if (draft.scenario === scenario) return draft;
-  return { ...draft, scenario, taskType: null, algorithm: null, participants: [], clientOverrides: {}, params: {} };
+  return { ...draft, scenario, taskType: null, algorithm: null, participants: [], clientOverrides: {}, agentId: null, agentOverrides: {}, execution: "builtin", params: {} };
 }
 
-/** 选任务类型：换类型时清空算法和参与方（算法和数据集都要能处理这种任务）。 */
+/** 任务类型只改变数据和评分，不重置已经选好的算法与算法参数。 */
 export function chooseTaskType(draft: Draft, taskType: TaskType): Draft {
-  if (draft.taskType === taskType) return draft;
-  return { ...draft, taskType, algorithm: null, participants: [], clientOverrides: {}, params: {} };
+  if (!draft.algorithm || !algorithmOf(draft.algorithm).accepts.includes(taskType) || draft.taskType === taskType) return draft;
+  return { ...draft, taskType, participants: [], clientOverrides: {}, agentOverrides: {} };
 }
 
-/** 选算法：参数回到这个算法的推荐值；参与方由用户自己勾选，不替用户选。 */
+/** 选算法后明确选择支持的任务；不同算法的资源、执行方式和参数不互相沿用。 */
 export function chooseAlgorithm(draft: Draft, algorithm: AlgorithmId): Draft {
-  if (draft.algorithm === algorithm || !draft.taskType) return draft;
   const definition = algorithmOf(algorithm);
+  if (draft.algorithm === algorithm || definition.scenario !== draft.scenario) return draft;
   return {
     ...draft,
     algorithm,
+    taskType: null,
+    participants: [],
+    clientOverrides: {},
     execution: definition.requirements.agentRequired ? "agent" : "builtin",
     agentId: null,
     agentOverrides: {},
+    rounds: definition.defaultRounds,
     trialCap: Math.max(draft.trialCap, definition.minSamples ?? 1),
     params: defaultParams(definition),
   };

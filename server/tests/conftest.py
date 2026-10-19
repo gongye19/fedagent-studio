@@ -31,6 +31,8 @@ def client(platform: Platform) -> Iterator[TestClient]:
 
 @pytest.fixture
 def remote(platform, client, monkeypatch):
+    # 专门测试通用 Agent 适配器：在本测试实例开放 FoT，生产清单仍拒绝新建外部 FoT 任务。
+    monkeypatch.setattr(platform.registry.algorithm("fot").manifest, "agent_supported", True)
     requests = []
     cache = {}
     caps = Capabilities(

@@ -78,16 +78,20 @@ describe("draft", () => {
     expect(draft().clientModel).toBe("default");
   });
 
-  it("asks for scenario, task type, algorithm and participants in turn, selecting nothing on the user's behalf", () => {
+  it("asks for scenario, algorithm, task type and data in turn, selecting nothing on the user's behalf", () => {
     const horizontal = chooseScenario(DEFAULT_DRAFT, "horizontal");
     expect([horizontal.taskType, horizontal.algorithm]).toEqual([null, null]);
-    expect(draftIssues(horizontal, DATASETS, PARTICIPANTS, ENDPOINTS)[0].field).toBe("taskType");
-    const typed = chooseTaskType(horizontal, "math-reasoning");
-    expect(draftIssues(typed, DATASETS, PARTICIPANTS, ENDPOINTS)[0].field).toBe("algorithm");
-    const chosen = chooseAlgorithm(typed, "fot");
+    expect(draftIssues(horizontal, DATASETS, PARTICIPANTS, ENDPOINTS)[0].field).toBe("algorithm");
+    expect(chooseTaskType(horizontal, "math-reasoning")).toBe(horizontal);
+    const chosen = chooseAlgorithm(horizontal, "fot");
+    expect(chosen.taskType).toBeNull();
     expect(chosen.participants).toEqual([]);
     expect(chosen.params).toEqual(defaultParams(algorithmOf("fot")));
-    expect(draftIssues(chosen, DATASETS, PARTICIPANTS, ENDPOINTS)[0].field).toBe("participants");
+    expect(draftIssues(chosen, DATASETS, PARTICIPANTS, ENDPOINTS)[0].field).toBe("taskType");
+    expect(chooseTaskType(chosen, "medical-diagnosis")).toBe(chosen);
+    const typed = chooseTaskType(chosen, "math-reasoning");
+    expect(typed.algorithm).toBe("fot");
+    expect(draftIssues(typed, DATASETS, PARTICIPANTS, ENDPOINTS)[0].field).toBe("participants");
     const vertical = chooseScenario(setParticipants(chosen, BOTH), "vertical");
     expect([vertical.taskType, vertical.algorithm, vertical.participants, vertical.params]).toEqual([null, null, [], {}]);
   });
@@ -150,4 +154,17 @@ it("does not invent a default endpoint and only offers configured models for app
   expect(modelOptions([custom]).map((option) => option.ref)).toEqual(["custom:model"]);
   expect(usableModelOptions([ENDPOINTS[0], custom]).map((option) => option.ref)).toEqual(["custom:model"]);
   expect(usableModelOptions([])).toEqual([]);
+});
+
+
+it("switches algorithms without retaining incompatible task, data, Agent overrides or parameters", () => {
+  const medical = chooseAlgorithm(draft({execution:"agent",agentId:"old",agentOverrides:{"p-a":"old"},clientOverrides:{"p-a":"old"}}), "evomedclaw");
+  expect(medical).toMatchObject({algorithm:"evomedclaw",taskType:null,participants:[],execution:"agent",agentId:null,agentOverrides:{},clientOverrides:{}});
+  const typed = chooseTaskType(medical, "medical-diagnosis");
+  expect(typed.params).toEqual(defaultParams(algorithmOf("evomedclaw")));
+  const fot = chooseAlgorithm(typed, "fot");
+  expect(fot.execution).toBe("builtin");
+  expect(fot.taskType).toBeNull();
+  expect(fot.params).toEqual(defaultParams(algorithmOf("fot")));
+  expect(draftIssues(draft({execution:"agent"}), DATASETS, PARTICIPANTS, ENDPOINTS).some(i=>i.message.includes("数据与 LLM"))).toBe(true);
 });

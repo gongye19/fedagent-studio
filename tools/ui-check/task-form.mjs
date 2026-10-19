@@ -20,12 +20,13 @@ try{
   await evaluate(send,`${start}.click();void 0`);await sleep(45);
   check('缺项开始按钮播放一次短反馈 '+width,await evaluate(send,`${start}.getAnimations().some(a=>a.effect.getTiming().duration===260)`));
   await sleep(400);
-  check('任务类型错误原位且获得焦点 '+width,await evaluate(send,"document.getElementById('task-type-label-error').closest('.field').querySelector('#task-type-label')&&document.activeElement.matches('button[role=radio]')&&document.getElementById('task-type-label-error').getBoundingClientRect().top>=0&&document.getElementById('task-type-label-error').getBoundingClientRect().bottom<=innerHeight"));
+  check('算法错误原位且获得焦点 '+width,await evaluate(send,"document.getElementById('algorithm-label-error').closest('.field').querySelector('#algorithm-label')&&document.activeElement.matches('input[name=algorithm]')&&document.getElementById('algorithm-label-error').getBoundingClientRect().top>=0&&document.getElementById('algorithm-label-error').getBoundingClientRect().bottom<=innerHeight"));
   await shot('missing-type-'+width);
-  await evaluate(send,PICK(['数学推理']));
-  check('修正类型清除其错误并提示算法 '+width,await evaluate(send,"!document.getElementById('task-type-label-error')&&Boolean(document.getElementById('algorithm-label-error'))"));
-  await evaluate(send,"document.getElementById('algorithm-fot').click();void 0");await sleep(350);
-  check('修正算法清除其错误且参与方提示在表格下 '+width,await evaluate(send,"!document.getElementById('algorithm-label-error')&&document.getElementById('participants-error').closest('section').id==='participants'"));
+  await evaluate(send,"document.getElementById('algorithm-fot').click();void 0");await sleep(150);
+  check('修正算法清除其错误并提示类型 '+width,await evaluate(send,"!document.getElementById('algorithm-label-error')&&Boolean(document.getElementById('task-type-label-error'))"));
+  await evaluate(send,PICK(['数学推理']));await sleep(350);
+  check('修正类型清除其错误且参与方提示在表格下 '+width,await evaluate(send,"!document.getElementById('task-type-label-error')&&document.getElementById('participants-error').closest('section').id==='participants'"));
+  await evaluate(send,"[...document.querySelectorAll('#participants .resource-space-bar button')].find(b=>b.textContent==='公用资源').click();void 0");await sleep(250);
   await evaluate(send,`${start}.focus();void 0`);await key('Enter');await sleep(500);
   check('键盘开始定位参与方复选框 '+width,await evaluate(send,"document.activeElement.matches('#participants input[type=checkbox]')&&window.__writes===0"));
   await shot('missing-participants-'+width);
@@ -44,7 +45,7 @@ try{
   }
   await open(send,base+'#/tasks/new/horizontal');await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
   await evaluate(send,`${start}.click();void 0`);await sleep(45);
-  check('减少动态保留错误与焦点且不震动 '+width,await evaluate(send,`Boolean(document.getElementById('task-type-label-error'))&&document.activeElement.matches('button[role=radio]')&&${start}.getAnimations().length===0`));
+  check('减少动态保留错误与焦点且不震动 '+width,await evaluate(send,`Boolean(document.getElementById('algorithm-label-error'))&&document.activeElement.matches('input[name=algorithm]')&&${start}.getAnimations().length===0`));
   check('所有不完整提交未发业务写入 '+width,await evaluate(send,"window.__writes===0&&!document.querySelector('dialog[open]')&&document.documentElement.scrollWidth<=innerWidth"));
  }
  writeFileSync(`${out}/evidence.json`,JSON.stringify({base,evidence},null,2));

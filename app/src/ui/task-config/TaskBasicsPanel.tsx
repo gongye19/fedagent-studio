@@ -6,7 +6,7 @@ import { TaskTypeChoice, AlgorithmField } from "../task-config/TaskBasics";
 import type { TaskConfigController } from "./useTaskConfig";
 
 export function TaskBasicsPanel({ dispatch, config }: { dispatch: Dispatch<Action>; config: TaskConfigController }) {
-  const { draft, update, scenarioId, fieldError, autoName } = config;
+  const { draft, update, scenarioId, algorithm, fieldError, autoName } = config;
   return (
     <Panel title="任务配置" id="scenario" step={1}>
       <div className="form-body">
@@ -42,18 +42,17 @@ export function TaskBasicsPanel({ dispatch, config }: { dispatch: Dispatch<Actio
               onChange={(scenario) => dispatch({ type: "chooseScenario", scenario })}
             />
           </Field>
-          <TaskTypeChoice
-            error={fieldError("taskType")}
-            scenario={scenarioId}
-            value={draft.taskType}
-            onChange={(taskType) => dispatch({ type: "chooseTaskType", taskType })}
-          />
           <AlgorithmField
             error={fieldError("algorithm")}
             scenario={scenarioId}
-            taskType={draft.taskType}
             value={draft.algorithm}
             onChange={(id) => dispatch({ type: "chooseAlgorithm", algorithm: id })}
+          />
+          <TaskTypeChoice
+            error={fieldError("taskType")}
+            algorithm={algorithm}
+            value={draft.taskType}
+            onChange={(taskType) => dispatch({ type: "chooseTaskType", taskType })}
           />
         </FieldGroup>
       </div>

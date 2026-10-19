@@ -30,7 +30,7 @@ try{
   await set('input[name=dataset-name]',`MedQA · 分组 ${group}`);await shot(`upload-group-${group}`);await click('保存数据集');await until("location.hash.startsWith('#/participants')");
   const ds=(await read('v1/datasets')).find(x=>!before.has(x.id));assert.ok(ds);owned.push(ds.id);check('保存真实医疗病例与结构化预览',ds.taskType==='medical-diagnosis'&&ds.sample.fields.some(f=>f.label==='病人信息')&&ds.count===(group===1?54:53));
  }
- await open(send,base+'#/tasks/new/horizontal');await click('医疗诊断');await evaluate(send,"document.getElementById('algorithm-evomedclaw').click()");await sleep(200);await evaluate(send,"document.querySelector('input[aria-label=全选]').click()");
+ await open(send,base+'#/tasks/new/horizontal');await evaluate(send,"document.getElementById('algorithm-evomedclaw').click()");await sleep(200);await click('医疗诊断');await evaluate(send,"document.querySelector('input[aria-label=全选]').click()");
  await set('#trial-cap','2');await set('#task-name','医疗流程验证（仅本地）');await evaluate(send,SELECT('task-agent',agentId));await until("Boolean(document.querySelector('.config-test-trigger[data-ready=true]:not(:disabled)'))");await click('测试配置');await until("Boolean(document.querySelector('.summary-start[data-ready=true]:not(:disabled)'))");
  checkId=await evaluate(send,"JSON.parse(sessionStorage.getItem('fedagent-studio:config-check')).id");
  check('医疗配置无需服务端模型',await evaluate(send,"!document.querySelector('[data-model-name=server-model],[data-select-name=server-model]')"));await shot('medical-config');await click('创建并试跑');await until("location.hash.includes('/tasks/task-')");taskId=await evaluate(send,"location.hash.split('/')[2]");

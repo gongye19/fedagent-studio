@@ -138,6 +138,8 @@ class Manifest(_Model):
     summary: str = ""
     scenario: ScenarioId
     accepts: list[str]
+    agent_supported: bool = True
+    """是否开放通过外部 Agent API 创建任务；既有运行与 SDK 执行不受影响。"""
     agent_required: bool = False
     """本方流程必须由接入方 Agent 执行；不影响 SDK 在用户侧执行插件。"""
     roles: dict[str, RoleDef]
@@ -151,6 +153,8 @@ class Manifest(_Model):
 
     @model_validator(mode="after")
     def _check(self) -> Manifest:
+        if self.agent_required and not self.agent_supported:
+            raise ValueError("要求 Agent 的算法必须支持 Agent 执行")
         places = {*self.roles, SERVER}
         if SERVER in self.roles:
             raise ValueError("角色不能叫 server")

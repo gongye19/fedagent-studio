@@ -19,7 +19,7 @@ const input=lines.slice(0,2).join('\n')+'\n';const inputHash=createHash('sha256'
 writeFileSync(`${out}/AIME24-input.jsonl`,input);
 writeFileSync(`${out}/invalid.jsonl`,lines[0]+'\n'+lines[0]+'\n');
 const {send,close}=await launch({port:Number(process.env.CDP_PORT??9402),profile:'/tmp/fedagent-resource-flow-profile'});
-const evidence=[];let resource,taskId,appId,modelEndpointId;
+const evidence=[];let resource,taskId,appId,modelEndpointId,checkId;
 function check(name,ok){assert.ok(ok,name);evidence.push(name);console.log('PASS',name)}
 async function until(s,ms=40000){const deadline=Date.now()+ms;while(Date.now()<deadline){if(await evaluate(send,`Boolean(${s})`))return;await sleep(200)}throw Error('Timed out: '+s)}
 async function click(text){await evaluate(send,`(()=>{const region=document.querySelector('.resource-dialog')??document.querySelector('dialog[open]')??document.querySelector('main');const matches=e=>e.textContent.trim()===${JSON.stringify(text)}&&!e.disabled;const e=[...region.querySelectorAll('button,a')].find(matches)??[...document.querySelectorAll('button,a')].filter(e=>e.getClientRects().length).find(matches);if(!e)throw Error('Missing '+${JSON.stringify(text)});e.focus();e.click()})()`);await sleep(250)}
@@ -27,12 +27,12 @@ async function set(id,value){await evaluate(send,`(()=>{const e=document.getElem
 async function file(path){const d=await send('DOM.getDocument'),n=await send('DOM.querySelector',{nodeId:d.root.nodeId,selector:'input[name=dataset-file]'});await send('DOM.setFileInputFiles',{nodeId:n.nodeId,files:[path]})}
 async function shot(name){const m=await send('Page.getLayoutMetrics');const r=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true,clip:{x:0,y:0,width:1280,height:Math.ceil(m.cssContentSize.height),scale:1}});writeFileSync(`${out}/${name}.png`,Buffer.from(r.data,'base64'))}
 async function key(key){await send('Input.dispatchKeyEvent',{type:'keyDown',key});await send('Input.dispatchKeyEvent',{type:'keyUp',key});await sleep(200)}
-const owned=()=>writeFileSync(`${out}/owned.json`,JSON.stringify({datasetId:resource?.dataset.id,sourceId:resource?.source.id,taskId,appId},null,2));
+const owned=()=>writeFileSync(`${out}/owned.json`,JSON.stringify({datasetId:resource?.dataset.id,sourceId:resource?.source.id,taskId,appId,checkId},null,2));
 try{
   await viewport(send,{width:1280,height:900});await open(send,base+'#/tasks/new',local?1500:4000);
   check('通用入口场景未预选，固定资源与运行区域已展示',await evaluate(send,"![...document.querySelectorAll('[aria-labelledby=scenario-label] button')].some(b=>b.getAttribute('aria-checked')==='true')&&Boolean(document.getElementById('participants')&&document.getElementById('settings'))"));
   await click('创建并试跑');check('缺场景在原字段提示',await evaluate(send,"document.getElementById('scenario-label-error')?.textContent.includes('选择场景')&&!document.querySelector('.notice')"));
-  await click('横向联邦');await click('数学推理');await evaluate(send,"document.getElementById('algorithm-fot').click()");await sleep(250);
+  await click('横向联邦');await evaluate(send,"document.getElementById('algorithm-fot').click()");await sleep(250);await click('数学推理');
   check('资源入口按已选算法启用，先看我的数据',await evaluate(send,"document.querySelector('#participants .resource-space-bar button[aria-pressed=true]').textContent==='我的资源'&&document.getElementById('client-model')&&!document.getElementById('client-model').disabled"));
   await click('接入数据');check('任务上下文锁定数据类型，未要求先建参与方',await evaluate(send,"document.querySelector('.resource-context').textContent.includes('数学推理')&&!document.querySelector('.resource-dialog [aria-labelledby$=type]')"));
   check('普通上传不显示客户端或来源选择',await evaluate(send,"!document.getElementById('resource-hosting-label')&&!document.getElementById('resource-source')"));await file(`${out}/invalid.jsonl`);await until("document.querySelector('.check-result--failed')");
@@ -47,7 +47,7 @@ try{
   await evaluate(send,SELECT('rounds','2'));await set('trial-cap','1');await evaluate(send,SELECT('client-model',model));await evaluate(send,SELECT('server-model',model));
   await click('正式运行');await until("document.querySelector('.config-test-trigger[data-ready=true]:not(:disabled)')");
   check('我的与公用数据组合满足正式输入要求',await evaluate(send,"document.querySelector('.summary-start').textContent==='创建并正式运行'"));
-  await click('试跑');await until("document.querySelector('.config-test-trigger[data-ready=true]:not(:disabled)')");await click('测试配置');await until("document.querySelector('.summary-start[data-ready=true]:not(:disabled)')");await shot('mixed-task-config');
+  await click('试跑');await until("document.querySelector('.config-test-trigger[data-ready=true]:not(:disabled)')");await click('测试配置');await until("JSON.parse(sessionStorage.getItem('fedagent-studio:config-check')??'null')?.id");checkId=await evaluate(send,"JSON.parse(sessionStorage.getItem('fedagent-studio:config-check')).id");owned();await until("document.querySelector('.summary-start[data-ready=true]:not(:disabled)')",local?40000:120000);await shot('mixed-task-config');
   await click('创建并试跑');await until("location.hash.includes('/tasks/task-')");taskId=await evaluate(send,"location.hash.split('/')[2]");owned();
   let task;const deadline=Date.now()+(local?60000:600000);
   while(Date.now()<deadline){task=await read(`v1/tasks/${taskId}`);if(task.status==='completed')break;assert.ok(!['paused','failed','canceled'].includes(task.status),task.error);await sleep(local?300:3000)}
@@ -57,9 +57,9 @@ try{
   check('发布后的模型选择、成果使用和对比可用',await evaluate(send,"document.querySelectorAll('.compare-item').length===2&&document.querySelectorAll('.verdict').length===2"));
   await open(send,base+`#/resources/mine/data/${resource.dataset.id}`,local?1500:4000);await shot('my-resource-detail');
   check('我的资源按任务类型分类，公用数据不混入',await evaluate(send,"document.querySelector('.participant-detail')&&document.querySelector('.row-button').textContent.includes('AIME24-input')&&!document.querySelector('main').textContent.includes('AIME25')"));
-  await open(send,base+'#/tasks/new',local?1500:4000);await click('横向联邦');await click('数学推理');await evaluate(send,"document.getElementById('algorithm-fot').click()");await sleep(200);await evaluate(send,`document.getElementById('pick-${resource.source.id}').click()`);await click('重置配置');await click('重置');
+  await open(send,base+'#/tasks/new',local?1500:4000);await click('横向联邦');await evaluate(send,"document.getElementById('algorithm-fot').click()");await sleep(200);await click('数学推理');await evaluate(send,`document.getElementById('pick-${resource.source.id}').click()`);await click('重置配置');await click('重置');
   check('重置配置不删除已保存资源',await evaluate(send,"!document.querySelector('input[name=algorithm]:checked')")&&(await read('v1/datasets')).some(d=>d.id===resource.dataset.id));
-  await viewport(send,{width:390,height:844,mobile:true});await click('横向联邦');await click('数学推理');await evaluate(send,"document.getElementById('algorithm-fot').click()");await sleep(200);await click('接入数据');
+  await viewport(send,{width:390,height:844,mobile:true});await click('横向联邦');await evaluate(send,"document.getElementById('algorithm-fot').click()");await sleep(200);await click('数学推理');await click('接入数据');
   check('窄屏接入窗口可滚动且不横向溢出',await evaluate(send,"document.documentElement.scrollWidth<=390&&document.querySelector('.resource-dialog').getBoundingClientRect().width<=390&&getComputedStyle(document.querySelector('.resource-dialog-body')).overflowY==='auto'"));
   await key('Escape');check('关闭接入保留算法配置并恢复焦点',await evaluate(send,"document.getElementById('algorithm-fot').checked&&!document.querySelector('.resource-dialog')&&document.activeElement.textContent.includes('接入数据')"));
   if(local){
@@ -73,6 +73,7 @@ try{
   close();
   if(appId)assert.ok((await fetch(new URL(`v1/apps/${appId}`,base),{method:'DELETE'})).ok);
   if(taskId){const task=await read(`v1/tasks/${taskId}`);assert.ok(['completed','canceled'].includes(task.status),'Active task retained for inspection');assert.ok((await fetch(new URL(`v1/tasks/${taskId}`,base),{method:'DELETE'})).ok);}
+  if(checkId)assert.ok((await fetch(new URL(`v1/task-checks/${checkId}`,base),{method:'DELETE'})).ok);
   if(resource)assert.ok((await fetch(new URL(`v1/resources/data/${resource.dataset.id}`,base),{method:'DELETE'})).ok);
   if(modelEndpointId)assert.ok((await fetch(new URL(`v1/endpoints/${modelEndpointId}`,base),{method:'DELETE'})).ok);
   for(const k of ['tasks','apps','datasets','participants','endpoints'])assert.deepEqual((await read(`v1/${k}`)).map(x=>x.id).sort(),original[k],`Preserve original ${k}`);

@@ -62,7 +62,7 @@ export function TaskResourcesPanel({
       </div>
       <div ref={dataMotion}>
         {!algorithm || !scenarioId || !taskType ? (
-          <PanelEmpty>先选择场景、任务类型和算法，再提交或选择数据。</PanelEmpty>
+          <PanelEmpty>先选择场景、算法和任务类型，再提交或选择数据。</PanelEmpty>
         ) : candidates.length ? (
           <ParticipantTable
             error={fieldError("participants")}

@@ -52,9 +52,12 @@ export function useTaskConfig(state: State, dispatch: Dispatch<Action>, initialS
   const update = (patch: Partial<Draft>) => dispatch({ type: "updateDraft", patch });
   const algorithm = draft.algorithm ? algorithmOf(draft.algorithm) : null;
   useEffect(() => {
-    if (algorithm?.requirements.agentRequired && draft.execution !== "agent")
-      dispatch({ type: "updateDraft", patch: { execution: "agent" } });
-  }, [algorithm, draft.execution, dispatch]);
+    if (!algorithm) return;
+    if (algorithm.requirements.agentRequired && draft.execution !== "agent")
+      dispatch({ type: "updateDraft", patch: { execution: "agent", clientOverrides: {} } });
+    else if (!algorithm.requirements.executionModes.includes("agent") && (draft.execution === "agent" || draft.agentId || Object.keys(draft.agentOverrides ?? {}).length))
+      dispatch({ type: "updateDraft", patch: { execution: "builtin", agentId: null, agentOverrides: {} } });
+  }, [algorithm, draft.execution, draft.agentId, draft.agentOverrides, dispatch]);
   // 能参加的参与方：名下有登记在这个场景、这种任务类型下的数据集。
   const scenarioId = draft.scenario;
   const taskType = draft.taskType;

@@ -106,7 +106,7 @@ export default function AgentsPage({ space = "workspace" }: { space?: ResourceSp
               ? "正在读取接口…"
               : query.error
                 ? "接口列表暂时无法读取，请重试。"
-                : "暂无 Agent 接口。可先使用平台内置流程与 LLM，或接入自己的服务。"}
+                : "暂无 Agent 接口。需要自有 Agent 的算法，请先接入支持其完整步骤的服务。"}
           </PanelEmpty>
         )}
       </Panel>

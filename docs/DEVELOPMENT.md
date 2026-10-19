@@ -1,5 +1,7 @@
 # 开发说明
 
+T83：SDK0.2.3／FoT包0.1.3，agent_supported控制新建外部Agent准入，与agent_required一起由注册表描述。FoT数据＋LLM，医疗病例＋Agent；界面顺序为场景→算法→兼容任务。无数据库迁移，历史任务与本地客户端契约保留。`algorithm-config.mjs`覆盖只读选择顺序、切换、资源边界及旧草稿；主动模型验证仍须显式安排。
+
 T75：SDK0.2.0／客户端0.1.2，五个安装包新增医疗插件。新任务类型须提供 check、schema_version、标签定义、template、preview、input_fields、application_item／application_input；托管语义检查来自后端，本地文件由客户端检查。规范不兼容应转换／重新登记。invoke 单次使用成果，apply 保留对比，export 为真实格式；医疗代码与数据见 EVOMEDCLAW／MEDICAL-DATA。medical-flow.mjs 仅允许本地假模型，MEDICAL_DATA_DIR 指定公开源分组文件，只清理本次核验资源。
 
 ## 环境

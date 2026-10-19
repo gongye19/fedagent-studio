@@ -7,6 +7,7 @@ full_name: Federation over Text
 summary: 各方上传解题经验，服务端汇总成共享的经验库
 scenario: horizontal
 accepts: [math-reasoning]
+agent_supported: false
 roles:
   participant: { label: 参与方, min: 2, evaluated: true }
 rounds: { min: 2, max: 6, default: 3 }

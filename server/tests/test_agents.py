@@ -6,7 +6,7 @@ from datetime import timedelta
 
 import httpx
 import pytest
-from fedagent_sdk import OutgoingMessage
+from fedagent_sdk import Manifest, OutgoingMessage
 from sqlalchemy import select
 from test_medical import medical_config, medical_dataset
 
@@ -317,3 +317,25 @@ def test_explicit_retryable_failure_uses_algorithm_retry_without_rerunning_compl
         units = list(session.scalars(select(m.WorkUnit).where(m.WorkUnit.task_id == task_id)))
         assert sum(row.attempts > 1 for row in units) == 1
         assert any(row.status == 'discarded' for row in session.scalars(select(m.CallRecord).where(m.CallRecord.task_id == task_id)))
+
+
+def test_fot_requires_llm_workflow_and_rejects_external_agent_before_calls(client, monkeypatch):
+    def forbidden(*args, **kwargs):
+        pytest.fail("不支持的执行方式不应调用 Agent")
+
+    monkeypatch.setattr(AgentGateway, "request", forbidden)
+    config = {**fot_config(client), "execution": "agent", "agentId": "missing"}
+    registry = client.get("/v1/registry").json()
+    fot = next(a for a in registry["algorithms"] if a["id"] == "fot")
+    assert fot["requirements"]["executionModes"] == ["platform", "local"]
+    assert not fot["requirements"]["agentRequired"]
+    from fedagent.registry import Registry
+
+    manifest = Registry.discover().algorithm("fot").manifest
+    with pytest.raises(ValueError, match="必须支持 Agent"):
+        Manifest.model_validate({**manifest.model_dump(), "agent_required": True})
+    result = client.post("/v1/tasks/validate", json=config).json()
+    assert any("数据与 LLM" in row["message"] for row in result["issues"])
+    assert client.post("/v1/task-checks", json=config).status_code == 422
+    assert client.post("/v1/tasks", json=config).status_code == 422
+    assert client.post("/v1/tasks/validate", json=fot_config(client)).json()["issues"] == []

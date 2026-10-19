@@ -41,7 +41,7 @@ try{
  for(const medical of [false,true].filter(m=>!process.env.ONLY_ALGORITHM||process.env.ONLY_ALGORITHM===(m?'evomedclaw':'fot'))){
    const type=medical?'medical-diagnosis':'math-reasoning',algorithm=medical?'evomedclaw':'fot';
    const compatible=datasets.filter(d=>d.taskType===type);const selected=(medical?compatible:compatible.sort((a,b)=>a.name.localeCompare(b.name))).slice(0,2);assert.equal(selected.length,2);
-   await open(send,base+'#/tasks/new',local?1300:4000);await click('横向联邦');await click(medical?'医疗诊断':'数学推理');await evaluate(send,`document.getElementById('algorithm-${algorithm}').click()`);await sleep(180);
+   await open(send,base+'#/tasks/new',local?1300:4000);await click('横向联邦');await evaluate(send,`document.getElementById('algorithm-${algorithm}').click()`);await sleep(180);await click(medical?'医疗诊断':'数学推理');
    for(const dataset of selected){await click(dataset.resourceSpace==='public'?'公用资源':'我的资源');await evaluate(send,`document.getElementById('pick-${dataset.participantId}').click()`);await sleep(150)}
    if(medical){
      check('医疗自动要求用户侧 Agent，隐藏平台内置诊断选项',await evaluate(send,"!document.querySelector('[name=client-model]')&&![...document.querySelectorAll('button[role=radio]')].some(b=>b.textContent.includes('平台内置流程'))"));

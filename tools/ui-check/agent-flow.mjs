@@ -32,23 +32,22 @@ try{
    for(const n of [1,2]){const form=new FormData();form.set('hosting','platform');form.set('taskType','medical-diagnosis');form.set('name',`公开病例联调 ${stamp}-${n}`);form.set('file',new Blob([readFileSync(`.references/medical/medqa-group-${n}.jsonl`)]),`medqa-${n}.jsonl`);const r=await request('resources/data','POST',form);owned.datasets.push(r.dataset.id);save()}
    datasets=await request('datasets');
  }
- for(const medical of [false,true]){
-   const type=medical?'medical-diagnosis':'math-reasoning',algorithm=medical?'evomedclaw':'fot';
-   const compatible=datasets.filter(d=>d.taskType===type);const selected=(medical?compatible:compatible.sort((a,b)=>a.name.localeCompare(b.name))).slice(0,2);assert.equal(selected.length,2);
-   await open(send,base+'#/tasks/new',local?1300:4000);await click('横向联邦');await click(medical?'医疗诊断':'数学推理');await evaluate(send,`document.getElementById('algorithm-${algorithm}').click()`);await sleep(180);
+ {
+   const type='medical-diagnosis',algorithm='evomedclaw';
+   const compatible=datasets.filter(d=>d.taskType===type);const selected=compatible.slice(0,2);assert.equal(selected.length,2);
+   await open(send,base+'#/tasks/new',local?1300:4000);await click('横向联邦');await evaluate(send,`document.getElementById('algorithm-${algorithm}').click()`);await sleep(180);await click('医疗诊断');
    for(const dataset of selected){await click(dataset.resourceSpace==='public'?'公用资源':'我的资源');await evaluate(send,`document.getElementById('pick-${dataset.participantId}').click()`);await sleep(150)}
-   if(!medical)await click('自有 Agent');await evaluate(send,SELECT('task-agent',agent.id));
-   check(`${algorithm}选择 Agent 后不再要求本方 LLM`,await evaluate(send,`!document.getElementById('client-model')&&Boolean(document.getElementById('server-model'))===${!medical}`));
-   if(!medical)await evaluate(send,SELECT('server-model',model));
-   await evaluate(send,SELECT('rounds','2'));await set('trial-cap',medical?2:1);await set('task-name',`Agent ${algorithm} 验证 ${stamp}`);
+   await evaluate(send,SELECT('task-agent',agent.id));
+   check(`${algorithm}选择 Agent 后不再要求本方 LLM`,await evaluate(send,`!document.getElementById('client-model')&&!document.getElementById('server-model')`));
+   await evaluate(send,SELECT('rounds','2'));await set('trial-cap',2);await set('task-name',`Agent ${algorithm} 验证 ${stamp}`);
    await until("document.querySelector('.config-test-trigger[data-ready=true]:not(:disabled)')");
    await click('创建并试跑');check(`${algorithm}未测试时在配置测试区域提示`,await evaluate(send,"document.getElementById('check-error')?.textContent.includes('先测试')&&!document.querySelector('.notice')"));
    await click('测试配置');await until("document.querySelector('.summary-start[data-ready=true]:not(:disabled)')");
    const checkId=await evaluate(send,"JSON.parse(sessionStorage.getItem('fedagent-studio:config-check')).id");owned.checks.push(checkId);save();
-   check(`${algorithm}测试实际执行样本且通过`,(await request('task-checks/'+checkId)).results.some(r=>r.message.includes('真实样本执行')));
+   check(`${algorithm}测试实际执行样本且通过`,(await request('task-checks/'+checkId)).results.some(r=>r.message.includes('全部本方步骤')));
    await send('Page.reload');await sleep(local?1500:4000);await until("document.querySelector('.summary-start[data-ready=true]:not(:disabled)')");
    check(`${algorithm}刷新后保留报告和已选配置`,await evaluate(send,`document.querySelector('input[name=task-agent]').value==='${agent.id}'&&Boolean(document.querySelector('.config-check-success'))`));
-   await set('trial-cap',medical?3:2);check(`${algorithm}改配置后旧测试失效`,await evaluate(send,"document.querySelector('.summary-start').dataset.ready==='false'&&document.querySelector('.config-check-results').textContent.includes('配置已更改')"));await set('trial-cap',medical?2:1);await until("document.querySelector('.summary-start[data-ready=true]:not(:disabled)')");
+   await set('trial-cap',3);check(`${algorithm}改配置后旧测试失效`,await evaluate(send,"document.querySelector('.summary-start').dataset.ready==='false'&&document.querySelector('.config-check-results').textContent.includes('配置已更改')"));await set('trial-cap',2);await until("document.querySelector('.summary-start[data-ready=true]:not(:disabled)')");
    await shot(`${algorithm}-configured`);
    await viewport(send,{width:390,height:844,mobile:true});await shot(`${algorithm}-configured-mobile`,390);
    check(`${algorithm}手机配置无横向溢出`,await evaluate(send,"document.documentElement.scrollWidth<=390"));
@@ -60,8 +59,8 @@ try{
    await open(send,base+`#/tasks/${taskId}/config`,local?1300:4000);check(`${algorithm}配置详情展示冻结的 Agent 名称`,await evaluate(send,`document.querySelector('main').textContent.includes(${JSON.stringify(agent.name)})&&!document.querySelector('main').textContent.includes('absent:')`));await shot(`${algorithm}-task-config`);
    await open(send,base+`#/tasks/${taskId}/output`,local?1300:4000);await click('发布为应用');await set('publish-name',`Agent ${algorithm} 应用验证 ${stamp}`);await click('发布');await until("[...document.querySelectorAll('a')].some(a=>a.textContent==='立即试用')");
    const app=(await request('apps')).find(a=>a.taskId===taskId);assert.ok(app);owned.apps.push(app.id);save();
-   const input=medical?JSON.parse(readFileSync('.references/medical/medqa-group-1.jsonl','utf8').trim().split('\n')[1]):'1 + 1';
-   const invoke=await request(`apps/${app.id}/invoke`,'POST',{input,answer:medical?undefined:'2',model});
+   const input=JSON.parse(readFileSync('.references/medical/medqa-group-1.jsonl','utf8').trim().split('\n')[1]);
+   const invoke=await request(`apps/${app.id}/invoke`,'POST',{input,model});
    check(`${algorithm}发布的经验成果可通过应用接口使用`,Boolean(invoke.output));
    const exported=await fetch(new URL(`v1/apps/${app.id}/export`,base));check(`${algorithm}成果可导出`,exported.ok&&Boolean(await exported.text()));
  }

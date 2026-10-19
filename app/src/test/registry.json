@@ -399,8 +399,7 @@
         "executionLabel": "FoT 执行流程",
         "executionModes": [
           "platform",
-          "local",
-          "agent"
+          "local"
         ]
       },
       "source": {

@@ -33,12 +33,12 @@ export function ResourceModels({
   return (
     <div className="resource-models">
       <FieldGroup>
-        <Field
+        {algorithm && algorithm.requirements.executionModes.includes("agent") && !algorithm.requirements.agentRequired ? <Field
           label="执行方式"
           labelId="execution-mode"
           info="内置流程由平台使用所选 LLM 执行；自有 Agent 由独立服务执行完整的本方步骤。选择 Agent 将把步骤所需样本发送到该服务，Agent 自己管理模型与工具。"
         >
-          {algorithm?.requirements.agentRequired ? <p className="field-static">自有 Agent</p> : <Choices
+          <Choices
             labelledBy="execution-mode"
             value={draft.execution ?? "builtin"}
             options={[
@@ -46,13 +46,13 @@ export function ResourceModels({
               { value: "agent", label: "自有 Agent", disabled: !algorithm },
             ]}
             onChange={(execution) => update({ execution })}
-          />}
-        </Field>
+          />
+        </Field> : null}
         {draft.execution === "agent" ? (
           <Field
             label="Agent 接口"
             htmlFor="task-agent"
-            info="服务必须支持当前算法的版本与全部参与方步骤；开始前通过测试配置验证。"
+            info="由接入方运行完整 Agent 系统，管理模型与工具。服务必须支持当前算法的版本和全部本方步骤；平台会向它发送所选样本并在开始前测试。"
           >
             <div className="resource-model-control">
               <SelectField
@@ -109,7 +109,7 @@ export function ResourceModels({
                 htmlFor={local ? undefined : id}
                 info={
                   role === "clientModel"
-                    ? "用于平台运行的数据来源。本地客户端自行配置模型，不使用这里的密钥。"
+                    ? "平台使用该 LLM 执行算法声明的本方流程；无需另行接入 Agent。本地客户端自行配置模型。"
                     : "用于算法在服务端汇总各来源的交换内容。"
                 }
               >
