@@ -23,7 +23,7 @@ export function TaskStartBar({ config }: { config: TaskConfigController }) {
             ? "正在检查配置…"
             : result && !issues.length
               ? result.remoteExecution
-                ? `${joined.length} 个系统 · Agent 执行`
+                ? `${joined.length} 组资源 · Agent 执行`
                 : `${joined.length} 个数据来源 · ${result.callsAreUpperBound ? "最多" : "至少"} ${formatNumber(result.participantCalls + result.serverCalls)} 次调用`
               : ""}
         </strong>

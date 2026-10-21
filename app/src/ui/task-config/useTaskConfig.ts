@@ -19,11 +19,7 @@ import {
   type Estimate,
   type Issue,
 } from "../../domain/config";
-import {
-  DEFAULT_ENDPOINT_ID,
-  endpointOf,
-  type ResourceSpace,
-} from "../../domain/resources";
+import { DEFAULT_ENDPOINT_ID, endpointOf } from "../../domain/resources";
 import { createTask, taskRequest } from "../../state/actions";
 import { showFlash } from "../../state/flash";
 import { navigate } from "../../state/route";
@@ -45,20 +41,6 @@ export function useTaskConfig(
   const [pending, setPending] = useState<Pending>(null);
   const [attempted, setAttempted] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
-  const [space, setSpace] = useState<ResourceSpace>(() =>
-    draft.participants.length &&
-    draft.participants.every(
-      (p) =>
-        state.datasets.find((d) => d.id === p.datasetId)?.resourceSpace ===
-        "public",
-    )
-      ? "public"
-      : "workspace",
-  );
-  const [intake, setIntake] = useState<
-    "data" | "clientModel" | "serverModel" | "agent" | null
-  >(null);
-
   useEffect(() => {
     if (!resetOnOpen.current) return;
     resetOnOpen.current = false;
@@ -74,7 +56,6 @@ export function useTaskConfig(
       });
   }, [dispatch, initialScenario]);
 
-  const [agentTarget, setAgentTarget] = useState<string | null>(null);
   const update = (patch: Partial<Draft>) =>
     dispatch({ type: "updateDraft", patch });
   const algorithm = draft.algorithm ? algorithmOf(draft.algorithm) : null;
@@ -114,7 +95,6 @@ export function useTaskConfig(
     draft,
     state.datasets,
     state.participants,
-    space,
   );
   const joined = joinable(draft, state.datasets, state.participants);
   const localIssues = draftIssues(
@@ -329,15 +309,9 @@ export function useTaskConfig(
   const startLabel = full ? "创建并正式运行" : "创建并试跑";
   return {
     draft,
-    agentTarget,
-    setAgentTarget,
     pending,
     setPending,
     formRef,
-    space,
-    setSpace,
-    intake,
-    setIntake,
     update,
     algorithm,
     scenarioId,

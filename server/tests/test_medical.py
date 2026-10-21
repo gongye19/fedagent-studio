@@ -48,6 +48,7 @@ def medical_config(chosen):
 
 def medical_agents(client, body, first):
     second = client.post("/v1/agents", json={"name": "第二测试系统", "baseUrl": "https://medical-second.test"}).json()["id"]
+    assert client.post("/v1/agents/" + second + "/check").status_code == 200
     body["agentOverrides"] = {body["participants"][0]["participantId"]: first,
                               body["participants"][1]["participantId"]: second}
     return body
@@ -182,7 +183,7 @@ def test_local_medical_schema_and_plugin_capabilities(client: TestClient, platfo
     chosen = [{'participantId': 'p-a', 'datasetId': medical_dataset(client, 'p-a')}, {'participantId': pid, 'datasetId': did}]
     config = medical_config(chosen)
     issues = client.post('/v1/tasks/validate', json=config).json()['issues']
-    assert any('需要接入自己的 Agent' in issue['message'] for issue in issues)
+    assert any('需要 Agent 系统' in issue['message'] for issue in issues)
     assert client.post('/v1/tasks', json=config).status_code == 422
     worker.http.close()
 

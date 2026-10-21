@@ -33,7 +33,6 @@ try{
   const ds=(await read('v1/datasets')).find(x=>!before.has(x.id));assert.ok(ds);owned.push(ds.id);check('保存真实医疗病例与结构化预览',ds.taskType==='medical-diagnosis'&&ds.sample.fields.some(f=>f.label==='病人信息')&&ds.count===(group===1?54:53));
  }
  await open(send,base+'#/tasks/new/horizontal');await evaluate(send,"document.getElementById('algorithm-evomedclaw').click()");await sleep(200);await click('医疗诊断');for(const [i,id] of owned.entries()){
-  if(i)await click('添加我的系统');
   const key=await evaluate(send,`JSON.parse(localStorage.getItem('fedagent-studio:draft')).agentGroups[${i}].key`);
   await evaluate(send,SELECT('system-'+key+'-agent',agentIds[i]));
   await evaluate(send,SELECT('system-'+key+'-data',id));

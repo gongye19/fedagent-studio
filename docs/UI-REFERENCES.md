@@ -308,3 +308,6 @@ T82沿用以上已确认参考和Radix／现有控制台组件：医疗Agent由�
 
 
 T85沿用已确认的T62控制台、T67菜单与T68配置参考，没有增加新主参考。系统行先选Agent、同级配置同方任务数据；不复制参考产品的额外功能。沿用Radix SelectField／ResourceDialog及现有Confirm，三类资源共享复用同一确认组件。线上桌面与手机实际预览见screenshots/agent-participation；共享流程、任务内接入和核心状态验收见FLOW T85与ui-check脚本。
+
+
+T86继续沿用同一批已确认参考及现有组件，没有新增Mobbin检索或主参考。按用户明确修正，任务只统一选择可用资源，去掉来源分区与现场登记；两菜单平级、一个增加行按钮，资源管理页承担接入与基础检查。新线上桌面1280／手机390截图已实际查看并更新screenshots/agent-participation/desktop.png和mobile.png；完整流程／状态／组件／验收见FLOW T86。

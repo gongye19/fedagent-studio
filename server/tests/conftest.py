@@ -72,4 +72,5 @@ def remote(platform, client, monkeypatch):
     monkeypatch.setattr(AgentGateway, "request", request)
     response = client.post("/v1/agents", json={"name": "仅测试的独立 Agent", "baseUrl": "https://agent.test"})
     assert response.status_code == 201, response.text
+    assert client.post("/v1/agents/" + response.json()["id"] + "/check").status_code == 200
     return response.json()["id"], requests

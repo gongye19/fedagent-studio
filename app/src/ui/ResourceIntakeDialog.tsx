@@ -12,7 +12,7 @@ import { ResourceDialog } from "./ResourceDialog";
 export type SavedResource =
   { kind: "data"; value: components["schemas"]["DataResourceOut"] } | { kind: "model"; value: Endpoint } | { kind: "agent"; value: AgentEndpoint };
 
-/** 任务页与资源页共用接入流程；忙碌、关闭和焦点规则只维护一处。 */
+/** 资源页的接入窗口；复用表单与统一的忙碌、关闭和焦点规则。 */
 export function ResourceIntakeDialog({
   kind,
   state,

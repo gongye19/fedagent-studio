@@ -1,16 +1,15 @@
-import { AgentParticipationPanel } from "./AgentParticipationPanel";
-import { InfoTip } from "../InfoTip";
 import { type Dispatch } from "react";
 import { hrefOf } from "../../state/route";
 import { participantOf, type Action, type State } from "../../state/store";
 import { PanelEmpty } from "../common";
 import { Panel } from "../console";
 import { Icon } from "../icons";
-import { InlineError } from "../task-config/InlineError";
-import { ParticipantTable } from "../task-config/DataSelection";
-import { ResourceModels } from "../task-config/ResourceModels";
+import { InfoTip } from "../InfoTip";
+import { AgentParticipationPanel } from "./AgentParticipationPanel";
+import { InlineError } from "./InlineError";
+import { ParticipantTable } from "./DataSelection";
+import { ResourceModels } from "./ResourceModels";
 import type { TaskConfigController } from "./useTaskConfig";
-import { useContentMotion } from "../hooks";
 
 export function TaskResourcesPanel({
   state,
@@ -23,9 +22,6 @@ export function TaskResourcesPanel({
 }) {
   const {
     draft,
-    space,
-    setSpace,
-    setIntake,
     update,
     algorithm,
     scenarioId,
@@ -34,93 +30,52 @@ export function TaskResourcesPanel({
     joined,
     fieldError,
   } = config;
-  const dataMotion = useContentMotion(space, true);
+  const agentRequired = algorithm?.requirements.agentRequired;
   return (
     <Panel
-      title="所需资源"
       id="participants"
       step={2}
+      title={
+        <>
+          所需资源
+          <InfoTip label="资源选择">
+            这里只选择已登记并通过基础检查的可用资源。新增或修改资源请使用左侧的数据资源、LLM
+            接口和 Agent 接口页面。
+            {agentRequired
+              ? `每组选择一个 Agent 和同一方提供的数据，至少需要 ${algorithm.minParticipants} 组。`
+              : "每个数据来源选择一份数据。"}
+          </InfoTip>
+        </>
+      }
       extra={
         algorithm
-          ? `已选 ${joined.length} ${algorithm.requirements.agentRequired ? "个系统" : "个来源"}`
+          ? `已选 ${joined.length} ${agentRequired ? "组资源" : "个来源"}`
           : undefined
       }
     >
-      {algorithm?.requirements.agentRequired ? (
+      {agentRequired ? (
         <AgentParticipationPanel state={state} config={config} />
       ) : (
         <>
-          <div className="task-data-head">
-            <div>
-              <strong>数据</strong>
-              <InfoTip label="数据选择">
-                每个数据来源选择一份文件，同一来源的多份数据不能充当多个联邦节点。正式任务至少使用一份我的数据，共享数据可以先试跑。
-              </InfoTip>
-            </div>
-            <button
-              type="button"
-              className="button button--secondary button--compact"
-              disabled={!algorithm || !scenarioId || !taskType}
-              onClick={() => setIntake("data")}
-            >
-              <Icon name="plus" />
-              接入数据
-            </button>
-          </div>
-          <div
-            className="resource-space-bar"
-            role="group"
-            aria-label="数据资源范围"
-          >
-            <button
-              type="button"
-              aria-pressed={space === "workspace"}
-              className={space === "workspace" ? "active" : ""}
-              onClick={() => setSpace("workspace")}
-            >
-              我的资源
-            </button>
-            <button
-              type="button"
-              aria-pressed={space === "public"}
-              className={space === "public" ? "active" : ""}
-              onClick={() => setSpace("public")}
-            >
-              共享资源
-            </button>
-          </div>
-          <div ref={dataMotion}>
-            {!algorithm || !scenarioId || !taskType ? (
-              <PanelEmpty>
-                先选择场景、算法和任务类型，再提交或选择数据。
-              </PanelEmpty>
-            ) : candidates.length ? (
-              <ParticipantTable
-                error={fieldError("participants")}
-                draft={draft}
-                dispatch={dispatch}
-                candidates={candidates}
-              />
-            ) : (
-              <PanelEmpty>
-                {space === "workspace"
-                  ? "暂无匹配的可用数据。接入自己的数据，或切换到共享资源试跑。"
-                  : "暂无匹配的共享数据。"}
-              </PanelEmpty>
-            )}
-          </div>
-          {algorithm &&
-          state.datasets.some(
-            (d) =>
-              d.resourceSpace === space && d.taskType === taskType && !d.ready,
-          ) ? (
-            <a
-              className="text-link resource-return"
-              href={hrefOf({ page: "resources", space, kind: "data" })}
-            >
-              查看待连接的数据
-            </a>
-          ) : null}
+          {!algorithm || !scenarioId || !taskType ? (
+            <PanelEmpty>
+              先选择场景、算法和任务类型，再选择可用数据。
+            </PanelEmpty>
+          ) : candidates.length ? (
+            <ParticipantTable
+              error={fieldError("participants")}
+              draft={draft}
+              dispatch={dispatch}
+              candidates={candidates}
+            />
+          ) : (
+            <PanelEmpty>
+              暂无匹配的可用数据。请先在左侧“数据资源”中上传并完成校验。
+              <a className="text-link" href={hrefOf({ page: "resources" })}>
+                查看数据资源
+              </a>
+            </PanelEmpty>
+          )}
           {joined.length ? (
             <div className="resource-selection" aria-label="已选择的数据">
               {joined.map((p) => (
@@ -156,7 +111,6 @@ export function TaskResourcesPanel({
             algorithm={algorithm}
             joined={joined.map((p) => p.participantId)}
             modelsError={fieldError("models")}
-            onIntake={setIntake}
             allLocal={
               joined.length > 0 &&
               joined.every(

@@ -17,7 +17,7 @@ export function AgentParticipationRow({
   state: State;
   config: TaskConfigController;
 }) {
-  const { draft, algorithm, update, setIntake, setAgentTarget } = config;
+  const { draft, algorithm, update } = config;
   const choices = groupChoices(
     group,
     draft,
@@ -26,7 +26,6 @@ export function AgentParticipationRow({
     state.datasets,
     state.participants,
   );
-  const own = choices.space === "workspace";
   const prefix = `system-${group.key}`;
   const selectedData = choices.datasets.find((d) => d.id === group.datasetId);
   const agentMissing = Boolean(group.agentId && !choices.agent);
@@ -51,19 +50,14 @@ export function AgentParticipationRow({
       ),
     });
   }
-  function intake(kind: "data" | "agent") {
-    setAgentTarget(group.key);
-    setIntake(kind);
-  }
   return (
-    <section className="participation-row" aria-label={`参与系统 ${index + 1}`}>
+    <section className="participation-row" aria-label={`资源 ${index + 1}`}>
       <div className="participation-head">
-        <strong>{own ? "我的系统" : "共享协作方"}</strong>
-        {!own && choices.agent ? <span>{choices.agent.ownerName}</span> : null}
+        <strong>资源 {index + 1}</strong>
         <button
           type="button"
           className="button button--ghost button--compact"
-          aria-label={`移除参与系统 ${index + 1}`}
+          aria-label={`移除资源 ${index + 1}`}
           onClick={() =>
             update({
               agentGroups: draft.agentGroups.filter((g) => g.key !== group.key),
@@ -85,13 +79,15 @@ export function AgentParticipationRow({
               aria-describedby={
                 agentError ? `${prefix}-agent-error` : undefined
               }
-              disabled={!draft.taskType}
+              disabled={
+                !draft.taskType || (!choices.agents.length && !group.agentId)
+              }
               onValueChange={(agentId) =>
                 patch({ agentId, datasetId: "", participantId: "" })
               }
             >
               <option value="" disabled>
-                {choices.agents.length ? "选择 Agent 接口" : "暂无匹配的 Agent"}
+                {choices.agents.length ? "选择 Agent 接口" : "暂无可用 Agent"}
               </option>
               {agentMissing ? (
                 <option value={group.agentId} disabled>
@@ -104,17 +100,6 @@ export function AgentParticipationRow({
                 </option>
               ))}
             </SelectField>
-            {own ? (
-              <button
-                type="button"
-                className="button button--secondary button--compact"
-                disabled={!draft.taskType}
-                onClick={() => intake("agent")}
-                aria-label={`为参与系统 ${index + 1} 接入 Agent`}
-              >
-                接入
-              </button>
-            ) : null}
           </div>
           <InlineError id={`${prefix}-agent-error`} message={agentError} />
         </div>
@@ -151,17 +136,6 @@ export function AgentParticipationRow({
                 </option>
               ))}
             </SelectField>
-            {own ? (
-              <button
-                type="button"
-                className="button button--secondary button--compact"
-                disabled={!choices.agent}
-                onClick={() => intake("data")}
-                aria-label={`为参与系统 ${index + 1} 上传数据`}
-              >
-                上传
-              </button>
-            ) : null}
           </div>
           <InlineError id={`${prefix}-data-error`} message={dataError} />
         </div>

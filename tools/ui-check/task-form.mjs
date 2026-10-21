@@ -26,7 +26,6 @@ try{
   check('修正算法清除其错误并提示类型 '+width,await evaluate(send,"!document.getElementById('algorithm-label-error')&&Boolean(document.getElementById('task-type-label-error'))"));
   await evaluate(send,PICK(['数学推理']));await sleep(350);
   check('修正类型清除其错误且参与方提示在表格下 '+width,await evaluate(send,"!document.getElementById('task-type-label-error')&&document.getElementById('participants-error').closest('section').id==='participants'"));
-  await evaluate(send,"[...document.querySelectorAll('#participants .resource-space-bar button')].find(b=>b.textContent==='共享资源').click();void 0");await sleep(250);
   await evaluate(send,`${start}.focus();void 0`);await key('Enter');await sleep(500);
   check('键盘开始定位参与方复选框 '+width,await evaluate(send,"document.activeElement.matches('#participants input[type=checkbox]')&&window.__writes===0"));
   await shot('missing-participants-'+width);

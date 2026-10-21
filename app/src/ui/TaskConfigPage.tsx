@@ -11,7 +11,6 @@ import { TaskResourcesPanel } from "./task-config/TaskResourcesPanel";
 import { TaskSummary } from "./task-config/TaskSummary";
 import { TaskStartBar } from "./task-config/TaskStartBar";
 import { TaskCheckPanel } from "./task-config/TaskCheckPanel";
-import { ResourceIntakeDialog } from "./ResourceIntakeDialog";
 
 export default function TaskConfigPage({
   state,
@@ -35,13 +34,8 @@ export default function TaskConfigPage({
     restart,
     createError,
     formRef,
-    intake,
-    setIntake,
-    scenarioId,
-    taskType,
     update,
     fieldError,
-    setSpace,
   } = config;
   const cost = result
     ? result.cost === null
@@ -74,7 +68,7 @@ export default function TaskConfigPage({
       : pending === "restart"
         ? {
             title: "重置这次的配置？",
-            text: "清空本次选择和运行配置，已保存到我的资源的数据与模型接口会保留。",
+            text: "清空本次选择和运行配置，已保存的数据与接口会保留。",
             confirmLabel: "重置",
             cancelLabel: "继续编辑",
             tone: "danger" as const,
@@ -130,67 +124,6 @@ export default function TaskConfigPage({
         </Confirm>
       ) : null}
       <TaskStartBar config={config} />
-      <ResourceIntakeDialog
-        state={state}
-        kind={
-          intake === "data" || intake === "agent"
-            ? intake
-            : intake
-              ? "model"
-              : null
-        }
-        category={
-          scenarioId && taskType
-            ? { scenario: scenarioId, taskType }
-            : undefined
-        }
-        onClose={() => {
-          setIntake(null);
-          config.setAgentTarget(null);
-        }}
-        onSaved={async (saved) => {
-          if (saved.kind === "data") {
-            const resource = saved.value;
-            setSpace("workspace");
-            if (algorithm?.requirements.agentRequired) {
-              update({
-                agentGroups: draft.agentGroups.map((g) =>
-                  g.key === config.agentTarget
-                    ? {
-                        ...g,
-                        datasetId: resource.dataset.id,
-                        participantId: resource.source.id,
-                      }
-                    : g,
-                ),
-              });
-            } else if (resource.dataset.ready)
-              dispatch({
-                type: "pickDataset",
-                participantId: resource.source.id,
-                datasetId: resource.dataset.id,
-              });
-          } else if (saved.kind === "agent") {
-            if (algorithm?.requirements.agentRequired) {
-              update({
-                agentGroups: draft.agentGroups.map((g) =>
-                  g.key === config.agentTarget
-                    ? {
-                        ...g,
-                        agentId: saved.value.id,
-                        datasetId: "",
-                        participantId: "",
-                      }
-                    : g,
-                ),
-              });
-            } else update({ execution: "agent", agentId: saved.value.id });
-          } else if (intake === "clientModel" || intake === "serverModel") {
-            update({ [intake]: `${saved.value.id}:${saved.value.models[0]}` });
-          }
-          setIntake(null);
-        }}
-      />
     </>
   );
 }

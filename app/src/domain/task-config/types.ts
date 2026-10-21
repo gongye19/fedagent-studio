@@ -1,6 +1,6 @@
 import type { components } from "../../api/schema";
 import type { AlgorithmId, Params, ScenarioId, TaskType } from "../catalog";
-import { DEFAULT_MODEL, type ResourceSpace } from "../resources";
+import { DEFAULT_MODEL } from "../resources";
 
 export type RunMode = "trial" | "full";
 
@@ -11,7 +11,6 @@ export type TaskParticipant = { participantId: string; datasetId: string };
 export type AgentGroup = TaskParticipant & {
   key: string;
   agentId: string;
-  space?: ResourceSpace;
 };
 
 export type TaskConfig = {
@@ -78,7 +77,12 @@ export function withDefaults(draft: Partial<Draft>): Draft {
     ...draft,
     participants: [...(draft.participants ?? [])],
     agentGroups:
-      draft.agentGroups?.map((g) => ({ ...g })) ??
+      draft.agentGroups?.map(({ key, agentId, datasetId, participantId }) => ({
+        key,
+        agentId,
+        datasetId,
+        participantId,
+      })) ??
       (draft.execution === "agent"
         ? (draft.participants ?? []).map((p) => ({
             ...p,
@@ -91,6 +95,16 @@ export function withDefaults(draft: Partial<Draft>): Draft {
     agentOverrides: { ...(draft.agentOverrides ?? {}) },
     params: { ...(draft.params ?? {}) },
   };
+}
+
+/** 初始行只展示所需字段，不替用户选择资源。 */
+export function emptyAgentGroups(count: number): AgentGroup[] {
+  return Array.from({ length: count }, (_, index) => ({
+    key: `resource-${index + 1}`,
+    agentId: "",
+    datasetId: "",
+    participantId: "",
+  }));
 }
 
 /** 后端的调用量预估：服务端调用模型的步骤每轮各一次（结果不合法时会重试，所以是下限）；用到的接口都设置了单价才估算费用，单位：元。 */

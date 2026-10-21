@@ -9,11 +9,12 @@ const out=process.env.CDP_OUT??'/tmp/fedagent-collaboration';mkdirSync(out,{recu
 const evidence=[],owned={};const check=(label,value)=>{assert.ok(value,label);evidence.push(label);console.log('PASS',label)};
 async function req(p,method='GET',body){const r=await fetch(new URL('v1/'+p,base),{method,headers:body?{'content-type':'application/json'}:{},body:body?JSON.stringify(body):undefined});assert.ok(r.ok,`${p}: ${await r.clone().text()}`);return r.status===204?null:r.json()}
 const [datasets,agents,oldTasks,oldApps]=await Promise.all(['datasets','agents','tasks','apps'].map(p=>req(p)));
-const mine=datasets.find(d=>d.taskType==='medical-diagnosis'&&d.resourceSpace==='workspace');
-const peer=datasets.find(d=>d.taskType==='medical-diagnosis'&&d.resourceSpace==='public');
-const mineAgent=agents.find(a=>a.resourceSpace==='workspace'&&a.ownerId===mine?.ownerId);
-const peerAgent=agents.find(a=>a.shared&&a.ownerId===peer?.ownerId&&a.id!==mineAgent?.id);
-assert.ok(mine&&peer&&mineAgent&&peerAgent,'独立资源与所属方已登记');
+const pairs=agents.filter(a=>a.capabilities&&(a.resourceSpace==='workspace'||a.shared)).flatMap(a=>{
+ const data=datasets.find(d=>d.ready&&d.taskType==='medical-diagnosis'&&d.ownerId===a.ownerId&&(d.resourceSpace==='workspace'||d.shared));
+ return data?[{agent:a,data}]:[];
+});
+assert.ok(pairs.length>=2,'至少两套通过检查的资源');
+const [{agent:mineAgent,data:mine},{agent:peerAgent,data:peer}]=pairs;
 const {send,close}=await launch({port:Number(process.env.CDP_PORT??9438),profile:'/tmp/fedagent-collaboration-profile'});
 async function click(label){await evaluate(send,`(()=>{const b=[...document.querySelectorAll('button,a')].find(e=>e.textContent.trim()===${JSON.stringify(label)}&&!e.disabled);if(!b)throw Error('Missing '+${JSON.stringify(label)});b.click()})()`);await sleep(220)}
 async function until(expr,limit=60000){const end=Date.now()+limit;while(Date.now()<end){if(await evaluate(send,`Boolean(${expr})`))return;await sleep(local?200:1000)}throw Error('Timeout '+expr)}
@@ -26,20 +27,24 @@ try{
   await viewport(send,{width,height:width===390?844:900,mobile:width===390});await open(send,base+'#/tasks/new',local?1400:4000);
   await click('横向联邦');await evaluate(send,"document.getElementById('algorithm-evomedclaw').click()");await sleep(180);await click('医疗诊断');
   check('医疗没有全局默认Agent或数据嵌套菜单 '+width,await evaluate(send,"!document.getElementById('task-agent')&&!document.getElementById('client-model')&&!document.getElementById('server-model')&&Boolean(document.querySelector('.participation-list'))&&!document.querySelector('.agent-data-list')"));
-  check('先选Agent，数据字段保留禁用 '+width,await evaluate(send,"document.getElementById('system-mine-data').disabled&&!document.getElementById('system-mine-agent').disabled"));
-  await evaluate(send,SELECT('system-mine-agent',mineAgent.id));
-  await evaluate(send,SELECT('system-mine-data',mine.id));
-  await click('添加共享协作方');
-  const groupKey=await evaluate(send,"JSON.parse(localStorage.getItem('fedagent-studio:draft')).agentGroups[1].key");
+  check('默认两组且不分来源、没有现场登记 '+width,await evaluate(send,"document.querySelectorAll('.participation-row').length===2&&!document.querySelector('#participants .resource-space-bar')&&![...document.querySelectorAll('#participants button')].some(b=>['上传','接入','添加我的系统','添加共享协作方'].includes(b.textContent.trim()))&&!document.querySelector('input[type=file]')"));
+  const keys=await evaluate(send,"JSON.parse(localStorage.getItem('fedagent-studio:draft')).agentGroups.map(g=>g.key)");
+  check('先选Agent，数据字段保留禁用 '+width,await evaluate(send,`document.getElementById('system-${keys[0]}-data').disabled&&!document.getElementById('system-${keys[0]}-agent').disabled`));
+  await evaluate(send,SELECT('system-'+keys[0]+'-agent',mineAgent.id));
+  await evaluate(send,SELECT('system-'+keys[0]+'-data',mine.id));
+  const groupKey=keys[1];
   await evaluate(send,SELECT('system-'+groupKey+'-agent',peerAgent.id));
   await evaluate(send,SELECT('system-'+groupKey+'-data',peer.id));
   check('Agent与任务数据为同级字段 '+width,await evaluate(send,"[...document.querySelectorAll('.participation-fields')].every(e=>e.children.length===2&&e.children[0].querySelector('[role=combobox]')&&e.children[1].querySelector('[role=combobox]'))"));
-  check('自己的系统和共享协作方同时保留 '+width,await evaluate(send,"JSON.parse(localStorage.getItem('fedagent-studio:draft')).agentGroups.filter(g=>g.agentId&&g.datasetId).length===2"));
+  check('两组可用资源统一选择 '+width,await evaluate(send,"JSON.parse(localStorage.getItem('fedagent-studio:draft')).agentGroups.filter(g=>g.agentId&&g.datasetId).length===2"));
   await open(send,base+'#/tasks/new',local?1000:4000,{reset:false});
   check('刷新保留任务内组合 '+width,await evaluate(send,"document.querySelectorAll('.participation-row').length===2&&JSON.parse(localStorage.getItem('fedagent-studio:draft')).agentGroups.every(g=>g.agentId&&g.datasetId)"));
+  await click('添加资源');await evaluate(send,"document.querySelector('[aria-label=\"移除资源 3\"]').click()");
+  check('增加行只改草稿，不登记资源 '+width,await evaluate(send,"document.querySelectorAll('.participation-row').length===2"));
   await evaluate(send,SELECT('rounds',2));await set('trial-cap',2);
   await click('正式运行');await until("document.querySelector('.config-test-trigger[data-ready=true]:not(:disabled)')");
-  check('自己的系统与共享协作方可组成正式配置 '+width,true);await click('试跑');
+  check('已有共享资源可组成正式配置 '+width,true);await click('试跑');
+  await until("document.querySelector('.config-test-trigger[data-ready=true]:not(:disabled)')");
   await evaluate(send,"document.getElementById('participants').scrollIntoView({block:'start'})");await sleep(300);await shot('groups-'+width);
   check('所需资源不横向溢出 '+width,await evaluate(send,'document.documentElement.scrollWidth<=innerWidth'));
  }

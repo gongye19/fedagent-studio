@@ -12,7 +12,7 @@ import {
   type TaskType,
 } from "./catalog";
 
-/** 未检查接口可进入真实测试；已明确不兼容的接口不出现在算法选择中。 */
+/** 任务仅列出已通过能力检查、当前可使用且兼容算法的 Agent。 */
 export function compatibleAgents(
   agents: readonly components["schemas"]["AgentOut"][],
   algorithm: Algorithm | null,
@@ -20,13 +20,21 @@ export function compatibleAgents(
   if (!algorithm) return [];
   const steps = algorithm.stages.filter((step) => step.side === "participant");
   return agents.filter((agent) => {
-    if (!agent.capabilities) return true;
+    if (!availableResource(agent) || !agent.capabilities) return false;
     const capability = agent.capabilities.algorithms[algorithm.id];
     return (
       capability?.version === algorithm.version &&
       steps.every((step) => capability.steps.includes(step.id))
     );
   });
+}
+
+/** 任务候选统一使用工作区资源及已共享资源，不按来源分组。 */
+export function availableResource(resource: {
+  resourceSpace: string;
+  shared: boolean;
+}) {
+  return resource.resourceSpace === "workspace" || resource.shared;
 }
 
 /** 归属与共享独立：自己的已共享资源同时出现在两个目录。 */
@@ -135,7 +143,7 @@ export function modelOptions(
 export function usableModelOptions(endpoints: readonly Endpoint[]) {
   return modelOptions(endpoints).filter((option) => {
     const endpoint = endpointOf(option.ref, endpoints);
-    return endpoint && isConfigured(endpoint);
+    return endpoint && availableResource(endpoint) && isConfigured(endpoint);
   });
 }
 

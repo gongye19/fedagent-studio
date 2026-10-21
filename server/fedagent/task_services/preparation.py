@@ -65,7 +65,7 @@ def validate(platform: Platform, session: Session, body: TaskConfigIn) -> tuple[
     if body.execution == "agent" and not manifest.agent_supported:
         issue("models", "该算法使用数据与 LLM，由平台执行流程，无需接入 Agent 接口")
     if manifest.agent_required and body.execution != "agent":
-        issue("models", "该算法需要接入自己的 Agent 系统，请选择 Agent 接口；LLM 接口不能替代完整 Agent")
+        issue("models", "该算法需要 Agent 系统，请选择 Agent 接口；LLM 接口不能替代完整 Agent")
     if manifest.scenario != body.scenario:
         issue("algorithm", "这个算法不属于所选的场景")
     if body.task_type not in manifest.accepts:
@@ -122,10 +122,8 @@ def validate(platform: Platform, session: Session, body: TaskConfigIn) -> tuple[
         model_ref = body.client_overrides.get(participant.id) or body.client_model
         prepared.sites.append(PreparedSite(participant, dataset, items, labeled, model_ref))
     if len(prepared.sites) < manifest.min_participants:
-        issue("participants", f"至少配置 {manifest.min_participants} 个参与系统" if manifest.agent_required
+        issue("participants", f"至少选择 {manifest.min_participants} 组可用资源" if manifest.agent_required
               else f"至少选择 {manifest.min_participants} 个可用的数据来源，每个来源选择一份数据")
-    if body.mode == "full" and prepared.sites and not any(site.dataset.resource_space == "workspace" for site in prepared.sites):
-        issue("participants", "正式任务至少需要一份我的数据；公用数据可以先用于试跑")
 
     if body.execution == "agent":
         from ..agents.protocol import Capabilities
@@ -143,6 +141,8 @@ def validate(platform: Platform, session: Session, body: TaskConfigIn) -> tuple[
             endpoint = session.get(m.AgentEndpoint, agent_id) if agent_id else None
             if endpoint is None:
                 issue("models", "请为每个参与系统选择 Agent 接口")
+            elif not endpoint.capabilities:
+                issue("models", f"Agent“{endpoint.name}”尚未完成能力检查，请先在 Agent 接口页面检查")
             elif manifest.agent_required and endpoint.owner_id != site.dataset.owner_id:
                 issue("participants", f"Agent“{endpoint.name}”与病例“{site.dataset.name}”不属于同一方，请重新选择")
             elif manifest.agent_required and agent_id in selected_agents:

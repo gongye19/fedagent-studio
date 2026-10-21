@@ -16,7 +16,7 @@
 | `task-form.mjs` | 静默恢复、字段原位错误／焦点／键盘、短促开始反馈、减少动态、后端配置错误定位；阻止业务写入 | `node task-form.mjs`；线上只读，本地补充预检响应夹具；CDP_OUT指定证据目录 |
 | `task-flow.mjs` | 本地真接口、假模型、runner 的配置 → 完成 → 发布 → 对比 | `node task-flow.mjs`；仅允许 localhost／127.0.0.1；核对 fake 接口，只清理自己创建的任务／应用并逐项保留原有记录 |
 | `medical-flow.mjs` | 公开病例的浏览器上传／错误／模板 → runner 两轮 → 发布 → 结构化试用／JSON错误 → 实际格式导出 | `node medical-flow.mjs`；仅允许本地假模型。`MEDICAL_DATA_DIR` 指向包含 medqa-group-1/2.jsonl 的目录，来源见 docs/medical-data-manifest.json；只删除本次任务／应用／上传数据集，保留原有资源 |
-| `real-data-flow.mjs` | 沿用resource-flow的上传＋公用数据各1题／2轮→测试→发布→试用→清理自己记录 | 只有明确安排真实模型验证时运行：`REAL_MODEL_VERIFY=1 node real-data-flow.mjs`；约$0.1–0.2，不得作为普通UI回归自动调用；失败未完成任务不会强删，owned.json保留核验ID |
+| `real-data-flow.mjs` | 沿用resource-flow选择两份已有共享数据，各1题／2轮→测试→发布→试用→清理自己记录 | 只有明确安排真实模型验证时运行：`REAL_MODEL_VERIFY=1 node real-data-flow.mjs`；约$0.1–0.2，不得作为普通UI回归自动调用；失败未完成任务不会强删，owned.json保留核验ID |
 | `real-medical-flow.mjs` | 两方公开医疗病例各2条／2轮→发布→对比→单次调用／导出→清理自己记录 | 仅显式安排时用 `REAL_MODEL_VERIFY=1 node real-medical-flow.mjs`；预计$0.3–1，保留真实数据；未完成任务不强删，owned.json保存本次ID |
 | `docshots.json` | 文档里的 14 张截图（`docs/screenshots/`） | `CDP_OUT=../../docs/screenshots node cdp.mjs docshots.json` |
 
@@ -56,3 +56,8 @@ T84：`collaboration-flow.mjs`只读检查工作区／公用数据与Agent成组
 T84兼容入口收敛：agent-flow与real-medical-flow转到collaboration-flow；medical-agents按ONLY_ALGORITHM分发resource-flow／collaboration-flow，不再登记重复Agent或维护过期全局菜单。需要先有保存绑定的工作区与公用组。T82双服务原API激活经验的实际证据保留在历史记录，当前成组验收不自动启用最终经验。medical-flow保留上传模板、坏文件、结构化应用与导出覆盖，先删本次数据再删测试Agent，遵守绑定外键保护。
 
 T85当前验收：医疗配置使用独立资源，`collaboration-flow.mjs`先选Agent、再选同方数据，刷新保留任务内组合；默认只读，RUN_FLOW=1及线上REAL_MODEL_VERIFY=1的付费保护不变。`agent-intake.mjs`仅本地验证任务内接入、上传、换Agent清数据、字段错误和移除；`sharing.mjs`仅本地通过真实HTTP验证三类资源分别共享／撤回、归属保留、共享目录同步和失败重试，不调用模型。旧data-agent-binding脚本已移除，T84永久绑定描述为历史记录。当前界面统一“共享资源”；历史URL public继续保留。
+
+
+T86覆盖旧任务内登记：`resource-readiness.mjs`替代agent-intake，仅本地通过真实资源页面验证能力检查失败→修正同一记录→资源页面上传校验→回到任务选择，任务本身不登记资源。`resource-flow.mjs`直接选择两份已有共享数学题库、主动检查、两轮、发布／试用，仅清理自身记录，线上仍需REAL_MODEL_VERIFY=1且约US$0.1–0.2。`collaboration-flow.mjs`统一选择两套可用资源，不要求workspace／public各一套；默认只读，RUN_FLOW=1才执行，支持全部共享的正式配置。旧上传到任务即时回填及任务来源切换断言已移除；资源页sharing测试保持不变。
+
+任务／应用原始记录核对与会创建清理任务的流程应串行运行；否则只读脚本可能把另一流程的临时任务当成原记录，清理后误报“未保留”。不要为消除误报放宽对用户原记录的保护。

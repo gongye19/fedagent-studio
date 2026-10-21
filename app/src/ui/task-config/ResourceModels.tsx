@@ -2,8 +2,8 @@ import { SelectField } from "../SelectField";
 import { ModelPicker } from "../ModelPicker";
 import { type Algorithm } from "../../domain/catalog";
 import { type Draft } from "../../domain/config";
-import { compatibleAgents, endpointOf, isConfigured, modelOptions } from "../../domain/resources";
-import { hrefOf, type Route } from "../../state/route";
+import { compatibleAgents, usableModelOptions } from "../../domain/resources";
+import { hrefOf } from "../../state/route";
 import { type State } from "../../state/store";
 import { Choices, Field, FieldGroup } from "../console";
 import { InlineError } from "./InlineError";
@@ -15,7 +15,6 @@ export function ResourceModels({
   update,
   algorithm,
   modelsError,
-  onIntake,
   allLocal,
   joined,
 }: {
@@ -24,30 +23,37 @@ export function ResourceModels({
   update: (patch: Partial<Draft>) => void;
   algorithm: Algorithm | null;
   modelsError?: string;
-  onIntake: (kind: "clientModel" | "serverModel" | "agent") => void;
   allLocal: boolean;
   joined: readonly string[];
 }) {
-  const options = modelOptions(state.endpoints);
+  const options = usableModelOptions(state.endpoints);
   const agents = compatibleAgents(state.agents, algorithm);
   return (
     <div className="resource-models">
       <FieldGroup>
-        {algorithm && algorithm.requirements.executionModes.includes("agent") && !algorithm.requirements.agentRequired ? <Field
-          label="执行方式"
-          labelId="execution-mode"
-          info="内置流程由平台使用所选 LLM 执行；自有 Agent 由独立服务执行完整的本方步骤。选择 Agent 将把步骤所需样本发送到该服务，Agent 自己管理模型与工具。"
-        >
-          <Choices
-            labelledBy="execution-mode"
-            value={draft.execution ?? "builtin"}
-            options={[
-              { value: "builtin", label: "平台内置流程", disabled: !algorithm },
-              { value: "agent", label: "自有 Agent", disabled: !algorithm },
-            ]}
-            onChange={(execution) => update({ execution })}
-          />
-        </Field> : null}
+        {algorithm &&
+        algorithm.requirements.executionModes.includes("agent") &&
+        !algorithm.requirements.agentRequired ? (
+          <Field
+            label="执行方式"
+            labelId="execution-mode"
+            info="内置流程由平台使用所选 LLM 执行；自有 Agent 由独立服务执行完整的本方步骤。选择 Agent 将把步骤所需样本发送到该服务，Agent 自己管理模型与工具。"
+          >
+            <Choices
+              labelledBy="execution-mode"
+              value={draft.execution ?? "builtin"}
+              options={[
+                {
+                  value: "builtin",
+                  label: "平台内置流程",
+                  disabled: !algorithm,
+                },
+                { value: "agent", label: "自有 Agent", disabled: !algorithm },
+              ]}
+              onChange={(execution) => update({ execution })}
+            />
+          </Field>
+        ) : null}
         {draft.execution === "agent" ? (
           <Field
             label="Agent 接口"
@@ -70,24 +76,27 @@ export function ResourceModels({
                 {agents.map((agent) => (
                   <option key={agent.id} value={agent.id}>
                     {agent.name}
-                    {agent.resourceSpace === "public" ? "（公用）" : ""}
                   </option>
                 ))}
               </SelectField>
-              <button
-                type="button"
-                className="button button--secondary button--compact"
-                disabled={!algorithm}
-                onClick={() => onIntake("agent")}
-              >
-                接入 Agent
-              </button>
             </div>
           </Field>
         ) : null}
-        {draft.execution === "agent" && joined.length > 1 && agents.length > 0 ? (
-          <Field label="分别指定" optional info="默认使用上方接口；需要不同 Agent 执行时，为对应的数据单独指定。">
-            <AgentOverrides state={state} agents={agents} draft={draft} joined={joined} update={update} />
+        {draft.execution === "agent" &&
+        joined.length > 1 &&
+        agents.length > 0 ? (
+          <Field
+            label="分别指定"
+            optional
+            info="默认使用上方接口；需要不同 Agent 执行时，为对应的数据单独指定。"
+          >
+            <AgentOverrides
+              state={state}
+              agents={agents}
+              draft={draft}
+              joined={joined}
+              update={update}
+            />
           </Field>
         ) : null}
         {(["clientModel", "serverModel"] as const)
@@ -122,23 +131,28 @@ export function ResourceModels({
                         id={id}
                         name={id}
                         value={draft[role]}
-                        disabled={!algorithm}
+                        disabled={!algorithm || !options.length}
                         placeholder={!algorithm ? "请先选择算法" : undefined}
-                        aria-describedby={modelsError ? "models-error" : undefined}
+                        aria-describedby={
+                          modelsError ? "models-error" : undefined
+                        }
                         onValueChange={(value) => update({ [role]: value })}
                         options={options}
                         endpoints={state.endpoints}
                       />
-                      <button
-                        type="button"
-                        className="button button--secondary button--compact"
-                        disabled={!algorithm}
-                        onClick={() => onIntake(role)}
-                      >
-                        接入 LLM
-                      </button>
                     </div>
-                    {algorithm ? <EndpointSetupLink model={draft[role]} state={state} /> : null}
+                    {algorithm && !options.length ? (
+                      <p className="field-static">
+                        暂无可用模型，请先在左侧{" "}
+                        <a
+                          className="text-link"
+                          href={hrefOf({ page: "models" })}
+                        >
+                          LLM 接口
+                        </a>
+                        完成配置。
+                      </p>
+                    ) : null}
                   </>
                 )}
               </Field>
@@ -149,14 +163,3 @@ export function ResourceModels({
     </div>
   );
 }
-
-function EndpointSetupLink({ model, state }: { model: string; state: State }) {
-  const endpoint = endpointOf(model, state.endpoints);
-  return endpoint && !isConfigured(endpoint) ? (
-    <a className="text-link" href={hrefOf(endpointRoute(endpoint.id))}>
-      去配置接口
-    </a>
-  ) : null;
-}
-
-const endpointRoute = (id: string): Route => ({ page: "editEndpoint", id, from: "newTask" });

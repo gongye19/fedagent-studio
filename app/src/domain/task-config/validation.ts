@@ -3,6 +3,8 @@ import { groupChoices } from "./agent-groups";
 import { algorithmOf, scenarioOf, type Algorithm } from "../catalog";
 import {
   endpointOf,
+  isConfigured,
+  availableResource,
   modelLabel,
   type Dataset,
   type Endpoint,
@@ -81,7 +83,7 @@ export function draftIssues(
   if (algorithm.requirements.agentRequired && draft.execution !== "agent") {
     issues.push({
       field: "models",
-      message: "该算法需要选择自己的 Agent 接口",
+      message: "该算法需要选择 Agent 接口",
     });
   }
   if (
@@ -97,26 +99,12 @@ export function draftIssues(
     issues.push({
       field: "participants",
       message: algorithm.requirements.agentRequired
-        ? `至少配置 ${algorithm.minParticipants} 个参与系统`
+        ? `至少选择 ${algorithm.minParticipants} 组可用资源`
         : `至少选择 ${algorithm.minParticipants} 个可用的数据来源`,
     });
   }
   const chosen = joinable(draft, datasets, participants);
   const overrides = activeOverrides(draft);
-  if (
-    draft.mode === "full" &&
-    chosen.length &&
-    !chosen.some(
-      (p) =>
-        datasets.find((d) => d.id === p.datasetId)?.resourceSpace ===
-        "workspace",
-    )
-  ) {
-    issues.push({
-      field: "participants",
-      message: "正式任务至少需要一份我的数据；公用数据可以先用于试跑",
-    });
-  }
   const refs = [
     ...(algorithm.requirements.participantModel && draft.execution !== "agent"
       ? chosen
@@ -149,13 +137,13 @@ export function draftIssues(
         )
           issues.push({
             field: "participants",
-            message: `参与系统 ${index + 1} 的资源已失效或取消共享，请重新选择`,
+            message: `第 ${index + 1} 组资源已失效或取消共享，请重新选择`,
           });
       }
       if (!group.agentId || !group.datasetId)
         issues.push({
           field: "participants",
-          message: `请补齐参与系统 ${index + 1} 的${!group.agentId ? " Agent 接口" : "病例数据"}`,
+          message: `请补齐资源 ${index + 1} 的${!group.agentId ? " Agent 接口" : "病例数据"}`,
         });
     }
     const ids = draft.agentGroups.map((g) => g.agentId).filter(Boolean);
@@ -165,10 +153,17 @@ export function draftIssues(
         message: "每个参与系统需使用不同的 Agent 接口",
       });
   }
-  if (refs.some((ref) => !endpointOf(ref, endpoints))) {
+  if (
+    refs.some((ref) => {
+      const endpoint = endpointOf(ref, endpoints);
+      return (
+        !endpoint || !isConfigured(endpoint) || !availableResource(endpoint)
+      );
+    })
+  ) {
     issues.push({
       field: "models",
-      message: "所选的模型接口已不存在，请重新选择",
+      message: "所选的模型接口不可用，请到 LLM 接口页面完成配置后重新选择",
     });
   }
   if (

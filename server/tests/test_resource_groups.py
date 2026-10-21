@@ -9,6 +9,7 @@ from fedagent.engine import TaskEngine
 def setup_groups(platform, client, remote):
     first = remote[0]
     second = client.post("/v1/agents", json={"name": "协作 Agent", "baseUrl": "https://collaborator.test"}).json()["id"]
+    assert client.post("/v1/agents/" + second + "/check").status_code == 200
     datasets = [medical_dataset(client, p) for p in ("p-a", "p-b")]
     with platform.db.session() as session:
         for row in (session.get(m.Dataset, datasets[1]), session.get(m.AgentEndpoint, second)):
@@ -73,3 +74,19 @@ def test_shared_resources_keep_ownership_and_share_independently(platform, clien
     assert next(d for d in client.get("/v1/datasets").json() if d["id"] == datasets[0])["shared"]
     llm = client.post("/v1/endpoints", json={"name": "仅测试LLM", "baseUrl": "https://llm.test/v1", "models": ["m"]}).json()["id"]
     assert sharing("llm", llm, True)["shared"]
+
+
+def test_all_shared_groups_support_formal_configuration_but_unchecked_agent_is_rejected(platform, client, remote):
+    datasets, agents, body = setup_groups(platform, client, remote)
+    with platform.db.session() as session:
+        for row in (session.get(m.Dataset, datasets[0]), session.get(m.AgentEndpoint, agents[0])):
+            row.resource_space, row.owner_id, row.owner_name, row.shared = "public", "peer-a", "团队协作系统 A", True
+    body["mode"] = "full"
+    assert client.post("/v1/tasks/validate", json=body).json()["issues"] == []
+    with platform.db.session() as session:
+        session.get(m.AgentEndpoint, agents[0]).capabilities = None
+    issues = client.post("/v1/tasks/validate", json=body).json()["issues"]
+    assert any("尚未完成能力检查" in row["message"] for row in issues)
+    before = len(remote[1])
+    assert client.post("/v1/task-checks", json=body).status_code == 422
+    assert len(remote[1]) == before

@@ -100,7 +100,7 @@ try{
    await open(send,base+'?qaAvailability=mixed#/tasks/new/horizontal',undefined,{reset:false});
    check('失效选择不计入参与方且仅保留就绪题库 '+width,await evaluate(send,"!document.getElementById('pick-p-a')&&document.getElementById('pick-p-b').checked&&!document.querySelector('[data-select-name=dataset-p-b]')&&document.querySelector('.summary-start').dataset.ready==='false'&&document.querySelectorAll('#participants tbody tr').length===1"));
    await open(send,base+'?qaAvailability=none#/tasks/new/horizontal');await evaluate(send,NEW_TASK_ALL);
-   check('无可用数据时提示清楚且禁止创建 '+width,await evaluate(send,"!document.querySelector('#participants table')&&document.querySelector('.summary-start').dataset.ready==='false'&&document.querySelector('#participants .panel-empty').textContent.includes('暂无匹配的共享数据')&&window.__writes===0"));
+   check('无可用数据时提示清楚且禁止创建 '+width,await evaluate(send,"!document.querySelector('#participants table')&&document.querySelector('.summary-start').dataset.ready==='false'&&document.querySelector('#participants .panel-empty').textContent.includes('暂无匹配的可用数据')&&window.__writes===0"));
    await shot('participants-empty-'+width);
   }
  }

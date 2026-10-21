@@ -17,7 +17,12 @@ it("共享保留原归属；Agent先选、只列同方且已共享的数据，�
     baseUrl: "https://a.test",
     hasKey: false,
     revision: 1,
-    capabilities: null,
+    capabilities: {
+      protocol: "fedagent-agent/1",
+      algorithms: {
+        evomedclaw: { version: "1.0.0", steps: ["diagnose", "learn"] },
+      },
+    },
   };
   const data = DATASETS.slice(0, 2).map((d, i) => ({
     ...d,
@@ -29,7 +34,6 @@ it("共享保留原归属；Agent先选、只列同方且已共享的数据，�
     agentId: "",
     datasetId: "",
     participantId: "",
-    space: "public" as const,
   };
   const draft = withDefaults({
     scenario: "horizontal",
@@ -53,6 +57,16 @@ it("共享保留原归属；Agent先选、只列同方且已共享的数据，�
       agent.id,
       data.map((d) => ({ ...d, shared: false })),
     ).datasets,
+  ).toEqual([]);
+  expect(
+    groupChoices(
+      group,
+      draft,
+      algorithmOf("evomedclaw"),
+      [{ ...agent, capabilities: null }],
+      data,
+      PARTICIPANTS,
+    ).agents,
   ).toEqual([]);
   const selected = {
     ...draft,

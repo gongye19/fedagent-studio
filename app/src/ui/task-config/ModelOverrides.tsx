@@ -2,7 +2,7 @@ import { Icon } from "../icons";
 import { SelectField } from "../SelectField";
 import { ModelPicker } from "../ModelPicker";
 import { activeOverrides, type Draft } from "../../domain/config";
-import { modelOptions } from "../../domain/resources";
+import { usableModelOptions } from "../../domain/resources";
 import { participantOf, type State } from "../../state/store";
 
 /** 默认所有参与方用同一个模型；需要时逐条添加例外。每条一行：参与方、模型、移除。 */
@@ -17,7 +17,7 @@ export function ModelOverrides({
   update: (patch: Partial<Draft>) => void;
   joined: readonly string[];
 }) {
-  const options = modelOptions(state.endpoints);
+  const options = usableModelOptions(state.endpoints);
   const overrides = activeOverrides(draft);
   const entries = Object.entries(overrides).filter(([id]) =>
     joined.includes(id),

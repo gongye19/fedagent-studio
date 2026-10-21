@@ -39,7 +39,7 @@ try{
  await load('#/models/'+qe.id+'/edit',{endpoints:[...endpoints,qe]});await click('删除接口');await shot('endpoint-modal');await click('删除');await until("Boolean(document.querySelector('.confirm-error'))");check('接口失败保留确认和原表单',await evaluate(send,"Boolean(document.querySelector('dialog[open] .confirm-error'))&&Boolean(document.getElementById('endpoint-name'))"));
  // 使用模板任务的实际绑定（含工作区输入），后端预检正常执行；创建请求仍被夹具拦截。
  await load('#/tasks/new/horizontal');await evaluate(send,NEW_TASK_ALL);
- await evaluate(send,`(async()=>{document.querySelector('input[aria-label=全选]')?.click();for(const p of ${JSON.stringify(tasks[0].config.participants)}){const d=${JSON.stringify(datasets)}.find(d=>d.id===p.datasetId);[...document.querySelectorAll('#participants .resource-space-bar button')].find(b=>b.textContent===(d.resourceSpace==='workspace'?'我的资源':'共享资源'))?.click();await new Promise(r=>setTimeout(r,150));document.getElementById('pick-'+p.participantId)?.click();await new Promise(r=>setTimeout(r,150))}})()`);
+ await evaluate(send,`(async()=>{document.querySelector('input[aria-label=全选]')?.click();for(const p of ${JSON.stringify(tasks[0].config.participants)}){const d=${JSON.stringify(datasets)}.find(d=>d.id===p.datasetId);document.getElementById('pick-'+p.participantId)?.click();await new Promise(r=>setTimeout(r,150))}})()`);
  await click('正式运行');
  for(const name of ['client-model','server-model']) await evaluate(send,SELECT(name,'fake:fake'));
  await until("Boolean(document.querySelector('.config-test-trigger[data-ready=true]:not(:disabled)'))");await click('测试配置');await until("Boolean(document.querySelector('.summary-start[data-ready=true]:not(:disabled)'))");

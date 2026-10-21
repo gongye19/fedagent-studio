@@ -61,7 +61,7 @@ it("requires a user Agent for medical and excludes incompatible interfaces from 
   expect(compatibleAgents([agent], algorithmOf("fot"))).toEqual([]);
   expect(
     compatibleAgents([{ ...agent, capabilities: null }], medical),
-  ).toHaveLength(1);
+  ).toHaveLength(0);
   expect(
     compatibleAgents(
       [
@@ -91,6 +91,8 @@ function draft(patch: Partial<Draft> = {}): Draft {
     taskType: "math-reasoning",
     algorithm: "fot",
     participants: BOTH,
+    clientModel: "fake:fake",
+    serverModel: "fake:fake",
     params: defaultParams(algorithmOf("fot")),
     ...patch,
   });
@@ -168,7 +170,7 @@ describe("draft", () => {
     ]);
     expect(issues[0].message).toBe("至少选择 2 个可用的数据来源");
     expect(draftIssues(draft(), DATASETS, PARTICIPANTS, ENDPOINTS)).toEqual([]);
-    expect(draft().clientModel).toBe("default");
+    expect(draft().clientModel).toBe("fake:fake");
   });
 
   it("asks for scenario, algorithm, task type and data in turn, selecting nothing on the user's behalf", () => {
@@ -266,12 +268,11 @@ describe("draft", () => {
     ).toEqual([]);
   });
 
-  it("allows public trials and requires at least one workspace dataset for a formal run", () => {
+  it("allows available shared data for both trials and formal runs", () => {
     expect(draftIssues(draft(), DATASETS, PARTICIPANTS, ENDPOINTS)).toEqual([]);
     expect(
-      draftIssues(draft({ mode: "full" }), DATASETS, PARTICIPANTS, ENDPOINTS)[0]
-        .message,
-    ).toContain("我的数据");
+      draftIssues(draft({ mode: "full" }), DATASETS, PARTICIPANTS, ENDPOINTS),
+    ).toEqual([]);
     const own = DATASETS.map((d) =>
       d.id === BOTH[0].datasetId
         ? { ...d, resourceSpace: "workspace" as const }

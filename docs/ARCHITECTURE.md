@@ -707,3 +707,10 @@ resource_services按common／participants／datasets／endpoints／intake／bind
 Draft.agentGroups保存未完成的系统行和菜单范围，序列化为既有participants和每节点agentOverrides；旧任务复制与旧草稿可转换，无法恢复的旧隐式绑定须重选。AgentGroup候选按算法能力、所属方、共享、数据就绪和独立来源匹配；更换Agent清除该行数据，增删不改变资源。preparation再次校验同方、不同Agent接口、外部共享状态；测试和创建共用PreparedSite，运行沿用冻结的TaskSite，不因撤回共享终止。检查指纹包含所属方／共享／Agent修订，前端使用所选资源签名使报告失效，后台相同数据刷新不触发重测。
 
 AgentParticipationPanel／Row处理组合UI，SharingButton复用居中确认及失败反馈，资源共享API与缓存刷新分别在api／state层；没有数据绑定hook和全局医疗Agent覆盖。现有结构检查继续进入正常门禁。
+
+
+## 30. 资源先登记、任务只选择（T86／D83）
+
+任务页面不再装配ResourceIntakeDialog，useTaskConfig不保存intake、agentTarget与space；资源管理页继续使用同一登记组件。AgentGroup只保存本次组合及本地行key，丢弃旧scope；初始空行由算法minParticipants生成。候选把workspace或shared统一视为可使用，保持同方／就绪／完整能力匹配，LLM只使用usableModelOptions。后台刷新内容一致不会重置选择或重复付费。
+
+preparation在已登记Agent能力为空时直接拒绝测试／创建，引导在Agent接口页完成基础检查；未配置LLM、未就绪数据继续拒绝。正式任务允许完全使用共享资源，取消自有数据限制。两个团队医疗服务按既有接口保持不变，A和其病例明确共享并归入同一受控所属方，B原共享保持。schema0007、实际执行协议和历史冻结引用不变。

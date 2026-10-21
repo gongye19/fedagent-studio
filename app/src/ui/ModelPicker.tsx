@@ -98,10 +98,7 @@ export function ModelPicker({
         <ModelSelectorList>
           <ModelSelectorEmpty>没有匹配的模型</ModelSelectorEmpty>
           {groups.map(({ endpoint, options: items }) => (
-            <ModelSelectorGroup
-              key={endpoint.id}
-              heading={`${endpoint.resourceSpace === "public" ? "共享资源" : "我的资源"} · ${endpoint.name}`}
-            >
+            <ModelSelectorGroup key={endpoint.id} heading={endpoint.name}>
               {items.map((option) => {
                 const model =
                   parseModelRef(option.ref)?.model ??

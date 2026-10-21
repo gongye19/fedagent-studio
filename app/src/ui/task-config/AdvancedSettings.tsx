@@ -1,4 +1,4 @@
-import { modelOptions } from "../../domain/resources";
+import { usableModelOptions } from "../../domain/resources";
 import { paramValue, type Algorithm } from "../../domain/catalog";
 import {
   activeOverrides,
@@ -40,7 +40,8 @@ export function AdvancedPanel({
     Object.keys(activeOverrides(draft)).length;
   // 只有一个模型时没有可指定的，不显示这一项。
   const canOverride =
-    draft.execution !== "agent" && modelOptions(state.endpoints).length > 1;
+    draft.execution !== "agent" &&
+    usableModelOptions(state.endpoints).length > 1;
   return (
     <Collapsible
       className="panel panel--collapsible"

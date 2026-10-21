@@ -70,11 +70,11 @@ export function TaskSummary({
           </div>
           <div>
             <dt>
-              {algorithm?.requirements.agentRequired ? "参与系统" : "数据来源"}
+              {algorithm?.requirements.agentRequired ? "资源组" : "数据来源"}
             </dt>
             <dd>
               {joined.length
-                ? `${joined.length} ${algorithm?.requirements.agentRequired ? "个" : "个"}`
+                ? `${joined.length} ${algorithm?.requirements.agentRequired ? "组" : "个"}`
                 : "—"}
             </dd>
           </div>
@@ -143,16 +143,13 @@ export function TaskSummary({
             href="#task-config-check"
             onClick={(e) => {
               e.preventDefault();
-              document
-                .getElementById("task-config-check")
-                ?.scrollIntoView({
-                  behavior: window.matchMedia(
-                    "(prefers-reduced-motion: reduce)",
-                  ).matches
-                    ? "instant"
-                    : "smooth",
-                  block: "center",
-                });
+              document.getElementById("task-config-check")?.scrollIntoView({
+                behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
+                  .matches
+                  ? "instant"
+                  : "smooth",
+                block: "center",
+              });
             }}
           >
             {config.preflight.valid ? "配置测试已通过" : "查看配置测试"}

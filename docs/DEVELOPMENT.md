@@ -1,6 +1,6 @@
 # 开发说明
 
-T85沿用T84结构规则：结构检查 `uv run --directory server python ../tools/check_structure.py`、`node tools/check-frontend-structure.mjs`。后者进入npm run check，前者进入部署全检查。排查职责和依赖，不为单纯行数拆开同一状态机；生成文件、vendor和历史迁移按原流程维护。T85独立共享见resource_services/sharing，任务组合候选见domain/task-config/agent-groups；旧永久绑定模块已移除，现有resources／gateway／engine及domain/config为兼容出口；普通新增代码进入对应职责模块。
+T85沿用T84结构规则：结构检查 `uv run --directory server python ../tools/check_structure.py`、`node tools/check-frontend-structure.mjs`。后者进入npm run check，前者进入部署全检查。排查职责和依赖，不为单纯行数拆开同一状态机；生成文件、vendor和历史迁移按原流程维护。T86任务只选择可用资源，资源页负责登记与基础检查；独立共享见resource_services/sharing，组合候选见domain/task-config/agent-groups；旧永久绑定模块已移除，现有resources／gateway／engine及domain/config为兼容出口；普通新增代码进入对应职责模块。
 
 T83：SDK0.2.3／FoT包0.1.3，agent_supported控制新建外部Agent准入，与agent_required一起由注册表描述。FoT数据＋LLM，医疗病例＋Agent；界面顺序为场景→算法→兼容任务。无数据库迁移，历史任务与本地客户端契约保留。`algorithm-config.mjs`覆盖只读选择顺序、切换、资源边界及旧草稿；主动模型验证仍须显式安排。
 

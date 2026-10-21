@@ -49,7 +49,7 @@ def test_configuration_checks_business_output_of_every_step(platform, client, re
 def test_medical_requires_agent_and_publishes_downloadable_contract(client):
     config = medical_config([{"participantId": p, "datasetId": medical_dataset(client, p)} for p in ("p-a", "p-b")])
     result = client.post("/v1/tasks/validate", json=config).json()
-    assert any("需要接入自己的 Agent" in row["message"] for row in result["issues"])
+    assert any("需要 Agent 系统" in row["message"] for row in result["issues"])
     registry = client.get("/v1/registry").json()
     assert next(a for a in registry["algorithms"] if a["id"] == "evomedclaw")["requirements"]["agentRequired"]
     assert next(a for a in registry["algorithms"] if a["id"] == "evomedclaw")["requirements"]["executionModes"] == ["agent"]

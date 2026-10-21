@@ -30,7 +30,7 @@ try{
  await evaluate(send,"document.getElementById('algorithm-fot').click()");await sleep(200);await click('数学推理');
  check('FoT 只配置运行及汇总 LLM，不出现 Agent 或执行方式',await evaluate(send,"!document.getElementById('task-agent')&&!document.getElementById('execution-mode')&&Boolean(document.getElementById('client-model'))&&Boolean(document.getElementById('server-model'))"));
  await evaluate(send,"document.getElementById('algorithm-evomedclaw').click()");await sleep(200);await click('医疗诊断');
- check('医疗要求 Agent，运行与汇总 LLM 控件不出现',await evaluate(send,"!document.getElementById('task-agent')&&document.getElementById('participants').textContent.includes('参与系统')&&!document.getElementById('client-model')&&!document.getElementById('server-model')&&![...document.querySelectorAll('button[role=radio]')].some(b=>b.textContent.includes('平台内置流程'))"));
+ check('医疗要求 Agent，运行与汇总 LLM 控件不出现',await evaluate(send,"!document.getElementById('task-agent')&&Boolean(document.querySelector('.participation-list'))&&!document.getElementById('client-model')&&!document.getElementById('server-model')&&![...document.querySelectorAll('button[role=radio]')].some(b=>b.textContent.includes('平台内置流程'))"));
 
  const registry=await(await fetch(new URL('v1/registry',base))).json();
  const medical=registry.algorithms.find(a=>a.id==='evomedclaw');

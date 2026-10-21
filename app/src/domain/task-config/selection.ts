@@ -7,13 +7,14 @@ import {
 } from "../catalog";
 import {
   fits,
+  availableResource,
   inResourceScope,
   usable,
   type Dataset,
   type Participant,
   type ResourceSpace,
 } from "../resources";
-import type { Draft, TaskParticipant } from "./types";
+import { emptyAgentGroups, type Draft, type TaskParticipant } from "./types";
 
 /** 草稿里真正能参加的参与方：数据集还在、属于这个参与方、场景和任务类型一致、持有方在线。 */
 export function joinable(
@@ -53,7 +54,7 @@ export function availableDataSources(
   draft: Draft,
   datasets: readonly Dataset[],
   participants: readonly Participant[],
-  space: ResourceSpace,
+  space?: ResourceSpace,
 ): DataSourceChoice[] {
   if (!draft.scenario || !draft.taskType || !draft.algorithm) return [];
   const algorithm = algorithmOf(draft.algorithm);
@@ -61,7 +62,7 @@ export function availableDataSources(
   for (const dataset of datasets) {
     if (
       !dataset.ready ||
-      !inResourceScope(dataset, space) ||
+      !(space ? inResourceScope(dataset, space) : availableResource(dataset)) ||
       !fits(dataset, draft.scenario, draft.taskType)
     )
       continue;
@@ -121,15 +122,7 @@ export function chooseTaskType(draft: Draft, taskType: TaskType): Draft {
     taskType,
     participants: [],
     agentGroups: algorithmOf(draft.algorithm).requirements.agentRequired
-      ? [
-          {
-            key: "mine",
-            agentId: "",
-            datasetId: "",
-            participantId: "",
-            space: "workspace",
-          },
-        ]
+      ? emptyAgentGroups(algorithmOf(draft.algorithm).minParticipants)
       : [],
     clientOverrides: {},
     agentOverrides: {},
@@ -147,15 +140,7 @@ export function chooseAlgorithm(draft: Draft, algorithm: AlgorithmId): Draft {
     taskType: null,
     participants: [],
     agentGroups: definition.requirements.agentRequired
-      ? [
-          {
-            key: "mine",
-            agentId: "",
-            datasetId: "",
-            participantId: "",
-            space: "workspace",
-          },
-        ]
+      ? emptyAgentGroups(definition.minParticipants)
       : [],
     clientOverrides: {},
     execution: definition.requirements.agentRequired ? "agent" : "builtin",

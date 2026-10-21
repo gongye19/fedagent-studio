@@ -1,4 +1,4 @@
-"""任务内接入、资源分区和正式任务的自有输入要求。"""
+"""资源页面接入、复用和共享资源正式运行。"""
 import importlib
 
 from alembic.migration import MigrationContext
@@ -41,11 +41,11 @@ def test_local_resource_keeps_execution_connection(client):
     assert any(p['id'] == resource['source']['id'] for p in client.get('/v1/participants').json())
 
 
-def test_formal_requires_own_data_and_active_resource_cannot_delete(client):
+def test_shared_resources_support_formal_runs_and_active_resources_cannot_delete(client):
     public = [{'participantId': 'p-a', 'datasetId': 'ds-aime24'}, {'participantId': 'p-b', 'datasetId': 'ds-aime25'}]
     body = config(public, mode='full')
     report = client.post('/v1/tasks/validate', json=body).json()
-    assert any('至少需要一份我的数据' in issue['message'] for issue in report['issues'])
+    assert not report['issues']
     assert not client.post('/v1/tasks/validate', json=config(public)).json()['issues']
     own = upload(client).json()
     mixed = [{'participantId': own['source']['id'], 'datasetId': own['dataset']['id']}, public[0]]

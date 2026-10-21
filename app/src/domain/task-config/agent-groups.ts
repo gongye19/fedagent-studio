@@ -2,25 +2,12 @@ import type { AgentEndpoint } from "../../api/agents";
 import type { Algorithm } from "../catalog";
 import {
   compatibleAgents,
-  inResourceScope,
+  availableResource,
   usable,
   type Dataset,
   type Participant,
-  type ResourceSpace,
 } from "../resources";
 import type { AgentGroup, Draft } from "./types";
-
-export function groupSpace(
-  group: AgentGroup,
-  agents: readonly AgentEndpoint[],
-): ResourceSpace {
-  return (
-    group.space ??
-    (agents.find((a) => a.id === group.agentId)?.resourceSpace === "public"
-      ? "public"
-      : "workspace")
-  );
-}
 
 export function groupChoices(
   group: AgentGroup,
@@ -30,13 +17,9 @@ export function groupChoices(
   datasets: readonly Dataset[],
   participants: readonly Participant[],
 ) {
-  const space = groupSpace(group, agents);
-  const available = compatibleAgents(agents, algorithm).filter((a) =>
-    inResourceScope(a, space),
-  );
+  const available = compatibleAgents(agents, algorithm);
   const agent = available.find((a) => a.id === group.agentId);
   return {
-    space,
     agents: available.filter(
       (a) =>
         a.id === group.agentId ||
@@ -48,7 +31,7 @@ export function groupChoices(
     datasets: agent
       ? datasets.filter(
           (d) =>
-            inResourceScope(d, space) &&
+            availableResource(d) &&
             d.ownerId === agent.ownerId &&
             d.taskType === draft.taskType &&
             usable(d, participants) &&
