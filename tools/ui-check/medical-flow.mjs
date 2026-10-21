@@ -9,7 +9,7 @@ const read=async(p)=>{const r=await fetch(new URL(p,base));assert.ok(r.ok,p);ret
 assert.ok((await read('v1/endpoints')).some(x=>x.id==='fake'&&x.kind==='fake'));
 const original=Object.fromEntries(await Promise.all(['tasks','apps','datasets'].map(async k=>[k,(await read(`v1/${k}`)).map(x=>x.id).sort()])));
 const {send,close}=await launch({port:Number(process.env.CDP_PORT??9397),profile:'/tmp/fedagent-t75-browser-profile'});
-const evidence=[],owned=[];let taskId,appId,agentId,checkId;
+const evidence=[],owned=[];let taskId,appId,checkId;const agentIds=[];
 function check(name,ok){assert.ok(ok,name);evidence.push(name);console.log('PASS',name)}
 async function until(s){const end=Date.now()+30000;while(Date.now()<end){if(await evaluate(send,s))return;await sleep(150)}throw Error(s)}
 async function click(label){await evaluate(send,`(()=>{const e=[...document.querySelectorAll('button,a')].find(e=>e.textContent.trim()===${JSON.stringify(label)}&&!e.disabled);if(!e)throw Error('missing '+${JSON.stringify(label)});e.click()})()`);await sleep(250)}
@@ -17,8 +17,10 @@ async function set(selector,value){await evaluate(send,`(()=>{const e=document.q
 async function file(path){const d=await send('DOM.getDocument'),n=await send('DOM.querySelector',{nodeId:d.root.nodeId,selector:'input[name=dataset-file]'});await send('DOM.setFileInputFiles',{nodeId:n.nodeId,files:[path]})}
 async function shot(name){const m=await send('Page.getLayoutMetrics');const r=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true,clip:{x:0,y:0,width:Math.ceil(m.cssLayoutViewport.clientWidth),height:Math.ceil(m.cssContentSize.height),scale:1}});writeFileSync(`${out}/${name}.png`,Buffer.from(r.data,'base64'))}
 try{
- const registered=await fetch(new URL('v1/agents',base),{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:'医疗流程接口验证',baseUrl:process.env.AGENT_URL??'http://127.0.0.1:9031'})});assert.ok(registered.ok);agentId=(await registered.json()).id;
- assert.ok((await fetch(new URL(`v1/agents/${agentId}/check`,base),{method:'POST'})).ok);
+ for(const [name,url] of [['A',process.env.AGENT_URL??'http://127.0.0.1:9031'],['B',process.env.AGENT_B_URL??'http://127.0.0.1:9032']]){
+  const registered=await fetch(new URL('v1/agents',base),{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:'医疗流程接口验证 '+name,baseUrl:url})});assert.ok(registered.ok);const id=(await registered.json()).id;agentIds.push(id);
+  assert.ok((await fetch(new URL(`v1/agents/${id}/check`,base),{method:'POST'})).ok);
+ }
  await viewport(send,{width:1280,height:900});await send('Browser.setDownloadBehavior',{behavior:'allow',downloadPath:out});
  for(let group=1;group<=2;group++){
   const pid=group===1?'p-a':'p-b',before=new Set((await read('v1/datasets')).map(x=>x.id));
@@ -30,7 +32,12 @@ try{
   await set('input[name=dataset-name]',`MedQA · 分组 ${group}`);await shot(`upload-group-${group}`);await click('保存数据集');await until("location.hash.startsWith('#/participants')");
   const ds=(await read('v1/datasets')).find(x=>!before.has(x.id));assert.ok(ds);owned.push(ds.id);check('保存真实医疗病例与结构化预览',ds.taskType==='medical-diagnosis'&&ds.sample.fields.some(f=>f.label==='病人信息')&&ds.count===(group===1?54:53));
  }
- await open(send,base+'#/tasks/new/horizontal');await evaluate(send,"document.getElementById('algorithm-evomedclaw').click()");await sleep(200);await click('医疗诊断');for(const id of owned){const ds=(await read('v1/datasets')).find(d=>d.id===id);const r=await fetch(new URL(`v1/resources/data/${id}/agent`,base),{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({agentId})});assert.ok(r.ok);await evaluate(send,`document.getElementById('pick-${ds.participantId}').click()`)}await send('Page.reload');await sleep(1500);
+ await open(send,base+'#/tasks/new/horizontal');await evaluate(send,"document.getElementById('algorithm-evomedclaw').click()");await sleep(200);await click('医疗诊断');for(const [i,id] of owned.entries()){
+  if(i)await click('添加我的系统');
+  const key=await evaluate(send,`JSON.parse(localStorage.getItem('fedagent-studio:draft')).agentGroups[${i}].key`);
+  await evaluate(send,SELECT('system-'+key+'-agent',agentIds[i]));
+  await evaluate(send,SELECT('system-'+key+'-data',id));
+ }await send('Page.reload');await sleep(1500);
  await set('#trial-cap','2');await set('#task-name','医疗流程验证（仅本地）');await until("Boolean(document.querySelector('.config-test-trigger[data-ready=true]:not(:disabled)'))");await click('测试配置');await until("Boolean(document.querySelector('.summary-start[data-ready=true]:not(:disabled)'))");
  checkId=await evaluate(send,"JSON.parse(sessionStorage.getItem('fedagent-studio:config-check')).id");
  check('医疗配置无需服务端模型',await evaluate(send,"!document.querySelector('[data-model-name=server-model],[data-select-name=server-model]')"));await shot('medical-config');await click('创建并试跑');await until("location.hash.includes('/tasks/task-')");taskId=await evaluate(send,"location.hash.split('/')[2]");
@@ -49,6 +56,6 @@ try{
  if(taskId){const t=await read(`v1/tasks/${taskId}`);if(['queued','running','paused'].includes(t.status))await fetch(new URL(`v1/tasks/${taskId}/cancel`,base),{method:'POST'});await sleep(200);assert.ok((await fetch(new URL(`v1/tasks/${taskId}`,base),{method:'DELETE'})).ok)}
  if(checkId)assert.ok((await fetch(new URL(`v1/task-checks/${checkId}`,base),{method:'DELETE'})).ok);
  for(const id of owned)assert.ok((await fetch(new URL(`v1/datasets/${id}`,base),{method:'DELETE'})).ok);
- if(agentId)assert.ok((await fetch(new URL(`v1/agents/${agentId}`,base),{method:'DELETE'})).ok);close();
+ for(const agentId of agentIds)assert.ok((await fetch(new URL(`v1/agents/${agentId}`,base),{method:'DELETE'})).ok);close();
  for(const k of ['tasks','apps','datasets'])assert.deepEqual((await read(`v1/${k}`)).map(x=>x.id).sort(),original[k],`保留原有 ${k}`);console.log('PASS 只清理本次资源');
 }

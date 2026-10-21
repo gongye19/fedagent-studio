@@ -3,23 +3,35 @@ import type { Draft, TaskConfig } from "./types";
 
 export function toConfig(draft: Draft): TaskConfig | null {
   if (!draft.scenario || !draft.taskType || !draft.algorithm) return null;
+  const agentRequired = algorithmOf(draft.algorithm).requirements.agentRequired;
   return {
     scenario: draft.scenario,
     taskType: draft.taskType,
     algorithm: draft.algorithm,
-    participants: draft.participants.map((item) => ({ ...item })),
+    participants: (agentRequired ? draft.agentGroups : draft.participants)
+      .filter((p) => p.datasetId)
+      .map(({ participantId, datasetId }) => ({ participantId, datasetId })),
     clientModel: draft.clientModel,
     clientOverrides: activeOverrides(draft),
     serverModel: draft.serverModel,
     execution: draft.execution ?? "builtin",
-    agentId: draft.execution === "agent" ? (draft.agentId ?? null) : null,
-    agentOverrides: Object.fromEntries(
-      Object.entries(
-        draft.execution === "agent" ? (draft.agentOverrides ?? {}) : {},
-      ).filter(([id]) =>
-        draft.participants.some((p) => p.participantId === id),
-      ),
-    ),
+    agentId:
+      draft.execution === "agent" && !agentRequired
+        ? (draft.agentId ?? null)
+        : null,
+    agentOverrides: agentRequired
+      ? Object.fromEntries(
+          draft.agentGroups
+            .filter((g) => g.agentId && g.participantId && g.datasetId)
+            .map((g) => [g.participantId, g.agentId]),
+        )
+      : Object.fromEntries(
+          Object.entries(
+            draft.execution === "agent" ? (draft.agentOverrides ?? {}) : {},
+          ).filter(([id]) =>
+            draft.participants.some((p) => p.participantId === id),
+          ),
+        ),
     rounds: draft.rounds,
     mode: draft.mode,
     trialCap: draft.trialCap,
@@ -45,6 +57,15 @@ export function toDraft(config: TaskConfig, name: string | null = null): Draft {
   return {
     ...config,
     name,
+    agentGroups:
+      config.execution === "agent"
+        ? config.participants.map((p) => ({
+            ...p,
+            key: p.participantId,
+            agentId:
+              config.agentOverrides?.[p.participantId] || config.agentId || "",
+          }))
+        : [],
     touched: true,
     participants: config.participants.map((item) => ({ ...item })),
     clientOverrides: { ...config.clientOverrides },

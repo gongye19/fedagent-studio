@@ -43,7 +43,11 @@ export default function TaskConfigPage({
     fieldError,
     setSpace,
   } = config;
-  const cost = result ? (result.cost === null ? "费用无法估算（没有设置单价）" : `费用${formatYuan(result.cost)}`) : "";
+  const cost = result
+    ? result.cost === null
+      ? "费用无法估算（没有设置单价）"
+      : `费用${formatYuan(result.cost)}`
+    : "";
   // 确认条里的数字按段排版（Meta），不会把"3 轮"拆成两行。
   const confirm =
     pending === "full" && result && canCreate
@@ -52,7 +56,11 @@ export default function TaskConfigPage({
           text: (
             <>
               <Meta
-                parts={[`${joined.length} 个数据来源`, `${formatNumber(result.problems)} 条样本`, `${draft.rounds} 轮`]}
+                parts={[
+                  `${joined.length} 个数据来源`,
+                  `${formatNumber(result.problems)} 条样本`,
+                  `${draft.rounds} 轮`,
+                ]}
               />
               <Meta parts={[formatDuration(result.seconds), cost]} />
               <span>创建后配置不能修改，运行中可以暂停或取消。</span>
@@ -76,13 +84,25 @@ export default function TaskConfigPage({
 
   return (
     <>
-      <PageHead title="新建联邦任务" crumbs={[{ label: "联邦任务", route: { page: "tasks" } }]} />
+      <PageHead
+        title="新建联邦任务"
+        crumbs={[{ label: "联邦任务", route: { page: "tasks" } }]}
+      />
       <div className="order-layout task-config" ref={formRef}>
         <div className="order-main">
           <TaskBasicsPanel dispatch={dispatch} config={config} />
-          <TaskResourcesPanel state={state} dispatch={dispatch} config={config} />
+          <TaskResourcesPanel
+            state={state}
+            dispatch={dispatch}
+            config={config}
+          />
           <Panel title="运行配置" id="settings" step={3}>
-            <RunSettings draft={draft} update={update} algorithm={algorithm} roundsError={fieldError("rounds")} />
+            <RunSettings
+              draft={draft}
+              update={update}
+              algorithm={algorithm}
+              roundsError={fieldError("rounds")}
+            />
           </Panel>
           <TaskCheckPanel config={config} />
           <AdvancedPanel
@@ -112,20 +132,59 @@ export default function TaskConfigPage({
       <TaskStartBar config={config} />
       <ResourceIntakeDialog
         state={state}
-        kind={intake === "data" || intake === "agent" ? intake : intake ? "model" : null}
-        category={scenarioId && taskType ? { scenario: scenarioId, taskType } : undefined}
-        onClose={() => { setIntake(null); config.setAgentTarget(null); }}
+        kind={
+          intake === "data" || intake === "agent"
+            ? intake
+            : intake
+              ? "model"
+              : null
+        }
+        category={
+          scenarioId && taskType
+            ? { scenario: scenarioId, taskType }
+            : undefined
+        }
+        onClose={() => {
+          setIntake(null);
+          config.setAgentTarget(null);
+        }}
         onSaved={async (saved) => {
           if (saved.kind === "data") {
             const resource = saved.value;
             setSpace("workspace");
-            if (resource.dataset.ready)
-              dispatch({ type: "pickDataset", participantId: resource.source.id, datasetId: resource.dataset.id });
+            if (algorithm?.requirements.agentRequired) {
+              update({
+                agentGroups: draft.agentGroups.map((g) =>
+                  g.key === config.agentTarget
+                    ? {
+                        ...g,
+                        datasetId: resource.dataset.id,
+                        participantId: resource.source.id,
+                      }
+                    : g,
+                ),
+              });
+            } else if (resource.dataset.ready)
+              dispatch({
+                type: "pickDataset",
+                participantId: resource.source.id,
+                datasetId: resource.dataset.id,
+              });
           } else if (saved.kind === "agent") {
-            if (config.agentTarget) {
-              await config.binding.save(config.agentTarget, saved.value.id);
-              config.setAgentTarget(null);
-            } else if (!algorithm?.requirements.agentRequired) update({ execution: "agent", agentId: saved.value.id });
+            if (algorithm?.requirements.agentRequired) {
+              update({
+                agentGroups: draft.agentGroups.map((g) =>
+                  g.key === config.agentTarget
+                    ? {
+                        ...g,
+                        agentId: saved.value.id,
+                        datasetId: "",
+                        participantId: "",
+                      }
+                    : g,
+                ),
+              });
+            } else update({ execution: "agent", agentId: saved.value.id });
           } else if (intake === "clientModel" || intake === "serverModel") {
             update({ [intake]: `${saved.value.id}:${saved.value.models[0]}` });
           }

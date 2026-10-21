@@ -7,6 +7,7 @@ import {
 } from "../catalog";
 import {
   fits,
+  inResourceScope,
   usable,
   type Dataset,
   type Participant,
@@ -22,7 +23,9 @@ export function joinable(
 ): TaskParticipant[] {
   const { scenario, taskType } = draft;
   if (!scenario || !taskType) return [];
-  return draft.participants.filter(({ participantId, datasetId }) => {
+  return (
+    draft.execution === "agent" ? draft.agentGroups : draft.participants
+  ).filter(({ participantId, datasetId }) => {
     const dataset = datasets.find(
       (item) => item.id === datasetId && item.participantId === participantId,
     );
@@ -58,7 +61,7 @@ export function availableDataSources(
   for (const dataset of datasets) {
     if (
       !dataset.ready ||
-      dataset.resourceSpace !== space ||
+      !inResourceScope(dataset, space) ||
       !fits(dataset, draft.scenario, draft.taskType)
     )
       continue;
@@ -96,6 +99,7 @@ export function chooseScenario(draft: Draft, scenario: ScenarioId): Draft {
     taskType: null,
     algorithm: null,
     participants: [],
+    agentGroups: [],
     clientOverrides: {},
     agentId: null,
     agentOverrides: {},
@@ -116,6 +120,17 @@ export function chooseTaskType(draft: Draft, taskType: TaskType): Draft {
     ...draft,
     taskType,
     participants: [],
+    agentGroups: algorithmOf(draft.algorithm).requirements.agentRequired
+      ? [
+          {
+            key: "mine",
+            agentId: "",
+            datasetId: "",
+            participantId: "",
+            space: "workspace",
+          },
+        ]
+      : [],
     clientOverrides: {},
     agentOverrides: {},
   };
@@ -131,6 +146,17 @@ export function chooseAlgorithm(draft: Draft, algorithm: AlgorithmId): Draft {
     algorithm,
     taskType: null,
     participants: [],
+    agentGroups: definition.requirements.agentRequired
+      ? [
+          {
+            key: "mine",
+            agentId: "",
+            datasetId: "",
+            participantId: "",
+            space: "workspace",
+          },
+        ]
+      : [],
     clientOverrides: {},
     execution: definition.requirements.agentRequired ? "agent" : "builtin",
     agentId: null,

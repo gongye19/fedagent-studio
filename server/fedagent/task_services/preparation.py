@@ -7,8 +7,8 @@ from sqlalchemy.orm import Session
 
 from .. import models as m
 from ..data import select_items
+from ..gateway import parse_ref
 from ..platform import Platform
-from ..resource_services.bindings import selected_agent
 from ..resources import dataset_ready, participant_status
 from ..schemas import EstimateOut, IssueOut, TaskConfigIn
 
@@ -98,6 +98,9 @@ def validate(platform: Platform, session: Session, body: TaskConfigIn) -> tuple[
         if dataset.schema_version != registry.task_type(body.task_type).schema_version:
             issue("participants", f"{dataset.name} 的数据规范版本不兼容，请按当前模板重新上传或登记")
             continue
+        if dataset.resource_space != "workspace" and not dataset.shared:
+            issue("participants", f"数据“{dataset.name}”已取消共享，请重新选择")
+            continue
         if not dataset_ready(dataset):
             issue("participants", f"{dataset.name} 还没有样本（{'客户端连上后上报' if dataset.source == 'local' else '题目文件待导入'}）")
             continue
@@ -119,7 +122,7 @@ def validate(platform: Platform, session: Session, body: TaskConfigIn) -> tuple[
         model_ref = body.client_overrides.get(participant.id) or body.client_model
         prepared.sites.append(PreparedSite(participant, dataset, items, labeled, model_ref))
     if len(prepared.sites) < manifest.min_participants:
-        issue("participants", f"至少选择 {manifest.min_participants} 组数据与 Agent 接入" if manifest.agent_required
+        issue("participants", f"至少配置 {manifest.min_participants} 个参与系统" if manifest.agent_required
               else f"至少选择 {manifest.min_participants} 个可用的数据来源，每个来源选择一份数据")
     if body.mode == "full" and prepared.sites and not any(site.dataset.resource_space == "workspace" for site in prepared.sites):
         issue("participants", "正式任务至少需要一份我的数据；公用数据可以先用于试跑")
@@ -130,25 +133,36 @@ def validate(platform: Platform, session: Session, body: TaskConfigIn) -> tuple[
 
         if body.budget is not None:
             issue("models", "外部 Agent 的费用由其服务管理，暂不能设置平台总费用上限")
+        selected_agents: set[str] = set()
         for site in prepared.sites:
             if site.participant.hosting == "local":
                 issue("participants", "自有 Agent 当前使用已上传的数据，请选择平台可读取的数据")
                 continue
-            agent_id = selected_agent(body, site)
-            if site.dataset.resource_space == "public" and site.dataset.agent_id and agent_id != site.dataset.agent_id:
-                issue("models", f"公用协作组“{site.dataset.name}”必须使用其已绑定的 Agent")
+            agent_id = body.agent_overrides.get(site.participant.id) or body.agent_id
             site.agent_id = agent_id
             endpoint = session.get(m.AgentEndpoint, agent_id) if agent_id else None
             if endpoint is None:
-                issue("models", "请为数据来源选择 Agent 接口")
+                issue("models", "请为每个参与系统选择 Agent 接口")
+            elif manifest.agent_required and endpoint.owner_id != site.dataset.owner_id:
+                issue("participants", f"Agent“{endpoint.name}”与病例“{site.dataset.name}”不属于同一方，请重新选择")
+            elif manifest.agent_required and agent_id in selected_agents:
+                issue("models", "每个参与系统需使用不同的 Agent 接口")
             elif endpoint.capabilities and not compatible(Capabilities.model_validate(endpoint.capabilities), algorithm):
                 issue("models", f"Agent“{endpoint.name}”不支持该算法的版本或完整步骤")
+            if endpoint:
+                selected_agents.add(endpoint.id)
+                for resource, label in ((endpoint, "Agent"), (site.dataset, "病例")):
+                    if resource.resource_space != "workspace" and not resource.shared:
+                        issue("participants", f"{label}“{resource.name}”已取消共享，请重新选择")
     refs = {site.model_ref for site in prepared.sites if site.participant.hosting == "platform" and body.execution == "builtin"}
     if any(step.at == SERVER and step.model for step in manifest.steps):
         refs.add(body.server_model)
     for ref in sorted(refs):
         try:
             endpoint, _ = platform.gateway.resolve(ref)
+            row = session.get(m.Endpoint, parse_ref(ref)[0])
+            if row and row.resource_space != "workspace" and not row.shared:
+                issue("models", f"LLM 接口“{row.name}”已取消共享，请重新选择")
             if body.budget is not None and endpoint.kind != "fake" and endpoint.price is None:
                 issue("models", f"设置费用上限前，请先登记接口“{endpoint.name}”的单价")
         except ModelError as error:

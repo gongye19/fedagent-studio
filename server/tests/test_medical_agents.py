@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 from fedagent_sdk import Artifact, ChatResult
 from test_agents import fot_config
-from test_medical import cases, medical_config, medical_dataset
+from test_medical import cases, medical_agents, medical_config, medical_dataset
 
 from fedagent.agents.gateway import AgentGateway
 from fedagent.agents.medical import create_medical_app, provider_platform
@@ -22,6 +22,8 @@ def test_configuration_checks_business_output_of_every_step(platform, client, re
     config = (medical_config([{"participantId": p, "datasetId": medical_dataset(client, p)} for p in ("p-a", "p-b")])
               if medical else fot_config(client))
     config.update(execution="agent", agentId=remote[0])
+    if config["algorithm"] == "evomedclaw":
+        medical_agents(client, config, remote[0])
     original = AgentGateway.execute
 
     def broken(self, agent_id, body, **kwargs):
@@ -63,6 +65,8 @@ def test_medical_requires_agent_and_publishes_downloadable_contract(client):
 def test_agent_errors_are_actionable_and_stop_further_paid_checks(client, remote, monkeypatch, code, retryable, hint):
     config = medical_config([{"participantId": p, "datasetId": medical_dataset(client, p)} for p in ("p-a", "p-b")])
     config.update(execution="agent", agentId=remote[0])
+    if config["algorithm"] == "evomedclaw":
+        medical_agents(client, config, remote[0])
     original = AgentGateway.request
     submitted = []
 

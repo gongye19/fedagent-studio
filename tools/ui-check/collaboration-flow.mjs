@@ -9,9 +9,11 @@ const out=process.env.CDP_OUT??'/tmp/fedagent-collaboration';mkdirSync(out,{recu
 const evidence=[],owned={};const check=(label,value)=>{assert.ok(value,label);evidence.push(label);console.log('PASS',label)};
 async function req(p,method='GET',body){const r=await fetch(new URL('v1/'+p,base),{method,headers:body?{'content-type':'application/json'}:{},body:body?JSON.stringify(body):undefined});assert.ok(r.ok,`${p}: ${await r.clone().text()}`);return r.status===204?null:r.json()}
 const [datasets,agents,oldTasks,oldApps]=await Promise.all(['datasets','agents','tasks','apps'].map(p=>req(p)));
-const mine=datasets.find(d=>d.taskType==='medical-diagnosis'&&d.resourceSpace==='workspace'&&d.agentId);
-const peer=datasets.find(d=>d.taskType==='medical-diagnosis'&&d.resourceSpace==='public'&&d.agentId);
-assert.ok(mine&&peer,'两组成组资源已登记');assert.notEqual(mine.agentId,peer.agentId);
+const mine=datasets.find(d=>d.taskType==='medical-diagnosis'&&d.resourceSpace==='workspace');
+const peer=datasets.find(d=>d.taskType==='medical-diagnosis'&&d.resourceSpace==='public');
+const mineAgent=agents.find(a=>a.resourceSpace==='workspace'&&a.ownerId===mine?.ownerId);
+const peerAgent=agents.find(a=>a.shared&&a.ownerId===peer?.ownerId&&a.id!==mineAgent?.id);
+assert.ok(mine&&peer&&mineAgent&&peerAgent,'独立资源与所属方已登记');
 const {send,close}=await launch({port:Number(process.env.CDP_PORT??9438),profile:'/tmp/fedagent-collaboration-profile'});
 async function click(label){await evaluate(send,`(()=>{const b=[...document.querySelectorAll('button,a')].find(e=>e.textContent.trim()===${JSON.stringify(label)}&&!e.disabled);if(!b)throw Error('Missing '+${JSON.stringify(label)});b.click()})()`);await sleep(220)}
 async function until(expr,limit=60000){const end=Date.now()+limit;while(Date.now()<end){if(await evaluate(send,`Boolean(${expr})`))return;await sleep(local?200:1000)}throw Error('Timeout '+expr)}
@@ -23,15 +25,21 @@ try{
  for(const width of [1280,390]){
   await viewport(send,{width,height:width===390?844:900,mobile:width===390});await open(send,base+'#/tasks/new',local?1400:4000);
   await click('横向联邦');await evaluate(send,"document.getElementById('algorithm-evomedclaw').click()");await sleep(180);await click('医疗诊断');
-  check('医疗没有全局默认 Agent 或 LLM '+width,await evaluate(send,"!document.getElementById('task-agent')&&!document.getElementById('client-model')&&!document.getElementById('server-model')&&Boolean(document.querySelector('.agent-data-list'))"));
-  await evaluate(send,`document.getElementById('pick-${mine.participantId}').click()`);await sleep(200);
-  check('我的接入逐组显示数据与已绑定Agent '+width,await evaluate(send,`document.querySelector('[data-select-name="data-agent-${mine.id}"]')?.textContent.includes(${JSON.stringify(agents.find(a=>a.id===mine.agentId).name)})`));
-  await click('公用协作');await evaluate(send,`document.getElementById('pick-${peer.participantId}').click()`);await sleep(200);
-  check('公用组显示固定Agent且不可替换 '+width,await evaluate(send,`[...document.querySelectorAll('.agent-data-endpoint')].some(e=>e.textContent===${JSON.stringify(agents.find(a=>a.id===peer.agentId).name)})&&!document.querySelector('.agent-data-agent [role=combobox]')`));
-  check('跨范围选择保留两组 '+width,await evaluate(send,"document.querySelectorAll('[aria-label=已选择的接入组] > span').length===2"));
+  check('医疗没有全局默认Agent或数据嵌套菜单 '+width,await evaluate(send,"!document.getElementById('task-agent')&&!document.getElementById('client-model')&&!document.getElementById('server-model')&&Boolean(document.querySelector('.participation-list'))&&!document.querySelector('.agent-data-list')"));
+  check('先选Agent，数据字段保留禁用 '+width,await evaluate(send,"document.getElementById('system-mine-data').disabled&&!document.getElementById('system-mine-agent').disabled"));
+  await evaluate(send,SELECT('system-mine-agent',mineAgent.id));
+  await evaluate(send,SELECT('system-mine-data',mine.id));
+  await click('添加共享协作方');
+  const groupKey=await evaluate(send,"JSON.parse(localStorage.getItem('fedagent-studio:draft')).agentGroups[1].key");
+  await evaluate(send,SELECT('system-'+groupKey+'-agent',peerAgent.id));
+  await evaluate(send,SELECT('system-'+groupKey+'-data',peer.id));
+  check('Agent与任务数据为同级字段 '+width,await evaluate(send,"[...document.querySelectorAll('.participation-fields')].every(e=>e.children.length===2&&e.children[0].querySelector('[role=combobox]')&&e.children[1].querySelector('[role=combobox]'))"));
+  check('自己的系统和共享协作方同时保留 '+width,await evaluate(send,"JSON.parse(localStorage.getItem('fedagent-studio:draft')).agentGroups.filter(g=>g.agentId&&g.datasetId).length===2"));
+  await open(send,base+'#/tasks/new',local?1000:4000,{reset:false});
+  check('刷新保留任务内组合 '+width,await evaluate(send,"document.querySelectorAll('.participation-row').length===2&&JSON.parse(localStorage.getItem('fedagent-studio:draft')).agentGroups.every(g=>g.agentId&&g.datasetId)"));
   await evaluate(send,SELECT('rounds',2));await set('trial-cap',2);
   await click('正式运行');await until("document.querySelector('.config-test-trigger[data-ready=true]:not(:disabled)')");
-  check('自己的接入与公用协作可组成正式配置 '+width,true);await click('试跑');
+  check('自己的系统与共享协作方可组成正式配置 '+width,true);await click('试跑');
   await evaluate(send,"document.getElementById('participants').scrollIntoView({block:'start'})");await sleep(300);await shot('groups-'+width);
   check('所需资源不横向溢出 '+width,await evaluate(send,'document.documentElement.scrollWidth<=innerWidth'));
  }
@@ -46,7 +54,7 @@ try{
   let task;const end=Date.now()+(local?180000:1500000);
   while(Date.now()<end){task=await req('tasks/'+owned.taskId);assert.ok(!['paused','canceled'].includes(task.status),task.error);if(task.status==='completed')break;await sleep(local?300:3000)}
   check('两组独立Agent完成两轮联邦与聚合',task.status==='completed'&&task.rounds.filter(r=>r.output).length===2&&new Set(task.members.map(m=>m.model)).size===2);
-  check('任务冻结对应组的Agent接口',task.members.some(m=>m.datasetId===mine.id&&m.model==='agent:'+mine.agentId)&&task.members.some(m=>m.datasetId===peer.id&&m.model==='agent:'+peer.agentId));
+  check('任务冻结对应组的Agent接口',task.members.some(m=>m.datasetId===mine.id&&m.model==='agent:'+mineAgent.id)&&task.members.some(m=>m.datasetId===peer.id&&m.model==='agent:'+peerAgent.id));
   const app=await req('apps','POST',{taskId:owned.taskId,builtAfterRound:2,name:'医疗协作成果验证（完成后清理）'});owned.appId=app.id;save();
   const exported=await fetch(new URL('v1/apps/'+app.id+'/export',base));check('联邦成果可发布与导出',exported.ok&&Boolean(await exported.text()));
  }

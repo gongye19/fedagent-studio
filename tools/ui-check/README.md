@@ -54,3 +54,5 @@ T83：`algorithm-config.mjs`只读验证先算法后任务、兼容任务列表�
 T84：`collaboration-flow.mjs`只读检查工作区／公用数据与Agent成组、跨范围选择、正式配置、桌面手机。`RUN_FLOW=1`执行完整实际HTTP Agent配置测试／两轮／发布导出；线上额外`REAL_MODEL_VERIFY=1`，预计医疗$0.4–1.5，先明确安排。使用已有绑定资源，不注册重复Agent，仅清理自己的任务／应用／报告。Agent保存绑定功能通过正常PATCH，公共组绑定由维护方配置。`ROUTE_MATCH=医疗协作组`可让a11y／wrap只扫新分支，避免重复全站扫描。
 
 T84兼容入口收敛：agent-flow与real-medical-flow转到collaboration-flow；medical-agents按ONLY_ALGORITHM分发resource-flow／collaboration-flow，不再登记重复Agent或维护过期全局菜单。需要先有保存绑定的工作区与公用组。T82双服务原API激活经验的实际证据保留在历史记录，当前成组验收不自动启用最终经验。medical-flow保留上传模板、坏文件、结构化应用与导出覆盖，先删本次数据再删测试Agent，遵守绑定外键保护。
+
+T85当前验收：医疗配置使用独立资源，`collaboration-flow.mjs`先选Agent、再选同方数据，刷新保留任务内组合；默认只读，RUN_FLOW=1及线上REAL_MODEL_VERIFY=1的付费保护不变。`agent-intake.mjs`仅本地验证任务内接入、上传、换Agent清数据、字段错误和移除；`sharing.mjs`仅本地通过真实HTTP验证三类资源分别共享／撤回、归属保留、共享目录同步和失败重试，不调用模型。旧data-agent-binding脚本已移除，T84永久绑定描述为历史记录。当前界面统一“共享资源”；历史URL public继续保留。

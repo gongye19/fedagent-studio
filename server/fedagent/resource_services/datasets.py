@@ -24,7 +24,6 @@ def dataset_out(dataset: m.Dataset) -> DatasetOut:
     sample = dataset.sample or None
     return DatasetOut(
         id=dataset.id,
-        agent_id=dataset.agent_id,
         name=dataset.name,
         participant_id=dataset.participant_id,
         description=dataset.description,
@@ -36,6 +35,7 @@ def dataset_out(dataset: m.Dataset) -> DatasetOut:
         count=dataset.count,
         answered=dataset.answered,
         source=dataset.source,  # type: ignore[arg-type]
+        owner_id=dataset.owner_id, owner_name=dataset.owner_name, shared=dataset.shared,
         resource_space=dataset.resource_space,  # type: ignore[arg-type]
         sample=SampleOut.model_validate(sample) if sample else None,
         ready=dataset_ready(dataset),

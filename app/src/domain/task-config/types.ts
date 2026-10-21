@@ -1,11 +1,18 @@
 import type { components } from "../../api/schema";
 import type { AlgorithmId, Params, ScenarioId, TaskType } from "../catalog";
-import { DEFAULT_MODEL } from "../resources";
+import { DEFAULT_MODEL, type ResourceSpace } from "../resources";
 
 export type RunMode = "trial" | "full";
 
 /** 参加任务的一方和它出的数据集。 */
 export type TaskParticipant = { participantId: string; datasetId: string };
+
+/** 本次任务的一套参与系统；不写入任何资源。空字段用于保留未填完的表单。 */
+export type AgentGroup = TaskParticipant & {
+  key: string;
+  agentId: string;
+  space?: ResourceSpace;
+};
 
 export type TaskConfig = {
   scenario: ScenarioId;
@@ -35,6 +42,7 @@ export type TaskConfig = {
 export type Draft = Omit<TaskConfig, "scenario" | "taskType" | "algorithm"> & {
   /** null：还没改过名称，页面显示按打开时间生成的默认名称；空字符串：用户清空了，创建时仍用默认名称。 */
   name: string | null;
+  agentGroups: AgentGroup[];
   scenario: ScenarioId | null;
   taskType: TaskType | null;
   algorithm: AlgorithmId | null;
@@ -44,6 +52,7 @@ export type Draft = Omit<TaskConfig, "scenario" | "taskType" | "algorithm"> & {
 
 export const DEFAULT_DRAFT: Draft = {
   name: null,
+  agentGroups: [],
   touched: false,
   scenario: null,
   taskType: null,
@@ -68,6 +77,16 @@ export function withDefaults(draft: Partial<Draft>): Draft {
     ...DEFAULT_DRAFT,
     ...draft,
     participants: [...(draft.participants ?? [])],
+    agentGroups:
+      draft.agentGroups?.map((g) => ({ ...g })) ??
+      (draft.execution === "agent"
+        ? (draft.participants ?? []).map((p) => ({
+            ...p,
+            key: p.participantId,
+            agentId:
+              draft.agentOverrides?.[p.participantId] || draft.agentId || "",
+          }))
+        : []),
     clientOverrides: { ...(draft.clientOverrides ?? {}) },
     agentOverrides: { ...(draft.agentOverrides ?? {}) },
     params: { ...(draft.params ?? {}) },

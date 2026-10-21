@@ -41,7 +41,7 @@ try{
   await click('保存数据');await until("!document.querySelector('.resource-dialog')");
   const created=(await read('v1/datasets')).find(d=>!original.datasets.includes(d.id)&&d.name==='AIME24-input'&&d.sourceHash===inputHash);assert.ok(created);resource={dataset:created,source:(await read('v1/participants')).find(p=>p.id===created.participantId)};owned();
   check('保存与自动选入真实资源，配置未离开',resource.dataset.resourceSpace==='workspace'&&resource.dataset.count===2&&await evaluate(send,`location.hash==='#/tasks/new'&&document.getElementById('pick-${resource.source.id}').checked&&document.activeElement.textContent.includes('接入数据')`));
-  await click('公用资源');await evaluate(send,"document.querySelector('input[aria-label=全选]').click()");await sleep(150);await evaluate(send,"document.querySelector('input[aria-label=全选]').click()");await sleep(150);
+  await click('共享资源');await evaluate(send,"document.querySelector('input[aria-label=全选]').click()");await sleep(150);await evaluate(send,"document.querySelector('input[aria-label=全选]').click()");await sleep(150);
   check('另一资源范围全选／取消不清除我的选择',await evaluate(send,"document.querySelector('.resource-selection').textContent.includes('AIME24-input')"));
   await evaluate(send,"document.getElementById('pick-p-b').click()");await sleep(200);
   await evaluate(send,SELECT('rounds','2'));await set('trial-cap','1');await evaluate(send,SELECT('client-model',model));await evaluate(send,SELECT('server-model',model));

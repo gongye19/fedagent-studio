@@ -10,7 +10,6 @@ from .. import clients, resources
 from .. import models as m
 from ..data import MAX_FILE_BYTES, check_file
 from ..schemas import ClientTokenOut, DataResourceOut, DatasetCheckOut, DatasetOut, ParticipantOut, ParticipantPatch
-from ..schemas.resources import DatasetAgentIn
 from .dependencies import PlatformDep, SessionDep, admin_router
 
 router = admin_router()
@@ -197,10 +196,3 @@ def dataset_template(task_type: str, platform: PlatformDep) -> Response:
 def delete_dataset(dataset_id: str, session: SessionDep) -> Response:
     resources.delete_dataset(session, dataset_id)
     return Response(status_code=204)
-
-
-@router.patch("/resources/data/{dataset_id}/agent", response_model=DatasetOut, tags=["resources"])
-def bind_dataset_agent(dataset_id: str, body: DatasetAgentIn, platform: PlatformDep, session: SessionDep) -> DatasetOut:
-    from ..resource_services.bindings import bind_agent
-
-    return resources.dataset_out(bind_agent(platform, session, dataset_id, body.agent_id))

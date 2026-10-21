@@ -58,14 +58,26 @@ function messageOf(status: number, detail: unknown): string {
     return `数据文件有 ${check.problemCount} 处问题，例如${first.line ? `第 ${first.line} 行：` : ""}${first.message}`;
   }
   const issues = (detail as { issues?: S["IssueOut"][] } | null)?.issues;
-  if (issues && issues.length) return issues.map((issue) => issue.message).join("；");
-  if (detail && typeof detail === "object" && "message" in detail && typeof detail.message === "string") return detail.message;
+  if (issues && issues.length)
+    return issues.map((issue) => issue.message).join("；");
+  if (
+    detail &&
+    typeof detail === "object" &&
+    "message" in detail &&
+    typeof detail.message === "string"
+  )
+    return detail.message;
   if (status === 401) return "需要访问令牌";
   if (status === 422) return "提交的内容格式不对";
   return `请求失败（${status}）`;
 }
 
-export async function request<T>(method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+export async function request<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  signal?: AbortSignal,
+): Promise<T> {
   const headers: Record<string, string> = {};
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -77,7 +89,13 @@ export async function request<T>(method: string, path: string, body?: unknown, s
   }
   let response: Response;
   try {
-    response = await fetch(path, { method, headers, body: payload, cache: "no-store", signal });
+    response = await fetch(path, {
+      method,
+      headers,
+      body: payload,
+      cache: "no-store",
+      signal,
+    });
   } catch {
     throw new ApiError(0, null);
   }
@@ -90,19 +108,30 @@ export async function request<T>(method: string, path: string, body?: unknown, s
     data = text;
   }
   if (!response.ok) {
-    const detail = data && typeof data === "object" && "detail" in data ? (data as { detail: unknown }).detail : data;
+    const detail =
+      data && typeof data === "object" && "detail" in data
+        ? (data as { detail: unknown }).detail
+        : data;
     throw new ApiError(response.status, detail);
   }
   return data as T;
 }
 
 const get = <T>(path: string) => request<T>("GET", path);
-const post = <T>(path: string, body?: unknown) => request<T>("POST", path, body);
+const post = <T>(path: string, body?: unknown) =>
+  request<T>("POST", path, body);
 const put = <T>(path: string, body?: unknown) => request<T>("PUT", path, body);
-const patch = <T>(path: string, body?: unknown) => request<T>("PATCH", path, body);
+const patch = <T>(path: string, body?: unknown) =>
+  request<T>("PATCH", path, body);
 const del = (path: string) => request<void>("DELETE", path);
 const query = (values: Record<string, string | number | undefined>) => {
-  const search = new URLSearchParams(Object.entries(values).filter((entry): entry is [string, string | number] => entry[1] !== undefined).map(([key, value]) => [key, String(value)]));
+  const search = new URLSearchParams(
+    Object.entries(values)
+      .filter(
+        (entry): entry is [string, string | number] => entry[1] !== undefined,
+      )
+      .map(([key, value]) => [key, String(value)]),
+  );
   const text = search.toString();
   return text ? `?${text}` : "";
 };
@@ -115,69 +144,106 @@ export const api = {
 
   participants: () => get<S["ParticipantOut"][]>("/v1/participants"),
   /** 新增参与方，同时登记它的第一份数据集（表单：name、org、intro、hosting、datasetName、datasetDescription、scenario、taskType、file）。 */
-  createParticipant: (form: FormData) => post<S["ParticipantOut"]>("/v1/participants", form),
-  deleteParticipant: (id: string) => del(`/v1/participants/${encodeURIComponent(id)}`),
-  issueClientToken: (id: string) => post<S["ClientTokenOut"]>(`/v1/participants/${encodeURIComponent(id)}/client-tokens`),
+  createParticipant: (form: FormData) =>
+    post<S["ParticipantOut"]>("/v1/participants", form),
+  deleteParticipant: (id: string) =>
+    del(`/v1/participants/${encodeURIComponent(id)}`),
+  issueClientToken: (id: string) =>
+    post<S["ClientTokenOut"]>(
+      `/v1/participants/${encodeURIComponent(id)}/client-tokens`,
+    ),
 
   datasets: () => get<S["DatasetOut"][]>("/v1/datasets"),
-  createDataResource: (form: FormData) => post<S["DataResourceOut"]>("/v1/resources/data", form),
-  bindDataAgent: (id: string, agentId: string | null) => patch<S["DatasetOut"]>(`/v1/resources/data/${encodeURIComponent(id)}/agent`, { agentId }),
-  deleteDataResource: (id: string) => del(`/v1/resources/data/${encodeURIComponent(id)}`),
+  createDataResource: (form: FormData) =>
+    post<S["DataResourceOut"]>("/v1/resources/data", form),
+  deleteDataResource: (id: string) =>
+    del(`/v1/resources/data/${encodeURIComponent(id)}`),
   checkDataset: (taskType: string, file: File, signal?: AbortSignal) => {
     const data = new FormData();
     data.set("taskType", taskType);
     data.set("file", file, file.name);
-    return request<S["DatasetCheckOut"]>("POST", "/v1/datasets/check", data, signal);
+    return request<S["DatasetCheckOut"]>(
+      "POST",
+      "/v1/datasets/check",
+      data,
+      signal,
+    );
   },
-  downloadTemplate: (taskType: string) => download(`/v1/task-types/${encodeURIComponent(taskType)}/template`, "dataset-template.jsonl"),
-  createDataset: (form: FormData) => post<S["DatasetOut"]>("/v1/datasets", form),
+  downloadTemplate: (taskType: string) =>
+    download(
+      `/v1/task-types/${encodeURIComponent(taskType)}/template`,
+      "dataset-template.jsonl",
+    ),
+  createDataset: (form: FormData) =>
+    post<S["DatasetOut"]>("/v1/datasets", form),
   deleteDataset: (id: string) => del(`/v1/datasets/${encodeURIComponent(id)}`),
 
-  downloadAgentProtocol: () => download("/v1/agent-protocol", "fedagent-agent-v1.json"),
+  downloadAgentProtocol: () =>
+    download("/v1/agent-protocol", "fedagent-agent-v1.json"),
 
   endpoints: () => get<S["EndpointOut"][]>("/v1/endpoints"),
-  createEndpoint: (body: S["EndpointIn"]) => post<S["EndpointOut"]>("/v1/endpoints", body),
-  updateEndpoint: (id: string, body: S["EndpointIn"]) => put<S["EndpointOut"]>(`/v1/endpoints/${encodeURIComponent(id)}`, body),
-  deleteEndpoint: (id: string) => del(`/v1/endpoints/${encodeURIComponent(id)}`),
-  testEndpoint: (id: string) => post<S["EndpointTestOut"]>(`/v1/endpoints/${encodeURIComponent(id)}/test`),
+  createEndpoint: (body: S["EndpointIn"]) =>
+    post<S["EndpointOut"]>("/v1/endpoints", body),
+  updateEndpoint: (id: string, body: S["EndpointIn"]) =>
+    put<S["EndpointOut"]>(`/v1/endpoints/${encodeURIComponent(id)}`, body),
+  deleteEndpoint: (id: string) =>
+    del(`/v1/endpoints/${encodeURIComponent(id)}`),
+  testEndpoint: (id: string) =>
+    post<S["EndpointTestOut"]>(`/v1/endpoints/${encodeURIComponent(id)}/test`),
   /** 读接口地址提供的模型（选模型用）；没填密钥时用 endpointId 这个接口已保存的密钥。 */
-  previewModels: (body: S["ModelListIn"]) => post<S["EndpointModelsOut"]>("/v1/endpoints/models", body),
+  previewModels: (body: S["ModelListIn"]) =>
+    post<S["EndpointModelsOut"]>("/v1/endpoints/models", body),
 
-  testTask: (body: TaskConfigIn) => post<S["TaskCheckOut"]>("/v1/task-checks", body),
-  taskCheck: (id: string) => get<S["TaskCheckOut"]>(`/v1/task-checks/${encodeURIComponent(id)}`),
-  validateTask: (body: TaskConfigIn) => post<S["ValidateOut"]>("/v1/tasks/validate", body),
+  testTask: (body: TaskConfigIn) =>
+    post<S["TaskCheckOut"]>("/v1/task-checks", body),
+  taskCheck: (id: string) =>
+    get<S["TaskCheckOut"]>(`/v1/task-checks/${encodeURIComponent(id)}`),
+  validateTask: (body: TaskConfigIn) =>
+    post<S["ValidateOut"]>("/v1/tasks/validate", body),
   createTask: (body: TaskConfigIn) => post<S["TaskOut"]>("/v1/tasks", body),
   tasks: () => get<S["TaskOut"][]>("/v1/tasks"),
-  task: (id: string) => get<S["TaskOut"]>(`/v1/tasks/${encodeURIComponent(id)}`),
+  task: (id: string) =>
+    get<S["TaskOut"]>(`/v1/tasks/${encodeURIComponent(id)}`),
   deleteTask: (id: string) => del(`/v1/tasks/${encodeURIComponent(id)}`),
-  controlTask: (id: string, action: "pause" | "resume" | "cancel") => post<S["TaskOut"]>(`/v1/tasks/${encodeURIComponent(id)}/${action}`),
-  taskMessages: (id: string, filter: { round?: number; site?: string; limit?: number }) =>
-    get<S["MessageOut"][]>(`/v1/tasks/${encodeURIComponent(id)}/messages${query(filter)}`),
-  taskEvents: (id: string) => get<S["EventOut"][]>(`/v1/tasks/${encodeURIComponent(id)}/events`),
+  controlTask: (id: string, action: "pause" | "resume" | "cancel") =>
+    post<S["TaskOut"]>(`/v1/tasks/${encodeURIComponent(id)}/${action}`),
+  taskMessages: (
+    id: string,
+    filter: { round?: number; site?: string; limit?: number },
+  ) =>
+    get<S["MessageOut"][]>(
+      `/v1/tasks/${encodeURIComponent(id)}/messages${query(filter)}`,
+    ),
+  taskEvents: (id: string) =>
+    get<S["EventOut"][]>(`/v1/tasks/${encodeURIComponent(id)}/events`),
 
-  appContent: (id: string) => get<unknown>(`/v1/apps/${encodeURIComponent(id)}/export`),
+  appContent: (id: string) =>
+    get<unknown>(`/v1/apps/${encodeURIComponent(id)}/export`),
   apps: () => get<S["AppOut"][]>("/v1/apps"),
   publish: (body: S["AppIn"]) => post<S["AppOut"]>("/v1/apps", body),
-  renameApp: (id: string, name: string) => patch<S["AppOut"]>(`/v1/apps/${encodeURIComponent(id)}`, { name }),
+  renameApp: (id: string, name: string) =>
+    patch<S["AppOut"]>(`/v1/apps/${encodeURIComponent(id)}`, { name }),
   withdrawApp: (id: string) => del(`/v1/apps/${encodeURIComponent(id)}`),
-  applyApp: (id: string, body: S["ApplyIn"]) => post<S["ApplyOut"]>(`/v1/apps/${encodeURIComponent(id)}/apply`, body),
+  applyApp: (id: string, body: S["ApplyIn"]) =>
+    post<S["ApplyOut"]>(`/v1/apps/${encodeURIComponent(id)}/apply`, body),
 
   /** 下载应用的导出文件（带上访问令牌，所以不能直接用链接）。 */
-  exportApp: (id: string) => download(`/v1/apps/${encodeURIComponent(id)}/export`, "export.json"),
+  exportApp: (id: string) =>
+    download(`/v1/apps/${encodeURIComponent(id)}/export`, "export.json"),
 };
 
 async function download(path: string, fallback: string): Promise<void> {
-    const headers: Record<string, string> = {};
-    const token = getToken();
-    if (token) headers.Authorization = `Bearer ${token}`;
-    const response = await fetch(path, { headers });
-    if (!response.ok) throw new ApiError(response.status, null);
-    const disposition = response.headers.get("content-disposition") ?? "";
-    const filename = /filename="([^"]+)"/.exec(disposition)?.[1] ?? fallback;
-    const url = URL.createObjectURL(await response.blob());
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    link.click();
-    URL.revokeObjectURL(url);
+  const headers: Record<string, string> = {};
+  const token = getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const response = await fetch(path, { headers });
+  if (!response.ok) throw new ApiError(response.status, null);
+  const disposition = response.headers.get("content-disposition") ?? "";
+  const filename = /filename="([^"]+)"/.exec(disposition)?.[1] ?? fallback;
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
 }

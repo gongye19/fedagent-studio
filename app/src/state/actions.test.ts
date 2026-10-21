@@ -6,33 +6,58 @@ import { keys, queryClient } from "./server";
 import type { Published } from "./store";
 
 const app: Published = {
-  id: "app-new", name: "新应用", taskId: "task-1", builtAfterRound: 2,
-  publishedAt: "2026-10-05T16:00:00Z", scenario: "horizontal", taskType: "math-reasoning",
-  algorithm: "fot", pluginVersion: "1.0.0", items: [],
+  id: "app-new",
+  name: "新应用",
+  taskId: "task-1",
+  builtAfterRound: 2,
+  publishedAt: "2026-10-05T16:00:00Z",
+  scenario: "horizontal",
+  taskType: "math-reasoning",
+  algorithm: "fot",
+  pluginVersion: "1.0.0",
+  items: [],
 };
 
-afterEach(() => { queryClient.clear(); vi.restoreAllMocks(); });
+afterEach(() => {
+  queryClient.clear();
+  vi.restoreAllMocks();
+});
 
 it("发布后列表读取暂时落后，仍能立即打开新应用", async () => {
   vi.spyOn(api, "publish").mockResolvedValue(app);
   queryClient.setQueryData(keys.apps, []);
-  const observer = new QueryObserver(queryClient, { queryKey: keys.apps, queryFn: async () => [], staleTime: Infinity });
+  const observer = new QueryObserver(queryClient, {
+    queryKey: keys.apps,
+    queryFn: async () => [],
+    staleTime: Infinity,
+  });
   const unsubscribe = observer.subscribe(() => {});
   try {
     const published = await publish("task-1", 2, "新应用");
-    expect(queryClient.getQueryData<Published[]>(keys.apps)?.find((item) => item.id === published.id)).toEqual(app);
-  } finally { unsubscribe(); observer.destroy(); }
+    expect(
+      queryClient
+        .getQueryData<Published[]>(keys.apps)
+        ?.find((item) => item.id === published.id),
+    ).toEqual(app);
+  } finally {
+    unsubscribe();
+    observer.destroy();
+  }
 });
 
 it("发布后列表已有新应用，保留刷新得到的最新名称", async () => {
   vi.spyOn(api, "publish").mockResolvedValue(app);
   queryClient.setQueryData(keys.apps, [{ ...app, name: "更新后的名称" }]);
   await publish("task-1", 2, "新应用");
-  expect(queryClient.getQueryData<Published[]>(keys.apps)).toEqual([{ ...app, name: "更新后的名称" }]);
+  expect(queryClient.getQueryData<Published[]>(keys.apps)).toEqual([
+    { ...app, name: "更新后的名称" },
+  ]);
 });
 
 it("动态 API 读取不使用浏览器 HTTP 缓存", async () => {
-  const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("[]"));
+  const fetch = vi
+    .spyOn(globalThis, "fetch")
+    .mockResolvedValue(new Response("[]"));
   expect(await api.apps()).toEqual([]);
   expect(fetch.mock.calls[0]?.[1]?.cache).toBe("no-store");
 });
@@ -42,13 +67,22 @@ it("删除后列表读取暂时落后，不重新显示已删除任务并清理�
   const stale = [{ id: "task-delete" }, { id: "task-keep" }];
   queryClient.setQueryData(keys.tasks, stale);
   queryClient.setQueryData(keys.messages("task-delete", 1, "p-a"), ["旧消息"]);
-  const observer = new QueryObserver(queryClient, { queryKey: keys.tasks, queryFn: async () => stale, staleTime: Infinity });
+  const observer = new QueryObserver(queryClient, {
+    queryKey: keys.tasks,
+    queryFn: async () => stale,
+    staleTime: Infinity,
+  });
   const unsubscribe = observer.subscribe(() => {});
   try {
     await deleteTask("task-delete");
     expect(queryClient.getQueryData(keys.tasks)).toEqual([{ id: "task-keep" }]);
-    expect(queryClient.getQueryData(keys.messages("task-delete", 1, "p-a"))).toBeUndefined();
-  } finally { unsubscribe(); observer.destroy(); }
+    expect(
+      queryClient.getQueryData(keys.messages("task-delete", 1, "p-a")),
+    ).toBeUndefined();
+  } finally {
+    unsubscribe();
+    observer.destroy();
+  }
 });
 
 it("删除被拒绝时保留任务及其消息", async () => {
@@ -59,15 +93,58 @@ it("删除被拒绝时保留任务及其消息", async () => {
   expect(queryClient.getQueryData(keys.tasks)).toEqual(previous);
 });
 
-
-it("医疗按每组持久化绑定发请求，忽略旧草稿的全局或公用Agent覆盖", async () => {
+it("医疗使用任务内组合，忽略旧全局设置；复制与刷新保留组合", async () => {
   const { taskRequest } = await import("./actions");
-  const { withDefaults, draftIssues } = await import("../domain/config");
-  const { DATASETS, PARTICIPANTS, ENDPOINTS } = await import("../test/fixtures");
-  const data = DATASETS.slice(0,2).map((d,i)=>({...d, taskType:"medical-diagnosis", agentId:i===0?"agent-own":"agent-public", resourceSpace:i===0?"workspace" as const:"public" as const}));
-  const draft = withDefaults({scenario:"horizontal",algorithm:"evomedclaw",taskType:"medical-diagnosis",execution:"agent",agentId:"old",agentOverrides:{"p-b":"wrong"},rounds:2,participants:data.map(d=>({participantId:d.participantId,datasetId:d.id}))});
-  const request = taskRequest(draft,"医疗协作",data,PARTICIPANTS)!;
+  const { withDefaults, draftIssues, toDraft, toConfig } = await import(
+    "../domain/config"
+  );
+  const { DATASETS, PARTICIPANTS, ENDPOINTS } = await import(
+    "../test/fixtures"
+  );
+  const data = DATASETS.slice(0, 2).map((d) => ({
+    ...d,
+    taskType: "medical-diagnosis",
+  }));
+  const groups = data.map((d, i) => ({
+    key: d.id,
+    datasetId: d.id,
+    participantId: d.participantId,
+    agentId: i === 0 ? "agent-own" : "agent-public",
+  }));
+  const draft = withDefaults({
+    scenario: "horizontal",
+    algorithm: "evomedclaw",
+    taskType: "medical-diagnosis",
+    execution: "agent",
+    agentId: "old",
+    agentOverrides: { "p-b": "wrong" },
+    rounds: 2,
+    agentGroups: groups,
+  });
+  const request = taskRequest(draft, "医疗协作", data, PARTICIPANTS)!;
   expect(request.agentId).toBeNull();
-  expect(request.agentOverrides).toEqual({"p-a":"agent-own","p-b":"agent-public"});
-  expect(draftIssues(draft,data.map((d,i)=>i===0?{...d,agentId:null}:d),PARTICIPANTS,ENDPOINTS).some(i=>i.message.includes("绑定 Agent"))).toBe(true);
+  expect(request.agentOverrides).toEqual({
+    "p-a": "agent-own",
+    "p-b": "agent-public",
+  });
+  expect(request.participants).toEqual(
+    data.map((d) => ({ participantId: d.participantId, datasetId: d.id })),
+  );
+  expect(toConfig(toDraft(toConfig(draft)!))).toEqual(toConfig(draft));
+  expect(withDefaults(JSON.parse(JSON.stringify(draft))).agentGroups).toEqual(
+    groups,
+  );
+  expect(
+    draftIssues(
+      {
+        ...draft,
+        agentGroups: groups.map((g, i) =>
+          i === 0 ? { ...g, agentId: "" } : g,
+        ),
+      },
+      data,
+      PARTICIPANTS,
+      ENDPOINTS,
+    ).some((i) => i.message.includes("Agent 接口")),
+  ).toBe(true);
 });

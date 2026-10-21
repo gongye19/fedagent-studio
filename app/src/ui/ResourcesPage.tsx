@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { type ResourceSpace } from "../domain/resources";
+import { inResourceScope, type ResourceSpace } from "../domain/resources";
 import { hrefOf, navigate, type Route } from "../state/route";
 import type { State } from "../state/store";
 import { PageHead, SearchInput } from "./common";
@@ -25,10 +25,15 @@ export default function ResourcesPage({
   const panelMotion = useContentMotion(space, true);
   const own = space === "workspace";
   const keyword = query.trim().toLowerCase();
-  const route = (id?: string): Route => ({ page: "resources", space, kind: "data", id });
+  const route = (id?: string): Route => ({
+    page: "resources",
+    space,
+    kind: "data",
+    id,
+  });
   const data = state.datasets.filter(
     (d) =>
-      d.resourceSpace === space &&
+      inResourceScope(d, space) &&
       (!keyword || d.name.toLowerCase().includes(keyword)) &&
       (taskType === "all" || d.taskType === taskType),
   );
@@ -36,17 +41,28 @@ export default function ResourcesPage({
     <>
       <PageHead
         title="数据资源"
-        meta={own ? "接入一次，后续任务可直接选择使用。" : "平台提供的可复用数据。"}
+        meta={
+          own
+            ? "接入一次，后续任务可直接选择使用。"
+            : "用户共享及平台提供的可复用数据。"
+        }
         actions={
           own ? (
-            <button type="button" className="button button--primary" onClick={() => setAdding(true)}>
+            <button
+              type="button"
+              className="button button--primary"
+              onClick={() => setAdding(true)}
+            >
               <Icon name="plus" />
               上传数据
             </button>
           ) : undefined
         }
       />
-      <ResourceScope space={space} routeOf={(value) => ({ page: "resources", space: value })} />
+      <ResourceScope
+        space={space}
+        routeOf={(value) => ({ page: "resources", space: value })}
+      />
       <div className="list-toolbar" role="search" aria-label="筛选资源">
         <SearchInput
           name="resource-search"
@@ -84,7 +100,10 @@ export default function ResourcesPage({
         <div className="resource-return">
           <a
             className="text-link"
-            href={hrefOf({ page: "newTask", scenario: state.draft.scenario ?? undefined })}
+            href={hrefOf({
+              page: "newTask",
+              scenario: state.draft.scenario ?? undefined,
+            })}
           >
             返回任务配置
           </a>

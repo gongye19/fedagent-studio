@@ -22,6 +22,7 @@ def out(row: m.AgentEndpoint) -> AgentOut:
         id=row.id,
         name=row.name,
         base_url=row.base_url,
+        owner_id=row.owner_id, owner_name=row.owner_name, shared=row.shared,
         resource_space=row.resource_space,
         has_key=bool(row.api_key_enc),
         capabilities=Capabilities.model_validate(row.capabilities) if row.capabilities else None,
@@ -44,7 +45,7 @@ def save(platform, session: Session, body: AgentIn, agent_id: str | None = None)
     row = get(session, agent_id) if agent_id else m.AgentEndpoint(id=new_id("agent"), name=body.name, base_url=body.base_url)
     if agent_id:
         if row.resource_space == "public":
-            raise ServiceError(409, "公用 Agent 接口由平台维护，不能在此修改")
+            raise ServiceError(409, "只能修改当前工作区自己的 Agent 接口")
         ensure_unused(session, agent_id)
         row.revision += 1
         if row.base_url != body.base_url:

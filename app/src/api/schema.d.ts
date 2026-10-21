@@ -235,7 +235,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/resources/data/{dataset_id}/agent": {
+    "/v1/resources/{kind}/{resource_id}/sharing": {
         parameters: {
             query?: never;
             header?: never;
@@ -248,8 +248,8 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Bind Dataset Agent */
-        patch: operations["bind_dataset_agent_v1_resources_data__dataset_id__agent_patch"];
+        /** Share Resource */
+        patch: operations["share_resource_v1_resources__kind___resource_id__sharing_patch"];
         trace?: never;
     };
     "/v1/endpoints": {
@@ -779,6 +779,12 @@ export interface components {
         };
         /** AgentOut */
         AgentOut: {
+            /** Ownerid */
+            ownerId: string;
+            /** Ownername */
+            ownerName: string;
+            /** Shared */
+            shared: boolean;
             /** Id */
             id: string;
             /** Name */
@@ -1216,11 +1222,6 @@ export interface components {
             dataset: components["schemas"]["DatasetOut"];
             source: components["schemas"]["ParticipantOut"];
         };
-        /** DatasetAgentIn */
-        DatasetAgentIn: {
-            /** Agentid */
-            agentId?: string | null;
-        };
         /** DatasetCheckOut */
         DatasetCheckOut: {
             /** Ok */
@@ -1237,8 +1238,12 @@ export interface components {
         };
         /** DatasetOut */
         DatasetOut: {
-            /** Agentid */
-            agentId?: string | null;
+            /** Ownerid */
+            ownerId: string;
+            /** Ownername */
+            ownerName: string;
+            /** Shared */
+            shared: boolean;
             /** Id */
             id: string;
             /** Name */
@@ -1319,6 +1324,12 @@ export interface components {
         };
         /** EndpointOut */
         EndpointOut: {
+            /** Ownerid */
+            ownerId: string;
+            /** Ownername */
+            ownerName: string;
+            /** Shared */
+            shared: boolean;
             /** Id */
             id: string;
             /**
@@ -1766,6 +1777,11 @@ export interface components {
             itemId?: string | null;
             /** To */
             to?: string | null;
+        };
+        /** SharingIn */
+        SharingIn: {
+            /** Shared */
+            shared: boolean;
         };
         /** SourceOut */
         SourceOut: {
@@ -2578,20 +2594,21 @@ export interface operations {
             };
         };
     };
-    bind_dataset_agent_v1_resources_data__dataset_id__agent_patch: {
+    share_resource_v1_resources__kind___resource_id__sharing_patch: {
         parameters: {
             query?: never;
             header?: {
                 authorization?: string | null;
             };
             path: {
-                dataset_id: string;
+                kind: string;
+                resource_id: string;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["DatasetAgentIn"];
+                "application/json": components["schemas"]["SharingIn"];
             };
         };
         responses: {
@@ -2601,7 +2618,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DatasetOut"];
+                    "application/json": components["schemas"]["DatasetOut"] | components["schemas"]["EndpointOut"] | components["schemas"]["AgentOut"];
                 };
             };
             /** @description Validation Error */

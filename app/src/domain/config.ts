@@ -3,6 +3,7 @@ export {
   DEFAULT_DRAFT,
   withDefaults,
   type Draft,
+  type AgentGroup,
   type Estimate,
   type Issue,
   type RunMode,

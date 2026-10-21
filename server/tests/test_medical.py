@@ -46,6 +46,13 @@ def medical_config(chosen):
             'params': {'maxTurns': 4}}
 
 
+def medical_agents(client, body, first):
+    second = client.post("/v1/agents", json={"name": "第二测试系统", "baseUrl": "https://medical-second.test"}).json()["id"]
+    body["agentOverrides"] = {body["participants"][0]["participantId"]: first,
+                              body["participants"][1]["participantId"]: second}
+    return body
+
+
 def test_medical_upload_and_template(client):
     checked = client.post('/v1/datasets/check', data={'taskType': 'medical-diagnosis'}, files={'file': ('x.jsonl', raw(cases()))}).json()
     assert checked['ok'] and checked['count'] == 2
@@ -117,6 +124,7 @@ def test_unfinished_diagnosis_is_an_error():
 def test_medical_full_flow_and_single_invoke(client: TestClient, platform: Platform, remote):
     chosen = [{'participantId': pid, 'datasetId': medical_dataset(client, pid)} for pid in ('p-a', 'p-b')]
     config = {**medical_config(chosen), "execution": "agent", "agentId": remote[0]}
+    medical_agents(client, config, remote[0])
     invalid = client.post('/v1/tasks/validate', json={**config, 'trialCap': 1}).json()
     assert any('至少取 2' in x['message'] for x in invalid['issues'])
     checked = client.post("/v1/task-checks", json=config).json()

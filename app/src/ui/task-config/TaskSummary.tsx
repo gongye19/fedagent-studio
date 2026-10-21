@@ -7,9 +7,19 @@ import { Panel } from "../console";
 import { formatNumber } from "../format";
 import { EstimateBlock } from "../task-config/TaskEstimate";
 import type { TaskConfigController } from "./useTaskConfig";
-const endpointRoute = (id: string): Route => ({ page: "editEndpoint", id, from: "newTask" });
+const endpointRoute = (id: string): Route => ({
+  page: "editEndpoint",
+  id,
+  from: "newTask",
+});
 
-export function TaskSummary({ state, config }: { state: State; config: TaskConfigController }) {
+export function TaskSummary({
+  state,
+  config,
+}: {
+  state: State;
+  config: TaskConfigController;
+}) {
   const {
     draft,
     pending,
@@ -59,8 +69,14 @@ export function TaskSummary({ state, config }: { state: State; config: TaskConfi
             <dd>{draft.taskType ? TASK_TYPES[draft.taskType].label : "—"}</dd>
           </div>
           <div>
-            <dt>{algorithm?.requirements.agentRequired ? "接入组" : "数据来源"}</dt>
-            <dd>{joined.length ? `${joined.length} ${algorithm?.requirements.agentRequired ? "组" : "个"}` : "—"}</dd>
+            <dt>
+              {algorithm?.requirements.agentRequired ? "参与系统" : "数据来源"}
+            </dt>
+            <dd>
+              {joined.length
+                ? `${joined.length} ${algorithm?.requirements.agentRequired ? "个" : "个"}`
+                : "—"}
+            </dd>
           </div>
           <div>
             <dt>样本</dt>
@@ -73,7 +89,8 @@ export function TaskSummary({ state, config }: { state: State; config: TaskConfi
           <div>
             <dt>运行</dt>
             <dd>
-              {full ? "正式运行" : "试跑"} · {algorithm ? `${draft.rounds} 轮` : "轮次待选"}
+              {full ? "正式运行" : "试跑"} ·{" "}
+              {algorithm ? `${draft.rounds} 轮` : "轮次待选"}
             </dd>
           </div>
           <div>
@@ -82,7 +99,26 @@ export function TaskSummary({ state, config }: { state: State; config: TaskConfi
               {algorithm
                 ? draft.execution === "agent"
                   ? algorithm.requirements.agentRequired
-                    ? joined.length ? [...new Set(joined.map(p => state.agents.find(a => a.id === state.datasets.find(d => d.id === p.datasetId)?.agentId)?.name ?? "Agent 待选"))].map(name => <span className="summary-agent" key={name}>{name}</span>) : "—"
+                    ? joined.length
+                      ? [
+                          ...new Set(
+                            joined.map(
+                              (p) =>
+                                state.agents.find(
+                                  (a) =>
+                                    a.id ===
+                                    draft.agentGroups.find(
+                                      (g) => g.datasetId === p.datasetId,
+                                    )?.agentId,
+                                )?.name ?? "Agent 待选",
+                            ),
+                          ),
+                        ].map((name) => (
+                          <span className="summary-agent" key={name}>
+                            {name}
+                          </span>
+                        ))
+                      : "—"
                     : `${state.agents.find((a) => a.id === draft.agentId)?.name ?? "Agent 待选"}${algorithm.requirements.serverModel ? `；汇总 ${modelLabel(draft.serverModel, state.endpoints)}` : ""}`
                   : taskModelSummary(draft, state.endpoints, algorithm)
                 : "—"}
@@ -95,7 +131,12 @@ export function TaskSummary({ state, config }: { state: State; config: TaskConfi
             </div>
           ) : null}
         </dl>
-        {result ? <EstimateBlock result={result} priceHref={hrefOf(endpointRoute(priceEndpoint))} /> : null}
+        {result ? (
+          <EstimateBlock
+            result={result}
+            priceHref={hrefOf(endpointRoute(priceEndpoint))}
+          />
+        ) : null}
         <div className="summary-actions">
           <a
             className="button button--secondary button--block"
@@ -104,7 +145,14 @@ export function TaskSummary({ state, config }: { state: State; config: TaskConfi
               e.preventDefault();
               document
                 .getElementById("task-config-check")
-                ?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "center" });
+                ?.scrollIntoView({
+                  behavior: window.matchMedia(
+                    "(prefers-reduced-motion: reduce)",
+                  ).matches
+                    ? "instant"
+                    : "smooth",
+                  block: "center",
+                });
             }}
           >
             {config.preflight.valid ? "配置测试已通过" : "查看配置测试"}
@@ -119,13 +167,21 @@ export function TaskSummary({ state, config }: { state: State; config: TaskConfi
           >
             {creating ? "正在创建…" : startLabel}
           </button>
-          <p className="summary-issues" id="task-action-status" aria-live="polite">
+          <p
+            className="summary-issues"
+            id="task-action-status"
+            aria-live="polite"
+          >
             {validationPending
               ? "正在检查配置…"
               : validationError || (pending !== "full" ? createError : null)}
           </p>
           {validationError ? (
-            <button type="button" className="link-button" onClick={() => void check.refetch()}>
+            <button
+              type="button"
+              className="link-button"
+              onClick={() => void check.refetch()}
+            >
               重新检查
             </button>
           ) : null}

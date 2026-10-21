@@ -4,6 +4,7 @@ from pydantic import Field, field_validator
 
 from ..agents.protocol import Capabilities
 from .base import Model
+from .sharing import ResourceInfo
 
 
 class AgentIn(Model):
@@ -28,7 +29,7 @@ class AgentIn(Model):
         return value.strip()
 
 
-class AgentOut(Model):
+class AgentOut(ResourceInfo):
     id: str
     name: str
     base_url: str

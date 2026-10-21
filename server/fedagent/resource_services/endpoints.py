@@ -17,6 +17,7 @@ def endpoint_out(endpoint: m.Endpoint) -> EndpointOut:
     configured = endpoint.kind == "fake" or (bool(endpoint.base_url.strip()) and bool(endpoint.models))
     return EndpointOut(
         id=endpoint.id,
+        owner_id=endpoint.owner_id, owner_name=endpoint.owner_name, shared=endpoint.shared,
         resource_space=endpoint.resource_space,  # type: ignore[arg-type]
         name=endpoint.name,
         kind=endpoint.kind,  # type: ignore[arg-type]
@@ -49,6 +50,8 @@ def save_endpoint(platform: Platform, session: Session, body: EndpointIn, endpoi
         endpoint = session.get(m.Endpoint, endpoint_id)
         if endpoint is None:
             raise not_found("模型接口")
+        if endpoint.resource_space != "workspace" and not endpoint.builtin:
+            raise ServiceError(403, "只能修改当前工作区自己的 LLM 接口")
         if endpoint.kind == "fake":
             raise ServiceError(409, "测试用假模型不能修改")
     base_url = body.base_url.strip()
@@ -81,6 +84,8 @@ def delete_endpoint(session: Session, endpoint_id: str) -> None:
     endpoint = session.get(m.Endpoint, endpoint_id)
     if endpoint is None:
         raise not_found("模型接口")
+    if endpoint.resource_space != "workspace" and not endpoint.builtin:
+        raise ServiceError(403, "只能删除当前工作区自己的 LLM 接口")
     if endpoint.builtin or endpoint.id == FAKE_ENDPOINT:
         raise ServiceError(409, "预留的接口不能删除")
     active = session.scalar(

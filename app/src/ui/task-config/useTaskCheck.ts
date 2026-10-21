@@ -21,8 +21,16 @@ function saved(): Saved | null {
 }
 
 /** 测试只由用户触发；刷新继续读取原报告，改配置不会自动重复付费调用。 */
-export function useTaskCheck(request: TaskConfigIn | null, ready: boolean) {
-  const signature = JSON.stringify(request ? { ...request, name: "" } : null);
+export function useTaskCheck(
+  request: TaskConfigIn | null,
+  ready: boolean,
+  resourceVersion: string,
+) {
+  const signature = JSON.stringify(
+    request
+      ? { config: { ...request, name: "" }, resources: resourceVersion }
+      : null,
+  );
   const [current, setCurrent] = useState<Saved | null>(saved);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,12 +45,22 @@ export function useTaskCheck(request: TaskConfigIn | null, ready: boolean) {
     enabled: Boolean(current),
     retry: 1,
     refetchInterval: (query) =>
-      query.state.data?.status === "queued" || query.state.data?.status === "running" ? 1000 : false,
+      query.state.data?.status === "queued" ||
+      query.state.data?.status === "running"
+        ? 1000
+        : false,
   });
   const matches = current?.config === signature;
-  const running = submitting || report.data?.status === "queued" || report.data?.status === "running";
-  const expired = Boolean(report.data && now - Date.parse(report.data.createdAt) >= 15 * 60_000);
-  const valid = Boolean(matches && !expired && report.data?.status === "passed");
+  const running =
+    submitting ||
+    report.data?.status === "queued" ||
+    report.data?.status === "running";
+  const expired = Boolean(
+    report.data && now - Date.parse(report.data.createdAt) >= 15 * 60_000,
+  );
+  const valid = Boolean(
+    matches && !expired && report.data?.status === "passed",
+  );
   async function test() {
     if (!request || !ready || running) return;
     setSubmitting(true);

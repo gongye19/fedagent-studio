@@ -29,11 +29,8 @@ def update_agent(agent_id: str, body: AgentIn, platform: PlatformDep, session: S
 @router.delete("/agents/{agent_id}", status_code=204, tags=["agents"])
 def delete_agent(agent_id: str, session: SessionDep) -> Response:
     if resources.get(session, agent_id).resource_space == "public":
-        raise ServiceError(409, "公用 Agent 接口由平台维护，不能在此删除")
+        raise ServiceError(409, "只能删除当前工作区自己的 Agent 接口")
     resources.ensure_unused(session, agent_id)
-    from ..resource_services.bindings import require_unbound
-
-    require_unbound(session, agent_id)
     session.delete(resources.get(session, agent_id))
     return Response(status_code=204)
 

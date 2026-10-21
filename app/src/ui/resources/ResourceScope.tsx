@@ -18,11 +18,11 @@ export function ResourceScope({
           href={hrefOf(routeOf(value))}
           aria-current={space === value ? "page" : undefined}
         >
-          {value === "workspace" ? "我的资源" : "公用资源"}
+          {value === "workspace" ? "我的资源" : "共享资源"}
         </a>
       ))}
       <InfoTip label="资源归属">
-        当前使用共用工作区，“我的资源”表示工作区接入的资源；尚未提供多用户私有隔离。
+        当前使用共用工作区，“我的资源”表示工作区接入的资源；共享后仍保留在我的资源，也会出现在共享资源。尚未提供多用户私有隔离。
       </InfoTip>
     </nav>
   );

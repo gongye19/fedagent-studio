@@ -696,3 +696,14 @@ Dataset.agent_id（schema0006，可空、外键RESTRICT）把已登记的数据�
 resource_services按common／participants／datasets／endpoints／intake／bindings组织，resources.py保留兼容门面；intake原子创建不依赖FastAPI。Gateway负责接口解析及并发，ModelRuntime负责单模型请求、协议回退、重试与账本；Engine负责轮次调度、任务状态，UnitExecutor负责执行／评分／结果提交，失败账本作废函数独立。无跨层继承、运行时循环或为了行数拆开同一状态机。
 
 前端domain/task-config下类型／选择／序列化／校验互相单向依赖，domain/config.ts为稳定出口；普通／高级运行参数与模型覆盖为独立组件。新增绑定使用独立hook，TaskResourcesPanel只选择组合方式。源码检查覆盖前端运行时导入环、领域向UI越界、Python顶层导入环、业务服务对HTTP框架的直接依赖与400行审查阈值；生成契约、历史迁移、固定上游源码单独维护。
+
+
+## 29. 独立资源共享与任务组合（T85／D82，覆盖§28绑定规则）
+
+0007在Dataset／Endpoint／AgentEndpoint增加owner_id、owner_name、shared，resource_space保持来源归属；ResourceInfo为统一输出契约，SharingIn只接受shared，不允许客户端指定归属。当前工作区自己接入的资源可共享／撤回，外部归属不可普通修改。现阶段无独立账号，owner字段是明确的资源分组，不是已实现的多租户身份。
+
+迁移按旧公共Agent绑定保留所属方关系，移除Dataset.agent_id及旧绑定API，不改变任何任务、文件、密文或调用账本。PATCH /v1/resources/{data|llm|agent}/{id}/sharing只改共享状态，核心业务在resource_services/sharing；三个资源输出和列表沿用原入口。工作区共享资源仍在我的目录，同时按shared进入共享目录。
+
+Draft.agentGroups保存未完成的系统行和菜单范围，序列化为既有participants和每节点agentOverrides；旧任务复制与旧草稿可转换，无法恢复的旧隐式绑定须重选。AgentGroup候选按算法能力、所属方、共享、数据就绪和独立来源匹配；更换Agent清除该行数据，增删不改变资源。preparation再次校验同方、不同Agent接口、外部共享状态；测试和创建共用PreparedSite，运行沿用冻结的TaskSite，不因撤回共享终止。检查指纹包含所属方／共享／Agent修订，前端使用所选资源签名使报告失效，后台相同数据刷新不触发重测。
+
+AgentParticipationPanel／Row处理组合UI，SharingButton复用居中确认及失败反馈，资源共享API与缓存刷新分别在api／state层；没有数据绑定hook和全局医疗Agent覆盖。现有结构检查继续进入正常门禁。

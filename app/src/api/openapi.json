@@ -965,21 +965,30 @@
     }
    }
   },
-  "/v1/resources/data/{dataset_id}/agent": {
+  "/v1/resources/{kind}/{resource_id}/sharing": {
    "patch": {
     "tags": [
      "resources"
     ],
-    "summary": "Bind Dataset Agent",
-    "operationId": "bind_dataset_agent_v1_resources_data__dataset_id__agent_patch",
+    "summary": "Share Resource",
+    "operationId": "share_resource_v1_resources__kind___resource_id__sharing_patch",
     "parameters": [
      {
-      "name": "dataset_id",
+      "name": "kind",
       "in": "path",
       "required": true,
       "schema": {
        "type": "string",
-       "title": "Dataset Id"
+       "title": "Kind"
+      }
+     },
+     {
+      "name": "resource_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Resource Id"
       }
      },
      {
@@ -1004,7 +1013,7 @@
      "content": {
       "application/json": {
        "schema": {
-        "$ref": "#/components/schemas/DatasetAgentIn"
+        "$ref": "#/components/schemas/SharingIn"
        }
       }
      }
@@ -1015,7 +1024,18 @@
       "content": {
        "application/json": {
         "schema": {
-         "$ref": "#/components/schemas/DatasetOut"
+         "anyOf": [
+          {
+           "$ref": "#/components/schemas/DatasetOut"
+          },
+          {
+           "$ref": "#/components/schemas/EndpointOut"
+          },
+          {
+           "$ref": "#/components/schemas/AgentOut"
+          }
+         ],
+         "title": "Response Share Resource V1 Resources  Kind   Resource Id  Sharing Patch"
         }
        }
       }
@@ -3465,6 +3485,18 @@
    },
    "AgentOut": {
     "properties": {
+     "ownerId": {
+      "type": "string",
+      "title": "Ownerid"
+     },
+     "ownerName": {
+      "type": "string",
+      "title": "Ownername"
+     },
+     "shared": {
+      "type": "boolean",
+      "title": "Shared"
+     },
      "id": {
       "type": "string",
       "title": "Id"
@@ -3502,6 +3534,9 @@
     },
     "type": "object",
     "required": [
+     "ownerId",
+     "ownerName",
+     "shared",
      "id",
      "name",
      "baseUrl",
@@ -4536,25 +4571,6 @@
     ],
     "title": "DataResourceOut"
    },
-   "DatasetAgentIn": {
-    "properties": {
-     "agentId": {
-      "anyOf": [
-       {
-        "type": "string",
-        "maxLength": 64,
-        "minLength": 1
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Agentid"
-     }
-    },
-    "type": "object",
-    "title": "DatasetAgentIn"
-   },
    "DatasetCheckOut": {
     "properties": {
      "ok": {
@@ -4604,16 +4620,17 @@
    },
    "DatasetOut": {
     "properties": {
-     "agentId": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Agentid"
+     "ownerId": {
+      "type": "string",
+      "title": "Ownerid"
+     },
+     "ownerName": {
+      "type": "string",
+      "title": "Ownername"
+     },
+     "shared": {
+      "type": "boolean",
+      "title": "Shared"
      },
      "id": {
       "type": "string",
@@ -4708,6 +4725,9 @@
     },
     "type": "object",
     "required": [
+     "ownerId",
+     "ownerName",
+     "shared",
      "id",
      "name",
      "participantId",
@@ -4816,6 +4836,18 @@
    },
    "EndpointOut": {
     "properties": {
+     "ownerId": {
+      "type": "string",
+      "title": "Ownerid"
+     },
+     "ownerName": {
+      "type": "string",
+      "title": "Ownername"
+     },
+     "shared": {
+      "type": "boolean",
+      "title": "Shared"
+     },
      "id": {
       "type": "string",
       "title": "Id"
@@ -4889,6 +4921,9 @@
     },
     "type": "object",
     "required": [
+     "ownerId",
+     "ownerName",
+     "shared",
      "id",
      "resourceSpace",
      "name",
@@ -6083,6 +6118,19 @@
      "payload"
     ],
     "title": "SentIn"
+   },
+   "SharingIn": {
+    "properties": {
+     "shared": {
+      "type": "boolean",
+      "title": "Shared"
+     }
+    },
+    "type": "object",
+    "required": [
+     "shared"
+    ],
+    "title": "SharingIn"
    },
    "SourceOut": {
     "properties": {

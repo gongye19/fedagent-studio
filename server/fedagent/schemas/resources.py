@@ -5,6 +5,7 @@ from typing import Annotated, Literal
 from pydantic import Field, StringConstraints
 
 from .base import Model, Time
+from .sharing import ResourceInfo
 
 
 class ParticipantIn(Model):
@@ -43,12 +44,7 @@ class SampleOut(Model):
     fields: list[PreviewFieldOut] = Field(default=[])
 
 
-class DatasetAgentIn(Model):
-    agent_id: str | None = Field(default=None, min_length=1, max_length=64)
-
-
-class DatasetOut(Model):
-    agent_id: str | None = None
+class DatasetOut(ResourceInfo):
     id: str
     name: str
     participant_id: str
@@ -98,7 +94,7 @@ class EndpointIn(Model):
     max_retries: int = Field(default=8, ge=0, le=20)
 
 
-class EndpointOut(Model):
+class EndpointOut(ResourceInfo):
     id: str
     resource_space: Literal["workspace", "public"]
     name: str

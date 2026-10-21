@@ -1,5 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState, type Dispatch, type MouseEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type MouseEvent,
+} from "react";
 import { api, ApiError } from "../../api/client";
 import { algorithmOf, type ScenarioId } from "../../domain/catalog";
 import {
@@ -13,18 +19,25 @@ import {
   type Estimate,
   type Issue,
 } from "../../domain/config";
-import { DEFAULT_ENDPOINT_ID, endpointOf, type ResourceSpace } from "../../domain/resources";
+import {
+  DEFAULT_ENDPOINT_ID,
+  endpointOf,
+  type ResourceSpace,
+} from "../../domain/resources";
 import { createTask, taskRequest } from "../../state/actions";
 import { showFlash } from "../../state/flash";
 import { navigate } from "../../state/route";
 import { type Action, type State } from "../../state/store";
-import { useDataAgentBinding } from "./useDataAgentBinding";
 import { useTaskCheck } from "./useTaskCheck";
 import { useDebounced } from "../hooks";
 
 type Pending = "full" | "restart" | null;
 
-export function useTaskConfig(state: State, dispatch: Dispatch<Action>, initialScenario?: ScenarioId) {
+export function useTaskConfig(
+  state: State,
+  dispatch: Dispatch<Action>,
+  initialScenario?: ScenarioId,
+) {
   const draft = state.draft;
   // 没动过的草稿不保留：每次打开都按当前的参与方和数据重新选，默认名称也按这次打开的时间生成。
   const resetOnOpen = useRef(!draft.touched);
@@ -34,11 +47,17 @@ export function useTaskConfig(state: State, dispatch: Dispatch<Action>, initialS
   const formRef = useRef<HTMLDivElement>(null);
   const [space, setSpace] = useState<ResourceSpace>(() =>
     draft.participants.length &&
-    draft.participants.every((p) => state.datasets.find((d) => d.id === p.datasetId)?.resourceSpace === "public")
+    draft.participants.every(
+      (p) =>
+        state.datasets.find((d) => d.id === p.datasetId)?.resourceSpace ===
+        "public",
+    )
       ? "public"
       : "workspace",
   );
-  const [intake, setIntake] = useState<"data" | "clientModel" | "serverModel" | "agent" | null>(null);
+  const [intake, setIntake] = useState<
+    "data" | "clientModel" | "serverModel" | "agent" | null
+  >(null);
 
   useEffect(() => {
     if (!resetOnOpen.current) return;
@@ -47,32 +66,97 @@ export function useTaskConfig(state: State, dispatch: Dispatch<Action>, initialS
   }, [dispatch]);
 
   useEffect(() => {
-    if (initialScenario) dispatch({ type: "chooseScenario", scenario: initialScenario, auto: true });
+    if (initialScenario)
+      dispatch({
+        type: "chooseScenario",
+        scenario: initialScenario,
+        auto: true,
+      });
   }, [dispatch, initialScenario]);
 
   const [agentTarget, setAgentTarget] = useState<string | null>(null);
-  const binding = useDataAgentBinding();
-  const update = (patch: Partial<Draft>) => dispatch({ type: "updateDraft", patch });
+  const update = (patch: Partial<Draft>) =>
+    dispatch({ type: "updateDraft", patch });
   const algorithm = draft.algorithm ? algorithmOf(draft.algorithm) : null;
   useEffect(() => {
     if (!algorithm) return;
     if (algorithm.requirements.agentRequired && draft.execution !== "agent")
-      dispatch({ type: "updateDraft", patch: { execution: "agent", clientOverrides: {} } });
-    else if (!algorithm.requirements.executionModes.includes("agent") && (draft.execution === "agent" || draft.agentId || Object.keys(draft.agentOverrides ?? {}).length))
-      dispatch({ type: "updateDraft", patch: { execution: "builtin", agentId: null, agentOverrides: {} } });
-  }, [algorithm, draft.execution, draft.agentId, draft.agentOverrides, dispatch]);
+      dispatch({
+        type: "updateDraft",
+        patch: { execution: "agent", clientOverrides: {} },
+      });
+    else if (
+      !algorithm.requirements.executionModes.includes("agent") &&
+      (draft.execution === "agent" ||
+        draft.agentId ||
+        Object.keys(draft.agentOverrides ?? {}).length)
+    )
+      dispatch({
+        type: "updateDraft",
+        patch: {
+          execution: "builtin",
+          agentId: null,
+          agentOverrides: {},
+          agentGroups: [],
+        },
+      });
+  }, [
+    algorithm,
+    draft.execution,
+    draft.agentId,
+    draft.agentOverrides,
+    dispatch,
+  ]);
   // 能参加的参与方：名下有登记在这个场景、这种任务类型下的数据集。
   const scenarioId = draft.scenario;
   const taskType = draft.taskType;
-  const candidates = availableDataSources(draft, state.datasets, state.participants, space);
+  const candidates = availableDataSources(
+    draft,
+    state.datasets,
+    state.participants,
+    space,
+  );
   const joined = joinable(draft, state.datasets, state.participants);
-  const localIssues = draftIssues(draft, state.datasets, state.participants, state.endpoints);
+  const localIssues = draftIssues(
+    draft,
+    state.datasets,
+    state.participants,
+    state.endpoints,
+    state.agents,
+  );
   // 预估和最终的检查由后端做（插件声明的步骤、接口单价、模型接口是否配置好）；配置改动停下 0.3 秒后再问一次。
-  const currentRequest = taskRequest(draft, "", state.datasets, state.participants);
+  const currentRequest = taskRequest(
+    draft,
+    "",
+    state.datasets,
+    state.participants,
+  );
+  // 资源变动同样使测试失效；后台刷新内容一致时不改变签名。
+  const resourceVersion = JSON.stringify([
+    state.datasets
+      .filter((d) =>
+        currentRequest?.participants.some((p) => p.datasetId === d.id),
+      )
+      .map((d) => [d.id, d.ownerId, d.shared, d.sourceHash, d.count]),
+    state.agents
+      .filter((a) =>
+        Object.values(currentRequest?.agentOverrides ?? {}).includes(a.id),
+      )
+      .map((a) => [a.id, a.ownerId, a.shared, a.revision]),
+    state.endpoints.map((e) => [
+      e.id,
+      e.baseUrl,
+      e.models,
+      e.hasKey,
+      e.shared,
+      e.price,
+    ]),
+  ]);
   const request = useDebounced(currentRequest, 300);
-  const requestCurrent = JSON.stringify(request) === JSON.stringify(currentRequest);
+  const requestCurrent =
+    JSON.stringify(request) === JSON.stringify(currentRequest);
   const check = useQuery({
-    queryKey: ["task-validate", request],
+    queryKey: ["task-validate", request, resourceVersion],
     queryFn: () => {
       if (!request) throw new Error("Missing task configuration");
       return api.validateTask(request);
@@ -80,7 +164,9 @@ export function useTaskConfig(state: State, dispatch: Dispatch<Action>, initialS
     enabled: Boolean(request && request.participants.length),
     staleTime: 15_000,
   });
-  const validationPending = Boolean(binding.pending) || !localIssues.length && (!requestCurrent || check.isPending || check.isFetching);
+  const validationPending =
+    !localIssues.length &&
+    (!requestCurrent || check.isPending || check.isFetching);
   const validationError =
     !localIssues.length && requestCurrent && check.error
       ? check.error instanceof ApiError
@@ -88,19 +174,33 @@ export function useTaskConfig(state: State, dispatch: Dispatch<Action>, initialS
         : "无法检查配置，请稍后重试"
       : null;
   const serverIssues =
-    localIssues.length || !requestCurrent || !request?.participants.length ? [] : (check.data?.issues ?? []);
+    localIssues.length || !requestCurrent || !request?.participants.length
+      ? []
+      : (check.data?.issues ?? []);
   const issues: Issue[] = [
     ...localIssues,
-    ...serverIssues.map(configIssue).filter((issue) => !localIssues.some((item) => item.message === issue.message)),
+    ...serverIssues
+      .map(configIssue)
+      .filter(
+        (issue) => !localIssues.some((item) => item.message === issue.message),
+      ),
   ];
   const result: Estimate | null =
-    joined.length && requestCurrent && !check.error ? (check.data?.estimate ?? null) : null;
-  const canTest = !binding.pending && !issues.length && !validationPending && !validationError && Boolean(result);
-  const preflight = useTaskCheck(currentRequest, canTest);
+    joined.length && requestCurrent && !check.error
+      ? (check.data?.estimate ?? null)
+      : null;
+  const canTest =
+    !issues.length && !validationPending && !validationError && Boolean(result);
+  const preflight = useTaskCheck(currentRequest, canTest, resourceVersion);
   const canCreate = canTest && preflight.valid;
   if (attempted && canTest && !preflight.valid && !preflight.running)
-    issues.push({ field: "check", message: preflight.matches && preflight.report?.status === "failed"
-      ? "请修正检查发现的问题后重新测试" : "请先测试当前配置，通过后再开始任务" });
+    issues.push({
+      field: "check",
+      message:
+        preflight.matches && preflight.report?.status === "failed"
+          ? "请修正检查发现的问题后重新测试"
+          : "请先测试当前配置，通过后再开始任务",
+    });
   const fieldError = (field: Issue["field"]) =>
     attempted
       ? issues
@@ -112,10 +212,14 @@ export function useTaskConfig(state: State, dispatch: Dispatch<Action>, initialS
   const [createError, setCreateError] = useState<string | null>(null);
   const full = draft.mode === "full";
   const autoName = defaultTaskName(draft, openedAt);
-  const overrideCount = draft.execution === "agent"
-    ? Object.keys(draft.agentOverrides ?? {}).filter((id) => joined.some((p) => p.participantId === id)).length
-    : Object.keys(activeOverrides(draft)).length;
-  const priceEndpoint = endpointOf(draft.clientModel, state.endpoints)?.id ?? DEFAULT_ENDPOINT_ID;
+  const overrideCount =
+    draft.execution === "agent"
+      ? Object.keys(draft.agentOverrides ?? {}).filter((id) =>
+          joined.some((p) => p.participantId === id),
+        ).length
+      : Object.keys(activeOverrides(draft)).length;
+  const priceEndpoint =
+    endpointOf(draft.clientModel, state.endpoints)?.id ?? DEFAULT_ENDPOINT_ID;
 
   async function create() {
     if (!canCreate || creating) return;
@@ -133,11 +237,15 @@ export function useTaskConfig(state: State, dispatch: Dispatch<Action>, initialS
       dispatch({ type: "resetDraft" });
       showFlash(
         { page: "task", id: task.id },
-        full ? `已创建“${task.name}”，开始正式运行。` : `已创建“${task.name}”，开始试跑。`,
+        full
+          ? `已创建“${task.name}”，开始正式运行。`
+          : `已创建“${task.name}”，开始试跑。`,
       );
       navigate({ page: "task", id: task.id, tab: "progress" });
     } catch (error) {
-      setCreateError(error instanceof ApiError ? error.message : "创建失败，稍后再试");
+      setCreateError(
+        error instanceof ApiError ? error.message : "创建失败，稍后再试",
+      );
     } finally {
       setCreating(false);
     }
@@ -156,9 +264,13 @@ export function useTaskConfig(state: State, dispatch: Dispatch<Action>, initialS
     if (creating || validationPending) return;
     if (!canCreate) {
       setAttempted(true);
-      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const reduced = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
       if (!reduced) {
-        event.currentTarget.getAnimations().forEach((animation) => animation.cancel());
+        event.currentTarget
+          .getAnimations()
+          .forEach((animation) => animation.cancel());
         event.currentTarget.animate(
           [
             { transform: "translateX(0)" },
@@ -171,18 +283,25 @@ export function useTaskConfig(state: State, dispatch: Dispatch<Action>, initialS
         );
       }
       requestAnimationFrame(() => {
-        const error = formRef.current?.querySelector<HTMLElement>(".field-error");
+        const error =
+          formRef.current?.querySelector<HTMLElement>(".field-error");
         const region = error?.closest(".field, section, details");
         const disclosure = error?.closest("details");
         if (disclosure) disclosure.open = true;
         if (!region || !error) return;
-        error.scrollIntoView({ block: "center", behavior: reduced ? "instant" : "smooth" });
+        error.scrollIntoView({
+          block: "center",
+          behavior: reduced ? "instant" : "smooth",
+        });
         const control =
           region.matches("details") || error.id === "models-error"
             ? null
             : (region.querySelector<HTMLElement>(
                 'input:not(:disabled):not([type="hidden"]), button[role="radio"]:not(:disabled), [role="combobox"]:not(:disabled)',
-              ) ?? region.querySelector<HTMLElement>("button:not(:disabled):not(.info-tip-trigger), a"));
+              ) ??
+              region.querySelector<HTMLElement>(
+                "button:not(:disabled):not(.info-tip-trigger), a",
+              ));
         if (control) control.focus({ preventScroll: true });
         else {
           error.tabIndex = -1;
@@ -198,7 +317,10 @@ export function useTaskConfig(state: State, dispatch: Dispatch<Action>, initialS
   }
 
   function testConfiguration(event: MouseEvent<HTMLButtonElement>) {
-    if (!canTest) { start(event); return; }
+    if (!canTest) {
+      start(event);
+      return;
+    }
     setAttempted(true);
     setCreateError(null);
     void preflight.test();
@@ -207,7 +329,6 @@ export function useTaskConfig(state: State, dispatch: Dispatch<Action>, initialS
   const startLabel = full ? "创建并正式运行" : "创建并试跑";
   return {
     draft,
-    binding,
     agentTarget,
     setAgentTarget,
     pending,

@@ -8,7 +8,7 @@ import httpx
 import pytest
 from fedagent_sdk import Manifest, OutgoingMessage
 from sqlalchemy import select
-from test_medical import medical_config, medical_dataset
+from test_medical import medical_agents, medical_config, medical_dataset
 
 from fedagent import models as m
 from fedagent.agents.adapter import validate_result
@@ -57,6 +57,8 @@ def test_remote_steps_two_rounds_share_artifact_and_grade_locally(platform, clie
     else:
         config = fot_config(client)
     config.update(execution="agent", agentId=agent_id, clientModel="absent:deliberately-unused")
+    if medical:
+        medical_agents(client, config, agent_id)
     assert client.post("/v1/tasks", json=config).status_code == 422
     report = client.post("/v1/task-checks", json=config)
     assert report.status_code == 202, report.text

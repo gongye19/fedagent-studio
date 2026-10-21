@@ -11,7 +11,7 @@ from starlette.types import Scope
 
 from . import __version__
 from .errors import ServiceError
-from .http import agents, apps, checks, client, endpoints, resources, system, tasks
+from .http import agents, apps, checks, client, endpoints, resources, sharing, system, tasks
 from .platform import Platform
 
 
@@ -49,7 +49,9 @@ def create_app(platform: Platform) -> FastAPI:
             response.headers["Cache-Control"] = "no-store"
         return response
 
-    for router in (system.public, system.router, resources.router, endpoints.router, agents.router, checks.router, tasks.router, apps.router, client.router):
+    routers = (system.public, system.router, resources.router, sharing.router, endpoints.router,
+               agents.router, checks.router, tasks.router, apps.router, client.router)
+    for router in routers:
         app.include_router(router)
 
     @app.exception_handler(ModelError)

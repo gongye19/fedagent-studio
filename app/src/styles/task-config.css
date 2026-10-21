@@ -75,17 +75,21 @@
 .config-check-details > summary { font-size: 12px; cursor: pointer; padding: 8px 0; }
 .config-check-details > .config-check-row { padding-top: 12px; }
 
-/* 一组数据和 Agent 共用选择框；窄屏保持两者紧邻。 */
-.agent-data-list { display: grid; gap: 8px; margin-top: 12px; }
-.agent-data-row { display: grid; grid-template-columns: 18px minmax(0,1fr); gap: 12px; align-items: center; border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
-.agent-data-row--checked { border-color: var(--accent); background: var(--accent-soft); }
-.agent-data-main { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.1fr); gap: 8px 12px; align-items: center; }
-.agent-data-name, .agent-data-agent { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.agent-data-name > label { overflow-wrap: anywhere; }
-.agent-data-agent > :first-child { min-width: 0; flex: 1; }
-.agent-data-agent > button:last-child { flex-shrink: 0; }
-.agent-data-endpoint { font-size: 13px; overflow-wrap: anywhere; }
-.agent-data-main > .field-error { grid-column: 1/-1; }
-@media (max-width: 700px) { .agent-data-main { grid-template-columns: minmax(0,1fr); } .agent-data-row { align-items: start; } .agent-data-row { grid-template-columns: 44px minmax(0,1fr); gap: 8px; } .agent-data-check { display: grid; place-items: center; min-width: 44px; min-height: 44px; } }
+/* 系统先选 Agent，数据与接口同级；组合只保存在任务草稿。 */
+.participation-list { display: grid; gap: 12px; }
+.participation-row { min-width: 0; border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.participation-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; min-height: 28px; font-size: var(--text-sm); }
+.participation-head > span { min-width: 0; color: var(--secondary); font-size: var(--text-xs); overflow-wrap: anywhere; }
+.participation-head > strong { flex-shrink: 0; }
+.participation-head > button { margin-left: auto; flex-shrink: 0; }
+.participation-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.participation-fields > div { min-width: 0; }
+.participation-fields label { display: block; margin-bottom: 6px; font-size: var(--text-xs); color: var(--secondary); }
+.participation-control { display: flex; gap: 6px; min-width: 0; }
+.participation-control > .select-trigger { min-width: 0; flex: 1; }
+.participation-control > button:last-child:not(.select-trigger) { flex-shrink: 0; }
+.participation-add { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.participation-row > .field-error { margin-bottom: 0; }
+@media (max-width: 640px) { .participation-fields { grid-template-columns: minmax(0,1fr); } .participation-head > button { min-width: 44px; min-height: 44px; } }
 
 .summary-agent { display: block; }

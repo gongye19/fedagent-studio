@@ -1,3 +1,5 @@
+import type { AgentEndpoint } from "../../api/agents";
+import { groupChoices } from "./agent-groups";
 import { algorithmOf, scenarioOf, type Algorithm } from "../catalog";
 import {
   endpointOf,
@@ -47,6 +49,7 @@ export function draftIssues(
   datasets: readonly Dataset[],
   participants: readonly Participant[],
   endpoints: readonly Endpoint[],
+  agents?: readonly AgentEndpoint[],
 ): Issue[] {
   const issues: Issue[] = [];
   if (!draft.scenario) {
@@ -94,7 +97,7 @@ export function draftIssues(
     issues.push({
       field: "participants",
       message: algorithm.requirements.agentRequired
-        ? `至少选择 ${algorithm.minParticipants} 组数据与 Agent 接入`
+        ? `至少配置 ${algorithm.minParticipants} 个参与系统`
         : `至少选择 ${algorithm.minParticipants} 个可用的数据来源`,
     });
   }
@@ -129,20 +132,38 @@ export function draftIssues(
       : []),
   ];
   if (draft.execution === "agent") {
-    for (const p of chosen) {
-      const d = datasets.find((d) => d.id === p.datasetId);
-      if (
-        !(algorithm.requirements.agentRequired
-          ? d?.agentId
-          : draft.agentOverrides?.[p.participantId] ||
-            d?.agentId ||
-            draft.agentId)
-      )
+    for (const [index, group] of draft.agentGroups.entries()) {
+      if (agents) {
+        const choices = groupChoices(
+          group,
+          draft,
+          algorithm,
+          agents,
+          datasets,
+          participants,
+        );
+        if (
+          (group.agentId && !choices.agent) ||
+          (group.datasetId &&
+            !choices.datasets.some((d) => d.id === group.datasetId))
+        )
+          issues.push({
+            field: "participants",
+            message: `参与系统 ${index + 1} 的资源已失效或取消共享，请重新选择`,
+          });
+      }
+      if (!group.agentId || !group.datasetId)
         issues.push({
-          field: "models",
-          message: `请为“${d?.name ?? "所选数据"}”绑定 Agent 接口`,
+          field: "participants",
+          message: `请补齐参与系统 ${index + 1} 的${!group.agentId ? " Agent 接口" : "病例数据"}`,
         });
     }
+    const ids = draft.agentGroups.map((g) => g.agentId).filter(Boolean);
+    if (new Set(ids).size !== ids.length)
+      issues.push({
+        field: "models",
+        message: "每个参与系统需使用不同的 Agent 接口",
+      });
   }
   if (refs.some((ref) => !endpointOf(ref, endpoints))) {
     issues.push({

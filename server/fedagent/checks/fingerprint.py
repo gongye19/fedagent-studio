@@ -22,7 +22,8 @@ def fingerprint(platform, session, body) -> str:
                     row.answered,
                     row.resource_space,
                     row.item_ids,
-                    row.agent_id,
+                    row.owner_id,
+                    row.shared,
                     [stamp.st_mtime_ns, stamp.st_size] if stamp else None,
                 ]
             )
@@ -37,10 +38,9 @@ def fingerprint(platform, session, body) -> str:
             models.append([row.id, row.base_url, row.api_key_enc, row.models, row.kind, row.timeout, row.price])
     agents = []
     if body.execution == "agent":
-        linked = {row.agent_id for choice in body.participants if (row := session.get(m.Dataset, choice.dataset_id)) and row.agent_id}
-        for agent_id in sorted({body.agent_id or "", *body.agent_overrides.values(), *linked}):
+        for agent_id in sorted({body.agent_id or "", *body.agent_overrides.values()}):
             row = session.get(m.AgentEndpoint, agent_id)
             if row:
-                agents.append([row.id, row.revision])
+                agents.append([row.id, row.revision, row.owner_id, row.shared])
     payload = [config, files, models, agents, algorithm.code_hash() if algorithm else None]
     return hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False, allow_nan=False).encode()).hexdigest()

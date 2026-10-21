@@ -22,10 +22,14 @@ export function TaskStartBar({ config }: { config: TaskConfigController }) {
           {validationPending
             ? "正在检查配置…"
             : result && !issues.length
-              ? result.remoteExecution ? `${joined.length} 组接入 · Agent 执行` : `${joined.length} 个数据来源 · ${result.callsAreUpperBound ? "最多" : "至少"} ${formatNumber(result.participantCalls + result.serverCalls)} 次调用`
+              ? result.remoteExecution
+                ? `${joined.length} 个系统 · Agent 执行`
+                : `${joined.length} 个数据来源 · ${result.callsAreUpperBound ? "最多" : "至少"} ${formatNumber(result.participantCalls + result.serverCalls)} 次调用`
               : ""}
         </strong>
-        {result && !issues.length ? <small>{formatDuration(result.seconds)}</small> : null}
+        {result && !issues.length ? (
+          <small>{formatDuration(result.seconds)}</small>
+        ) : null}
       </div>
       <div className="order-bar-actions">
         <p className="order-bar-error" role="alert">

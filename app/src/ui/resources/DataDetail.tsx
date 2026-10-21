@@ -3,15 +3,25 @@ import { type Dataset } from "../../domain/resources";
 import { deleteDataResource } from "../../state/actions";
 import type { State } from "../../state/store";
 import { Collapsible, Confirm, Facts } from "../common";
+import { SharingButton } from "./SharingButton";
 import { LocalConnect } from "../ParticipantsPage";
 
-export function DataDetail({ state, dataset, onRemoved }: { state: State; dataset: Dataset; onRemoved: () => void }) {
+export function DataDetail({
+  state,
+  dataset,
+  onRemoved,
+}: {
+  state: State;
+  dataset: Dataset;
+  onRemoved: () => void;
+}) {
   const [removing, setRemoving] = useState(false);
   const source = state.participants.find((p) => p.id === dataset.participantId);
   return (
     <div className="participant-detail">
       <Facts
         items={[
+          ["所属方", dataset.ownerName],
           ["数据来源", source?.name ?? "来源已删除"],
           ["数据规范", dataset.schemaVersion],
           ["已标注", `${dataset.answered} / ${dataset.count}`],
@@ -31,7 +41,9 @@ export function DataDetail({ state, dataset, onRemoved }: { state: State; datase
             ) : (
               <>
                 <p>{dataset.sample.question}</p>
-                {dataset.sample.answer ? <p className="sample-answer">标注：{dataset.sample.answer}</p> : null}
+                {dataset.sample.answer ? (
+                  <p className="sample-answer">标注：{dataset.sample.answer}</p>
+                ) : null}
               </>
             )}
           </div>
@@ -40,11 +52,14 @@ export function DataDetail({ state, dataset, onRemoved }: { state: State; datase
       {source?.hosting === "local" ? (
         <LocalConnect
           participantId={source.id}
-          datasetIds={state.datasets.filter((d) => d.participantId === source.id).map((d) => d.id)}
+          datasetIds={state.datasets
+            .filter((d) => d.participantId === source.id)
+            .map((d) => d.id)}
         />
       ) : null}
       {dataset.resourceSpace === "workspace" ? (
         <div className="detail-actions">
+          <SharingButton kind="data" resource={dataset} />
           <button
             type="button"
             className="button button--secondary button--compact button--danger"

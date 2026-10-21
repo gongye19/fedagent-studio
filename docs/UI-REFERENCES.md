@@ -305,3 +305,6 @@ Browserbase 全屏彩色纹理过强，Recraft 是营销首页，Unify 的主体
 用户批准按三类资源与任务前测试方案实现，并确认用独立参考Agent联调。沿用上述T62／T67／T68已确认的控制台、选择菜单与配置规范，不新增视觉参考、功能模板或框架。Agent接入复用ResourceDialog／FormActions／SelectField，LLM仍用AI Elements ModelPicker；测试成功用原生details收起明细，失败原位展开。流程、状态表、布局、组件映射与验收见FLOW的T81，实际图片见screenshots/agent-resources。没有把普通聊天LLM接口包装成Agent，也未引入聊天、Agent托管或其他参考产品的额外功能。
 
 T82沿用以上已确认参考和Radix／现有控制台组件：医疗Agent由清单要求，按数据分别指定移至所需资源区，Agent保存即读取能力、失败在窗口原位显示；数据模板仍在文件旁。未引入新主参考／视觉方向、布局框架或组件依赖。
+
+
+T85沿用已确认的T62控制台、T67菜单与T68配置参考，没有增加新主参考。系统行先选Agent、同级配置同方任务数据；不复制参考产品的额外功能。沿用Radix SelectField／ResourceDialog及现有Confirm，三类资源共享复用同一确认组件。线上桌面与手机实际预览见screenshots/agent-participation；共享流程、任务内接入和核心状态验收见FLOW T85与ui-check脚本。

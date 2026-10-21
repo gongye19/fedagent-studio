@@ -22,7 +22,7 @@ try{
   await pick('数学推理');await shot('fot-'+width);
   await click('#algorithm-evomedclaw');
   check('更换算法清空任务与数据，自动采用Agent资源 '+width,await evaluate(send,`${draft}.taskType===null&&${draft}.participants.length===0&&${draft}.execution==='agent'&&${draft}.agentId===null&&Object.keys(${draft}.agentOverrides).length===0`));
-  check('医疗只列医疗任务与Agent接口 '+width,await evaluate(send,"document.querySelector('[aria-labelledby=task-type-label]').textContent.includes('医疗诊断')&&!document.querySelector('[aria-labelledby=task-type-label]').textContent.includes('数学推理')&&!document.getElementById('task-agent')&&document.getElementById('participants').textContent.includes('数据与 Agent')&&!document.getElementById('client-model')&&!document.getElementById('server-model')&&!document.getElementById('execution-mode')"));
+  check('医疗只列医疗任务与Agent接口 '+width,await evaluate(send,"document.querySelector('[aria-labelledby=task-type-label]').textContent.includes('医疗诊断')&&!document.querySelector('[aria-labelledby=task-type-label]').textContent.includes('数学推理')&&!document.getElementById('task-agent')&&document.getElementById('participants').textContent.includes('参与系统')&&!document.getElementById('client-model')&&!document.getElementById('server-model')&&!document.getElementById('execution-mode')"));
   await pick('医疗诊断');await shot('medical-'+width);
   await open(send,base+'#/tasks/new',undefined,{reset:false});
   check('刷新保留医疗算法、任务和Agent执行 '+width,await evaluate(send,`${draft}.algorithm==='evomedclaw'&&${draft}.taskType==='medical-diagnosis'&&${draft}.execution==='agent'&&document.getElementById('algorithm-evomedclaw').checked`));
