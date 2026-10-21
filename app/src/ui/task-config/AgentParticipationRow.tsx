@@ -85,6 +85,7 @@ export function AgentParticipationRow({
               onValueChange={(agentId) =>
                 patch({ agentId, datasetId: "", participantId: "" })
               }
+              onClear={() => patch({ agentId: "", datasetId: "", participantId: "" })}
             >
               <option value="" disabled>
                 {choices.agents.length ? "选择 Agent 接口" : "暂无可用 Agent"}
@@ -117,6 +118,7 @@ export function AgentParticipationRow({
                 const data = choices.datasets.find((d) => d.id === datasetId);
                 patch({ datasetId, participantId: data?.participantId ?? "" });
               }}
+              onClear={() => patch({ datasetId: "", participantId: "" })}
             >
               <option value="" disabled>
                 {!choices.agent

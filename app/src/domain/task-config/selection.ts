@@ -14,7 +14,7 @@ import {
   type Participant,
   type ResourceSpace,
 } from "../resources";
-import { emptyAgentGroups, type Draft, type TaskParticipant } from "./types";
+import { DEFAULT_DRAFT, emptyAgentGroups, type Draft, type TaskParticipant } from "./types";
 
 /** 草稿里真正能参加的参与方：数据集还在、属于这个参与方、场景和任务类型一致、持有方在线。 */
 export function joinable(
@@ -92,7 +92,7 @@ export function compatibleDatasets(
 }
 
 /** 选场景：换场景时清空后面的选择，任务类型、算法和参与方都要用户再选。 */
-export function chooseScenario(draft: Draft, scenario: ScenarioId): Draft {
+export function chooseScenario(draft: Draft, scenario: ScenarioId | null): Draft {
   if (draft.scenario === scenario) return draft;
   return {
     ...draft,
@@ -101,19 +101,22 @@ export function chooseScenario(draft: Draft, scenario: ScenarioId): Draft {
     algorithm: null,
     participants: [],
     agentGroups: [],
+    clientModel: "",
+    serverModel: "",
     clientOverrides: {},
     agentId: null,
     agentOverrides: {},
     execution: "builtin",
     params: {},
+    rounds: DEFAULT_DRAFT.rounds,
   };
 }
 
 /** 任务类型只改变数据和评分，不重置已经选好的算法与算法参数。 */
-export function chooseTaskType(draft: Draft, taskType: TaskType): Draft {
+export function chooseTaskType(draft: Draft, taskType: TaskType | null): Draft {
   if (
     !draft.algorithm ||
-    !algorithmOf(draft.algorithm).accepts.includes(taskType) ||
+    (taskType !== null && !algorithmOf(draft.algorithm).accepts.includes(taskType)) ||
     draft.taskType === taskType
   )
     return draft;
@@ -121,34 +124,39 @@ export function chooseTaskType(draft: Draft, taskType: TaskType): Draft {
     ...draft,
     taskType,
     participants: [],
+    clientModel: "",
+    serverModel: "",
     agentGroups: algorithmOf(draft.algorithm).requirements.agentRequired
       ? emptyAgentGroups(algorithmOf(draft.algorithm).minParticipants)
       : [],
     clientOverrides: {},
     agentOverrides: {},
+    agentId: null,
   };
 }
 
 /** 选算法后明确选择支持的任务；不同算法的资源、执行方式和参数不互相沿用。 */
-export function chooseAlgorithm(draft: Draft, algorithm: AlgorithmId): Draft {
-  const definition = algorithmOf(algorithm);
-  if (draft.algorithm === algorithm || definition.scenario !== draft.scenario)
+export function chooseAlgorithm(draft: Draft, algorithm: AlgorithmId | null): Draft {
+  const definition = algorithm ? algorithmOf(algorithm) : null;
+  if (draft.algorithm === algorithm || (definition && definition.scenario !== draft.scenario))
     return draft;
   return {
     ...draft,
     algorithm,
     taskType: null,
     participants: [],
-    agentGroups: definition.requirements.agentRequired
+    agentGroups: definition?.requirements.agentRequired
       ? emptyAgentGroups(definition.minParticipants)
       : [],
     clientOverrides: {},
-    execution: definition.requirements.agentRequired ? "agent" : "builtin",
+    clientModel: "",
+    serverModel: "",
+    execution: definition?.requirements.agentRequired ? "agent" : "builtin",
     agentId: null,
     agentOverrides: {},
-    rounds: definition.defaultRounds,
-    trialCap: Math.max(draft.trialCap, definition.minSamples ?? 1),
-    params: defaultParams(definition),
+    rounds: definition?.defaultRounds ?? DEFAULT_DRAFT.rounds,
+    trialCap: Math.max(draft.trialCap, definition?.minSamples ?? 1),
+    params: definition ? defaultParams(definition) : {},
   };
 }
 

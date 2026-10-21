@@ -37,9 +37,9 @@ export type State = {
 /** 草稿的改动（改动后端数据的操作见 actions.ts）。 */
 export type Action =
   /** auto：从首页的场景入口带进来的场景，不算用户动过草稿。 */
-  | { type: "chooseScenario"; scenario: ScenarioId; auto?: boolean }
-  | { type: "chooseTaskType"; taskType: TaskType }
-  | { type: "chooseAlgorithm"; algorithm: AlgorithmId }
+  | { type: "chooseScenario"; scenario: ScenarioId | null; auto?: boolean }
+  | { type: "chooseTaskType"; taskType: TaskType | null }
+  | { type: "chooseAlgorithm"; algorithm: AlgorithmId | null }
   /** 选入、换掉（datasetId 换成另一份）或取消（null）某个参与方。 */
   | { type: "pickDataset"; participantId: string; datasetId: string | null }
   | { type: "setParticipants"; participants: TaskParticipant[] }

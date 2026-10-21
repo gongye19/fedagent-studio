@@ -105,12 +105,14 @@ export type Choice<T> = { value: T; label: ReactNode; disabled?: boolean; badge?
  * placeholder 在最后留一个"待接入"的空位（虚线框、不能选），表示之后还会接入别的选项。
  */
 export function Choices<T extends string | number>({
-  value, options, onChange, labelledBy, label, placeholder, name, error,
+  value, options, onChange, onClear, labelledBy, label, placeholder, name, error,
 }: {
   error?: string;
   value: T | null;
   options: readonly Choice<T>[];
   onChange: (value: T) => void;
+  /** 分类字段可取消；运行方式等始终需要取值的配置不传。 */
+  onClear?: () => void;
   labelledBy?: string;
   label?: string;
   placeholder?: string;
@@ -135,7 +137,7 @@ export function Choices<T extends string | number>({
   // 少量互斥选项适合直接比较；超过三项收进既有菜单，保留原值类型与业务回调。
   if (options.length > 3) {
     return (
-      <SelectField name={name} aria-invalid={Boolean(error)} aria-describedby={error && labelledBy ? `${labelledBy}-error` : undefined} aria-labelledby={labelledBy} aria-label={labelledBy ? undefined : label}
+      <SelectField name={name} onClear={onClear} aria-invalid={Boolean(error)} aria-describedby={error && labelledBy ? `${labelledBy}-error` : undefined} aria-labelledby={labelledBy} aria-label={labelledBy ? undefined : label}
         value={value ?? ""} onValueChange={(next) => {
           const option = options.find((item) => String(item.value) === next);
           if (option && !option.disabled) onChange(option.value);
@@ -160,7 +162,7 @@ export function Choices<T extends string | number>({
             disabled={option.disabled}
             tabIndex={index === focusable ? 0 : -1}
             className={`choice${checked ? " choice--checked" : ""}`}
-            onClick={() => onChange(option.value)}
+            onClick={() => checked && onClear ? onClear() : onChange(option.value)}
             onKeyDown={(event) => onKeyDown(event, index)}
           >
             <span className="choice-label">{option.label}</span>

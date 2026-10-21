@@ -122,6 +122,31 @@ describe("params", () => {
 });
 
 describe("draft", () => {
+  it("requires an explicit model choice even with one available model", () => {
+    const selected = draft({ clientModel: "", serverModel: "" });
+    expect([DEFAULT_DRAFT.clientModel, DEFAULT_DRAFT.serverModel]).toEqual(["", ""]);
+    expect(toConfig(selected)?.clientModel).toBe("");
+    expect(draftIssues(selected, DATASETS, PARTICIPANTS, [ENDPOINTS[1]])).toContainEqual({ field: "models", message: "请选择所需的模型接口" });
+    expect(draftIssues(draft(), DATASETS, PARTICIPANTS, [ENDPOINTS[1]])).toEqual([]);
+  });
+
+  it("clears dependent resources when a category is canceled or changed", () => {
+    const current = draft({ clientOverrides: { "p-a": "fake:fake" } });
+    const untyped = chooseTaskType(current, null);
+    expect([untyped.algorithm, untyped.taskType, untyped.params]).toEqual(["fot", null, current.params]);
+    for (const cleared of [untyped, chooseAlgorithm(current, null), chooseScenario(current, null)]) {
+      expect([cleared.clientModel, cleared.serverModel, cleared.participants, cleared.clientOverrides, cleared.agentGroups]).toEqual(["", "", [], {}, []]);
+    }
+    expect(chooseAlgorithm(current, "evomedclaw").clientModel).toBe("");
+    const algorithm = algorithmOf("fot");
+    const accepts = algorithm.accepts;
+    try {
+      algorithm.accepts = [...accepts, "medical-diagnosis"];
+      const other = chooseTaskType(current, "medical-diagnosis");
+      expect([other.taskType, other.algorithm, other.params, other.participants, other.serverModel]).toEqual(["medical-diagnosis", "fot", current.params, [], ""]);
+    } finally { algorithm.accepts = accepts; }
+  });
+
   it("keeps compatible resource scopes and client versions in the same admission rules", () => {
     const own = DATASETS.map((d) =>
       d.id === BOTH[0].datasetId

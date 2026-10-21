@@ -27,7 +27,7 @@ try{
  await open(send,base+'#/tasks/'+taskId+'/output');await click('发布为应用');await set('publish-name','配置流程验证应用（本地假模型）');await click('发布');
  await until("[...document.querySelectorAll('a')].some(e=>e.textContent==='立即试用')");await click('立即试用');await until("Boolean(document.getElementById('try-question'))");appId=await evaluate(send,"location.hash.split('/')[2]");
  if(await evaluate(send,"Boolean(document.querySelector('[data-select-name=model]'))"))await evaluate(send,SELECT('model','fake:fake'));
- await set('try-question','1 + 1');await set('try-answer','2');await click('运行对比');await until("Boolean(document.getElementById('try-result'))");
+ await evaluate(send,SELECT('model','fake:fake'));await set('try-question','1 + 1');await set('try-answer','2');await click('运行对比');await until("Boolean(document.getElementById('try-result'))");
  check('发布后真实假模型两侧回答与判分显示',await evaluate(send,"document.querySelectorAll('.compare-item').length===2&&document.querySelectorAll('.verdict').length===2&&document.querySelectorAll('.compare-usage').length===2"));
  await evaluate(send,"document.getElementById('try-result').scrollIntoView({block:'center'})");await shot('comparison');
  writeFileSync(`${out}/evidence.json`,JSON.stringify({taskId,appId,evidence},null,2));

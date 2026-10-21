@@ -1,6 +1,5 @@
 import type { components } from "../../api/schema";
 import type { AlgorithmId, Params, ScenarioId, TaskType } from "../catalog";
-import { DEFAULT_MODEL } from "../resources";
 
 export type RunMode = "trial" | "full";
 
@@ -57,9 +56,9 @@ export const DEFAULT_DRAFT: Draft = {
   taskType: null,
   algorithm: null,
   participants: [],
-  clientModel: DEFAULT_MODEL,
+  clientModel: "",
   clientOverrides: {},
-  serverModel: DEFAULT_MODEL,
+  serverModel: "",
   execution: "builtin",
   agentId: null,
   agentOverrides: {},

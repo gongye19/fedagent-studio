@@ -22,6 +22,7 @@ type Props = {
   "aria-describedby"?: string;
   value: string;
   onValueChange: (value: string) => void;
+  onClear?: () => void;
   options: readonly { ref: string; label: string }[];
   endpoints: readonly Endpoint[];
   disabled?: boolean;
@@ -34,6 +35,7 @@ export function ModelPicker({
   name,
   value,
   onValueChange,
+  onClear,
   options,
   endpoints,
   disabled,
@@ -123,6 +125,11 @@ export function ModelPicker({
               })}
             </ModelSelectorGroup>
           ))}
+          {onClear && value ? <ModelSelectorItem
+            value="clear-model-selection"
+            data-model-value=""
+            onSelect={() => { onClear(); setOpen(false); }}
+          >清除选择</ModelSelectorItem> : null}
         </ModelSelectorList>
       </ModelSelectorContent>
     </ModelSelector>

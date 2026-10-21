@@ -80,7 +80,7 @@ export const PARTICIPANT_STATUS: Record<ParticipantStatus, string> = {
 
 /**
  * 预留的默认 LLM 接口：OpenAI 兼容，具体服务和模型由用户在"模型接口"里配置。
- * 任务默认用它（模型引用写作 DEFAULT_MODEL）；需要时可以另外登记接口，给某些参与方单独指定。
+ * 历史与已选引用可写作 DEFAULT_MODEL；新任务模型留空，必须由用户选择。
  */
 export const DEFAULT_ENDPOINT_ID = "default";
 export const DEFAULT_MODEL = "default";
@@ -156,6 +156,7 @@ export function modelLabel(
   endpoints: readonly Endpoint[],
   { withStatus = true }: { withStatus?: boolean } = {},
 ): string {
+  if (!ref) return "待选择";
   if (ref === DEFAULT_MODEL) return defaultModelLabel(endpoints, withStatus);
   const parsed = parseModelRef(ref);
   if (!parsed) return ref;

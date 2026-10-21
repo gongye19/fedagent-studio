@@ -1,6 +1,7 @@
 import { type Dispatch } from "react";
 import { SCENARIOS } from "../../domain/catalog";
 import { type Action } from "../../state/store";
+import { navigate } from "../../state/route";
 import { Choices, Field, FieldGroup, Panel } from "../console";
 import { TaskTypeChoice, AlgorithmField } from "../task-config/TaskBasics";
 import type { TaskConfigController } from "./useTaskConfig";
@@ -40,6 +41,10 @@ export function TaskBasicsPanel({ dispatch, config }: { dispatch: Dispatch<Actio
                 badge: s.status !== "available" ? "待接入" : undefined,
               }))}
               onChange={(scenario) => dispatch({ type: "chooseScenario", scenario })}
+              onClear={() => {
+                dispatch({ type: "chooseScenario", scenario: null });
+                navigate({ page: "newTask" }, { keepScroll: true });
+              }}
             />
           </Field>
           <AlgorithmField

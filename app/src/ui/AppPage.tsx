@@ -142,8 +142,8 @@ function RenameForm({ name, saving, onSave, onCancel }: { name: string; saving: 
 /** 试用：同一个问题分别"不带应用""带应用"各问一次，并排对比；填了标准答案时自动判分。 */
 function TryPanel({ item, state }: { item: Published; state: State }) {
   const options = usableModelOptions(state.endpoints);
-  const [chosenModel, setModel] = useState(options[0]?.ref ?? "");
-  const model = options.some((option) => option.ref === chosenModel) ? chosenModel : options[0]?.ref ?? "";
+  const [chosenModel, setModel] = useState("");
+  const model = options.some((option) => option.ref === chosenModel) ? chosenModel : "";
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [values, setValues] = useState<Record<string, string>>({});
@@ -169,7 +169,7 @@ function TryPanel({ item, state }: { item: Published; state: State }) {
   }
   const submittedInput = type?.structuredInput ? structured : question.trim();
   const snapshot = typeof submittedInput === "string" ? submittedInput : JSON.stringify(submittedInput, null, 2);
-  const missing = !model ? "还需配置可用的模型接口" : type?.structuredInput
+  const missing = !model ? options.length ? "请选择模型" : "还需配置可用的模型接口" : type?.structuredInput
     ? Object.values(fieldErrors).join("；") : question.trim() ? "" : "还需填写：问题";
   const outdated = result && (snapshot !== result.input || answer.trim() !== result.answer || model !== result.model);
 
@@ -211,11 +211,11 @@ function TryPanel({ item, state }: { item: Published; state: State }) {
               <input id="try-answer" name="answer" autoComplete="off" disabled={running} value={answer} onChange={(event) => setAnswer(event.target.value)} />
             </Field>
             <Field label="模型" htmlFor="try-model">
-              <SelectField id="try-model" name="model" disabled={running || !options.length} value={model} onValueChange={(value) => setModel(value)}>
-                {!options.length ? <option value="" disabled>没有可用的模型接口</option> : null}
+              <SelectField id="try-model" name="model" disabled={running || !options.length} value={model} onValueChange={(value) => setModel(value)} onClear={() => setModel("")}>
+                <option value="" disabled>{options.length ? "请选择模型" : "没有可用的模型接口"}</option>
                 {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
               </SelectField>
-              {!model ? <a className="text-link" href={hrefOf(state.endpoints.some((endpoint) => endpoint.id === DEFAULT_ENDPOINT_ID) ? { page: "editEndpoint", id: DEFAULT_ENDPOINT_ID } : { page: "newEndpoint" })}>去配置</a> : null}
+              {!options.length ? <a className="text-link" href={hrefOf(state.endpoints.some((endpoint) => endpoint.id === DEFAULT_ENDPOINT_ID) ? { page: "editEndpoint", id: DEFAULT_ENDPOINT_ID } : { page: "newEndpoint" })}>去配置</a> : null}
             </Field>
           </FieldGroup>
           <div className="form-actions">

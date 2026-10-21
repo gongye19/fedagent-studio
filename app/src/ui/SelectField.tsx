@@ -6,12 +6,14 @@ type Option = { value?: string | number; disabled?: boolean; children?: ReactNod
 type Props = Pick<ComponentProps<"button">, "id" | "name" | "disabled" | "className" | "aria-label" | "aria-labelledby" | "aria-describedby" | "aria-invalid"> & {
   value: string | number;
   onValueChange?: (value: string) => void;
+  onClear?: () => void;
   children: ReactNode;
 };
 
 /** option 仅声明数据；展开、键盘、焦点恢复及边界避让由 Radix Select 负责。 */
-export function SelectField({ value, onValueChange, children, name, className, disabled, ...label }: Props) {
+export function SelectField({ value, onValueChange, onClear, children, name, className, disabled, ...label }: Props) {
   const empty = useId();
+  const clear = useId();
   const options: Option[] = [];
   Children.forEach(children, (child) => {
     if (isValidElement<Option>(child) && child.type === "option") options.push(child.props);
@@ -23,6 +25,7 @@ export function SelectField({ value, onValueChange, children, name, className, d
   const radixValue = selected ? String(selected.value ?? "") || empty : String(value);
   return (
     <Select.Root value={radixValue} disabled={disabled} onValueChange={(next) => {
+      if (next === clear) { onClear?.(); return; }
       const actual = next === empty ? "" : next;
       if (actual !== String(value)) onValueChange?.(actual);
     }}>
@@ -37,6 +40,9 @@ export function SelectField({ value, onValueChange, children, name, className, d
           onClick={(event) => event.stopPropagation()}>
           <Select.ScrollUpButton className="select-scroll select-scroll--up"><Icon name="chevron" /></Select.ScrollUpButton>
           <Select.Viewport className="select-options">
+            {onClear && String(value) !== "" ? <Select.Item value={clear} className="select-option" data-option-value="__clear">
+              <Select.ItemText>清除选择</Select.ItemText>
+            </Select.Item> : null}
             {items.map((option) => (
               <Select.Item key={String(option.value ?? "")} value={String(option.value ?? "") || empty} disabled={option.disabled} className="select-option" data-option-value={String(option.value ?? "")}>
                 <Select.ItemText>{option.children}</Select.ItemText>

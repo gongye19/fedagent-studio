@@ -28,6 +28,10 @@ export function ResourceModels({
 }) {
   const options = usableModelOptions(state.endpoints);
   const agents = compatibleAgents(state.agents, algorithm);
+  const missingModel = Boolean(
+    (!draft.serverModel && algorithm?.requirements.serverModel) ||
+    (!draft.clientModel && algorithm?.requirements.participantModel && draft.execution !== "agent" && !allLocal),
+  );
   return (
     <div className="resource-models">
       <FieldGroup>
@@ -111,11 +115,14 @@ export function ResourceModels({
           .map((role) => {
             const local = role === "clientModel" && allLocal;
             const id = role === "clientModel" ? "client-model" : "server-model";
+            const label = role === "clientModel" ? "运行模型" : "汇总模型";
+            const error = modelsError && !local && !draft[role] ? `请选择${label}` : undefined;
             return (
               <Field
                 key={role}
-                label={role === "clientModel" ? "运行模型" : "汇总模型"}
+                label={label}
                 htmlFor={local ? undefined : id}
+                error={error}
                 info={
                   role === "clientModel"
                     ? "平台使用该 LLM 执行算法声明的本方流程；无需另行接入 Agent。本地客户端自行配置模型。"
@@ -131,12 +138,14 @@ export function ResourceModels({
                         id={id}
                         name={id}
                         value={draft[role]}
-                        disabled={!algorithm || !options.length}
-                        placeholder={!algorithm ? "请先选择算法" : undefined}
+                        disabled={!algorithm || !draft.taskType || !options.length}
+                        placeholder={!algorithm ? "请先选择算法" : !draft.taskType ? "请先选择任务类型" : undefined}
+                        aria-invalid={Boolean(error)}
                         aria-describedby={
-                          modelsError ? "models-error" : undefined
+                          error ? `${id}-error` : modelsError && !missingModel ? "models-error" : undefined
                         }
                         onValueChange={(value) => update({ [role]: value })}
+                        onClear={() => update({ [role]: "" })}
                         options={options}
                         endpoints={state.endpoints}
                       />
@@ -159,7 +168,7 @@ export function ResourceModels({
             );
           })}
       </FieldGroup>
-      <InlineError id="models-error" message={modelsError} />
+      <InlineError id="models-error" message={missingModel ? undefined : modelsError} />
     </div>
   );
 }

@@ -46,7 +46,7 @@ try{
  await set('#try-patient',txt(src.Patient_Actor));await set('#try-objective',txt(src.Objective_for_Doctor));await set('#try-examination',txt(src.Physical_Examination_Findings));await set('#try-tests','{broken');
  check('JSON 字段错误原位显示且禁止运行',await evaluate(send,"document.getElementById('try-tests-error').textContent.includes('JSON')&&[...document.querySelectorAll('button')].find(b=>b.textContent==='运行对比').disabled"));
  await set('#try-tests',JSON.stringify(typeof src.Test_Results==='object'?src.Test_Results:{results:src.Test_Results},null,2));await set('#try-answer',src.Correct_Diagnosis);
- if(await evaluate(send,"Boolean(document.querySelector('[data-select-name=try-model]'))"))await evaluate(send,SELECT('try-model','fake:fake'));
+ await evaluate(send,SELECT('model','fake:fake'));
  await shot('medical-try-desktop');await viewport(send,{width:390,height:844,mobile:true});await shot('medical-try-mobile');await click('运行对比');await until("Boolean(document.getElementById('try-result'))");check('结构化输入返回对比与判分',await evaluate(send,"document.querySelectorAll('.compare-item').length===2&&document.querySelectorAll('.compare-usage').length===2"));await shot('medical-comparison');
  await viewport(send,{width:1280,height:900});await open(send,base+`#/apps/${appId}/integrate`);await until("document.body.textContent.includes('复制完整 JSON')");check('接入使用单次 API 和完整医疗经验格式',await evaluate(send,"document.body.textContent.includes('/invoke')&&document.body.textContent.includes('cards')&&document.body.textContent.includes('patient')"));await shot('medical-integrate');
  writeFileSync(`${out}/evidence.json`,JSON.stringify({taskId,appId,datasets:owned,evidence},null,2));

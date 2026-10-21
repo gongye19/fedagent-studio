@@ -20,7 +20,7 @@ export function TaskTypeChoice({
   error?: string;
   algorithm: Algorithm | null;
   value: TaskType | null;
-  onChange: (type: TaskType) => void;
+  onChange: (type: TaskType | null) => void;
 }) {
   const types = algorithm ? algorithm.accepts : Object.keys(TASK_TYPES);
   return (
@@ -34,12 +34,14 @@ export function TaskTypeChoice({
       {!algorithm ? <p className="field-static">请先选择算法</p> : null}
       {types.length ? (
         <Choices
+          name="task-type"
           error={error}
           labelledBy="task-type-label"
           value={value}
           options={types.map((type) => ({ value: type, label: TASK_TYPES[type].label, disabled: !algorithm }))}
           placeholder="更多类型"
           onChange={onChange}
+          onClear={() => onChange(null)}
         />
       ) : (
         <p className="field-static">这个算法还没有可用的任务类型。</p>
@@ -58,7 +60,7 @@ export function AlgorithmField({
   error?: string;
   scenario: ScenarioId | null;
   value: Draft["algorithm"];
-  onChange: (id: Algorithm["id"]) => void;
+  onChange: (id: Algorithm["id"] | null) => void;
 }) {
   const algorithms = scenario ? algorithmsFor(scenario) : ALGORITHMS;
   return (
@@ -88,7 +90,7 @@ function AlgorithmTable({
   error?: string;
   algorithms: readonly Algorithm[];
   value: Draft["algorithm"];
-  onChange: (id: Algorithm["id"]) => void;
+  onChange: (id: Algorithm["id"] | null) => void;
   disabled: boolean;
 }) {
   return (
@@ -114,6 +116,18 @@ function AlgorithmTable({
               aria-label={item.name}
               aria-describedby={disabled ? "algorithm-prerequisite" : undefined}
               onChange={() => onChange(item.id)}
+              onKeyDown={(event) => {
+                if (event.key === " " && value === item.id) {
+                  event.preventDefault();
+                  onChange(null);
+                }
+              }}
+              onClick={(event) => {
+                if (value === item.id) {
+                  event.preventDefault();
+                  onChange(null);
+                }
+              }}
             />
             <span>{item.name}</span>
           </label>

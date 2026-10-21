@@ -32,7 +32,10 @@ try{
  check('共享数据完成两轮真实任务流程',task.status==='completed'&&task.rounds.filter(r=>r.output).length===2);
  await open(send,base+`#/tasks/${owned.taskId}/output`,local?1300:4000);await click('发布为应用');await set('publish-name','已有资源成果验证（完成后清理）');await click('发布');await until("[...document.querySelectorAll('a')].some(a=>a.textContent==='立即试用')");
  owned.appId=(await req('apps')).find(a=>a.taskId===owned.taskId).id;save();await click('立即试用');await until("document.getElementById('try-question')");
- await evaluate(send,SELECT('model',model));await set('try-question','1 + 1');await set('try-answer','2');await click('运行对比');await until("document.getElementById('try-result')",local?60000:300000);
+ check('应用试用不预选唯一模型',await evaluate(send,"document.querySelector('input[name=model]').value===''&&document.getElementById('try-model').textContent.includes('请选择模型')"));
+ await evaluate(send,SELECT('model',model));await set('try-question','1 + 1');await set('try-answer','2');await evaluate(send,SELECT('model','__clear'));
+ check('应用清除模型后不能发起比较且不自动回填',await evaluate(send,"document.querySelector('input[name=model]').value===''&&[...document.querySelectorAll('button')].find(e=>e.textContent.trim()==='运行对比').disabled"));
+ await evaluate(send,SELECT('model',model));await click('运行对比');await until("document.getElementById('try-result')",local?60000:300000);
  check('发布成果可选择模型并对比试用',await evaluate(send,"document.querySelectorAll('.compare-item').length===2"));
  writeFileSync(out+'/evidence.json',JSON.stringify({base,owned,evidence},null,2));
 }finally{

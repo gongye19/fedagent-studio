@@ -42,7 +42,7 @@ export function taskModelSummary(
       : modelLabel(draft.clientModel, endpoints);
   if (!algorithm.requirements.serverModel) return client;
   const server = modelLabel(draft.serverModel, endpoints);
-  return client === server ? client : `参与方 ${client}；服务端 ${server}`;
+  return client === server ? client : `运行 ${client}；汇总 ${server}`;
 }
 
 /** 草稿能否创建任务；返回全部未满足的条件，按页面顺序排列。 */
@@ -153,8 +153,11 @@ export function draftIssues(
         message: "每个参与系统需使用不同的 Agent 接口",
       });
   }
+  if (refs.some((ref) => !ref)) {
+    issues.push({ field: "models", message: "请选择所需的模型接口" });
+  }
   if (
-    refs.some((ref) => {
+    refs.filter(Boolean).some((ref) => {
       const endpoint = endpointOf(ref, endpoints);
       return (
         !endpoint || !isConfigured(endpoint) || !availableResource(endpoint)

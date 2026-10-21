@@ -311,3 +311,6 @@ T85沿用已确认的T62控制台、T67菜单与T68配置参考，没有增加�
 
 
 T86继续沿用同一批已确认参考及现有组件，没有新增Mobbin检索或主参考。按用户明确修正，任务只统一选择可用资源，去掉来源分区与现场登记；两菜单平级、一个增加行按钮，资源管理页承担接入与基础检查。新线上桌面1280／手机390截图已实际查看并更新screenshots/agent-participation/desktop.png和mobile.png；完整流程／状态／组件／验收见FLOW T86。
+
+
+T87继续沿用T62／T67／T68已确认的控制台、菜单和逐行配置，没有新增主参考或依赖。按用户要求移除隐式模型默认值，分类可取消，Radix／ModelPicker菜单支持清除；不增加新资源管理入口或参考产品功能。线上数学资源初始空选截图已实际查看，见screenshots/explicit-selection/desktop.png和mobile.png；医疗数据／Agent清除及两／四任务夹具交互的验收见FLOW T87和explicit-selection脚本。

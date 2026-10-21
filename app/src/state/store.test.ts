@@ -3,8 +3,17 @@ import { DATASETS } from "../test/fixtures";
 import { withDefaults } from "../domain/config";
 import { hrefOf, parseHash, type Route } from "./route";
 import { reducer, withoutMissing } from "./store";
+import { decodeDraft } from "./draft";
 
 describe("draft", () => {
+  it("migrates old automatic model defaults once and preserves new explicit choices", () => {
+    const stored = withDefaults({ name: "未完成任务", scenario: "horizontal", touched: true, clientModel: "default", serverModel: "default" });
+    const migrated = decodeDraft(JSON.stringify(stored));
+    expect([migrated.name, migrated.scenario, migrated.clientModel, migrated.serverModel]).toEqual(["未完成任务", "horizontal", "", ""]);
+    expect(decodeDraft(JSON.stringify({ ...stored, selectionVersion: 1 }))).toEqual(stored);
+    expect(decodeDraft(JSON.stringify({ ...migrated, selectionVersion: 1 }))).toEqual(migrated);
+  });
+
   it("counts only the user's own changes as touching the draft", () => {
     const auto = reducer(withDefaults({}), { type: "chooseScenario", scenario: "horizontal", auto: true }, DATASETS);
     expect(auto.scenario).toBe("horizontal");
