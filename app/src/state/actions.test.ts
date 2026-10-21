@@ -58,3 +58,16 @@ it("删除被拒绝时保留任务及其消息", async () => {
   await expect(deleteTask("task-running")).rejects.toThrow("任务正在运行");
   expect(queryClient.getQueryData(keys.tasks)).toEqual(previous);
 });
+
+
+it("医疗按每组持久化绑定发请求，忽略旧草稿的全局或公用Agent覆盖", async () => {
+  const { taskRequest } = await import("./actions");
+  const { withDefaults, draftIssues } = await import("../domain/config");
+  const { DATASETS, PARTICIPANTS, ENDPOINTS } = await import("../test/fixtures");
+  const data = DATASETS.slice(0,2).map((d,i)=>({...d, taskType:"medical-diagnosis", agentId:i===0?"agent-own":"agent-public", resourceSpace:i===0?"workspace" as const:"public" as const}));
+  const draft = withDefaults({scenario:"horizontal",algorithm:"evomedclaw",taskType:"medical-diagnosis",execution:"agent",agentId:"old",agentOverrides:{"p-b":"wrong"},rounds:2,participants:data.map(d=>({participantId:d.participantId,datasetId:d.id}))});
+  const request = taskRequest(draft,"医疗协作",data,PARTICIPANTS)!;
+  expect(request.agentId).toBeNull();
+  expect(request.agentOverrides).toEqual({"p-a":"agent-own","p-b":"agent-public"});
+  expect(draftIssues(draft,data.map((d,i)=>i===0?{...d,agentId:null}:d),PARTICIPANTS,ENDPOINTS).some(i=>i.message.includes("绑定 Agent"))).toBe(true);
+});

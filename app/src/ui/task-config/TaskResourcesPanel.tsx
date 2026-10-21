@@ -1,3 +1,4 @@
+import { AgentDataPanel } from "./AgentDataPanel";
 import { InfoTip } from "../InfoTip";
 import { type Dispatch } from "react";
 import { hrefOf } from "../../state/route";
@@ -24,7 +25,8 @@ export function TaskResourcesPanel({
     config;
   const dataMotion = useContentMotion(space, true);
   return (
-    <Panel title="所需资源" id="participants" step={2} extra={algorithm ? `已选 ${joined.length} 个来源` : undefined}>
+    <Panel title="所需资源" id="participants" step={2} extra={algorithm ? `已选 ${joined.length} ${algorithm.requirements.agentRequired ? "组接入" : "个来源"}` : undefined}>
+      {algorithm?.requirements.agentRequired ? <AgentDataPanel state={state} dispatch={dispatch} config={config} /> : <>
       <div className="task-data-head">
         <div>
           <strong>数据</strong>
@@ -110,6 +112,7 @@ export function TaskResourcesPanel({
         onIntake={setIntake}
         allLocal={joined.length > 0 && joined.every((p) => participantOf(state, p.participantId)?.hosting === "local")}
       />
+      </>}
     </Panel>
   );
 }

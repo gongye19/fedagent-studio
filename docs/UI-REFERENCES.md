@@ -1,5 +1,7 @@
 # FedAgent Studio 界面参考研究
 
+T84沿用已确认的T68配置与T67菜单，不新增主参考或产品功能。AgentDataPanel以同一选择行呈现数据与Agent，窄屏在行内上下排；来源和资源边界通过ⓘ展示。最终线上证据见screenshots/collaboration。
+
 T83：沿用T68／T76的配置行、ⓘ说明、Radix菜单与ModelPicker，不增加新视觉主参考。当前任务先算法后兼容任务；FoT移除多余执行方式，医疗保留Agent资源。线上桌面／手机证据见screenshots/algorithm-config。
 
 T77按用户修正，覆盖T68的“单模型直接展示”：模型始终为选择控件，一个可选模型时也能打开并选择。复用已确认的ModelPicker／SelectField，返回真实登记引用；无新增参考、依赖或业务功能。当前规则见D74。

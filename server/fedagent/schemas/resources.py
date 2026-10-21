@@ -43,7 +43,12 @@ class SampleOut(Model):
     fields: list[PreviewFieldOut] = Field(default=[])
 
 
+class DatasetAgentIn(Model):
+    agent_id: str | None = Field(default=None, min_length=1, max_length=64)
+
+
 class DatasetOut(Model):
+    agent_id: str | None = None
     id: str
     name: str
     participant_id: str

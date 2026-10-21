@@ -29,7 +29,7 @@ const CHECK = `(() => {
   if (window.innerWidth < 700) {
     document.querySelectorAll('button, a[href], summary, select, input:not([type=checkbox]):not([type=radio]), label.option-card, .select-row, input[type=checkbox]').forEach((el) => {
       if (!visible(el)) return; const r = el.getBoundingClientRect();
-      const target = el.matches('input[type=checkbox]') ? el.closest('tr') || el : el;
+      const target = el.matches('input[type=checkbox]') ? el.closest('label') || el.closest('tr') || el : el;
       const tr = target.getBoundingClientRect();
       if (tr.height < 40 || (tr.width < 40 && !el.matches('a.text-link, .crumbs a'))) out.small.push((el.className || el.tagName) + ' ' + Math.round(tr.width) + 'x' + Math.round(tr.height) + ' ' + (el.textContent || el.value || '').trim().slice(0, 14));
     });

@@ -121,6 +121,7 @@ export const api = {
 
   datasets: () => get<S["DatasetOut"][]>("/v1/datasets"),
   createDataResource: (form: FormData) => post<S["DataResourceOut"]>("/v1/resources/data", form),
+  bindDataAgent: (id: string, agentId: string | null) => patch<S["DatasetOut"]>(`/v1/resources/data/${encodeURIComponent(id)}/agent`, { agentId }),
   deleteDataResource: (id: string) => del(`/v1/resources/data/${encodeURIComponent(id)}`),
   checkDataset: (taskType: string, file: File, signal?: AbortSignal) => {
     const data = new FormData();

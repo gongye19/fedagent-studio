@@ -84,6 +84,7 @@ export const CLICK = (text) => `(async () => { [...document.querySelectorAll('bu
 export const PICK = (labels) => `(async () => { const wait = () => new Promise((r) => setTimeout(r, 120)); for (const t of ${JSON.stringify(labels)}) { [...document.querySelectorAll('button[role=radio]')].find((b) => b.textContent.trim().startsWith(t))?.click(); await wait(); } })()`;
 export const OPEN_ADVANCED = "(async () => { const d = document.querySelector('details.module'); if (d) d.open = true; await new Promise((r) => setTimeout(r, 200)); })()";
 export const NEW_TASK_ALL = "(async () => { const wait = () => new Promise((r) => setTimeout(r, 150)); const pick = (t) => [...document.querySelectorAll('button[role=radio]')].find((b) => b.textContent.trim().startsWith(t))?.click(); document.getElementById('algorithm-fot')?.click(); await wait(); pick('数学推理'); await wait(); [...document.querySelectorAll('#participants .resource-space-bar button')].find(b=>b.textContent==='公用资源')?.click(); await wait(); document.querySelector('input[aria-label=全选]')?.click(); await wait(); })()";
+export const NEW_MEDICAL_GROUPS = "(async()=>{const wait=()=>new Promise(r=>setTimeout(r,180));document.getElementById('algorithm-evomedclaw')?.click();await wait();[...document.querySelectorAll('button[role=radio]')].find(e=>e.textContent.trim()==='医疗诊断')?.click();await wait();document.querySelector('.agent-data-row input[type=checkbox]')?.click();[...document.querySelectorAll('button')].find(e=>e.textContent.trim()==='公用协作')?.click();await wait();document.querySelector('.agent-data-row input[type=checkbox]')?.click();await wait()})()";
 export const SELECT = (name, value) => `(async () => { const s = document.querySelector('[data-select-name="${name}"], [data-model-name="${name}"]'); if (!s) throw new Error('select trigger missing: ${name}'); const model = s.hasAttribute('data-model-name'); if (model) s.click(); else { s.focus(); s.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })); } await new Promise((r) => setTimeout(r, 180)); const item = [...document.querySelectorAll('[role=option]')].find((i) => (model ? i.dataset.modelValue : i.dataset.optionValue) === ${JSON.stringify(String(value))}); if (!item) throw new Error('select option missing'); if (model) item.click(); else { item.focus(); item.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true})); } await new Promise((r) => setTimeout(r, 250)); })()`;
 export const SEARCH = (name, value) => `(async () => { const i = document.querySelector('input[name=${name}]'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(i, ${JSON.stringify(value)}); i.dispatchEvent(new Event('input', { bubbles: true })); await new Promise((r) => setTimeout(r, 250)); })()`;
 
@@ -102,7 +103,8 @@ export async function routes(base) {
   const { task, app } = await sampleIds(base);
   const taskPages = task ? ["overview", "progress", "output", "config"].map((tab) => `#/tasks/${task}/${tab}`) : [];
   const appPages = app ? [`#/apps/${app}`, `#/apps/${app}/content`, `#/apps/${app}/integrate`] : [];
-  return ROUTES.flatMap((entry) => (entry === "{tasks}" ? taskPages : entry === "{apps}" ? appPages : [entry]));
+  const entries = ROUTES.flatMap((entry) => (entry === "{tasks}" ? taskPages : entry === "{apps}" ? appPages : [entry]));
+  return process.env.ROUTE_MATCH ? entries.filter(entry => (typeof entry === "string" ? entry : entry.name ?? entry.route).includes(process.env.ROUTE_MATCH)) : entries;
 }
 
 const ROUTES = [
@@ -111,6 +113,7 @@ const ROUTES = [
   "#/tasks/new/horizontal",
   "#/tasks/new", "#/resources/mine/data", "#/resources/public/data", "#/resources/mine/models", "#/resources/public/models", "#/resources/mine/agents", "#/resources/public/agents",
   { route: "#/tasks/new/horizontal", name: "#/tasks/new/horizontal 全选", script: NEW_TASK_ALL },
+  { route: "#/tasks/new/horizontal", name: "#/tasks/new/horizontal 医疗协作组", script: NEW_MEDICAL_GROUPS },
   { route: "#/tasks/new/horizontal", name: "#/tasks/new/horizontal 高级配置", script: NEW_TASK_ALL + ";" + OPEN_ADVANCED },
   "#/tasks/new/vertical",
   "{tasks}",

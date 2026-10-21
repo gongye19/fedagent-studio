@@ -50,3 +50,7 @@ T81更新旧脚本：resource-flow移除平台／客户端与来源菜单；task
 T82：`medical-agents.mjs`验证FoT原生LLM路径和两份医疗数据分别绑定两个独立医疗API的路径，包含界面登记／自动能力检查、主动完整步骤测试、两轮任务、经验导出及两个原API加载最终经验后继续诊断。默认本地9031／9032，先分别启动`fedagent medical-serve --platform-model fake:fake --store <独立目录> --port <端口>`；本地数据目录FEDAGENT_DATA_DIR应与开发平台一致，测试明确设置FEDAGENT_FAKE_ENDPOINT=1。线上需REAL_MODEL_VERIFY=1，KEEP_AGENTS=1保留团队服务登记，BASE使用实验室地址。Agent登记地址AGENT_A_URL／AGENT_B_URL供平台访问；DIRECT_AGENT_A／B可使用仅监听回环的SSH转发供本机验证原API。预计US$0.5–2，测试报告不代表准确率提升。ONLY_ALGORITHM用于只补测失败的单条流程；脚本仅清理自身任务／应用／数据／报告，原资源逐项保留。medical-flow仍覆盖上传错误与结构化应用，需已启动医疗服务；agent-flow改为仅测试医疗外部Agent；FoT使用medical-agents或resource-flow的原生LLM路径。
 
 T83：`algorithm-config.mjs`只读验证先算法后任务、兼容任务列表、FoT无Agent／医疗必选Agent、跨算法清理、刷新及旧草稿。桌面1280／手机390，阻止业务写入与付费检查。现有配置、上传与真实流程脚本均先选算法；resource-flow清理自己的配置报告并保留调用账本。
+
+T84：`collaboration-flow.mjs`只读检查工作区／公用数据与Agent成组、跨范围选择、正式配置、桌面手机。`RUN_FLOW=1`执行完整实际HTTP Agent配置测试／两轮／发布导出；线上额外`REAL_MODEL_VERIFY=1`，预计医疗$0.4–1.5，先明确安排。使用已有绑定资源，不注册重复Agent，仅清理自己的任务／应用／报告。Agent保存绑定功能通过正常PATCH，公共组绑定由维护方配置。`ROUTE_MATCH=医疗协作组`可让a11y／wrap只扫新分支，避免重复全站扫描。
+
+T84兼容入口收敛：agent-flow与real-medical-flow转到collaboration-flow；medical-agents按ONLY_ALGORITHM分发resource-flow／collaboration-flow，不再登记重复Agent或维护过期全局菜单。需要先有保存绑定的工作区与公用组。T82双服务原API激活经验的实际证据保留在历史记录，当前成组验收不自动启用最终经验。medical-flow保留上传模板、坏文件、结构化应用与导出覆盖，先删本次数据再删测试Agent，遵守绑定外键保护。

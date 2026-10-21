@@ -14,7 +14,7 @@ if [ "${SKIP_CHECKS:-}" = 1 ]; then
   (cd app && npm run build)
 else
   (cd app && npm run check)
-  (cd server && uv run --frozen ruff check . && uv run --frozen pyright && uv run --frozen pytest -q)
+  (cd server && uv run --frozen python ../tools/check_structure.py && uv run --frozen ruff check . && uv run --frozen pyright && uv run --frozen pytest -q)
 fi
 
 # 参与方客户端的安装包（客户端、SDK、插件），平台在 /client/ 下提供，界面上的连接命令从这里安装

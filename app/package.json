@@ -10,8 +10,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc -b --noEmit",
-    "check": "npm run lint && npm run typecheck && npm test && npm run build",
-    "api:types": "cd ../server && uv run fedagent openapi > ../app/src/api/openapi.json && cd ../app && npx --yes openapi-typescript@7.13.0 src/api/openapi.json -o src/api/schema.d.ts"
+    "check": "npm run lint && npm run check:structure && npm run typecheck && npm test && npm run build",
+    "api:types": "cd ../server && uv run fedagent openapi > ../app/src/api/openapi.json && cd ../app && npx --yes openapi-typescript@7.13.0 src/api/openapi.json -o src/api/schema.d.ts",
+    "check:structure": "node ../tools/check-frontend-structure.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.2.0",

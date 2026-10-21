@@ -11,33 +11,23 @@ from __future__ import annotations
 
 import logging
 import time
-import traceback
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
-from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
-from fedagent_sdk import SERVER, Algorithm, CapabilityError, Grader, ModelError, SiteInfo, StepContext, StepDef, StepFailed, TaskType
+from fedagent_sdk import SERVER, Algorithm, Grader, StepDef, TaskType
 from sqlalchemy import func, select, update
 
 from . import models as m
-from .data import to_item
-from .gateway import LedgerKey
 from .platform import Platform
-from .units import DbStepIO, Graded, SiteView, add_event, load_sites, store_result
+from .unit_executor import Outcome, UnitExecutor, fail_unit
+from .units import SiteView, add_event, load_sites
 
 log = logging.getLogger("fedagent.engine")
 
 CLIENT_WAIT_LIMIT = timedelta(minutes=30)
 """本地参与方超过这么久没有心跳、它的工作单元还没完成，就暂停任务。"""
-
-
-@dataclass
-class Outcome:
-    ok: bool
-    error: str | None = None
-    pause: bool = False
 
 
 class TaskStopped(Exception):
@@ -88,6 +78,8 @@ class TaskEngine:
             self.records = self._load_records()
         except (OSError, ValueError) as error:
             return self._pause(f"冻结的数据文件无法读取，请恢复备份后继续（{type(error).__name__}）")
+        self.executor = UnitExecutor(self.platform, self.task_id, self.run_dir, self.plugin, self.task_type,
+                                     self.grader, self.site_by_id, self.records, self.params, self.rounds)
         self._event("start", "任务开始运行" if self.cursor_round == 1 else f"从第 {self.cursor_round} 轮继续运行")
         try:
             for round in range(self.cursor_round, self.rounds + 1):
@@ -205,113 +197,10 @@ class TaskEngine:
         return {status: count for status, count in rows}
 
     def _execute(self, unit_id: int, attempt: int, round: int, step: StepDef) -> Outcome:
-        with self.db.session() as session:
-            unit = session.get(m.WorkUnit, unit_id)
-            assert unit is not None
-            site = self.site_by_id[unit.site_id]
-            unit_key = unit.unit_key
-        records = self.records.get(site.id, {})
-        full_item = records.get(unit_key) if step.per == "item" else None
-        if step.per == "item" and full_item is None:
-            return Outcome(False, f"找不到样本 {unit_key}", pause=True)
-        model = None
-        if step.model and site.executor != "agent":
-            ref = site.model_ref or "default"
-            try:
-                model = self.platform.gateway.model(
-                    ref,
-                    ledger=LedgerKey(self.task_id, site.id, round, step.id, unit_key),
-                    plugin=self.plugin,
-                    step_id=step.id,
-                )
-            except ModelError as error:
-                return Outcome(False, str(error), pause=True)
-        ctx = StepContext(
-            manifest=self.manifest,
-            step=step,
-            site=SiteInfo(site.id, site.role, site.participant_id, site.label),
-            round=round,
-            rounds=self.rounds,
-            params=self.params,
-            io=DbStepIO(self.db, self.task_id, site, step, self.task_type, records),
-            model=model,
-            item=to_item(self.task_type, full_item, labels=step.labels) if full_item is not None else None,
-            log=lambda text: log.info("%s %s r%s %s: %s", self.task_id, site.id, round, step.id, text),
-        )
-        try:
-            if site.executor == "agent":
-                from .agents.adapter import execute
-
-                ctx.result = execute(self.platform, ctx, self.plugin, self.task_type.id, self.task_id,
-                                     unit_id, unit_key, (site.model_ref or "").removeprefix("agent:"), self.site_by_id)
-            else:
-                self.plugin.run_step(ctx)
-        except StepFailed as error:
-            return Outcome(False, str(error), pause=error.pause)
-        except CapabilityError as error:
-            return Outcome(False, f"插件用了清单没有声明的能力：{error}", pause=True)
-        except ModelError as error:
-            return Outcome(False, f"模型调用失败：{error}")
-        except Exception as error:
-            log.exception("unit %s failed", unit_id)
-            return Outcome(False, f"{type(error).__name__}: {error}\n{traceback.format_exc(limit=3)}")
-        graded = []
-        for item_id, prediction in ctx.result.predictions:
-            record = records.get(item_id, {})
-            labeled = self.task_type.is_labeled(record)
-            correct = bool(labeled and self.grader.grade(prediction, record))
-            graded.append(Graded(item_id, labeled, correct))
-        with self.db.session() as session:
-            unit = session.get(m.WorkUnit, unit_id)
-            task = session.get(m.Task, self.task_id)
-            if unit is None or task is None or task.status != "running" or task.command is not None:
-                return Outcome(True)
-            stored = store_result(
-                session,
-                unit=unit,
-                manifest=self.manifest,
-                site=site,
-                sites=self.site_by_id,
-                result=ctx.result,
-                graded=graded,
-                plugin_version=self.plugin.version,
-                keep_private=True,
-                run_dir=self.run_dir,
-                expected="running",
-                attempt=attempt,
-            )
-            if not stored:
-                log.info("%s unit %s attempt %s: result discarded (stored by another attempt)", self.task_id, unit_id, attempt)
-        return Outcome(True)
+        return self.executor.execute(unit_id, attempt, round, step)
 
     def _unit_failed(self, unit_id: int, attempt: int, step: StepDef, outcome: Outcome) -> None:
-        # 只改这次尝试领到的单元；过期的执行失败了不影响后来的尝试
-        with self.db.session() as session:
-            failed = session.execute(
-                update(m.WorkUnit)
-                .where(m.WorkUnit.id == unit_id, m.WorkUnit.status == "running", m.WorkUnit.attempts == attempt)
-                .values(error=outcome.error, status="failed" if outcome.pause or attempt > step.retries else "pending"),
-                execution_options={"synchronize_session": False},
-            )
-            if not failed.rowcount:  # type: ignore[attr-defined]
-                return
-            unit = session.get(m.WorkUnit, unit_id)
-            assert unit is not None
-            # 这次尝试的调用作废：重试（或修好后继续）时重新调用模型，而不是从账本取回让这一步失败的结果。
-            # 费用照记（账本里的行还在），只是不再拿来续跑。
-            session.execute(
-                update(m.CallRecord)
-                .where(
-                    m.CallRecord.task_id == unit.task_id,
-                    m.CallRecord.site_id == unit.site_id,
-                    m.CallRecord.round == unit.round,
-                    m.CallRecord.step == unit.step,
-                    m.CallRecord.unit_key == unit.unit_key,
-                    m.CallRecord.status == "ok",
-                )
-                .values(status="discarded"),
-                execution_options={"synchronize_session": False},
-            )
+        fail_unit(self.db, unit_id, attempt, step, outcome)
 
     def _pause_from_failed(self, round: int, step: StepDef) -> str:
         with self.db.session() as session:

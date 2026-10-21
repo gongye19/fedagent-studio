@@ -44,7 +44,7 @@ def create(platform: Platform, session: Session, body: TaskConfigIn) -> m.Task:
     if any(step.at == SERVER and step.model for step in algorithm.manifest.steps):
         refs.append(body.server_model)
     fake = any(parse_ref(ref)[0] == FAKE_ENDPOINT for ref in refs)
-    agent_ids = ({body.agent_overrides.get(site.participant.id) or body.agent_id for site in prepared.sites}
+    agent_ids = ({site.agent_id for site in prepared.sites}
                  if body.execution == "agent" else set())
     audit = {
         "agents": {agent_id: {"name": row.name, "revision": row.revision}
@@ -92,7 +92,7 @@ def create(platform: Platform, session: Session, body: TaskConfigIn) -> m.Task:
                 dataset_hash=site.dataset.content_hash,
                 items=site.items,
                 labeled=site.labeled,
-                model_ref=f"agent:{body.agent_overrides.get(site.participant.id) or body.agent_id}" if body.execution == "agent" else site.model_ref,
+                model_ref=f"agent:{site.agent_id}" if body.execution == "agent" else site.model_ref,
             )
         )
     session.add(

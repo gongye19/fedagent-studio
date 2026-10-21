@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from .. import models as m
 from ..data import select_items
 from ..platform import Platform
+from ..resource_services.bindings import selected_agent
 from ..resources import dataset_ready, participant_status
 from ..schemas import EstimateOut, IssueOut, TaskConfigIn
 
@@ -21,6 +22,7 @@ class PreparedSite:
     items: list[str]
     labeled: int
     model_ref: str
+    agent_id: str | None = None
 
 
 @dataclass
@@ -117,7 +119,8 @@ def validate(platform: Platform, session: Session, body: TaskConfigIn) -> tuple[
         model_ref = body.client_overrides.get(participant.id) or body.client_model
         prepared.sites.append(PreparedSite(participant, dataset, items, labeled, model_ref))
     if len(prepared.sites) < manifest.min_participants:
-        issue("participants", f"至少选择 {manifest.min_participants} 个可用的数据来源，每个来源选择一份数据")
+        issue("participants", f"至少选择 {manifest.min_participants} 组数据与 Agent 接入" if manifest.agent_required
+              else f"至少选择 {manifest.min_participants} 个可用的数据来源，每个来源选择一份数据")
     if body.mode == "full" and prepared.sites and not any(site.dataset.resource_space == "workspace" for site in prepared.sites):
         issue("participants", "正式任务至少需要一份我的数据；公用数据可以先用于试跑")
 
@@ -131,7 +134,10 @@ def validate(platform: Platform, session: Session, body: TaskConfigIn) -> tuple[
             if site.participant.hosting == "local":
                 issue("participants", "自有 Agent 当前使用已上传的数据，请选择平台可读取的数据")
                 continue
-            agent_id = body.agent_overrides.get(site.participant.id) or body.agent_id
+            agent_id = selected_agent(body, site)
+            if site.dataset.resource_space == "public" and site.dataset.agent_id and agent_id != site.dataset.agent_id:
+                issue("models", f"公用协作组“{site.dataset.name}”必须使用其已绑定的 Agent")
+            site.agent_id = agent_id
             endpoint = session.get(m.AgentEndpoint, agent_id) if agent_id else None
             if endpoint is None:
                 issue("models", "请为数据来源选择 Agent 接口")

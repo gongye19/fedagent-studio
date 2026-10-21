@@ -59,8 +59,8 @@ export function TaskSummary({ state, config }: { state: State; config: TaskConfi
             <dd>{draft.taskType ? TASK_TYPES[draft.taskType].label : "—"}</dd>
           </div>
           <div>
-            <dt>数据来源</dt>
-            <dd>{joined.length ? `${joined.length} 个` : "—"}</dd>
+            <dt>{algorithm?.requirements.agentRequired ? "接入组" : "数据来源"}</dt>
+            <dd>{joined.length ? `${joined.length} ${algorithm?.requirements.agentRequired ? "组" : "个"}` : "—"}</dd>
           </div>
           <div>
             <dt>样本</dt>
@@ -81,12 +81,14 @@ export function TaskSummary({ state, config }: { state: State; config: TaskConfi
             <dd>
               {algorithm
                 ? draft.execution === "agent"
-                  ? `${state.agents.find((a) => a.id === draft.agentId)?.name ?? "Agent 待选"}${algorithm.requirements.serverModel ? `；汇总 ${modelLabel(draft.serverModel, state.endpoints)}` : ""}`
+                  ? algorithm.requirements.agentRequired
+                    ? joined.length ? [...new Set(joined.map(p => state.agents.find(a => a.id === state.datasets.find(d => d.id === p.datasetId)?.agentId)?.name ?? "Agent 待选"))].map(name => <span className="summary-agent" key={name}>{name}</span>) : "—"
+                    : `${state.agents.find((a) => a.id === draft.agentId)?.name ?? "Agent 待选"}${algorithm.requirements.serverModel ? `；汇总 ${modelLabel(draft.serverModel, state.endpoints)}` : ""}`
                   : taskModelSummary(draft, state.endpoints, algorithm)
                 : "—"}
             </dd>
           </div>
-          {overrideCount ? (
+          {overrideCount && !algorithm?.requirements.agentRequired ? (
             <div>
               <dt>单独指定</dt>
               <dd>{overrideCount} 个参与方</dd>

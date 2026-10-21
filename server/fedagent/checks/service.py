@@ -130,7 +130,7 @@ def run(platform, check_id: str, body: TaskConfigIn) -> None:
                 return
         if body.execution == "agent":
             for site in prepared.sites:
-                agent_id = body.agent_overrides.get(site.participant.id) or body.agent_id
+                agent_id = site.agent_id
                 if not agent_id or site.participant.id not in records:
                     continue
 

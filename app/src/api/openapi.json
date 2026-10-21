@@ -965,6 +965,74 @@
     }
    }
   },
+  "/v1/resources/data/{dataset_id}/agent": {
+   "patch": {
+    "tags": [
+     "resources"
+    ],
+    "summary": "Bind Dataset Agent",
+    "operationId": "bind_dataset_agent_v1_resources_data__dataset_id__agent_patch",
+    "parameters": [
+     {
+      "name": "dataset_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Dataset Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/DatasetAgentIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DatasetOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/v1/endpoints": {
    "get": {
     "tags": [
@@ -4468,6 +4536,25 @@
     ],
     "title": "DataResourceOut"
    },
+   "DatasetAgentIn": {
+    "properties": {
+     "agentId": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 64,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Agentid"
+     }
+    },
+    "type": "object",
+    "title": "DatasetAgentIn"
+   },
    "DatasetCheckOut": {
     "properties": {
      "ok": {
@@ -4517,6 +4604,17 @@
    },
    "DatasetOut": {
     "properties": {
+     "agentId": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Agentid"
+     },
      "id": {
       "type": "string",
       "title": "Id"

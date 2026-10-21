@@ -686,3 +686,13 @@ serve.sh管理API、runner、两个可选医疗服务；data/medical-model.ref�
 清单新增agent_supported，默认true兼容插件；agent_required=true要求它也为true。FoT声明false，describe_algorithm输出platform／local，不再输出agent；任务validate、配置检查和创建共用preparation准入，避免前端隐藏而API仍开放。运行中已有任务与SDK本方步骤不重新套用新建限制。医疗继续agent_required=true，能力只有agent。无数据库迁移。
 
 通用Agent适配器测试使用monkeypatch临时打开当前测试实例FoT的Agent准入，结束恢复；独立产品测试核对真实清单拒绝Agent且不发请求。这样保留协议、幂等与失败重试覆盖，不把测试能力当成生产产品入口。
+
+## 28. 成组资源与职责分离（T84／D81）
+
+Dataset.agent_id（schema0006，可空、外键RESTRICT）把已登记的数据与独立Agent组成可复用接入，不新增与数据／Agent平行的资源体系。PATCH /v1/resources/data/{id}/agent只允许工作区资源，检查任务类型兼容和运行中使用；公用绑定由维护方显式配置。公用Agent不可通过普通API改地址或删除；有绑定的Agent不能删除。独立账号隔离未实现。
+
+任务准备以每节点覆盖→保存绑定→旧全局默认的顺序解析Agent，公用绑定禁止覆盖；新医疗界面只使用保存绑定并在请求中明确写入各节点引用，不再展示全局默认。PreparedSite持有解析结果，检查与创建共用；fingerprint记录数据绑定和相关Agent revision。任务创建冻结接口、审计名称与版本，资源后改不会改历史任务。
+
+resource_services按common／participants／datasets／endpoints／intake／bindings组织，resources.py保留兼容门面；intake原子创建不依赖FastAPI。Gateway负责接口解析及并发，ModelRuntime负责单模型请求、协议回退、重试与账本；Engine负责轮次调度、任务状态，UnitExecutor负责执行／评分／结果提交，失败账本作废函数独立。无跨层继承、运行时循环或为了行数拆开同一状态机。
+
+前端domain/task-config下类型／选择／序列化／校验互相单向依赖，domain/config.ts为稳定出口；普通／高级运行参数与模型覆盖为独立组件。新增绑定使用独立hook，TaskResourcesPanel只选择组合方式。源码检查覆盖前端运行时导入环、领域向UI越界、Python顶层导入环、业务服务对HTTP框架的直接依赖与400行审查阈值；生成契约、历史迁移、固定上游源码单独维护。

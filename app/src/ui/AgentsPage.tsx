@@ -81,6 +81,7 @@ export default function AgentsPage({ space = "workspace" }: { space?: ResourceSp
                         >
                           {checking === a.id ? "检查中…" : "检查能力"}
                         </button>
+                        {a.resourceSpace === "workspace" ? <>
                         <button
                           className="button button--ghost button--compact"
                           onClick={() => setEditing(a)}
@@ -93,6 +94,7 @@ export default function AgentsPage({ space = "workspace" }: { space?: ResourceSp
                         >
                           删除
                         </button>
+                        </> : null}
                       </div>
                     </td>
                   </tr>

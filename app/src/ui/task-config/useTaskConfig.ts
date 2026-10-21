@@ -18,6 +18,7 @@ import { createTask, taskRequest } from "../../state/actions";
 import { showFlash } from "../../state/flash";
 import { navigate } from "../../state/route";
 import { type Action, type State } from "../../state/store";
+import { useDataAgentBinding } from "./useDataAgentBinding";
 import { useTaskCheck } from "./useTaskCheck";
 import { useDebounced } from "../hooks";
 
@@ -49,6 +50,8 @@ export function useTaskConfig(state: State, dispatch: Dispatch<Action>, initialS
     if (initialScenario) dispatch({ type: "chooseScenario", scenario: initialScenario, auto: true });
   }, [dispatch, initialScenario]);
 
+  const [agentTarget, setAgentTarget] = useState<string | null>(null);
+  const binding = useDataAgentBinding();
   const update = (patch: Partial<Draft>) => dispatch({ type: "updateDraft", patch });
   const algorithm = draft.algorithm ? algorithmOf(draft.algorithm) : null;
   useEffect(() => {
@@ -77,7 +80,7 @@ export function useTaskConfig(state: State, dispatch: Dispatch<Action>, initialS
     enabled: Boolean(request && request.participants.length),
     staleTime: 15_000,
   });
-  const validationPending = !localIssues.length && (!requestCurrent || check.isPending || check.isFetching);
+  const validationPending = Boolean(binding.pending) || !localIssues.length && (!requestCurrent || check.isPending || check.isFetching);
   const validationError =
     !localIssues.length && requestCurrent && check.error
       ? check.error instanceof ApiError
@@ -92,7 +95,7 @@ export function useTaskConfig(state: State, dispatch: Dispatch<Action>, initialS
   ];
   const result: Estimate | null =
     joined.length && requestCurrent && !check.error ? (check.data?.estimate ?? null) : null;
-  const canTest = !issues.length && !validationPending && !validationError && Boolean(result);
+  const canTest = !binding.pending && !issues.length && !validationPending && !validationError && Boolean(result);
   const preflight = useTaskCheck(currentRequest, canTest);
   const canCreate = canTest && preflight.valid;
   if (attempted && canTest && !preflight.valid && !preflight.running)
@@ -204,6 +207,9 @@ export function useTaskConfig(state: State, dispatch: Dispatch<Action>, initialS
   const startLabel = full ? "创建并正式运行" : "创建并试跑";
   return {
     draft,
+    binding,
+    agentTarget,
+    setAgentTarget,
     pending,
     setPending,
     formRef,

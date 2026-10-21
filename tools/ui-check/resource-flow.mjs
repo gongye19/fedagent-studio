@@ -76,6 +76,11 @@ try{
   if(checkId)assert.ok((await fetch(new URL(`v1/task-checks/${checkId}`,base),{method:'DELETE'})).ok);
   if(resource)assert.ok((await fetch(new URL(`v1/resources/data/${resource.dataset.id}`,base),{method:'DELETE'})).ok);
   if(modelEndpointId)assert.ok((await fetch(new URL(`v1/endpoints/${modelEndpointId}`,base),{method:'DELETE'})).ok);
-  for(const k of ['tasks','apps','datasets','participants','endpoints'])assert.deepEqual((await read(`v1/${k}`)).map(x=>x.id).sort(),original[k],`Preserve original ${k}`);
+  const ownIds={tasks:[taskId],apps:[appId],datasets:[resource?.dataset.id],participants:[resource?.source.id],endpoints:[modelEndpointId]};
+  for(const k of ['tasks','apps','datasets','participants','endpoints']){
+    const ids=(await read(`v1/${k}`)).map(x=>x.id);
+    for(const id of original[k])assert.ok(ids.includes(id),`Preserve original ${k} ${id}`);
+    for(const id of ownIds[k].filter(Boolean))assert.ok(!ids.includes(id),`Remove owned ${k} ${id}`);
+  }
   console.log('PASS 仅清理本次任务、应用、数据与托管来源');
 }

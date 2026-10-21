@@ -1,6 +1,6 @@
 # 给接手开发的 AI 的说明
 
-FedAgent Studio 是通用的联邦 Agent 平台：多个参与方的 Agent 在不交出原始数据和标注的前提下协作变强。前后端第一版已完成，部署在实验室服务器上（只在 Tailscale 内网访问），接的是真实大模型。
+FedAgent Studio 是通用的联邦 Agent 平台：多个参与方按算法契约交换经验，协作改进各自的任务能力。前后端第一版已完成，部署在实验室服务器上（只在 Tailscale 内网访问），接的是真实大模型。
 
 **先读 [docs/HANDOFF.md](docs/HANDOFF.md)**（现状、部署、服务器怎么连、待办），再按 [docs/README.md](docs/README.md) 查其他文档。
 
@@ -83,3 +83,5 @@ T81／D78覆盖T78–T80混合资源分类：侧栏数据资源／LLM接口／Ag
 T82／D79覆盖T81医疗内置执行：新建医疗任务必须使用接入方Agent，FoT默认数据＋LLM，仍可选自有Agent。算法清单agent_required驱动配置，不按医疗ID写前端逻辑。独立医疗服务medical-serve在用户侧持有运行记录和经验；同机团队A／B服务由serve.sh管理，复用已保存LLM，不复制凭据。最终经验经显式/experience加载后原/diagnose可使用，平台应用invoke仍非用户API。能力读取不代表实际执行验证；配置测试覆盖全部本方步骤及算法业务输出。模板／上传／保存／任务检查沿用统一数据规范。当前生产资源／测试结果以最新HANDOFF为准。
 
 T83／D80覆盖旧选择顺序及FoT可选Agent：新建任务为场景→算法→兼容任务→资源→测试→运行，任务字段与摘要同序。FoT使用数据＋LLM，平台提供固定工作流；清单agent_supported=false拒绝外部Agent新建／预检，历史运行与本地SDK兼容保留。医疗继续要求病例＋用户Agent，用户无需重复登记Agent内部LLM。agent_required与agent_supported为插件声明，前端用executionModes，不按算法ID判断。切换算法重置任务／数据／覆盖／参数及轮次，任务变化保留算法参数；旧FoT Agent草稿静默清理。无新增依赖、页面、参考或样式迁移。
+
+T84／D81：需要自有Agent的任务按数据＋Agent成组选择，“我的接入”结合“公用协作”，至少两个来源。Dataset.agent_id保存绑定；公用组不可覆盖，公用Agent不可普通编辑／删除，任务开始后实际接口冻结。新界面不再使用医疗全局Agent；旧API解析兼容保留。团队公开MedQA组2＋A为工作区、组1＋B为公用，不虚构已有外部用户或宣称账号隔离。schema0006，详见FLOW最新五项交付物。资源服务／Engine执行器／模型运行与前端配置已拆分；稳定resources、gateway、engine、domain/config出口保留。正常检查包含tools/check_structure.py与check-frontend-structure.mjs；自有业务源码超过400行先检查职责，生成契约／vendor／历史迁移不机械拆分。

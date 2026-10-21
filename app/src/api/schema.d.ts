@@ -235,6 +235,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/resources/data/{dataset_id}/agent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Bind Dataset Agent */
+        patch: operations["bind_dataset_agent_v1_resources_data__dataset_id__agent_patch"];
+        trace?: never;
+    };
     "/v1/endpoints": {
         parameters: {
             query?: never;
@@ -1199,6 +1216,11 @@ export interface components {
             dataset: components["schemas"]["DatasetOut"];
             source: components["schemas"]["ParticipantOut"];
         };
+        /** DatasetAgentIn */
+        DatasetAgentIn: {
+            /** Agentid */
+            agentId?: string | null;
+        };
         /** DatasetCheckOut */
         DatasetCheckOut: {
             /** Ok */
@@ -1215,6 +1237,8 @@ export interface components {
         };
         /** DatasetOut */
         DatasetOut: {
+            /** Agentid */
+            agentId?: string | null;
             /** Id */
             id: string;
             /** Name */
@@ -2542,6 +2566,43 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bind_dataset_agent_v1_resources_data__dataset_id__agent_patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                dataset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DatasetAgentIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatasetOut"];
+                };
             };
             /** @description Validation Error */
             422: {

@@ -52,6 +52,7 @@ class Dataset(Base):
     origin: Mapped[str | None] = mapped_column(String(120), default=None)
     scenario: Mapped[str] = mapped_column(String(32))
     task_type: Mapped[str] = mapped_column(String(64))
+    agent_id: Mapped[str | None] = mapped_column(ForeignKey("agent_endpoints.id", ondelete="RESTRICT"), default=None)
     resource_space: Mapped[str] = mapped_column(String(16), default="workspace")
     schema_version: Mapped[str] = mapped_column(String(32), default="1.0")
     source_hash: Mapped[str | None] = mapped_column(String(64), default=None)

@@ -84,3 +84,8 @@ export function checkJsonl(text: string): JsonlCheck {
   if (count === 0 && problemCount === 0) report(0, "文件里没有题目");
   return { ok: problemCount === 0 && count > 0, count, answered, problems, problemCount, sample };
 }
+
+export function clampInt(raw: string, min: number, max: number, fallback: number): number {
+  const value = Number.parseInt(raw, 10);
+  return Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
+}

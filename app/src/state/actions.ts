@@ -1,6 +1,7 @@
 /**
  * 改动后端数据的操作：调用 API，完成后让相关的查询失效。页面等它们返回再跳转、显示结果；失败时抛出 ApiError（带后端写明的原因）。
  */
+import { algorithmOf } from "../domain/catalog";
 import { api, type TaskConfigIn } from "../api/client";
 import { activeOverrides, joinable, toConfig, type Draft } from "../domain/config";
 import type { Dataset, Participant } from "../domain/resources";
@@ -16,6 +17,14 @@ function refresh(...queries: readonly (readonly unknown[])[]): Promise<void> {
 export function taskRequest(draft: Draft, name: string, datasets: readonly Dataset[], participants: readonly Participant[]): TaskConfigIn | null {
   const config = toConfig({ ...draft, participants: joinable(draft, datasets, participants) });
   if (!config) return null;
+  if (algorithmOf(config.algorithm).requirements.agentRequired) {
+    config.agentId = null;
+    config.agentOverrides = Object.fromEntries(config.participants.flatMap(p => {
+      const dataset = datasets.find(d => d.id === p.datasetId);
+      const agentId = dataset?.agentId;
+      return agentId ? [[p.participantId, agentId]] : [];
+    }));
+  }
   return { ...config, execution: config.execution ?? "builtin", agentOverrides: config.agentOverrides ?? {}, name, clientOverrides: activeOverrides(config) };
 }
 

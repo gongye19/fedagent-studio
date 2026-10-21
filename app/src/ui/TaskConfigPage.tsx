@@ -114,15 +114,18 @@ export default function TaskConfigPage({
         state={state}
         kind={intake === "data" || intake === "agent" ? intake : intake ? "model" : null}
         category={scenarioId && taskType ? { scenario: scenarioId, taskType } : undefined}
-        onClose={() => setIntake(null)}
-        onSaved={(saved) => {
+        onClose={() => { setIntake(null); config.setAgentTarget(null); }}
+        onSaved={async (saved) => {
           if (saved.kind === "data") {
             const resource = saved.value;
             setSpace("workspace");
             if (resource.dataset.ready)
               dispatch({ type: "pickDataset", participantId: resource.source.id, datasetId: resource.dataset.id });
           } else if (saved.kind === "agent") {
-            update({ execution: "agent", agentId: saved.value.id });
+            if (config.agentTarget) {
+              await config.binding.save(config.agentTarget, saved.value.id);
+              config.setAgentTarget(null);
+            } else if (!algorithm?.requirements.agentRequired) update({ execution: "agent", agentId: saved.value.id });
           } else if (intake === "clientModel" || intake === "serverModel") {
             update({ [intake]: `${saved.value.id}:${saved.value.models[0]}` });
           }

@@ -43,6 +43,8 @@ def ensure_unused(session: Session, agent_id: str) -> None:
 def save(platform, session: Session, body: AgentIn, agent_id: str | None = None) -> m.AgentEndpoint:
     row = get(session, agent_id) if agent_id else m.AgentEndpoint(id=new_id("agent"), name=body.name, base_url=body.base_url)
     if agent_id:
+        if row.resource_space == "public":
+            raise ServiceError(409, "公用 Agent 接口由平台维护，不能在此修改")
         ensure_unused(session, agent_id)
         row.revision += 1
         if row.base_url != body.base_url:
