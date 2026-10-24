@@ -503,13 +503,11 @@ server/                        uv workspace，虚拟环境在 server/.venv
 
 ## 20. FoT 插件
 
-FoT 是第一个算法插件（横向，任务类型：数学推理）。来源是已审计的论文复现器 `run_paper_reproduction.py`（8 个客户端、300 题、Prompt 1–5、JSONL 检查点、哈希审计），拆成插件的六个步骤。行为保持不变，只改三处：
+FoT 是第一个算法插件（横向，任务类型：数学推理），以审计复现器为接入依据，拆成下列六个步骤。平台使用可选数据、SDK 模型网关、数据库检查点与任务编排；允许无标注数据，但这一方不计准确率。它是适配实现，不能概括为“原版完全未改”。
 
-1. 数据集从固定的 8 个改为任务里选中的那些；
-2. `answer` 可以缺省（这一方不计准确率）；
-3. 进度和结果交给平台的编排，而不只打印到终端。
+T88 直接读取上游固定提交 `b02753c` 的 `experiment/client.py` 与 `experiment/server_text.py`，在不执行其网络层的情况下调用原提示词方法：无经验库解题、反思、原生提取、归类以及 `author-formula` 经验库生成，与平台相同输入的输出逐字一致。当前回归入口是 `server/tests/test_fot_prompts.py`；原历史复现器文件不在当前仓库，不能把它当作已运行的回归。源码与比对指纹见 [algorithm-source-audit.json](./algorithm-source-audit.json)。
 
-复现器的命令行入口和 `test_reproduction.py` 保留，作为回归测试。它对应上游 FoT 的两个抽象接口：`LocalReasoningClient`（`local_step_1/2/3`）是参与方的三步，`GlobalReasoningServer`（`global_step_1/2/3`）是服务端的三步。
+行为差异还包括：默认 `paper-auto` 把源码 Prompt 5 的公式条数改为让模型决定；`paper-gemini` 与经验上传上限是可选实验控制。汇总默认最多重试 5 次，超过后暂停，而审计复现器默认持续重试；并发、断点与结果校验由平台负责。科研复现实验必须固定参数、模型、数据与判分，提示词比对通过不代表整套运行结果与原版数值等价。上游新封装 `src/fot` 也不等同于这里对照的实验入口。
 
 清单要点（预估字段省略）：
 

@@ -1,0 +1,55 @@
+{
+  "fot": {
+    "commit": "b02753c1f7c0946cbec077e737a4acbcb90f9cc0",
+    "sources": {
+      "experiment-client.py": "461569015308ef799d07b31a811ce7f08cd350262ebd39cb99e83c38016bee8e",
+      "experiment-server_text.py": "45009d8ff2964d1bf05419b2b511e7cdd0f9bb258362ed9ef9dbfa52b8e413b5",
+      "fot_client.py": "135dace42a7780e6893958faa019604c97291ea08e06e509e72d910dde7c4d34",
+      "fot_server.py": "dac7d411fd698693be1909f45f83bc8ad34e7e2a72ae79118fe4ce0ffdd7a05d"
+    },
+    "prompts": {
+      "solve_no_memory": {
+        "equal": true,
+        "upstreamSha256": "433712677fa0418c838f5b8ef7757966b392648fa2797b20aa153f9d46228b52",
+        "platformSha256": "433712677fa0418c838f5b8ef7757966b392648fa2797b20aa153f9d46228b52"
+      },
+      "reflection": {
+        "equal": true,
+        "upstreamSha256": "ef7094969f4f4cbe84fb005013a5234f0b4bde66be9f6eb2823d651fc55b26e7",
+        "platformSha256": "ef7094969f4f4cbe84fb005013a5234f0b4bde66be9f6eb2823d651fc55b26e7"
+      },
+      "trace": {
+        "equal": true,
+        "upstreamSha256": "e56cc06c1db94806399be69500dee3b0a26cba98c8019031a4ea95de6f6f59e3",
+        "platformSha256": "e56cc06c1db94806399be69500dee3b0a26cba98c8019031a4ea95de6f6f59e3"
+      },
+      "profile": {
+        "equal": true,
+        "upstreamSha256": "657f2d476188536a8117edd265dc15293cf94e92a62f974b0d02afe4bc46b128",
+        "platformSha256": "657f2d476188536a8117edd265dc15293cf94e92a62f974b0d02afe4bc46b128"
+      },
+      "library_author_formula": {
+        "equal": true,
+        "upstreamSha256": "6126025d8433713f1b24d000c9003f831d992acdbc97fa9fa7c7660e714cc441",
+        "platformSha256": "6126025d8433713f1b24d000c9003f831d992acdbc97fa9fa7c7660e714cc441"
+      }
+    },
+    "sourceUrls": [
+      "https://github.com/dixiyao/FoT/blob/b02753c1f7c0946cbec077e737a4acbcb90f9cc0/experiment/client.py",
+      "https://github.com/dixiyao/FoT/blob/b02753c1f7c0946cbec077e737a4acbcb90f9cc0/experiment/server_text.py"
+    ]
+  },
+  "evomedclaw": {
+    "commit": "ae333ec635fac5900d2b9f4455080444d28c0392",
+    "uniqueManifestFiles": 38,
+    "originalHashesVerified": 40,
+    "identical": 12,
+    "namespaceOnly": 15,
+    "other": 11,
+    "promptFiles": 25,
+    "promptDifferences": [],
+    "sourceUrl": "https://github.com/xschen-beb/EvoMedClaw/tree/ae333ec635fac5900d2b9f4455080444d28c0392"
+  },
+  "checkedAt": "2026-10-24",
+  "scope": "Pinned experimental implementation comparison; not a full benchmark or numerical equivalence proof"
+}

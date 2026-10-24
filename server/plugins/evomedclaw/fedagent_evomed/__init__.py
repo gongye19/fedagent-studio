@@ -4,7 +4,7 @@ from __future__ import annotations
 import hashlib
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from fedagent_sdk import (
     Algorithm,
@@ -134,7 +134,8 @@ class EvoMedClaw(Algorithm):
     def apply(self, artifact: Artifact | None, request: ApplyRequest, model: Model) -> ApplyResult:
         if not isinstance(request.input, dict):
             raise ValueError("医疗应用需要结构化病例")
-        result, usage = diagnose(MedicalDiagnosis().strip_labels(request.input), artifact.content.get("memory") if artifact else None, model)
+        result, usage = diagnose(MedicalDiagnosis().strip_labels(request.input), artifact.content.get("memory") if artifact else None,
+                                 model, turns=cast(int, self.manifest.params_of({})["maxTurns"]))
         output = re.sub(r"^DIAGNOSIS READY:\s*", "", str(result["predicted_diagnosis"]), flags=re.I)
         return ApplyResult(output, usage,
                            {key: result[key] for key in ("num_turns", "num_tests", "num_consultations")})

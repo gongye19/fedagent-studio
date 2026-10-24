@@ -122,6 +122,30 @@ def test_unfinished_diagnosis_is_an_error():
         diagnose(MedicalDiagnosis().strip_labels(cases()[0]), None, QuestionOnly(), turns=4)
 
 
+def test_application_allows_diagnosis_beyond_legacy_six_turn_limit():
+    from fedagent_evomed import EvoMedClaw
+    from fedagent_sdk import ApplyRequest
+
+    class DeliberateDoctor:
+        name = "deliberate-doctor"
+
+        def __init__(self):
+            self.turns = 0
+
+        def chat(self, prompt, **kwargs):
+            if "local clinic doctor" in prompt[0]["content"]:
+                self.turns += 1
+                answer = "DIAGNOSIS READY: migraine" if self.turns >= 7 else "How long have symptoms lasted?"
+            else:
+                answer = "Recurring headache with light sensitivity."
+            return ChatResult(answer, self.name)
+
+    model = DeliberateDoctor()
+    result = EvoMedClaw().apply(None, ApplyRequest(input=cases()[0]), model)
+    assert result.output == "migraine"
+    assert result.details["num_turns"] == 7
+
+
 def test_medical_full_flow_and_single_invoke(client: TestClient, platform: Platform, remote):
     chosen = [{'participantId': pid, 'datasetId': medical_dataset(client, pid)} for pid in ('p-a', 'p-b')]
     config = {**medical_config(chosen), "execution": "agent", "agentId": remote[0]}
