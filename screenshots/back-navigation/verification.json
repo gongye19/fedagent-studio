@@ -1,0 +1,814 @@
+{
+  "date": "2026-10-25",
+  "localKeyboardNavigation": [
+    {
+      "viewport": 1280,
+      "route": "#/algorithms/fot",
+      "height": 40,
+      "href": "#/algorithms",
+      "label": "返回算法列表",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 1280,
+      "route": "#/algorithms/evomedclaw",
+      "height": 40,
+      "href": "#/algorithms",
+      "label": "返回算法列表",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 1280,
+      "route": "#/tasks/new",
+      "height": 40,
+      "href": "#/tasks",
+      "label": "返回联邦任务",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 1280,
+      "route": "#/tasks/new/horizontal",
+      "height": 39.999996185302734,
+      "href": "#/tasks",
+      "label": "返回联邦任务",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 1280,
+      "route": "#/tasks/new/vertical",
+      "height": 40,
+      "href": "#/tasks",
+      "label": "返回联邦任务",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 1280,
+      "route": "#/tasks/new/transfer",
+      "height": 40,
+      "href": "#/tasks",
+      "label": "返回联邦任务",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 1280,
+      "route": "#/tasks/task-2a491b3b/overview",
+      "height": 40.000003814697266,
+      "href": "#/tasks",
+      "label": "返回联邦任务",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 1280,
+      "route": "#/tasks/task-2a491b3b/progress",
+      "height": 40,
+      "href": "#/tasks",
+      "label": "返回联邦任务",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 1280,
+      "route": "#/tasks/task-2a491b3b/output",
+      "height": 40,
+      "href": "#/tasks",
+      "label": "返回联邦任务",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 1280,
+      "route": "#/tasks/task-2a491b3b/config",
+      "height": 40,
+      "href": "#/tasks",
+      "label": "返回联邦任务",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 1280,
+      "route": "#/apps/app-0b931da7/try",
+      "height": 40,
+      "href": "#/apps",
+      "label": "返回应用",
+      "overflow": false,
+      "width": 94,
+      "returned": true
+    },
+    {
+      "viewport": 1280,
+      "route": "#/apps/app-0b931da7/content",
+      "height": 40,
+      "href": "#/apps",
+      "label": "返回应用",
+      "overflow": false,
+      "width": 94,
+      "returned": true
+    },
+    {
+      "viewport": 1280,
+      "route": "#/apps/app-0b931da7/integrate",
+      "height": 40,
+      "href": "#/apps",
+      "label": "返回应用",
+      "overflow": false,
+      "width": 94,
+      "returned": true
+    },
+    {
+      "viewport": 1280,
+      "route": "#/models/new",
+      "height": 40,
+      "href": "#/models",
+      "label": "返回LLM 接口",
+      "overflow": false,
+      "width": 122.9453125,
+      "returned": true
+    },
+    {
+      "viewport": 1280,
+      "route": "#/models/default/edit",
+      "height": 40,
+      "href": "#/models/public",
+      "label": "返回LLM 接口",
+      "overflow": false,
+      "width": 122.9453125,
+      "returned": true
+    },
+    {
+      "viewport": 1280,
+      "route": "#/models/new?from=new-task",
+      "height": 40.000003814697266,
+      "href": "#/tasks/new/horizontal",
+      "label": "返回任务配置",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 1280,
+      "route": "#/models/default/edit?from=new-task",
+      "height": 40,
+      "href": "#/tasks/new/horizontal",
+      "label": "返回任务配置",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 1280,
+      "route": "#/participants/new",
+      "height": 40.000003814697266,
+      "href": "#/participants",
+      "label": "返回参与方与数据",
+      "overflow": false,
+      "width": 146,
+      "returned": true
+    },
+    {
+      "viewport": 1280,
+      "route": "#/participants/new?from=new-task",
+      "height": 40,
+      "href": "#/tasks/new/horizontal",
+      "label": "返回任务配置",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 1280,
+      "route": "#/datasets/new",
+      "height": 40,
+      "href": "#/participants",
+      "label": "返回参与方与数据",
+      "overflow": false,
+      "width": 146,
+      "returned": true
+    },
+    {
+      "viewport": 1280,
+      "route": "#/datasets/new?from=new-task",
+      "height": 40,
+      "href": "#/tasks/new/horizontal",
+      "label": "返回任务配置",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 1280,
+      "route": "#/participants/horizontal/p-h",
+      "height": 40,
+      "href": "#/participants",
+      "label": "返回参与方与数据",
+      "overflow": false,
+      "width": 146,
+      "returned": true
+    },
+    {
+      "viewport": 1280,
+      "route": "#/resources/public/data/ds-v202505hard",
+      "height": 40,
+      "href": "#/resources/public/data",
+      "label": "返回数据资源",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 1280,
+      "route": "#/tasks/not-present",
+      "height": 40,
+      "href": "#/tasks",
+      "label": "返回联邦任务",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 1280,
+      "route": "#/apps/not-present",
+      "height": 40.000003814697266,
+      "href": "#/apps",
+      "label": "返回应用",
+      "overflow": false,
+      "width": 94,
+      "returned": true
+    },
+    {
+      "viewport": 1280,
+      "route": "#/algorithms/not-present",
+      "height": 40,
+      "href": "#/algorithms",
+      "label": "返回算法列表",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 1280,
+      "route": "#/models/not-present/edit",
+      "height": 40,
+      "href": "#/models",
+      "label": "返回LLM 接口",
+      "overflow": false,
+      "width": 122.9453125,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/algorithms/fot",
+      "height": 44,
+      "href": "#/algorithms",
+      "label": "返回算法列表",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/algorithms/evomedclaw",
+      "height": 44,
+      "href": "#/algorithms",
+      "label": "返回算法列表",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/tasks/new",
+      "height": 44,
+      "href": "#/tasks",
+      "label": "返回联邦任务",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/tasks/new/horizontal",
+      "height": 44,
+      "href": "#/tasks",
+      "label": "返回联邦任务",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/tasks/new/vertical",
+      "height": 44,
+      "href": "#/tasks",
+      "label": "返回联邦任务",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/tasks/new/transfer",
+      "height": 44,
+      "href": "#/tasks",
+      "label": "返回联邦任务",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/tasks/task-2a491b3b/overview",
+      "height": 44,
+      "href": "#/tasks",
+      "label": "返回联邦任务",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/tasks/task-2a491b3b/progress",
+      "height": 44,
+      "href": "#/tasks",
+      "label": "返回联邦任务",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/tasks/task-2a491b3b/output",
+      "height": 44,
+      "href": "#/tasks",
+      "label": "返回联邦任务",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/tasks/task-2a491b3b/config",
+      "height": 44,
+      "href": "#/tasks",
+      "label": "返回联邦任务",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/apps/app-0b931da7/try",
+      "height": 44,
+      "href": "#/apps",
+      "label": "返回应用",
+      "overflow": false,
+      "width": 94,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/apps/app-0b931da7/content",
+      "height": 44,
+      "href": "#/apps",
+      "label": "返回应用",
+      "overflow": false,
+      "width": 94,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/apps/app-0b931da7/integrate",
+      "height": 44,
+      "href": "#/apps",
+      "label": "返回应用",
+      "overflow": false,
+      "width": 94,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/models/new",
+      "height": 44,
+      "href": "#/models",
+      "label": "返回LLM 接口",
+      "overflow": false,
+      "width": 122.9453125,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/models/default/edit",
+      "height": 44,
+      "href": "#/models/public",
+      "label": "返回LLM 接口",
+      "overflow": false,
+      "width": 122.9453125,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/models/new?from=new-task",
+      "height": 44,
+      "href": "#/tasks/new/horizontal",
+      "label": "返回任务配置",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/models/default/edit?from=new-task",
+      "height": 44,
+      "href": "#/tasks/new/horizontal",
+      "label": "返回任务配置",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/participants/new",
+      "height": 44,
+      "href": "#/participants",
+      "label": "返回参与方与数据",
+      "overflow": false,
+      "width": 146,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/participants/new?from=new-task",
+      "height": 44,
+      "href": "#/tasks/new/horizontal",
+      "label": "返回任务配置",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/datasets/new",
+      "height": 44,
+      "href": "#/participants",
+      "label": "返回参与方与数据",
+      "overflow": false,
+      "width": 146,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/datasets/new?from=new-task",
+      "height": 44,
+      "href": "#/tasks/new/horizontal",
+      "label": "返回任务配置",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/participants/horizontal/p-h",
+      "height": 44,
+      "href": "#/participants",
+      "label": "返回参与方与数据",
+      "overflow": false,
+      "width": 146,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/resources/public/data/ds-v202505hard",
+      "height": 44,
+      "href": "#/resources/public/data",
+      "label": "返回数据资源",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/tasks/not-present",
+      "height": 44,
+      "href": "#/tasks",
+      "label": "返回联邦任务",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/apps/not-present",
+      "height": 44,
+      "href": "#/apps",
+      "label": "返回应用",
+      "overflow": false,
+      "width": 94,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/algorithms/not-present",
+      "height": 44,
+      "href": "#/algorithms",
+      "label": "返回算法列表",
+      "overflow": false,
+      "width": 120,
+      "returned": true
+    },
+    {
+      "viewport": 390,
+      "route": "#/models/not-present/edit",
+      "height": 44,
+      "href": "#/models",
+      "label": "返回LLM 接口",
+      "overflow": false,
+      "width": 122.9453125,
+      "returned": true
+    }
+  ],
+  "localTopLevelPages": [
+    {
+      "route": "#/",
+      "width": 1280,
+      "backCount": 0
+    },
+    {
+      "route": "#/tasks",
+      "width": 1280,
+      "backCount": 0
+    },
+    {
+      "route": "#/apps",
+      "width": 1280,
+      "backCount": 0
+    },
+    {
+      "route": "#/algorithms",
+      "width": 1280,
+      "backCount": 0
+    },
+    {
+      "route": "#/models",
+      "width": 1280,
+      "backCount": 0
+    },
+    {
+      "route": "#/agents",
+      "width": 1280,
+      "backCount": 0
+    },
+    {
+      "route": "#/resources/mine/data",
+      "width": 1280,
+      "backCount": 0
+    },
+    {
+      "route": "#/participants",
+      "width": 1280,
+      "backCount": 0
+    },
+    {
+      "route": "#/",
+      "width": 390,
+      "backCount": 0
+    },
+    {
+      "route": "#/tasks",
+      "width": 390,
+      "backCount": 0
+    },
+    {
+      "route": "#/apps",
+      "width": 390,
+      "backCount": 0
+    },
+    {
+      "route": "#/algorithms",
+      "width": 390,
+      "backCount": 0
+    },
+    {
+      "route": "#/models",
+      "width": 390,
+      "backCount": 0
+    },
+    {
+      "route": "#/agents",
+      "width": 390,
+      "backCount": 0
+    },
+    {
+      "route": "#/resources/mine/data",
+      "width": 390,
+      "backCount": 0
+    },
+    {
+      "route": "#/participants",
+      "width": 390,
+      "backCount": 0
+    }
+  ],
+  "productionClickNavigation": [
+    {
+      "route": "#/algorithms/fot",
+      "width": 1280,
+      "height": 40,
+      "href": "#/algorithms",
+      "overflow": false,
+      "returned": true
+    },
+    {
+      "route": "#/algorithms/evomedclaw",
+      "width": 1280,
+      "height": 40,
+      "href": "#/algorithms",
+      "overflow": false,
+      "returned": true
+    },
+    {
+      "route": "#/tasks/new",
+      "width": 1280,
+      "height": 40,
+      "href": "#/tasks",
+      "overflow": false,
+      "returned": true
+    },
+    {
+      "route": "#/tasks/new/vertical",
+      "width": 1280,
+      "height": 39.999996185302734,
+      "href": "#/tasks",
+      "overflow": false,
+      "returned": true
+    },
+    {
+      "route": "#/tasks/task-15f1c77d",
+      "width": 1280,
+      "height": 40.000003814697266,
+      "href": "#/tasks",
+      "overflow": false,
+      "returned": true
+    },
+    {
+      "route": "#/tasks/task-15f1c77d/output",
+      "width": 1280,
+      "height": 40,
+      "href": "#/tasks",
+      "overflow": false,
+      "returned": true
+    },
+    {
+      "route": "#/models/new",
+      "width": 1280,
+      "height": 40,
+      "href": "#/models",
+      "overflow": false,
+      "returned": true
+    },
+    {
+      "route": "#/participants/new",
+      "width": 1280,
+      "height": 40,
+      "href": "#/participants",
+      "overflow": false,
+      "returned": true
+    },
+    {
+      "route": "#/datasets/new",
+      "width": 1280,
+      "height": 40,
+      "href": "#/participants",
+      "overflow": false,
+      "returned": true
+    },
+    {
+      "route": "#/resources/public/data/ds-v202505hard",
+      "width": 1280,
+      "height": 40,
+      "href": "#/resources/public/data",
+      "overflow": false,
+      "returned": true
+    },
+    {
+      "route": "#/apps/not-present",
+      "width": 1280,
+      "height": 40,
+      "href": "#/apps",
+      "overflow": false,
+      "returned": true
+    },
+    {
+      "route": "#/algorithms/fot",
+      "width": 390,
+      "height": 44,
+      "href": "#/algorithms",
+      "overflow": false,
+      "returned": true
+    },
+    {
+      "route": "#/algorithms/evomedclaw",
+      "width": 390,
+      "height": 44,
+      "href": "#/algorithms",
+      "overflow": false,
+      "returned": true
+    },
+    {
+      "route": "#/tasks/new",
+      "width": 390,
+      "height": 44,
+      "href": "#/tasks",
+      "overflow": false,
+      "returned": true
+    },
+    {
+      "route": "#/tasks/new/vertical",
+      "width": 390,
+      "height": 44,
+      "href": "#/tasks",
+      "overflow": false,
+      "returned": true
+    },
+    {
+      "route": "#/tasks/task-15f1c77d",
+      "width": 390,
+      "height": 44,
+      "href": "#/tasks",
+      "overflow": false,
+      "returned": true
+    },
+    {
+      "route": "#/tasks/task-15f1c77d/output",
+      "width": 390,
+      "height": 44,
+      "href": "#/tasks",
+      "overflow": false,
+      "returned": true
+    },
+    {
+      "route": "#/models/new",
+      "width": 390,
+      "height": 44,
+      "href": "#/models",
+      "overflow": false,
+      "returned": true
+    },
+    {
+      "route": "#/participants/new",
+      "width": 390,
+      "height": 44,
+      "href": "#/participants",
+      "overflow": false,
+      "returned": true
+    },
+    {
+      "route": "#/datasets/new",
+      "width": 390,
+      "height": 44,
+      "href": "#/participants",
+      "overflow": false,
+      "returned": true
+    },
+    {
+      "route": "#/resources/public/data/ds-v202505hard",
+      "width": 390,
+      "height": 44,
+      "href": "#/resources/public/data",
+      "overflow": false,
+      "returned": true
+    },
+    {
+      "route": "#/apps/not-present",
+      "width": 390,
+      "height": 44,
+      "href": "#/apps",
+      "overflow": false,
+      "returned": true
+    }
+  ],
+  "staticAssetsMatching": 17,
+  "frontendTests": 43,
+  "productionDataUnchanged": true,
+  "paidModelCalls": 0,
+  "notes": [
+    "本地任务／应用仅由隔离假模型生成并按归属清理。",
+    "生产应用0，实际应用详情三标签在本地验证；线上复核对象不存在的返回。",
+    "没有通过旧CDP脚本操作浏览器，没有重新运行未改动的后端检查。"
+  ]
+}

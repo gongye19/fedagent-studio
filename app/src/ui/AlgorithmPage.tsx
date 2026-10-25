@@ -14,7 +14,7 @@ export default function AlgorithmPage({ algorithm }: { algorithm: Algorithm }) {
   return (
     <>
       <PageHead
-        crumbs={[{ label: "算法", route: { page: "algorithms" } }]}
+        back={{ label: "算法列表", route: { page: "algorithms" } }}
         title={algorithm.name}
         status={<Tag>{scenarioOf(algorithm.scenario).name}</Tag>}
         meta={algorithm.summary}

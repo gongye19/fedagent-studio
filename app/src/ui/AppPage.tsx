@@ -71,7 +71,7 @@ export default function AppPage({ item, task, state, tab }: Props) {
   return (
     <>
       <PageHead
-        crumbs={[{ label: "应用", route: { page: "apps" } }]}
+        back={{ label: "应用", route: { page: "apps" } }}
         title={item.name}
         meta={<Meta parts={[
           scenarioOf(item.scenario).short,

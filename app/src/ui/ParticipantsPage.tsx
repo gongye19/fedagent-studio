@@ -43,6 +43,7 @@ export default function ParticipantsPage({ state, selectedId }: Props) {
     <>
       <PageHead
         title="参与方与数据"
+        back={selectedId ? {label: "参与方与数据", route: {page: "participants"}} : undefined}
         meta="管理参与方及其数据集。"
         actions={(
           <>

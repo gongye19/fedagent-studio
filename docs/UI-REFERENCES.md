@@ -320,3 +320,5 @@ T87继续沿用T62／T67／T68已确认的控制台、菜单和逐行配置，�
 2026-10-25用户明确要求使用 https://github.com/ythx-101/live-panel-skill 。使用固定439c9add渲染器与自绘的FoT／EvoMed横向执行流程，不借用仓库的Codex／Airbnb／小红书示例设计。页面继续沿用既有控制台、Panel和details，不引入新的Mobbin主视觉参考、聊天／监控或其他产品功能。来源与MIT声明在tools/algorithm-diagrams/vendor及/licenses/live-panel.txt，五项交付物见FLOW T89。图为非实时说明，未接入功能只在原版范围说明中解释。
 
 T90密度修订沿用T89的live-panel和既有控制台组件，没有新增主参考；用户明确要求缩图、少文字。压缩内部间距并限制宽度，说明固定三行，技术参数默认收起；不是换视觉方向。
+
+T91沿用已确认控制台风格与既有PageHead／次级按钮，将小面包屑统一替换为明确返回上级；不新增主参考或第三方组件。箭头复用同一SVG图标体系，桌面与手机命中区统一检查。

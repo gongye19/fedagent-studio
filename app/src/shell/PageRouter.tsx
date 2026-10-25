@@ -1,5 +1,5 @@
 import { type Dispatch } from "react";
-import { hrefOf, type Route } from "../state/route";
+import { type Route } from "../state/route";
 import { taskOf, type Action, type State } from "../state/store";
 import { ALGORITHMS, scenarioOf, type ScenarioId } from "../domain/catalog";
 import AlgorithmPage from "../ui/AlgorithmPage";
@@ -70,7 +70,7 @@ export function PageRouter({ state, dispatch, route }: { state: State; dispatch:
       return algorithm ? (
         <AlgorithmPage algorithm={algorithm} />
       ) : (
-        <NotFound kind="算法" back={{ page: "algorithms" }} backLabel="算法" />
+        <NotFound kind="算法" back={{ page: "algorithms" }} backLabel="算法列表" />
       );
     }
     case "models":
@@ -91,15 +91,8 @@ function PlannedTaskConfig({ scenario }: { scenario: ScenarioId }) {
   const item = scenarioOf(scenario);
   return (
     <>
-      <PageHead title={`新建${item.short}任务`} crumbs={[{ label: "联邦任务", route: { page: "tasks" } }]} />
-      <EmptyState
-        title="暂时不能新建"
-        action={
-          <a className="button button--secondary" href={hrefOf({ page: "tasks" })}>
-            返回联邦任务
-          </a>
-        }
-      >
+      <PageHead title={`新建${item.short}任务`} back={{ label: "联邦任务", route: { page: "tasks" } }} />
+      <EmptyState title="暂时不能新建">
         <p>{item.short}的算法还在规划中，接入后在这里配置这个场景的任务。</p>
       </EmptyState>
     </>

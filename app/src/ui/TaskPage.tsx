@@ -75,7 +75,7 @@ export default function TaskPage({ task, state, dispatch, tab }: Props) {
   return (
     <>
       <PageHead
-        crumbs={[{ label: "联邦任务", route: { page: "tasks" } }]}
+        back={{ label: "联邦任务", route: { page: "tasks" } }}
         title={task.name}
         status={<>{task.fake ? <Tag>假模型</Tag> : null}<TaskStatus task={task} /></>}
         meta={<Meta parts={[

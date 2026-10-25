@@ -80,7 +80,7 @@ export default function TaskConfigPage({
     <>
       <PageHead
         title="新建联邦任务"
-        crumbs={[{ label: "联邦任务", route: { page: "tasks" } }]}
+        back={{ label: "联邦任务", route: { page: "tasks" } }}
       />
       <div className="order-layout task-config" ref={formRef}>
         <div className="order-main">

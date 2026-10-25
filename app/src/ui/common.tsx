@@ -30,10 +30,11 @@ const PRODUCT = "FedAgent Studio";
 
 /** 页面标题：同时写进浏览器标签页的标题，多开标签页和读屏时都能分清是哪一页。 */
 export function PageHead({
-  title, crumbs, status, meta, actions, className,
+  title, back, status, meta, actions, className,
 }: {
   title: string;
-  crumbs?: readonly { label: string; route: Route }[];
+  /** 下级页面必须提供明确的上级入口，不依赖浏览器历史。 */
+  back?: { label: string; route: Route };
   status?: ReactNode;
   meta?: ReactNode;
   actions?: ReactNode;
@@ -46,9 +47,11 @@ export function PageHead({
   return (
     <header className={`page-head${className ? ` ${className}` : ""}`}>
       <div className="page-title">
-        {crumbs?.length ? (
-          <nav className="crumbs" aria-label="位置">
-            {crumbs.map((crumb) => <a key={crumb.label} href={hrefOf(crumb.route)}>{crumb.label}</a>)}
+        {back ? (
+          <nav className="page-back" aria-label="返回上级">
+            <a className="button button--secondary button--compact" href={hrefOf(back.route)}>
+              <Icon name="back" />返回{back.label}
+            </a>
           </nav>
         ) : null}
         <div className="page-title-row">
@@ -191,8 +194,8 @@ export function Facts({ items, className }: { items: readonly (readonly [string,
 export function NotFound({ kind, back, backLabel }: { kind: string; back: Route; backLabel: string }) {
   return (
     <>
-      <PageHead title={`没有找到这个${kind}`} crumbs={[{ label: backLabel, route: back }]} />
-      <EmptyState title="可能已被删除" action={<a className="button button--secondary" href={hrefOf(back)}>返回{backLabel}</a>} />
+      <PageHead title={`没有找到这个${kind}`} back={{ label: backLabel, route: back }} />
+      <EmptyState title="可能已被删除" />
     </>
   );
 }

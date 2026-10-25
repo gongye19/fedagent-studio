@@ -130,7 +130,7 @@ export function EndpointForm({ state, endpoint, from, onSaved, onCancel, onBusyC
   ) : null;
   return (
     <>
-      {!onSaved ? <PageHead title={title} crumbs={[{ label: endpoint?.resourceSpace === "workspace" && !from ? "我的 LLM 接口" : "LLM 接口", route: back }]} actions={actions} /> : null}
+      {!onSaved ? <PageHead title={title} back={{ label: from === "newTask" ? "任务配置" : "LLM 接口", route: back }} actions={actions} /> : null}
       {testError ? <Notice tone="warning" onDismiss={() => setTestError(null)}>{`测试失败：${testError}`}</Notice> : null}
       {removing && endpoint ? (
         <Confirm title={`删除“${endpoint.name}”？`} confirmLabel="删除" onConfirm={() => remove()} onCancel={() => setRemoving(false)}>

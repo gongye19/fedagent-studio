@@ -41,6 +41,7 @@ export default function ResourcesPage({
     <>
       <PageHead
         title="数据资源"
+        back={selectedId ? {label: "数据资源", route: route()} : undefined}
         meta={
           own
             ? "接入一次，后续任务可直接选择使用。"

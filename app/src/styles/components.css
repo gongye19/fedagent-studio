@@ -1,10 +1,11 @@
 /* ——— 页面头部 ——— */
 .page-head { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-6); align-items: center; justify-content: space-between; padding-bottom: var(--space-5); border-bottom: 1px solid var(--border); }
 .page-title { display: grid; gap: 6px; min-width: 0; max-width: 100%; }
-.crumbs { display: flex; gap: 6px; font-size: var(--text-sm); }
-.crumbs a { color: var(--muted); text-decoration: none; }
-.crumbs a:hover { color: var(--foreground); text-decoration: underline; }
-.crumbs a::after { content: " /"; color: var(--faint); }
+.page-back { display: flex; }
+.page-back .button { min-height: 40px; font-size: var(--text-sm); }
+@media (max-width: 720px) {
+  .page-back .button { min-height: 44px; }
+}
 .page-title-row { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; min-width: 0; }
 .page-title-row h1 { min-width: 0; max-width: 100%; overflow-wrap: anywhere; font-size: var(--text-xl); line-height: 1.35; letter-spacing: -.01em; }
 .page-meta { max-width: var(--measure); color: var(--secondary); font-size: var(--text-sm); }

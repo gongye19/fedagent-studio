@@ -1,5 +1,5 @@
 /** 统一线宽的小图标，替代 ✓ ✕ ! 这类字符。 */
-export type IconName = "check" | "x" | "alert" | "chevron" | "plus" | "minus" | "arrow" | "download" | "pause" | "play" | "stop" | "copy" | "upload" | "home" | "tasks" | "apps" | "manage" | "participants" | "algorithm" | "model" | "search" | "info" | "resources";
+export type IconName = "check" | "x" | "alert" | "chevron" | "plus" | "minus" | "arrow" | "back" | "download" | "pause" | "play" | "stop" | "copy" | "upload" | "home" | "tasks" | "apps" | "manage" | "participants" | "algorithm" | "model" | "search" | "info" | "resources";
 
 const PATHS: Record<IconName, string> = {
   resources: "M2.5 4.5V3H6L7.5 4.5H13.5V13H2.5Z",
@@ -10,6 +10,7 @@ const PATHS: Record<IconName, string> = {
   plus: "M8 3.5V12.5M3.5 8H12.5",
   minus: "M3.5 8H12.5",
   arrow: "M3 8H13M9.5 4.5 13 8 9.5 11.5",
+  back: "M13 8H3M6.5 4.5 3 8 6.5 11.5",
   download: "M8 2.5V10M4.75 7 8 10.25 11.25 7M3 13H13",
   pause: "M5.5 3.5V12.5M10.5 3.5V12.5",
   play: "M5 3.5 12 8 5 12.5Z",

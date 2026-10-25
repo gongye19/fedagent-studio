@@ -26,6 +26,7 @@ export default function NewDatasetPage({ state, dispatch, participant, from }: P
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const back = backTo(from, { page: "participants" }, state.draft.scenario);
 
   async function save() {
     if (!owner || missing.length || saving) return;
@@ -57,7 +58,7 @@ export default function NewDatasetPage({ state, dispatch, participant, from }: P
 
   return (
     <>
-      <PageHead title="新增数据集" crumbs={[{ label: "参与方与数据", route: { page: "participants" } }]} />
+      <PageHead title="新增数据集" back={{ label: from === "newTask" ? "任务配置" : "参与方与数据", route: back }} />
       <div className="form-page">
         <Panel title="数据集">
           <div className="form-body">
@@ -84,7 +85,7 @@ export default function NewDatasetPage({ state, dispatch, participant, from }: P
           </div>
         </Panel>
 
-        <FormActions missing={missing} saving={saving} error={error} saveLabel="保存数据集" onCancel={() => navigate(backTo(from, { page: "participants" }, state.draft.scenario))} onSave={() => void save()} />
+        <FormActions missing={missing} saving={saving} error={error} saveLabel="保存数据集" onCancel={() => navigate(back)} onSave={() => void save()} />
       </div>
     </>
   );

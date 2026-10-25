@@ -37,6 +37,7 @@ export default function NewParticipantPage({ state, dispatch, from }: Props) {
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const back = backTo(from, { page: "participants" }, state.draft.scenario);
 
   async function save() {
     if (missing.length || saving || !hosting) return;
@@ -76,7 +77,7 @@ export default function NewParticipantPage({ state, dispatch, from }: Props) {
 
   return (
     <>
-      <PageHead title="新增参与方" crumbs={[{ label: "参与方与数据", route: { page: "participants" } }]} />
+      <PageHead title="新增参与方" back={{ label: from === "newTask" ? "任务配置" : "参与方与数据", route: back }} />
       <div className="form-page">
         <Panel title="基本信息">
           <div className="form-body">
@@ -108,7 +109,7 @@ export default function NewParticipantPage({ state, dispatch, from }: Props) {
           </Panel>
         ) : null}
 
-        <FormActions missing={missing} saving={saving} error={error} saveLabel="保存参与方" onCancel={() => navigate(backTo(from, { page: "participants" }, state.draft.scenario))} onSave={() => void save()} />
+        <FormActions missing={missing} saving={saving} error={error} saveLabel="保存参与方" onCancel={() => navigate(back)} onSave={() => void save()} />
       </div>
     </>
   );
