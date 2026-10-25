@@ -719,3 +719,11 @@ preparation在已登记Agent能力为空时直接拒绝测试／创建，引导�
 DEFAULT_DRAFT的clientModel／serverModel为空，DEFAULT_MODEL只保留历史／用户已选引用语义。chooseScenario／chooseAlgorithm／chooseTaskType接受null，UI将取消显式传入领域函数；不同任务变化保留算法参数并清理资源，同值调用保持幂等。任务模型缺项由本地校验和后端既有接口校验阻止，ResourceModels按角色原位显示缺项，模型选择不会触发真实调用。
 
 state/draft的selectionVersion独立于任务HTTP契约，decodeDraft只迁移浏览器旧模型默认值，本版显式选择继续恢复；清除场景时导航通用入口，避免刷新重新应用首页场景。Choices／SelectField／ModelPicker可选onClear而非改变所有业务控件语义，Agent行在清Agent时同步清数据；AppPage试用模型不取第一个候选为默认值。任务创建、冻结资源、执行及历史兼容接口保持不变。
+
+## 32. 算法流程可视化（T89／D85）
+
+AlgorithmPage组合ui/algorithm/AlgorithmFlow，guides保存算法用途、例子、原版与当前范围；只解释，不修改注册表或任务配置。已登记FoT和EvoMedClaw的图由tools/algorithm-diagrams/build.py生成，独立桌面／手机HTML放public/algorithm-diagrams，尺寸和哈希同步生成到diagram-assets.json。未来新增算法可增加配置与guide；没有专用图时退回现有注册表步骤，不请求未知文件。
+
+live-panel模板固定439c9add、原样存于vendor；使用自绘布局，没有复制示例产品图或字体。生成过程嵌入配置、CSP及单独controller，输出不需要第三方CDN。iframe sandbox仅allow-scripts、无allow-same-origin，connect-src为none；父子消息只识别自己的frame/source。动画时钟独立于任务，父组件控制播放与可见性，子组件处理后台页签／减少动态；检测到非零尺寸并完成原渲染器DOM检查后才报就绪。
+
+加载和失败原位反馈，下方文字步骤始终可打开；页面无监控计数或虚假进度。prebuild检查生成文件和尺寸哈希，避免只改源或只改HTML。播放、安全边界、零尺寸与减少动态由离线VM回归覆盖；实际图形通过浏览器和渲染器__check核验，不把VM测试当作视觉验证。

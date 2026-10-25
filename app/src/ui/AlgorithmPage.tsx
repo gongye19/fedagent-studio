@@ -1,14 +1,16 @@
+import type { ReactNode } from "react";
 import { defaultParams, paramText, scenarioOf, TASK_TYPES, type Algorithm } from "../domain/catalog";
 import { Facts, Meta, PageHead, Tag } from "./common";
 import { Panel } from "./console";
+import { AlgorithmFlow } from "./algorithm/AlgorithmFlow";
 
-/** 算法详情：概况、每轮步骤、参数（默认值和说明）、来源。页面只读注册表，不针对某个算法写死。 */
+/** 算法详情组合注册表信息与独立流程说明，不触发任务执行。 */
 export default function AlgorithmPage({ algorithm }: { algorithm: Algorithm }) {
   const defaults = defaultParams(algorithm);
-  const sides = [
-    { label: "参与方", stages: algorithm.stages.filter((stage) => stage.side === "participant") },
-    { label: "服务端", stages: algorithm.stages.filter((stage) => stage.side === "server") },
-  ];
+  const sources: [string, ReactNode][] = [["代码", <a key="code" className="text-link" href={algorithm.source.codeUrl} title={algorithm.source.code} target="_blank" rel="noreferrer">{algorithm.name} 源码</a>]];
+  if (algorithm.source.paper && algorithm.source.paperUrl) sources.unshift([
+    "论文", <a key="paper" className="text-link" href={algorithm.source.paperUrl} target="_blank" rel="noreferrer">{algorithm.source.paper}</a>,
+  ]);
   return (
     <>
       <PageHead
@@ -18,6 +20,7 @@ export default function AlgorithmPage({ algorithm }: { algorithm: Algorithm }) {
         meta={algorithm.summary}
       />
       <div className="panel-stack">
+        <AlgorithmFlow algorithm={algorithm} />
         <Panel title="概况">
           <Facts className="facts--columns" items={[
             ["全称", <span key="full" translate="no">{algorithm.fullName}</span>],
@@ -28,24 +31,6 @@ export default function AlgorithmPage({ algorithm }: { algorithm: Algorithm }) {
             ["数据来源", `至少 ${algorithm.minParticipants} 个`],
             ["轮次", <Meta key="rounds" parts={[`${algorithm.minRounds}–${algorithm.maxRounds} 轮`,"第 1 轮为本地基线"]} />],
           ]} />
-        </Panel>
-
-        <Panel title="每轮步骤" extra={`共 ${algorithm.stages.length} 步`}>
-          <div className="algo-steps">
-            {sides.map((side) => (
-              <div key={side.label} className="algo-steps-group">
-                <h3>{side.label}</h3>
-                <ol>
-                  {side.stages.map((stage) => (
-                    <li key={stage.id}>
-                      <span className="algo-step-index" aria-hidden="true">{algorithm.stages.indexOf(stage) + 1}</span>
-                      <span>{stage.label}</span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            ))}
-          </div>
         </Panel>
 
         <Panel title="参数" extra="新建任务时在高级配置里调整" flush>
@@ -72,10 +57,7 @@ export default function AlgorithmPage({ algorithm }: { algorithm: Algorithm }) {
         </Panel>
 
         <Panel title="来源">
-          <Facts items={[
-            ["论文", <a key="paper" className="text-link" href={algorithm.source.paperUrl} target="_blank" rel="noreferrer">{algorithm.source.paper}</a>],
-            ["代码", <a key="code" className="text-link" href={algorithm.source.codeUrl} title={algorithm.source.code} target="_blank" rel="noreferrer">{algorithm.name} 源码</a>],
-          ]} />
+          <Facts items={sources} />
         </Panel>
       </div>
     </>

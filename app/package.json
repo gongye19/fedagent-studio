@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 8880",
+    "diagrams:build": "python3 ../tools/algorithm-diagrams/build.py",
+    "diagrams:check": "python3 ../tools/algorithm-diagrams/build.py --check",
+    "prebuild": "npm run diagrams:check",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",

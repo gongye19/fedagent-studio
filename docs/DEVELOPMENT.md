@@ -266,3 +266,11 @@ MEDICAL_AGENT_TOKEN可由接入方在服务环境中配置Bearer鉴权；平台�
 T82真实检查发现默认6回合下病例未形成最终诊断，正式任务被拦截。补充error_code安全映射，使用户得到问诊上限／模型连接／输出规范的修正建议，远程自由错误不直接显示；预检确认首个失败后不继续发出付费请求，并保留报告待主动重测。医疗重测采用12回合，未跳过诊断和经验输出校验。浏览器验证脚本现在在提交后立即记录报告ID、失败立即退出，避免等到成功按钮超时或遗漏失败报告。
 
 最终真实验证与限制见T82／HANDOFF：新病例未收敛不能隐去，两个原API的功能核对使用各自任务留出病例。加载版本与检索命中分开记录；小样本不能证明诊断提升。医疗默认上限现为12，服务与任务可在4–12内配置。
+
+## 算法架构流程图（T89）
+
+- `npm --prefix app run diagrams:build`：从tools/algorithm-diagrams/build.py生成四个独立HTML和尺寸／哈希清单。
+- `npm --prefix app run diagrams:check`：只检查生成文件没有过期；npm run build的prebuild自动执行。不需要Chrome、ffmpeg、模型或额外Python包。
+- 不直接修改public下的生成HTML；渲染模板原样保留，播放适配写controller.js。新算法补配置与ui/algorithm/guides.ts，通用页面不写算法条件分支。
+- 图形检查先确认iframe非零尺寸，再查看其`#stage[data-layout-problems]`（来自上游DOM检查）；桌面1280／手机390均应为空。浏览器实际核对暂停／恢复、键盘details、无横向溢出和加载状态，配合离线controller.test.ts验证消息来源、离屏／后台、减少动态与零尺寸保护。
+- live-panel原脚本会直接启动Chrome；本次通过当前会话的浏览器工具实际检查页面及相同DOM检查器，没有宣称执行120帧／MP4导出检查。图只做说明，不能接入真实任务状态或显示无来源的指标。

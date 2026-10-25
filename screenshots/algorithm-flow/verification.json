@@ -1,0 +1,169 @@
+{
+  "date": "2026-10-25",
+  "localBrowserLayout": [
+    {
+      "algorithm": "fot",
+      "width": 1280,
+      "problems": [],
+      "overflow": false,
+      "source": "/algorithm-diagrams/fot.html?manual=1&attempt=0",
+      "stacked": false
+    },
+    {
+      "algorithm": "fot",
+      "width": 1024,
+      "problems": [],
+      "overflow": false,
+      "source": "/algorithm-diagrams/fot-mobile.html?manual=1&attempt=0",
+      "stacked": true
+    },
+    {
+      "algorithm": "fot",
+      "width": 900,
+      "problems": [],
+      "overflow": false,
+      "source": "/algorithm-diagrams/fot.html?manual=1&attempt=0",
+      "stacked": false
+    },
+    {
+      "algorithm": "fot",
+      "width": 800,
+      "problems": [],
+      "overflow": false,
+      "source": "/algorithm-diagrams/fot-mobile.html?manual=1&attempt=0",
+      "stacked": true
+    },
+    {
+      "algorithm": "fot",
+      "width": 768,
+      "problems": [],
+      "overflow": false,
+      "source": "/algorithm-diagrams/fot-mobile.html?manual=1&attempt=0",
+      "stacked": true
+    },
+    {
+      "algorithm": "fot",
+      "width": 640,
+      "problems": [],
+      "overflow": false,
+      "source": "/algorithm-diagrams/fot-mobile.html?manual=1&attempt=0",
+      "stacked": true
+    },
+    {
+      "algorithm": "fot",
+      "width": 390,
+      "problems": [],
+      "overflow": false,
+      "source": "/algorithm-diagrams/fot-mobile.html?manual=1&attempt=0",
+      "stacked": true
+    },
+    {
+      "algorithm": "fot",
+      "width": 360,
+      "problems": [],
+      "overflow": false,
+      "source": "/algorithm-diagrams/fot-mobile.html?manual=1&attempt=0",
+      "stacked": true
+    },
+    {
+      "algorithm": "fot",
+      "width": 320,
+      "problems": [],
+      "overflow": false,
+      "source": "/algorithm-diagrams/fot-mobile.html?manual=1&attempt=0",
+      "stacked": true
+    },
+    {
+      "algorithm": "evomedclaw",
+      "width": 1280,
+      "problems": [],
+      "overflow": false,
+      "source": "/algorithm-diagrams/evomedclaw.html?manual=1&attempt=0",
+      "stacked": false
+    },
+    {
+      "algorithm": "evomedclaw",
+      "width": 1024,
+      "problems": [],
+      "overflow": false,
+      "source": "/algorithm-diagrams/evomedclaw-mobile.html?manual=1&attempt=0",
+      "stacked": true
+    },
+    {
+      "algorithm": "evomedclaw",
+      "width": 900,
+      "problems": [],
+      "overflow": false,
+      "source": "/algorithm-diagrams/evomedclaw.html?manual=1&attempt=0",
+      "stacked": false
+    },
+    {
+      "algorithm": "evomedclaw",
+      "width": 800,
+      "problems": [],
+      "overflow": false,
+      "source": "/algorithm-diagrams/evomedclaw-mobile.html?manual=1&attempt=0",
+      "stacked": true
+    },
+    {
+      "algorithm": "evomedclaw",
+      "width": 768,
+      "problems": [],
+      "overflow": false,
+      "source": "/algorithm-diagrams/evomedclaw-mobile.html?manual=1&attempt=0",
+      "stacked": true
+    },
+    {
+      "algorithm": "evomedclaw",
+      "width": 640,
+      "problems": [],
+      "overflow": false,
+      "source": "/algorithm-diagrams/evomedclaw-mobile.html?manual=1&attempt=0",
+      "stacked": true
+    },
+    {
+      "algorithm": "evomedclaw",
+      "width": 390,
+      "problems": [],
+      "overflow": false,
+      "source": "/algorithm-diagrams/evomedclaw-mobile.html?manual=1&attempt=0",
+      "stacked": true
+    },
+    {
+      "algorithm": "evomedclaw",
+      "width": 360,
+      "problems": [],
+      "overflow": false,
+      "source": "/algorithm-diagrams/evomedclaw-mobile.html?manual=1&attempt=0",
+      "stacked": true
+    },
+    {
+      "algorithm": "evomedclaw",
+      "width": 320,
+      "problems": [],
+      "overflow": false,
+      "source": "/algorithm-diagrams/evomedclaw-mobile.html?manual=1&attempt=0",
+      "stacked": true
+    }
+  ],
+  "production": {
+    "algorithms": [
+      "fot",
+      "evomedclaw"
+    ],
+    "widths": [
+      1280,
+      390
+    ],
+    "layoutProblems": [],
+    "horizontalOverflow": false,
+    "pauseResume": true,
+    "keyboardDetails": true,
+    "staticAssetsMatching": 17,
+    "paidModelCalls": 0
+  },
+  "notes": [
+    "布局检查为浏览器内的上游DOM检查及实际截图复核，不是120帧或视频验证。",
+    "播放控制的消息来源、时间连续性、离屏／后台、减少动态与零尺寸保护由5项VM回归覆盖。"
+  ]
+}

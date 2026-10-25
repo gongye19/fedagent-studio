@@ -314,3 +314,7 @@ T86继续沿用同一批已确认参考及现有组件，没有新增Mobbin检�
 
 
 T87继续沿用T62／T67／T68已确认的控制台、菜单和逐行配置，没有新增主参考或依赖。按用户要求移除隐式模型默认值，分类可取消，Radix／ModelPicker菜单支持清除；不增加新资源管理入口或参考产品功能。线上数学资源初始空选截图已实际查看，见screenshots/explicit-selection/desktop.png和mobile.png；医疗数据／Agent清除及两／四任务夹具交互的验收见FLOW T87和explicit-selection脚本。
+
+### T89 用户指定动态架构图工具
+
+2026-10-25用户明确要求使用 https://github.com/ythx-101/live-panel-skill 。使用固定439c9add渲染器与自绘的FoT／EvoMed横向执行流程，不借用仓库的Codex／Airbnb／小红书示例设计。页面继续沿用既有控制台、Panel和details，不引入新的Mobbin主视觉参考、聊天／监控或其他产品功能。来源与MIT声明在tools/algorithm-diagrams/vendor及/licenses/live-panel.txt，五项交付物见FLOW T89。图为非实时说明，未接入功能只在原版范围说明中解释。

@@ -14,7 +14,7 @@ export default function AlgorithmsPage() {
   const [taskType, setTaskType] = useState<TaskTypeFilter>("all");
   return (
     <>
-      <PageHead title="算法" meta="每个算法只属于一个场景。点开一个算法，看它每轮做什么、有哪些参数、出自哪里。" />
+      <PageHead title="算法" meta="点开算法，查看架构流程、所需资源、参数与接入范围。" />
       <div className="list-toolbar">
         <TaskTypeSelect value={taskType} onChange={setTaskType} />
         {taskType !== "all" ? <button type="button" className="button button--ghost button--compact" onClick={() => setTaskType("all")}>清除筛选</button> : null}

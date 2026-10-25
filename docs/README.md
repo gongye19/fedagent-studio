@@ -4,7 +4,7 @@
 
 1. [项目目标](./GOAL.md)：平台要解决什么、第一版范围、验收标准和当前不承诺什么。
 2. [使用流程](./FLOW.md)：当前T87入口先选场景／算法／任务，再主动选择可用资源；分类允许取消；新增或修改在左侧资源页面完成，任务开始前主动测试组合。
-3. [系统架构](./ARCHITECTURE.md)：插件、编排、执行、数据与应用；§31记录T87显式选择及取消，§30记录任务选择与资源准入，§29记录独立共享和任务内组合；多用户隔离仍未实现。
+3. [系统架构](./ARCHITECTURE.md)：插件、编排、执行、数据与应用；§32记录T89算法流程图，§31记录T87显式选择及取消，§30记录任务选择与资源准入，§29记录独立共享和任务内组合；多用户隔离仍未实现。
 4. [当前进展](./PROGRESS.md)：已经完成和还没做的能力、服务器情况，以及风险。
 5. [开发说明](./DEVELOPMENT.md)：本地启动、常用命令、代码结构、如何增加算法、部署、测试约定和界面规范。
 6. [关键设计决策](./DECISIONS.md)：背后的取舍，以及哪些决定已被废弃。
@@ -17,4 +17,4 @@
 
 13. [自有 Agent 接入](./AGENT-API.md)：数据／LLM／Agent边界、工作单元HTTP协议、测试与参考服务。
 
-`agent-platform-design.svg/png` 是整体架构图（由 `agent-platform-design.gen.py` 生成），若与文字冲突，以 `ARCHITECTURE.md` 为准。截图在 `screenshots/`，用 `tools/ui-check/docshots.json` 重新生成。
+`agent-platform-design.svg/png` 是整体架构图（由 `agent-platform-design.gen.py` 生成），若与文字冲突，以 `ARCHITECTURE.md` 为准。算法详情页的动态示意由 [algorithm-diagrams](../tools/algorithm-diagrams/README.md) 生成，原版与适配范围在页面折叠说明中区分。截图在 `screenshots/`，常规页面用 `tools/ui-check/docshots.json` 重新生成。
