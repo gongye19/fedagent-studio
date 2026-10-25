@@ -1,8 +1,8 @@
 {
   "fot": {
     "width": 1040,
-    "height": 674,
-    "sha256": "9259ce432e482cf7dd6b08e16714ab1ce0a213f41258a92b0570cf93b098c18f"
+    "height": 520,
+    "sha256": "e010e4bd0d290de98ecd2d729b5c5be7bf9a06d5a93aad4e6acd0bcb8bdde086"
   },
   "fot-mobile": {
     "width": 320,
@@ -11,8 +11,8 @@
   },
   "evomedclaw": {
     "width": 1040,
-    "height": 674,
-    "sha256": "07a9a53b005774d809849223075b0362d8b679ea129a6b37b90163e9fde28b09"
+    "height": 520,
+    "sha256": "37b1b723ba0ef5f3306f8717de560ddd2b16ce9632310dbe65806c2ec4275156"
   },
   "evomedclaw-mobile": {
     "width": 320,

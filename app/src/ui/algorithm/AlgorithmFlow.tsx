@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Algorithm } from "../../domain/catalog";
 import { Panel } from "../console";
+import { Facts } from "../common";
 import { ALGORITHM_GUIDES, type AlgorithmGuide } from "./guides";
 
 export function AlgorithmFlow({algorithm}: {algorithm: Algorithm}) {
@@ -33,7 +34,7 @@ function FlowPanel({algorithm, guide}: {algorithm: Algorithm; guide: AlgorithmGu
     window.addEventListener("message", onReady);
     const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting));
     const resize = new ResizeObserver(([entry]) => {
-      const next = entry.contentRect.width < 760;
+      const next = entry.contentRect.width < 680;
       if (stacked.current !== next) {
         stacked.current = next;
         setPhase("loading");
@@ -60,11 +61,10 @@ function FlowPanel({algorithm, guide}: {algorithm: Algorithm; guide: AlgorithmGu
       <button type="button" className="button button--ghost button--compact" disabled={phase !== "ready"}
         data-playing={playing} onClick={() => setPlaying((value) => !value)}>{playing ? "暂停动画" : "播放动画"}</button>
     }>
-      <p className="algorithm-purpose">{guide.purpose}</p>
       <div ref={wrapper} className={`algorithm-diagram${mobile ? " algorithm-diagram--stacked" : ""}`} aria-busy={phase === "loading"}
         style={{aspectRatio: `${dimensions.width} / ${dimensions.height}`}}>
         <iframe ref={frame} title={`${algorithm.name} 架构流程示意图`} sandbox="allow-scripts" tabIndex={-1}
-          src={`/algorithm-diagrams/${algorithm.id}${mobile ? "-mobile" : ""}.html?manual=1&attempt=${attempt}`}
+          src={`/algorithm-diagrams/${algorithm.id}${mobile ? "-mobile" : ""}.html?v=${dimensions.sha256}&manual=1&attempt=${attempt}`}
           onError={() => setPhase("error")} />
         {phase === "loading" ? <div className="algorithm-diagram-state" role="status">正在加载流程图…</div> : null}
         {phase === "error" ? <div className="algorithm-diagram-state" role="alert">
@@ -73,21 +73,15 @@ function FlowPanel({algorithm, guide}: {algorithm: Algorithm; guide: AlgorithmGu
         </div> : null}
       </div>
       <details className="algorithm-explanation">
-        <summary>查看步骤与使用场景</summary>
-        <StepList algorithm={algorithm} compact />
-        <p><strong>使用场景</strong>{guide.example}</p>
-      </details>
-      <details className="algorithm-explanation">
-        <summary>原版方法与当前接入范围</summary>
-        <p><strong>原版方法</strong>{guide.original}</p>
-        <p><strong>当前接入</strong>{guide.integration}</p>
-        <p>经验生成与回用不保证每次任务的效果提升。</p>
+        <summary>算法说明</summary>
+        <Facts items={[["做什么", guide.purpose], ["需要什么", guide.resources], ["如何运行", guide.process]]} />
+        <p className="algorithm-scope">{guide.integration}</p>
       </details>
     </Panel>
   );
 }
 
-function StepList({algorithm, compact = false}: {algorithm: Algorithm; compact?: boolean}) {
+function StepList({algorithm}: {algorithm: Algorithm}) {
   const steps = <div className="algo-steps">{(["participant", "server"] as const).map((side) => (
     <div className="algo-steps-group" key={side}>
       <h3>{side === "participant" ? "参与方" : "服务端"}</h3>
@@ -96,5 +90,5 @@ function StepList({algorithm, compact = false}: {algorithm: Algorithm; compact?:
       ))}</ol>
     </div>
   ))}</div>;
-  return compact ? steps : <Panel title="每轮步骤" extra={`共 ${algorithm.stages.length} 步`}>{steps}</Panel>;
+  return <Panel title="每轮步骤" extra={`共 ${algorithm.stages.length} 步`}>{steps}</Panel>;
 }

@@ -1,0 +1,176 @@
+{
+  "date": "2026-10-25",
+  "localBrowserLayout": [
+    {
+      "algorithm": "fot",
+      "width": 1280,
+      "bottom": 644.296875,
+      "height": 440,
+      "overflow": false,
+      "problems": []
+    },
+    {
+      "algorithm": "fot",
+      "width": 1024,
+      "bottom": 563.296875,
+      "height": 359,
+      "overflow": false,
+      "problems": []
+    },
+    {
+      "algorithm": "fot",
+      "width": 900,
+      "bottom": 670.4453125,
+      "height": 413,
+      "overflow": false,
+      "problems": []
+    },
+    {
+      "algorithm": "fot",
+      "width": 800,
+      "bottom": 620.4453125,
+      "height": 363,
+      "overflow": false,
+      "problems": []
+    },
+    {
+      "algorithm": "fot",
+      "width": 768,
+      "bottom": 604.4453125,
+      "height": 347,
+      "overflow": false,
+      "problems": []
+    },
+    {
+      "algorithm": "fot",
+      "width": 640,
+      "bottom": 1229.09375,
+      "height": 943.5,
+      "overflow": false,
+      "problems": []
+    },
+    {
+      "algorithm": "fot",
+      "width": 390,
+      "bottom": 1229.09375,
+      "height": 943.5,
+      "overflow": false,
+      "problems": []
+    },
+    {
+      "algorithm": "fot",
+      "width": 360,
+      "bottom": 1145.84375,
+      "height": 860.25,
+      "overflow": false,
+      "problems": []
+    },
+    {
+      "algorithm": "fot",
+      "width": 320,
+      "bottom": 1034.84375,
+      "height": 749.25,
+      "overflow": false,
+      "problems": []
+    },
+    {
+      "algorithm": "evomedclaw",
+      "width": 1280,
+      "bottom": 644.296875,
+      "height": 440,
+      "overflow": false,
+      "problems": []
+    },
+    {
+      "algorithm": "evomedclaw",
+      "width": 1024,
+      "bottom": 563.296875,
+      "height": 359,
+      "overflow": false,
+      "problems": []
+    },
+    {
+      "algorithm": "evomedclaw",
+      "width": 900,
+      "bottom": 670.4453125,
+      "height": 413,
+      "overflow": false,
+      "problems": []
+    },
+    {
+      "algorithm": "evomedclaw",
+      "width": 800,
+      "bottom": 620.4453125,
+      "height": 363,
+      "overflow": false,
+      "problems": []
+    },
+    {
+      "algorithm": "evomedclaw",
+      "width": 768,
+      "bottom": 604.4453125,
+      "height": 347,
+      "overflow": false,
+      "problems": []
+    },
+    {
+      "algorithm": "evomedclaw",
+      "width": 640,
+      "bottom": 1099.46875,
+      "height": 813.875,
+      "overflow": false,
+      "problems": []
+    },
+    {
+      "algorithm": "evomedclaw",
+      "width": 390,
+      "bottom": 1099.46875,
+      "height": 813.875,
+      "overflow": false,
+      "problems": []
+    },
+    {
+      "algorithm": "evomedclaw",
+      "width": 360,
+      "bottom": 1027.65625,
+      "height": 742.0625,
+      "overflow": false,
+      "problems": []
+    },
+    {
+      "algorithm": "evomedclaw",
+      "width": 320,
+      "bottom": 952.0546875,
+      "height": 646.3125,
+      "overflow": false,
+      "problems": []
+    }
+  ],
+  "production": {
+    "algorithms": [
+      "fot",
+      "evomedclaw"
+    ],
+    "desktop": [
+      1280,
+      720
+    ],
+    "desktopDiagramHeight": 440,
+    "desktopDiagramBottom": 644.3,
+    "mobile": [
+      390,
+      844
+    ],
+    "layoutProblems": [],
+    "horizontalOverflow": false,
+    "pauseResume": true,
+    "keyboardExplanationAndParameters": true,
+    "sourceLinkAccessible": true,
+    "staticAssetsMatching": 17,
+    "paidModelCalls": 0
+  },
+  "notes": [
+    "手机保留纵排及必要滚动，不宣称整图一屏。",
+    "不作120帧或视频检查声明，本轮仅前端检查，后端未改。"
+  ]
+}

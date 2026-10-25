@@ -21,8 +21,8 @@ ALGORITHMS = {
 def diagram(key: str, mobile: bool = False) -> dict:
     data = ALGORITHMS[key]
     width = 320 if mobile else 1040
-    font, line = (15, 24) if mobile else (18, 28)
-    margin, gap, pad = (14, 28, 8) if mobile else (48, 48, 20)
+    font, line = (15, 24) if mobile else (18, 26)
+    margin, gap, pad = (14, 28, 8) if mobile else (48, 48, 16)
     elements: list[dict] = []
     cfg = {"meta": {"title": data["name"] + " 架构流程示意", "lang": "zh-CN"},
            "canvas": {"width": width, "height": 800, "duration": 18, "fps": 30},
@@ -53,7 +53,7 @@ def diagram(key: str, mobile: bool = False) -> dict:
                              "pad": [4, 6], "lines": [{"t": label, "size": font - 2, "c": color}], "align": "center"})
 
     def steps(labels, x, y, w, *, color="blue", vertical=False):
-        step_gap, step_h = (16, 44) if mobile else (28, 50)
+        step_gap, step_h = (16, 44) if mobile else (28, 44)
         step_w = w if vertical else (w - step_gap * (len(labels) - 1)) / len(labels)
         rects = []
         for i, label in enumerate(labels):
@@ -66,36 +66,36 @@ def diagram(key: str, mobile: bool = False) -> dict:
                 wire(points, color)
         return rects
 
-    top, site_h = 24, 148 if mobile else 184
+    top, site_h = (24, 148) if mobile else (12, 160)
     site_w = width - 2 * margin if mobile else (width - 2 * margin - gap) / 2
     sites = []
     for i in range(2):
         x, y = (margin, top + i * (site_h + gap)) if mobile else (margin + i * (site_w + gap), top)
         box(x, y, site_w, site_h, "参与方 " + ("A" if i == 0 else "B"), data["inputs"], container=True)
-        text(data["actors"], x + pad, y + (72 if mobile else 88), site_w - 2 * pad, size=font - 2)
-        rects = steps(data["local"], x + pad, y + (96 if mobile else 114), site_w - 2 * pad)
+        text(data["actors"], x + pad, y + (72 if mobile else 84), site_w - 2 * pad, size=font - 2)
+        rects = steps(data["local"], x + pad, y + (96 if mobile else 102), site_w - 2 * pad)
         sites.append((x, y, site_w, site_h, rects))
 
-    server_y = sites[-1][1] + site_h + (76 if mobile else 100)
+    server_y = sites[-1][1] + site_h + (76 if mobile else 64)
     server_w = width - 2 * margin if mobile else min(width - 2 * margin - 96, max(360, len(data["server"]) * 240))
     server_x = (width - server_w) / 2
     vertical = mobile and len(data["server"]) > 1
-    server_h = 64 + (len(data["server"]) * 68 - 24 if vertical else (58 if mobile else 70))
+    server_h = 64 + (len(data["server"]) * 68 - 24 if vertical else 58) if mobile else 112
     box(server_x, server_y, server_w, server_h, "FedAgent Studio · 聚合端", color="green", container=True)
-    steps(data["server"], server_x + pad, server_y + 58, server_w - 2 * pad, color="green", vertical=vertical)
-    join_y = server_y - 56
+    steps(data["server"], server_x + pad, server_y + (58 if mobile else 52), server_w - 2 * pad, color="green", vertical=vertical)
+    join_y = server_y - (56 if mobile else 40)
     for i, (x, y, w, h, rects) in enumerate(sites):
         if mobile and i == 0:
             wire([[x + w, y + h / 2], [width - 10, y + h / 2], [width - 10, join_y], [width / 2, join_y]], arrow=False)
         else:
             wire([[x + w / 2, y + h], [x + w / 2, join_y], [width / 2, join_y]], arrow=False)
     wire([[width / 2, join_y], [width / 2, server_y]], label=data["upload"],
-         label_at=(width / 2 + (88 if mobile else 100), server_y - 28))
-    artifact_y = server_y + server_h + 52
+         label_at=(width / 2 + (88 if mobile else 100), server_y - (28 if mobile else 20)))
+    artifact_y = server_y + server_h + (52 if mobile else 36)
     artifact_w = min(width - 2 * margin, 360)
     artifact_x = (width - artifact_w) / 2
     wire([[width / 2, server_y + server_h], [width / 2, artifact_y]], "green")
-    artifact_h = 76 if mobile else 88
+    artifact_h = 76 if mobile else 68
     artifact_mid = artifact_y + artifact_h / 2
     box(artifact_x, artifact_y, artifact_w, artifact_h, data["artifact"], data["return"], color="purple")
     loop_x = 10 if mobile else 20
@@ -105,8 +105,8 @@ def diagram(key: str, mobile: bool = False) -> dict:
     start = artifact_x if mobile else artifact_x + artifact_w
     end = bx if mobile else bx + bw
     wire([[start, artifact_mid], [right, artifact_mid], [right, by + 94], [end, by + 94]], "purple", dashed=True)
-    text("共享经验下发 · 后续轮次回用", 0, artifact_y + artifact_h + 36, width, color="purple", size=font - 2)
-    height = artifact_y + artifact_h + 92
+    text("共享经验下发 · 后续轮次回用", 0, artifact_y + artifact_h + (36 if mobile else 24), width, color="purple", size=font - 2)
+    height = artifact_y + artifact_h + (92 if mobile else 68)
     cfg["canvas"]["height"] = height
     cfg["credit"] = {"text": "文字经验协作 · 不更新模型权重", "y": height - 20, "size": font - 3}
     return cfg

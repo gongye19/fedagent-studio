@@ -727,3 +727,5 @@ AlgorithmPage组合ui/algorithm/AlgorithmFlow，guides保存算法用途、例�
 live-panel模板固定439c9add、原样存于vendor；使用自绘布局，没有复制示例产品图或字体。生成过程嵌入配置、CSP及单独controller，输出不需要第三方CDN。iframe sandbox仅allow-scripts、无allow-same-origin，connect-src为none；父子消息只识别自己的frame/source。动画时钟独立于任务，父组件控制播放与可见性，子组件处理后台页签／减少动态；检测到非零尺寸并完成原渲染器DOM检查后才报就绪。
 
 加载和失败原位反馈，下方文字步骤始终可打开；页面无监控计数或虚假进度。prebuild检查生成文件和尺寸哈希，避免只改源或只改HTML。播放、安全边界、零尺寸与减少动态由离线VM回归覆盖；实际图形通过浏览器和渲染器__check核验，不把VM测试当作视觉验证。
+
+T90覆盖展示密度：桌面画布1040×520、最大880px，容器680px以下改纵向并限340px；说明合并为三行Facts和一句接入范围，概况／参数／来源用既有Collapsible默认收起。删除重复用途、阶段列表和长例子，未知算法仍使用注册表步骤。iframe URL带生成内容哈希，避免新尺寸与浏览器旧图缓存混用；执行和消息协议不变。
