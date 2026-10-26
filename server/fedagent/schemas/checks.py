@@ -6,7 +6,7 @@ from .base import Model, Time
 class CheckResult(Model):
     field: str
     resource: str
-    status: Literal["passed", "failed", "skipped"]
+    status: Literal["running", "passed", "failed", "skipped"]
     message: str
 
 

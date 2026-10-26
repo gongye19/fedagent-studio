@@ -237,14 +237,19 @@ def test_reference_service_persists_idempotency_and_late_cancel(platform, tmp_pa
 
 
 def test_busy_agent_retries_same_run_number(platform, client, remote, monkeypatch):
+    from threading import Lock
+
     from fedagent.agents.gateway import AgentBusy
     agent_id, requests = remote
     original = AgentGateway.request
     submitted = []
+    submission_lock = Lock()
     def busy_once(self, aid, method, path, body=None):
         if method == 'POST' and path == '/runs':
-            submitted.append(body['run_id'])
-            if len(submitted) == 1:
+            with submission_lock:
+                first = not submitted
+                submitted.append(body['run_id'])
+            if first:
                 raise AgentBusy('busy')
         return original(self, aid, method, path, body)
     monkeypatch.setattr(AgentGateway, 'request', busy_once)
@@ -252,7 +257,8 @@ def test_busy_agent_retries_same_run_number(platform, client, remote, monkeypatc
     config.update(execution='agent', agentId=agent_id)
     report = client.post('/v1/task-checks', json=config).json()
     assert client.get('/v1/task-checks/' + report['id']).json()['status'] == 'passed'
-    assert submitted[0] == submitted[1]
+    # 另一参与方可同时提交；繁忙请求仍复用原编号。
+    assert submitted.count(submitted[0]) == 2
     assert len([req for req in requests if req.run_id == submitted[0]]) == 1
 
 

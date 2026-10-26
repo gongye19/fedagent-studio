@@ -1,0 +1,241 @@
+[
+  {
+    "algorithm": "fot",
+    "elapsed": 0.66,
+    "status": "running",
+    "results": [
+      [
+        "V202505Hard",
+        "passed",
+        "100 条样本的结构、标注规则与文件完整性通过"
+      ],
+      [
+        "V202412Hard",
+        "passed",
+        "21 条样本的结构、标注规则与文件完整性通过"
+      ],
+      [
+        "David AI · gpt-5.6-luna",
+        "running",
+        "正在检查"
+      ]
+    ]
+  },
+  {
+    "algorithm": "fot",
+    "elapsed": 2.97,
+    "status": "passed",
+    "results": [
+      [
+        "V202505Hard",
+        "passed",
+        "100 条样本的结构、标注规则与文件完整性通过"
+      ],
+      [
+        "V202412Hard",
+        "passed",
+        "21 条样本的结构、标注规则与文件完整性通过"
+      ],
+      [
+        "David AI · gpt-5.6-luna",
+        "passed",
+        "实际推理请求通过"
+      ]
+    ]
+  },
+  {
+    "algorithm": "evomedclaw",
+    "elapsed": 1.61,
+    "status": "running",
+    "results": [
+      [
+        "MedQA · 分组 2",
+        "passed",
+        "53 条样本的结构、标注规则与文件完整性通过"
+      ],
+      [
+        "MedQA · 分组 1",
+        "passed",
+        "54 条样本的结构、标注规则与文件完整性通过"
+      ],
+      [
+        "MedQA · 分组 2 · Agent",
+        "running",
+        "正在执行本方诊断 · 样本 medqa-002"
+      ],
+      [
+        "MedQA · 分组 1 · Agent",
+        "running",
+        "正在执行本方诊断 · 样本 medqa-001"
+      ]
+    ]
+  },
+  {
+    "algorithm": "evomedclaw",
+    "elapsed": 48.69,
+    "status": "running",
+    "results": [
+      [
+        "MedQA · 分组 2",
+        "passed",
+        "53 条样本的结构、标注规则与文件完整性通过"
+      ],
+      [
+        "MedQA · 分组 1",
+        "passed",
+        "54 条样本的结构、标注规则与文件完整性通过"
+      ],
+      [
+        "MedQA · 分组 2 · Agent",
+        "running",
+        "正在执行本方诊断 · 样本 medqa-002"
+      ],
+      [
+        "MedQA · 分组 1 · Agent",
+        "running",
+        "正在执行本方诊断 · 样本 medqa-087"
+      ]
+    ]
+  },
+  {
+    "algorithm": "evomedclaw",
+    "elapsed": 51.08,
+    "status": "running",
+    "results": [
+      [
+        "MedQA · 分组 2",
+        "passed",
+        "53 条样本的结构、标注规则与文件完整性通过"
+      ],
+      [
+        "MedQA · 分组 1",
+        "passed",
+        "54 条样本的结构、标注规则与文件完整性通过"
+      ],
+      [
+        "MedQA · 分组 2 · Agent",
+        "running",
+        "正在执行本方诊断 · 样本 medqa-086"
+      ],
+      [
+        "MedQA · 分组 1 · Agent",
+        "running",
+        "正在执行本方诊断 · 样本 medqa-087"
+      ]
+    ]
+  },
+  {
+    "algorithm": "evomedclaw",
+    "elapsed": 88.82,
+    "status": "running",
+    "results": [
+      [
+        "MedQA · 分组 2",
+        "passed",
+        "53 条样本的结构、标注规则与文件完整性通过"
+      ],
+      [
+        "MedQA · 分组 1",
+        "passed",
+        "54 条样本的结构、标注规则与文件完整性通过"
+      ],
+      [
+        "MedQA · 分组 2 · Agent",
+        "running",
+        "正在执行本方诊断 · 样本 medqa-086"
+      ],
+      [
+        "MedQA · 分组 1 · Agent",
+        "running",
+        "正在执行提炼并提交经验"
+      ]
+    ]
+  },
+  {
+    "algorithm": "evomedclaw",
+    "elapsed": 91.16,
+    "status": "running",
+    "results": [
+      [
+        "MedQA · 分组 2",
+        "passed",
+        "53 条样本的结构、标注规则与文件完整性通过"
+      ],
+      [
+        "MedQA · 分组 1",
+        "passed",
+        "54 条样本的结构、标注规则与文件完整性通过"
+      ],
+      [
+        "MedQA · 分组 2 · Agent",
+        "running",
+        "正在执行本方诊断 · 样本 medqa-086"
+      ],
+      [
+        "MedQA · 分组 1 · Agent",
+        "passed",
+        "能力声明、真实样本执行、全部本方步骤与经验格式通过；未评估准确率"
+      ]
+    ]
+  },
+  {
+    "algorithm": "evomedclaw",
+    "elapsed": 114.76,
+    "status": "running",
+    "results": [
+      [
+        "MedQA · 分组 2",
+        "passed",
+        "53 条样本的结构、标注规则与文件完整性通过"
+      ],
+      [
+        "MedQA · 分组 1",
+        "passed",
+        "54 条样本的结构、标注规则与文件完整性通过"
+      ],
+      [
+        "MedQA · 分组 2 · Agent",
+        "running",
+        "正在执行提炼并提交经验"
+      ],
+      [
+        "MedQA · 分组 1 · Agent",
+        "passed",
+        "能力声明、真实样本执行、全部本方步骤与经验格式通过；未评估准确率"
+      ]
+    ]
+  },
+  {
+    "algorithm": "evomedclaw",
+    "elapsed": 117.13,
+    "status": "passed",
+    "results": [
+      [
+        "MedQA · 分组 2",
+        "passed",
+        "53 条样本的结构、标注规则与文件完整性通过"
+      ],
+      [
+        "MedQA · 分组 1",
+        "passed",
+        "54 条样本的结构、标注规则与文件完整性通过"
+      ],
+      [
+        "MedQA · 分组 2 · Agent",
+        "passed",
+        "能力声明、真实样本执行、全部本方步骤与经验格式通过；未评估准确率"
+      ],
+      [
+        "MedQA · 分组 1 · Agent",
+        "passed",
+        "能力声明、真实样本执行、全部本方步骤与经验格式通过；未评估准确率"
+      ]
+    ]
+  },
+  {
+    "algorithm": "fot",
+    "task": "task-2e03b489",
+    "status": "completed",
+    "rounds": 2
+  }
+]

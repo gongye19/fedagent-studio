@@ -1,0 +1,9 @@
+{
+  "old_rows_unchanged": true,
+  "new_rows": {
+    "fedagent.db:calls": 84,
+    "medical-agents/medical-a/runs.sqlite:runs": 3,
+    "medical-agents/medical-b/runs.sqlite:runs": 3
+  },
+  "integrity": "ok"
+}

@@ -64,6 +64,10 @@
 .tag--success { color: var(--success-text); background: var(--success-soft); }
 .tag--warning { color: var(--warning-text); background: var(--warning-soft); }
 .tag--danger { color: var(--danger-text); background: var(--danger-soft); }
+.scenario-tag { color: #305da8; background: #eaf2ff; white-space: nowrap; }
+.scenario-tag[data-scenario="vertical"] { color: #276965; background: #eaf5f2; }
+.scenario-tag[data-scenario="transfer"] { color: #705697; background: #f1eef8; }
+.task-classification { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 /* 运行中的圆点不闪烁：状态已经由标签文字、进度条和横幅表达 */
 .tag-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .status-text { color: var(--secondary); font-size: var(--text-sm); }

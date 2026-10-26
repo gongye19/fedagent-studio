@@ -4142,6 +4142,7 @@
      "status": {
       "type": "string",
       "enum": [
+       "running",
        "passed",
        "failed",
        "skipped"

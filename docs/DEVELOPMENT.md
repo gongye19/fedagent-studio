@@ -1,5 +1,7 @@
 # 开发说明
 
+T93覆盖此前场景优先的表单顺序：新建算法→兼容任务，场景由chooseAlgorithm从清单设置，取消算法清空场景和依赖。TasksPage统一目录，ScenarioTag单独维护分类颜色。配置测试的线程安全进度与两路批次调度在checks/progress.py，业务完整性仍在checks/agent；不要在前端伪造进度或通过状态。新增检查并发须验证中途报告可读、不丢结果、失败不启动后续批次、接口别名去重、整体Agent预算和忙碌模型快速返回。schema0007不变，CheckResult新增running状态须重生OpenAPI类型。
+
 T87任务资源必须主动选择；字段空值及取消规则集中在domain/task-config，草稿版本迁移在state/draft。常规Choices／SelectField／ModelPicker只有按需onClear，不改变运行参数等控件语义。新增分类或任务类型须检查取消、切换和后续资源清理；explicit-selection覆盖未来多任务，不在生产登记夹具类型。
 
 T85沿用T84结构规则：结构检查 `uv run --directory server python ../tools/check_structure.py`、`node tools/check-frontend-structure.mjs`。后者进入npm run check，前者进入部署全检查。排查职责和依赖，不为单纯行数拆开同一状态机；生成文件、vendor和历史迁移按原流程维护。T86任务只选择可用资源，资源页负责登记与基础检查；独立共享见resource_services/sharing，组合候选见domain/task-config/agent-groups；旧永久绑定模块已移除，现有resources／gateway／engine及domain/config为兼容出口；普通新增代码进入对应职责模块。

@@ -54,16 +54,12 @@ export function draftIssues(
   agents?: readonly AgentEndpoint[],
 ): Issue[] {
   const issues: Issue[] = [];
-  if (!draft.scenario) {
-    issues.push({ field: "scenario", message: "选择场景" });
-    return issues;
-  }
-  if (scenarioOf(draft.scenario).status !== "available") {
-    issues.push({ field: "scenario", message: "这个场景的算法还在规划中" });
-    return issues;
-  }
   if (!draft.algorithm) {
     issues.push({ field: "algorithm", message: "选择算法" });
+    return issues;
+  }
+  if (!draft.scenario || scenarioOf(draft.scenario).status !== "available") {
+    issues.push({ field: "algorithm", message: "这个算法所属场景尚未可用，请重新选择算法" });
     return issues;
   }
   if (!draft.taskType) {

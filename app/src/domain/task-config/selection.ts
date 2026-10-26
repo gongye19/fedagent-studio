@@ -138,11 +138,12 @@ export function chooseTaskType(draft: Draft, taskType: TaskType | null): Draft {
 /** 选算法后明确选择支持的任务；不同算法的资源、执行方式和参数不互相沿用。 */
 export function chooseAlgorithm(draft: Draft, algorithm: AlgorithmId | null): Draft {
   const definition = algorithm ? algorithmOf(algorithm) : null;
-  if (draft.algorithm === algorithm || (definition && definition.scenario !== draft.scenario))
+  if (draft.algorithm === algorithm)
     return draft;
   return {
     ...draft,
     algorithm,
+    scenario: definition?.scenario ?? null,
     taskType: null,
     participants: [],
     agentGroups: definition?.requirements.agentRequired

@@ -1,0 +1,37 @@
+[
+  {
+    "create": 1,
+    "lists": 1,
+    "overflow": false,
+    "tag": "横向联邦",
+    "width": 320
+  },
+  {
+    "create": 1,
+    "lists": 1,
+    "overflow": false,
+    "tag": "横向联邦",
+    "width": 390
+  },
+  {
+    "create": 1,
+    "lists": 1,
+    "overflow": false,
+    "tag": "横向联邦",
+    "width": 768
+  },
+  {
+    "create": 1,
+    "lists": 1,
+    "overflow": false,
+    "tag": "横向联邦",
+    "width": 1024
+  },
+  {
+    "create": 1,
+    "lists": 1,
+    "overflow": false,
+    "tag": "横向联邦",
+    "width": 1280
+  }
+]

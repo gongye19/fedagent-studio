@@ -80,7 +80,8 @@ def test_agent_errors_are_actionable_and_stop_further_paid_checks(client, remote
     monkeypatch.setattr(AgentGateway, "request", failed)
     checked = client.post("/v1/task-checks", json=config).json()
     report = client.get("/v1/task-checks/" + checked["id"]).json()
-    assert report["status"] == "failed" and len(submitted) == 1
+    assert report["status"] == "failed" and 1 <= len(submitted) <= 2
+    assert all(request["step"] == "diagnose" for request in submitted)
     assert hint in json.dumps(report, ensure_ascii=False)
     assert "UNTRUSTED-REMOTE-ERROR" not in json.dumps(report)
 

@@ -59,7 +59,7 @@ export function TaskResourcesPanel({
         <>
           {!algorithm || !scenarioId || !taskType ? (
             <PanelEmpty>
-              先选择场景、算法和任务类型，再选择可用数据。
+              先选择算法和任务类型，再选择可用数据。
             </PanelEmpty>
           ) : candidates.length ? (
             <ParticipantTable

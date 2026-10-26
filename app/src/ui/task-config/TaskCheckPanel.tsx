@@ -21,7 +21,14 @@ export function TaskCheckPanel({ config }: { config: TaskConfigController }) {
         </button>
       }
     >
-      <p className="muted">检查数据与接口，并发送少量真实请求，会消耗接口额度。测试通过后可开始任务。</p>
+      <p className="muted">{config.draft.execution === "agent"
+        ? "校验数据并执行最小样本的完整 Agent 流程，各接口并行检查，会消耗接口额度。"
+        : "校验数据并向所选模型发送短请求，会消耗接口额度。"}</p>
+      {preflight.running ? (
+        <p className="config-check-progress" aria-live="off">
+          正在检查 · 已用 {Math.floor(preflight.elapsedSeconds / 60)} 分 {preflight.elapsedSeconds % 60} 秒
+        </p>
+      ) : null}
       {preflight.report ? (
         <div className="config-check-results" aria-live="polite">
           {!preflight.matches || preflight.expired ? (
@@ -31,12 +38,14 @@ export function TaskCheckPanel({ config }: { config: TaskConfigController }) {
           ) : (
             <>
               <details className="config-check-details" open={preflight.report.status !== "passed"}>
-                <summary>查看 {preflight.report.results.length} 项检查结果</summary>
+                <summary>{preflight.running
+                  ? `检查进度 · ${preflight.report.results.filter((item) => item.status !== "running").length} 项已完成`
+                  : `查看 ${preflight.report.results.length} 项检查结果`}</summary>
                 {preflight.report.results.map((item, index) => (
                   <div className={`config-check-row config-check-row--${item.status}`} key={index}>
-                    <Icon
+                    {item.status === "running" ? <span className="check-spinner" aria-label="检查中" /> : <Icon
                       name={item.status === "passed" ? "check" : item.status === "failed" ? "alert" : "minus"}
-                    />
+                    />}
                     <div>
                       <strong>{item.resource}</strong>
                       <p>{item.message}</p>

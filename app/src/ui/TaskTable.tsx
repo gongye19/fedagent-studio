@@ -4,6 +4,7 @@ import { hrefOf } from "../state/route";
 import { Meta, ProgressBar, Tag } from "./common";
 import { formatDate, formatDelta, formatPercent } from "./format";
 import { deltaClass, metricOf, stageText, statusTone, taskSummaryParts } from "./labels";
+import { ScenarioTag } from "./ScenarioTag";
 
 /** 运行中、暂停、取消用标签提醒；已完成是常态，用普通文字。 */
 export function TaskStatus({ task }: { task: Task }) {
@@ -27,10 +28,7 @@ export function MetricChange({ task }: { task: Task }) {
   );
 }
 
-/**
- * 任务表格，放在联邦任务页按场景分好的块里：任务类型单独一列（第二层分类），
- * 名称下面的摘要只写算法、参与方数和运行方式，不再重复场景和任务类型。
- */
+/** 统一任务表：场景标签与任务类型在同一分类单元，窄屏沿用卡片布局。 */
 export function TaskTable({ tasks, onDelete }: { tasks: readonly Task[]; onDelete: (task: Task) => void }) {
   return (
     <div className="table-shell">
@@ -54,7 +52,7 @@ export function TaskTable({ tasks, onDelete }: { tasks: readonly Task[]; onDelet
                   <a className="table-link" href={hrefOf({ page: "task", id: task.id })}>{task.name}</a>
                   <small><Meta parts={taskSummaryParts(task, { withCategory: false })} /></small>
                 </th>
-                <td data-label="任务类型">{TASK_TYPES[task.config.taskType].label}</td>
+                <td data-label="任务类型"><div className="task-classification"><ScenarioTag scenario={task.config.scenario} /><span>{TASK_TYPES[task.config.taskType].label}</span></div></td>
                 <td className="progress-cell" data-label="状态">
                   <div className="progress-line">
                     <TaskStatus task={task} />

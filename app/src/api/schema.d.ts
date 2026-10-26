@@ -1034,7 +1034,7 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "passed" | "failed" | "skipped";
+            status: "running" | "passed" | "failed" | "skipped";
             /** Message */
             message: string;
         };

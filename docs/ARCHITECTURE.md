@@ -741,3 +741,12 @@ T92覆盖视觉位置：back仍声明相同Route，但呈现为标题左侧同�
 resources/ResourceTable集中维护Panel、table、thead和tbody；列由页面声明，空列表的PanelEmpty位于colSpan跨列行中，不再放在表头之前或完全隐藏表格。Agents保留读取／失败内容及原位重试，业务操作和查询仍由页面负责，公共显示组件不依赖API或领域状态。Models、Agents和DataResources共用框架，DataResources仅维护数据行展开。
 
 ResourcesPage删除搜索／类型筛选状态、重复面板标题和过期的任务返回尾部；普通上传仍从页面顶端进入并校验，任务资源匹配不变。ResourceScope及资源归属、共享／编辑权限均保持；LLM新增只在我的目录展示，与另外两页一致。无后端、接口、数据库和依赖变更。
+
+
+## 35. 统一任务目录与配置检查并发（T93／D89）
+
+TasksPage不再按场景分组，TaskTable中ScenarioTag呈现分类；新建算法选择决定草稿scenario，后端仍验证算法和场景一致，已有任务和旧路由兼容。资源选择、任务执行合同不变。
+
+checks/progress.Progress负责固定结果索引、线程互斥更新和持久化，避免两接口互相覆盖；parallel最多启动两项，当前批次收尾后有失败则不启动下一批。service做数据检查与解析接口去重，然后调度接口；agent保留完整步骤输出校验和全流程300秒预算，finally仍统一stop_check确认。CheckResult.running是实际在执行的资源，子步骤message由Agent执行前更新；没有假百分比，也不把数据结构通过当接口通过。
+
+Gateway.slot支持可选等待时限；只有purpose=test使用5秒，正式请求传None保持原行为。probe使用30秒HTTP读超时、0次失败重试，流式不兼容的协议回退保持。Agent正式任务的执行超时与续跑编号不改，配置测试超时仍保留远程状态以便确认停止。

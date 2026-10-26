@@ -1,5 +1,6 @@
 import { taskModelSummary } from "../../domain/config";
-import { scenarioOf, TASK_TYPES } from "../../domain/catalog";
+import { TASK_TYPES } from "../../domain/catalog";
+import { ScenarioTag } from "../ScenarioTag";
 import { modelLabel } from "../../domain/resources";
 import { hrefOf, type Route } from "../../state/route";
 import { type State } from "../../state/store";
@@ -58,7 +59,7 @@ export function TaskSummary({
         <dl className="summary-list">
           <div>
             <dt>场景</dt>
-            <dd>{draft.scenario ? scenarioOf(draft.scenario).short : "—"}</dd>
+            <dd>{algorithm ? <ScenarioTag scenario={algorithm.scenario} /> : "—"}</dd>
           </div>
           <div>
             <dt>算法</dt>

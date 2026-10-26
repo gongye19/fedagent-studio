@@ -135,16 +135,22 @@ class Gateway:
         return httpx.Client(timeout=httpx.Timeout(endpoint.timeout, connect=30.0), transport=self._transport)
 
     @contextmanager
-    def slot(self, endpoint: EndpointConfig) -> Iterator[None]:
+    def slot(self, endpoint: EndpointConfig, *, wait_timeout: float | None = None) -> Iterator[None]:
         """文件锁在进程退出时自动释放；SQLite 部署的所有进程共享同一组槽位。"""
         database = self.db.engine.url.database
         if self.db.engine.url.get_backend_name() != "sqlite" or not database or database == ":memory:":
-            with self.semaphore(endpoint):
+            semaphore = self.semaphore(endpoint)
+            if not semaphore.acquire(timeout=wait_timeout):
+                raise ModelError("模型接口繁忙，请稍后重新测试")
+            try:
                 yield
+            finally:
+                semaphore.release()
             return
         directory = Path(database).parent / ".model-slots"
         directory.mkdir(mode=0o700, exist_ok=True)
         prefix = hashlib.sha256(endpoint.id.encode()).hexdigest()
+        started = time.monotonic()
         while True:
             for index in range(endpoint.concurrency):
                 handle = (directory / f"{prefix}-{index}").open("a")
@@ -158,6 +164,8 @@ class Gateway:
                 finally:
                     handle.close()
                 return
+            if wait_timeout is not None and time.monotonic() - started >= wait_timeout:
+                raise ModelError("模型接口繁忙，请稍后重新测试")
             time.sleep(0.05)
 
     def list_models(self, endpoint_id: str) -> list[str]:
@@ -186,6 +194,6 @@ class Gateway:
             raise ModelError(f"模型列表无法解析：{_snippet(response.text)}") from error
 
     def probe(self, endpoint_id: str, model: str, settings: dict[str, Any]) -> ChatResult:
-        """按给定的生成参数发一条很短的请求；只重试一次，检查时不久等。"""
-        endpoint = replace(self.endpoint(endpoint_id), max_retries=1, timeout=45.0)
+        """按给定的生成参数发一条短请求；失败直接反馈，由用户决定重试。"""
+        endpoint = replace(self.endpoint(endpoint_id), max_retries=0, timeout=30.0)
         return GatewayModel(self, endpoint, model, ledger=None, purpose="test", plugin=None, step_id=None).chat("Reply with OK.", **settings)

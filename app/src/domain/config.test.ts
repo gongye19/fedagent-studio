@@ -179,11 +179,11 @@ describe("draft", () => {
       draftIssues(empty, DATASETS, PARTICIPANTS, ENDPOINTS).map(
         (issue) => issue.field,
       ),
-    ).toEqual(["scenario"]);
+    ).toEqual(["algorithm"]);
     const planned = withDefaults({ scenario: "vertical" });
     expect(
       draftIssues(planned, DATASETS, PARTICIPANTS, ENDPOINTS)[0].message,
-    ).toContain("规划中");
+    ).toBe("选择算法");
     const one = draft({
       participants: [BOTH[0]],
       serverModel: "missing:model",
@@ -198,7 +198,11 @@ describe("draft", () => {
     expect(draft().clientModel).toBe("fake:fake");
   });
 
-  it("asks for scenario, algorithm, task type and data in turn, selecting nothing on the user's behalf", () => {
+  it("derives scenario from algorithm and keeps task and resources explicitly selected", () => {
+    const direct = chooseAlgorithm(DEFAULT_DRAFT, "fot");
+    expect(direct.scenario).toBe("horizontal");
+    expect(direct.taskType).toBeNull();
+    expect(chooseAlgorithm(direct, null).scenario).toBeNull();
     const horizontal = chooseScenario(DEFAULT_DRAFT, "horizontal");
     expect([horizontal.taskType, horizontal.algorithm]).toEqual([null, null]);
     expect(

@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Callable
 from datetime import timedelta
 from typing import Literal
 
-from fedagent_sdk import ModelError, StepFailed
 from sqlalchemy import update
 
 from .. import models as m
@@ -17,6 +15,7 @@ from ..schemas.checks import CheckResult, TaskCheckOut
 from ..task_services.preparation import validate
 from .agent import check_agent
 from .fingerprint import fingerprint
+from .progress import Progress, parallel
 
 EXPIRY = timedelta(minutes=15)
 
@@ -67,23 +66,11 @@ def interrupt_checks(platform) -> None:
 
 
 def run(platform, check_id: str, body: TaskConfigIn) -> None:
-    results: list[CheckResult] = []
+    progress = Progress(platform, check_id)
+    results = progress.results
 
     def result(field: str, resource: str, status: Literal["passed", "failed", "skipped"], message: str) -> None:
-        results.append(CheckResult(field=field, resource=resource, status=status, message=message))
-        with platform.db.session() as session:
-            row = get(session, check_id)
-            row.results = [entry.model_dump() for entry in results]
-
-    def attempt(field: str, label: str, call: Callable[[], str]) -> bool:
-        try:
-            message = call()
-            result(field, label, "passed", message)
-            return True
-        except (ValueError, OSError, ModelError, StepFailed, ServiceError) as error:
-            message = str(error) if not isinstance(error, OSError) else "数据文件无法读取，请恢复或重新上传"
-            result(field, label, "failed", message[:500])
-            return False
+        progress.put(CheckResult(field=field, resource=resource, status=status, message=message))
 
     try:
         with platform.db.session() as session:
@@ -101,7 +88,7 @@ def run(platform, check_id: str, body: TaskConfigIn) -> None:
                 result("participants", site.dataset.name, "skipped", "已核对在线状态、算法版本与上报样本；原始文件由本地客户端校验，平台未读取")
                 continue
 
-            def check_data(site=site):
+            def check_data(_update, site=site):
                 rows = platform.files.load(site.dataset.content_path or "")
                 raw = (platform.settings.datasets_dir / (site.dataset.content_path or "")).read_bytes()
                 report = check_file(task_type, raw)
@@ -110,35 +97,40 @@ def run(platform, check_id: str, body: TaskConfigIn) -> None:
                 records[site.participant.id] = [row for row in rows if task_type.item_id(row) in site.items]
                 return f"{report.count} 条样本的结构、标注规则与文件完整性通过"
 
-            attempt("participants", site.dataset.name, check_data)
+            progress.attempt("participants", site.dataset.name, check_data)
         if any(entry.status == "failed" for entry in results):
             return
         refs = {site.model_ref for site in prepared.sites if body.execution == "builtin" and site.participant.hosting == "platform"}
         if any(step.at == "server" and step.model for step in algorithm.manifest.steps):
             refs.add(body.server_model)
-        for ref in sorted(refs):
-
-            def check_model(ref=ref):
-                endpoint, model = platform.gateway.resolve(ref)
+        # 不同角色若指向同一接口／模型，只探测一次。
+        resolved = { (endpoint.id, model): endpoint.name
+                     for endpoint, model in (platform.gateway.resolve(ref) for ref in sorted(refs)) }
+        model_jobs = []
+        for (endpoint_id, model), name in resolved.items():
+            def check_model(_update, endpoint_id=endpoint_id, model=model):
                 settings = {**algorithm.model_settings(), "max_tokens": 128}
-                reply = platform.gateway.probe(endpoint.id, model, settings)
+                reply = platform.gateway.probe(endpoint_id, model, settings)
                 if not reply.text.strip():
                     raise ValueError("模型返回为空，请检查模型与生成参数")
                 return "实际推理请求通过"
 
-            if not attempt("models", ref, check_model):
-                return
+            model_jobs.append(lambda name=name, model=model, call=check_model:
+                              progress.attempt("models", f"{name} · {model}", call))
+        if not parallel(model_jobs):
+            return
         if body.execution == "agent":
+            jobs = []
             for site in prepared.sites:
-                agent_id = site.agent_id
-                if not agent_id or site.participant.id not in records:
+                if not site.agent_id or site.participant.id not in records:
                     continue
-
-                if not attempt("models", f"{site.dataset.name} · Agent",
-                        lambda agent_id=agent_id, site=site: check_agent(
-                            platform, agent_id, algorithm, task_type, site,
-                            records[site.participant.id], check_id, body)):
-                    return
+                def check_remote(update, site=site):
+                    return check_agent(platform, site.agent_id, algorithm, task_type, site,
+                                       records[site.participant.id], check_id, body, update)
+                jobs.append(lambda site=site, call=check_remote:
+                            progress.attempt("models", f"{site.dataset.name} · Agent", call))
+            if not parallel(jobs):
+                return
         with platform.db.session() as session:
             if get(session, check_id).fingerprint != fingerprint(platform, session, body):
                 result("check", "配置版本", "failed", "测试期间资源发生变化，请重新测试")
@@ -146,6 +138,9 @@ def run(platform, check_id: str, body: TaskConfigIn) -> None:
         # 不把任意远程异常正文和凭据写回页面。
         result("check", "配置测试", "failed", "测试意外中断，请检查服务日志后重试")
     finally:
+        for index, entry in enumerate(list(results)):
+            if entry.status == "running":
+                progress.put(entry.model_copy(update={"status": "failed", "message": "检查中断，请重试"}), index)
         if AgentGateway(platform).stop_check(check_id):
             results.append(CheckResult(field="models", resource="Agent 停止确认", status="failed",
                 message="测试已结束，部分 Agent 尚未确认停止；恢复服务后到 Agent 接口检查能力以同步停止状态"))

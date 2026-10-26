@@ -71,6 +71,10 @@
 .config-check-row p { margin: 4px 0 0; color: var(--secondary); overflow-wrap: anywhere; }
 .config-check-row--failed { color: var(--danger); }
 .config-check-success { margin: 0; font-size: 12px; }
+.config-check-progress { margin: 12px 0 0; color: var(--accent-strong); font-size: 12px; }
+.check-spinner { flex: none; width: 14px; height: 14px; margin-top: 2px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: check-spin .8s linear infinite; }
+@keyframes check-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .check-spinner { animation: none; } }
 
 .config-check-details > summary { font-size: 12px; cursor: pointer; padding: 8px 0; }
 .config-check-details > .config-check-row { padding-top: 12px; }

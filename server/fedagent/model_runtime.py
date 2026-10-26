@@ -168,7 +168,7 @@ class GatewayModel:
             headers["Authorization"] = f"Bearer {endpoint.api_key}"
         stream = True
         last_error = ""
-        with self.gateway.slot(endpoint), self.gateway.client(endpoint) as client:
+        with self.gateway.slot(endpoint, wait_timeout=5 if self.purpose == "test" else None), self.gateway.client(endpoint) as client:
             attempt = 0
             while attempt <= endpoint.max_retries:
                 if attempt:

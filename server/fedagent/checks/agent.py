@@ -1,14 +1,22 @@
 """用最小真实样本执行完整本方流程；检查业务输出，不测准确率。"""
+import time
+from collections.abc import Callable
+
 from .. import models as m
 from ..agents.adapter import validate_result
-from ..agents.gateway import AgentGateway
+from ..agents.gateway import AgentError, AgentGateway
 from ..agents.protocol import AgentRequest, SavedValue
 from ..agents.resources import compatible
 from ..agents.runtime import context_of
 from ..data import to_item
 
+AGENT_CHECK_SECONDS = 300
 
-def check_agent(platform, agent_id, algorithm, task_type, site, records, check_id, config) -> str:
+
+def check_agent(platform, agent_id, algorithm, task_type, site, records, check_id, config,
+                progress: Callable[[str], None] = lambda _: None) -> str:
+    deadline = time.monotonic() + AGENT_CHECK_SECONDS
+    progress("正在核对能力声明")
     gateway = AgentGateway(platform)
     cap = gateway.capabilities(agent_id)
     if not compatible(cap, algorithm):
@@ -29,6 +37,10 @@ def check_agent(platform, agent_id, algorithm, task_type, site, records, check_i
             continue
         items = [to_item(task_type, row, labels=step.labels) for row in rows]
         for item in items if step.per == "item" else [None]:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise ValueError("Agent 配置测试超过 5 分钟，请检查服务负载或模型响应后重试")
+            progress(f"正在执行{step.label} · 样本 {item.id}" if item else f"正在执行{step.label}")
             request = AgentRequest(
                 run_id="pending", algorithm=algorithm.id, version=algorithm.version,
                 task_type=config.task_type, task_id=check_id, site_id=site.participant.id,
@@ -36,7 +48,12 @@ def check_agent(platform, agent_id, algorithm, task_type, site, records, check_i
                 unit_key=item.id if item else "_", params=algorithm.manifest.params_of(config.params),
                 items=[item] if item else items, state=state,
             )
-            status = gateway.execute(agent_id, request, timeout=600)
+            try:
+                status = gateway.execute(agent_id, request, timeout=remaining)
+            except AgentError:
+                if time.monotonic() >= deadline:
+                    raise ValueError("Agent 配置测试超过 5 分钟，请检查服务负载或模型响应后重试") from None
+                raise
             if status.result is None:
                 raise ValueError(f"Agent 的{step.label}没有返回结果")
             value = validate_result(status.result, context_of(request, algorithm), {}, algorithm)

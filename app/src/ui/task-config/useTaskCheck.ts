@@ -35,10 +35,6 @@ export function useTaskCheck(
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now);
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 15_000);
-    return () => clearInterval(timer);
-  }, []);
   const report = useQuery({
     queryKey: ["task-check", current?.id],
     queryFn: () => api.taskCheck(current!.id),
@@ -55,12 +51,19 @@ export function useTaskCheck(
     submitting ||
     report.data?.status === "queued" ||
     report.data?.status === "running";
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), running ? 1000 : 15_000);
+    return () => clearInterval(timer);
+  }, [running]);
   const expired = Boolean(
     report.data && now - Date.parse(report.data.createdAt) >= 15 * 60_000,
   );
   const valid = Boolean(
     matches && !expired && report.data?.status === "passed",
   );
+  const elapsedSeconds = report.data
+    ? Math.max(0, Math.floor((Date.parse(report.data.finishedAt ?? new Date(now).toISOString()) - Date.parse(report.data.createdAt)) / 1000))
+    : 0;
   async function test() {
     if (!request || !ready || running) return;
     setSubmitting(true);
@@ -87,6 +90,7 @@ export function useTaskCheck(
     running: Boolean(running),
     matches,
     expired,
+    elapsedSeconds,
     report: report.data,
     error: error ?? (report.error ? "无法读取测试结果，请重试" : null),
     test,

@@ -1,10 +1,8 @@
 import { InfoTip } from "../InfoTip";
 import {
   ALGORITHMS,
-  algorithmsFor,
   TASK_TYPES,
   type Algorithm,
-  type ScenarioId,
   type TaskType,
 } from "../../domain/catalog";
 import { type Draft } from "../../domain/config";
@@ -52,28 +50,21 @@ export function TaskTypeChoice({
 
 /** 算法按注册表列出；短名称供选择，说明、交换内容与产出通过 ⓘ 查看。 */
 export function AlgorithmField({
-  scenario,
   value,
   onChange,
   error,
 }: {
   error?: string;
-  scenario: ScenarioId | null;
   value: Draft["algorithm"];
   onChange: (id: Algorithm["id"] | null) => void;
 }) {
-  const algorithms = scenario ? algorithmsFor(scenario) : ALGORITHMS;
+  const algorithms = ALGORITHMS;
   return (
     <Field label="算法" labelId="algorithm-label" wide error={error}>
-      {!scenario ? (
-        <p className="field-static" id="algorithm-prerequisite">
-          请先选择场景
-        </p>
-      ) : null}
       {algorithms.length ? (
-        <AlgorithmTable error={error} algorithms={algorithms} value={value} onChange={onChange} disabled={!scenario} />
+        <AlgorithmTable error={error} algorithms={algorithms} value={value} onChange={onChange} disabled={false} />
       ) : (
-        <p className="field-static">这个场景还没有可用算法。</p>
+        <p className="field-static">还没有可用算法。</p>
       )}
     </Field>
   );
