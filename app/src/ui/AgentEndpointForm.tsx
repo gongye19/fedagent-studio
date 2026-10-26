@@ -4,6 +4,7 @@ import { agentsApi, type AgentEndpoint } from "../api/agents";
 import { keys, queryClient } from "../state/server";
 import { FormActions } from "./common";
 import { Field, FieldGroup } from "./console";
+import { CheckRows } from "./CheckStatus";
 
 export function AgentEndpointForm({
   endpoint,
@@ -121,11 +122,12 @@ export function AgentEndpointForm({
           </Field>
         ) : null}
       </FieldGroup>
+      {saving || error ? <CheckRows items={[{ resource: "接口协议", status: saving ? "running" : "failed", message: error ?? "" }]} /> : null}
       <FormActions
         missing={missing}
         saving={saving}
-        error={error}
-        saveLabel="保存并检查"
+        error={null}
+        saveLabel="下一步：验证接入"
         onCancel={onCancel}
         onSave={() => void save()}
       />

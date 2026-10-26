@@ -2,6 +2,7 @@
 from threading import Barrier
 
 import httpx
+from intake_helpers import verify_one, verify_resources
 from test_agents import fot_config
 from test_medical import medical_agents, medical_config, medical_dataset
 
@@ -14,19 +15,22 @@ def test_independent_agents_overlap_and_publish_real_step_progress(platform, cli
     config = medical_config([{"participantId": p, "datasetId": medical_dataset(client, p)} for p in ("p-a", "p-b")])
     config.update(execution="agent", agentId=remote[0])
     medical_agents(client, config, remote[0])
+    verify_resources(client, config)
+    calls_before = len(remote[1])
     original = AgentGateway.request
     rendezvous = Barrier(2)
     first = set()
 
     def overlapping(self, agent_id, method, path, body=None):
-        if method == "POST" and path == "/runs" and body["site_id"] not in first:
-            first.add(body["site_id"])
+        if path == "/capabilities" and agent_id not in first:
+            first.add(agent_id)
             rendezvous.wait(timeout=5)
             with platform.db.session() as session:
-                row = session.get(m.TaskCheck, body["task_id"])
+                row = session.scalars(__import__("sqlalchemy").select(m.TaskCheck).where(m.TaskCheck.status == "running")).first()
                 active = [r for r in row.results if r["status"] == "running"]
                 assert len(active) == 2
-                assert all("正在执行" in r["message"] for r in active)
+                assert all("正在检查" in r["message"] for r in active)
+            rendezvous.wait(timeout=5)
         return original(self, agent_id, method, path, body)
 
     monkeypatch.setattr(AgentGateway, "request", overlapping)
@@ -34,6 +38,7 @@ def test_independent_agents_overlap_and_publish_real_step_progress(platform, cli
     result = client.get("/v1/task-checks/" + report["id"]).json()
     assert result["status"] == "passed", result
     assert len(first) == 2
+    assert len(remote[1]) == calls_before
     assert all(row["status"] != "running" for row in result["results"])
 
 
@@ -47,11 +52,11 @@ def test_failed_batch_does_not_start_more_paid_jobs():
 
 
 def test_agent_check_has_one_shared_budget_for_all_steps(client, remote, monkeypatch):
-    from fedagent.checks import agent
+    from fedagent.agents import contract_check as agent
     monkeypatch.setattr(agent, "AGENT_CHECK_SECONDS", 0)
     config = fot_config(client)
     config.update(execution="agent", agentId=remote[0])
-    report = client.post("/v1/task-checks", json=config).json()
+    report = verify_one(client, config)
     result = client.get("/v1/task-checks/" + report["id"]).json()
     assert result["status"] == "failed"
     assert any("超过 5 分钟" in r["message"] for r in result["results"])
@@ -59,7 +64,6 @@ def test_agent_check_has_one_shared_budget_for_all_steps(client, remote, monkeyp
 
 
 def test_same_model_default_and_explicit_alias_are_probed_once(platform, client, monkeypatch):
-    from fedagent_sdk import ChatResult
     config = fot_config(client)
     with platform.db.session() as session:
         endpoint = session.get(m.Endpoint, "default")
@@ -69,8 +73,8 @@ def test_same_model_default_and_explicit_alias_are_probed_once(platform, client,
     probes = []
     def probe(endpoint_id, model, settings):
         probes.append((endpoint_id, model))
-        return ChatResult("OK", model, {})
-    monkeypatch.setattr(platform.gateway, "probe", probe)
+        return "连接正常"
+    monkeypatch.setattr("fedagent.checks.service.model_connection", lambda platform, endpoint_id: probe(endpoint_id, "fake", {}))
     report = client.post("/v1/task-checks", json=config).json()
     assert client.get("/v1/task-checks/" + report["id"]).json()["status"] == "passed"
     assert probes == [("default", "fake")]

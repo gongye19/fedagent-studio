@@ -4,6 +4,7 @@ from pydantic import Field, field_validator
 
 from ..agents.protocol import Capabilities
 from .base import Model
+from .checks import TaskCheckOut
 from .sharing import ResourceInfo
 
 
@@ -29,6 +30,21 @@ class AgentIn(Model):
         return value.strip()
 
 
+class AgentVerificationIn(Model):
+    algorithm: str
+    task_type: str
+    dataset_id: str
+    params: dict = Field(default_factory=dict)
+
+
+class AgentVerificationOut(Model):
+    algorithm: str
+    task_type: str
+    dataset_id: str
+    current: bool
+    report: TaskCheckOut
+
+
 class AgentOut(ResourceInfo):
     id: str
     name: str
@@ -37,3 +53,4 @@ class AgentOut(ResourceInfo):
     has_key: bool
     capabilities: Capabilities | None
     revision: int
+    verifications: list[AgentVerificationOut] = Field(default_factory=list)

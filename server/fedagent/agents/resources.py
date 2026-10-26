@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, object_session
 
 from .. import models as m
 from ..errors import ServiceError
+from ..resource_services.verification import agent_verified
 from ..resources import new_id, not_found
-from ..schemas.agents import AgentIn, AgentOut
+from ..schemas.agents import AgentIn, AgentOut, AgentVerificationOut
+from ..schemas.checks import TaskCheckOut
 from .protocol import Capabilities
 
 
@@ -17,7 +19,17 @@ def get(session: Session, agent_id: str) -> m.AgentEndpoint:
     return row
 
 
-def out(row: m.AgentEndpoint) -> AgentOut:
+def out(row: m.AgentEndpoint, platform) -> AgentOut:
+    session = object_session(row)
+    verifications = []
+    for proof in (row.verifications or {}).values():
+        report = session.get(m.TaskCheck, proof["check_id"]) if session else None
+        algorithm = platform.registry.algorithms.get(proof["algorithm"])
+        if report and algorithm:
+            verifications.append(AgentVerificationOut(
+                algorithm=algorithm.id, task_type=proof["task_type"], dataset_id=proof["dataset_id"],
+                current=agent_verified(platform, session, row, algorithm, proof["task_type"]),
+                report=TaskCheckOut.model_validate(report, from_attributes=True)))
     return AgentOut(
         id=row.id,
         name=row.name,
@@ -27,6 +39,7 @@ def out(row: m.AgentEndpoint) -> AgentOut:
         has_key=bool(row.api_key_enc),
         capabilities=Capabilities.model_validate(row.capabilities) if row.capabilities else None,
         revision=row.revision,
+        verifications=verifications,
     )
 
 
@@ -47,13 +60,15 @@ def save(platform, session: Session, body: AgentIn, agent_id: str | None = None)
         if row.resource_space == "public":
             raise ServiceError(409, "只能修改当前工作区自己的 Agent 接口")
         ensure_unused(session, agent_id)
-        row.revision += 1
+        changed = row.base_url != body.base_url or body.api_key is not None
+        if changed:
+            row.revision += 1
+            row.capabilities = None
         if row.base_url != body.base_url:
             row.api_key_enc = None  # 绝不把旧凭据发给改过地址的服务。
     row.name, row.base_url = body.name, body.base_url
     if body.api_key is not None:
         row.api_key_enc = platform.secrets.encrypt(body.api_key) if body.api_key else None
-    row.capabilities = None
     session.add(row)
     session.flush()
     return row

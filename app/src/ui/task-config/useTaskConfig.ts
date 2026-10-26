@@ -178,8 +178,8 @@ export function useTaskConfig(
       field: "check",
       message:
         preflight.matches && preflight.report?.status === "failed"
-          ? "请修正检查发现的问题后重新测试"
-          : "请先测试当前配置，通过后再开始任务",
+          ? "请修正连接问题后重新检查"
+          : "请先检查资源连接，再开始任务",
     });
   const fieldError = (field: Issue["field"]) =>
     attempted

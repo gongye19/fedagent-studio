@@ -17,7 +17,7 @@ export function groupChoices(
   datasets: readonly Dataset[],
   participants: readonly Participant[],
 ) {
-  const available = compatibleAgents(agents, algorithm);
+  const available = compatibleAgents(agents, algorithm, draft.taskType);
   const agent = available.find((a) => a.id === group.agentId);
   return {
     agents: available.filter(

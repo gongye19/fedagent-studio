@@ -1,5 +1,7 @@
 # 开发说明
 
+T94覆盖T93预检：agents/contract_check与agents/verification负责资源接入的完整合同；checks/connectivity只查连通，无生成／Agent运行。resource_services/verification维护版本凭据；schema0008和生成契约同步。资源页的verifications报告是准入依据，不能在验收后当临时记录删掉；仅清理本轮任务和task-check连接报告。测试先通过intake_helpers走真实本地接入，再验证快速检查；不可用伪造状态绕过准入。前端CheckStatus／CheckRows统一反馈，异步接入完成须刷新共享queryKey候选。
+
 T93覆盖此前场景优先的表单顺序：新建算法→兼容任务，场景由chooseAlgorithm从清单设置，取消算法清空场景和依赖。TasksPage统一目录，ScenarioTag单独维护分类颜色。配置测试的线程安全进度与两路批次调度在checks/progress.py，业务完整性仍在checks/agent；不要在前端伪造进度或通过状态。新增检查并发须验证中途报告可读、不丢结果、失败不启动后续批次、接口别名去重、整体Agent预算和忙碌模型快速返回。schema0007不变，CheckResult新增running状态须重生OpenAPI类型。
 
 T87任务资源必须主动选择；字段空值及取消规则集中在domain/task-config，草稿版本迁移在state/draft。常规Choices／SelectField／ModelPicker只有按需onClear，不改变运行参数等控件语义。新增分类或任务类型须检查取消、切换和后续资源清理；explicit-selection覆盖未来多任务，不在生产登记夹具类型。

@@ -7,6 +7,7 @@ from datetime import timedelta
 import httpx
 import pytest
 from fedagent_sdk import Manifest, OutgoingMessage
+from intake_helpers import verify_one, verify_resources
 from sqlalchemy import select
 from test_medical import medical_agents, medical_config, medical_dataset
 
@@ -60,6 +61,7 @@ def test_remote_steps_two_rounds_share_artifact_and_grade_locally(platform, clie
     if medical:
         medical_agents(client, config, agent_id)
     assert client.post("/v1/tasks", json=config).status_code == 422
+    verify_resources(client, config)
     report = client.post("/v1/task-checks", json=config)
     assert report.status_code == 202, report.text
     report = client.get("/v1/task-checks/" + report.json()["id"]).json()
@@ -166,6 +168,7 @@ def test_gateway_replays_same_unknown_run_after_lost_response(platform, client, 
     agent_id, requests = remote
     config = fot_config(client)
     config.update(execution="agent", agentId=agent_id)
+    verify_resources(client, config)
     made = client.post("/v1/task-checks", json=config).json()
     assert client.get("/v1/task-checks/" + made["id"]).json()["status"] == "passed"
     config["checkId"] = made["id"]
@@ -255,6 +258,7 @@ def test_busy_agent_retries_same_run_number(platform, client, remote, monkeypatc
     monkeypatch.setattr(AgentGateway, 'request', busy_once)
     config = fot_config(client)
     config.update(execution='agent', agentId=agent_id)
+    verify_resources(client, config)
     report = client.post('/v1/task-checks', json=config).json()
     assert client.get('/v1/task-checks/' + report['id']).json()['status'] == 'passed'
     # 另一参与方可同时提交；繁忙请求仍复用原编号。
@@ -276,9 +280,9 @@ def test_failed_check_stops_unknown_run_and_reconcile_allows_cleanup(platform, c
     monkeypatch.setattr(AgentGateway, 'request', unknown)
     config = fot_config(client)
     config.update(execution='agent', agentId=agent_id)
-    report = client.post('/v1/task-checks', json=config).json()
+    report = verify_one(client, config)
     result = client.get('/v1/task-checks/' + report['id']).json()
-    assert result['status'] == 'failed' and any(r['resource'] == 'Agent 停止确认' for r in result['results'])
+    assert result['status'] == 'failed' and any(r['resource'] == '停止确认' for r in result['results'])
     assert client.delete('/v1/agents/' + agent_id).status_code == 409
     def stopped(self, aid, method, path, body=None):
         if path.endswith('/cancel') and lost[0] in path:
@@ -303,6 +307,7 @@ def test_explicit_retryable_failure_uses_algorithm_retry_without_rerunning_compl
     agent_id, requests = remote
     config = fot_config(client)
     config.update(execution='agent', agentId=agent_id)
+    verify_resources(client, config)
     report = client.post('/v1/task-checks', json=config).json()
     config['checkId'] = report['id']
     task_id = client.post('/v1/tasks', json=config).json()['id']

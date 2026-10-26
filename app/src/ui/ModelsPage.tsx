@@ -11,6 +11,10 @@ import { SharingButton } from "./resources/SharingButton";
 import { ResourceScope } from "./resources/ResourceScope";
 import { ResourceTable } from "./resources/ResourceTable";
 import { Icon } from "./icons";
+import { useState } from "react";
+import { api } from "../api/client";
+import { keys, queryClient } from "../state/server";
+import { CheckStatus } from "./CheckStatus";
 
 function usedBy(state: State, endpointId: string): number {
   return state.tasks.filter((task) =>
@@ -29,6 +33,17 @@ export default function ModelsPage({
   state: State;
   space?: ResourceSpace;
 }) {
+  const [checking, setChecking] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  async function verify(id: string) {
+    setChecking(id); setErrors((old) => ({...old, [id]: ""}));
+    try {
+      const report = await api.testEndpoint(id);
+      if (!report.ok) setErrors((old) => ({...old, [id]: report.message}));
+      await queryClient.invalidateQueries({queryKey: keys.endpoints});
+    } catch (error) { setErrors((old) => ({...old, [id]: error instanceof Error ? error.message : "验证失败，请重试"})); }
+    finally { setChecking(null); }
+  }
   return (
     <>
       <PageHead
@@ -72,6 +87,7 @@ export default function ModelsPage({
                     ) : isConfigured(endpoint) ? null : (
                       <Tag tone="warning">待配置</Tag>
                     )}
+                    {endpoint.configured ? <CheckStatus status={checking === endpoint.id ? "running" : errors[endpoint.id] ? "failed" : endpoint.verified ? "passed" : "pending"} /> : null}
                   </span>
                 </th>
                 {/* 每个接口选用一个模型，只列这一个 */}
@@ -93,6 +109,8 @@ export default function ModelsPage({
                   {used ? `${used} 个任务` : "—"}
                 </td>
                 <td className="numeric cell-action">
+                  {endpoint.configured && endpoint.kind !== "fake" ? <button className="button button--secondary button--compact" disabled={checking !== null} onClick={() => void verify(endpoint.id)}>验证接入</button> : null}
+                  {errors[endpoint.id] ? <p className="field-error" role="alert">{errors[endpoint.id]}</p> : null}
                   <SharingButton kind="llm" resource={endpoint} />
                   {endpoint.kind === "fake" ||
                   (endpoint.resourceSpace !== "workspace" &&

@@ -1,0 +1,128 @@
+[
+  {
+    "stage": "LLM intake",
+    "passed": true
+  },
+  {
+    "stage": "Agent intake",
+    "id": "check-4597ecac",
+    "seconds": 110.36,
+    "results": [
+      {
+        "field": "agent",
+        "resource": "接口协议",
+        "status": "passed",
+        "message": ""
+      },
+      {
+        "field": "agent",
+        "resource": "本方诊断",
+        "status": "passed",
+        "message": ""
+      },
+      {
+        "field": "agent",
+        "resource": "提炼并提交经验",
+        "status": "passed",
+        "message": ""
+      },
+      {
+        "field": "agent",
+        "resource": "输出规范",
+        "status": "passed",
+        "message": ""
+      }
+    ]
+  },
+  {
+    "stage": "Agent intake",
+    "id": "check-60a378fd",
+    "seconds": 52.49,
+    "results": [
+      {
+        "field": "agent",
+        "resource": "接口协议",
+        "status": "passed",
+        "message": ""
+      },
+      {
+        "field": "agent",
+        "resource": "本方诊断",
+        "status": "passed",
+        "message": ""
+      },
+      {
+        "field": "agent",
+        "resource": "提炼并提交经验",
+        "status": "passed",
+        "message": ""
+      },
+      {
+        "field": "agent",
+        "resource": "输出规范",
+        "status": "passed",
+        "message": ""
+      }
+    ]
+  },
+  {
+    "stage": "task connection",
+    "algorithm": "fot",
+    "seconds": 2.03,
+    "results": [
+      {
+        "field": "participants",
+        "resource": "V202505Hard",
+        "status": "passed",
+        "message": "资源已就绪"
+      },
+      {
+        "field": "participants",
+        "resource": "V202412Hard",
+        "status": "passed",
+        "message": "资源已就绪"
+      },
+      {
+        "field": "models",
+        "resource": "David AI",
+        "status": "passed",
+        "message": "连接正常"
+      }
+    ]
+  },
+  {
+    "stage": "task connection",
+    "algorithm": "evomedclaw",
+    "seconds": 0.77,
+    "results": [
+      {
+        "field": "participants",
+        "resource": "MedQA · 分组 2",
+        "status": "passed",
+        "message": "资源已就绪"
+      },
+      {
+        "field": "participants",
+        "resource": "MedQA · 分组 1",
+        "status": "passed",
+        "message": "资源已就绪"
+      },
+      {
+        "field": "models",
+        "resource": "医疗 Agent A",
+        "status": "passed",
+        "message": "连接正常"
+      },
+      {
+        "field": "models",
+        "resource": "医疗 Agent B",
+        "status": "passed",
+        "message": "连接正常"
+      }
+    ]
+  },
+  {
+    "stage": "FoT two rounds",
+    "status": "completed"
+  }
+]

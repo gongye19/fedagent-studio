@@ -150,6 +150,8 @@ def test_medical_full_flow_and_single_invoke(client: TestClient, platform: Platf
     chosen = [{'participantId': pid, 'datasetId': medical_dataset(client, pid)} for pid in ('p-a', 'p-b')]
     config = {**medical_config(chosen), "execution": "agent", "agentId": remote[0]}
     medical_agents(client, config, remote[0])
+    from intake_helpers import verify_resources
+    verify_resources(client, config)
     invalid = client.post('/v1/tasks/validate', json={**config, 'trialCap': 1}).json()
     assert any('至少取 2' in x['message'] for x in invalid['issues'])
     checked = client.post("/v1/task-checks", json=config).json()

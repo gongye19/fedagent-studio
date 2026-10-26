@@ -1,0 +1,17 @@
+.check-status { display: inline-flex; flex: none; width: 24px; height: 24px; align-items: center; justify-content: center; color: var(--secondary); border-radius: 50%; vertical-align: middle; }
+.check-status--passed { color: var(--success-text); background: var(--success-soft); }
+.check-status--failed { color: var(--danger-text); background: var(--danger-soft); }
+.check-status--running { color: var(--accent); background: var(--accent-soft); }
+.check-status--passed .icon { stroke-dasharray: 20; stroke-dashoffset: 0; animation: check-draw 240ms ease-out; }
+.check-status-spinner { width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: check-spin 800ms linear infinite; }
+.check-status-dot { width: 12px; height: 12px; border: 1.5px solid var(--border-strong, #abb1bc); border-radius: 50%; }
+.check-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.check-row { display: flex; align-items: center; gap: 10px; min-height: 28px; }
+.check-row-content { min-width: 0; font-size: 13px; overflow-wrap: anywhere; }
+.check-row .field-error { margin: 4px 0 0; }
+.check-panel .panel-body { padding-block: 14px; }
+.check-panel .panel-head h2 { display: flex; align-items: center; gap: 6px; }
+.verification-form { display: grid; gap: 20px; }
+@keyframes check-draw { from { stroke-dashoffset: 20; } }
+@keyframes check-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .check-status-spinner, .check-status--passed .icon { animation: none; } }

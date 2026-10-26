@@ -750,3 +750,12 @@ TasksPage不再按场景分组，TaskTable中ScenarioTag呈现分类；新建算
 checks/progress.Progress负责固定结果索引、线程互斥更新和持久化，避免两接口互相覆盖；parallel最多启动两项，当前批次收尾后有失败则不启动下一批。service做数据检查与解析接口去重，然后调度接口；agent保留完整步骤输出校验和全流程300秒预算，finally仍统一stop_check确认。CheckResult.running是实际在执行的资源，子步骤message由Agent执行前更新；没有假百分比，也不把数据结构通过当接口通过。
 
 Gateway.slot支持可选等待时限；只有purpose=test使用5秒，正式请求传None保持原行为。probe使用30秒HTTP读超时、0次失败重试，流式不兼容的协议回退保持。Agent正式任务的执行超时与续跑编号不改，配置测试超时仍保留远程状态以便确认停止。
+
+
+## 36. 资源验证凭据与轻量任务检查（T94／D90）
+
+schema0008为Endpoint添加verification_hash、AgentEndpoint添加verifications JSON；旧业务行／密文保留，旧接口须重新验证，不推测历史记录。LLM凭据关联类型／地址／模型／密文，真实探测成功且配置未变才记录；Agent凭据关联revision、算法代码哈希、任务规范，引用持久化TaskCheck报告，不受15分钟任务报告期限限制。Agent API /verifications显式接收算法、任务类型、已有数据和可选参数，使用check-编号以避免启用测试经验；后台状态、超时和停止确认沿用现有可靠实现。
+
+agents/contract_check负责原全步骤校验，agents/verification负责单资源接入；checks/connectivity只GET模型目录或HEAD聊天路由、GET Agent能力，不发送病例或生成请求。task_services/preparation在validate／test／create统一拒绝无当前凭据的资源；前端候选同规则过滤。resource_services/verification不依赖HTTP与界面。
+
+CheckStatus与CheckRows独立于API与业务状态；TaskCheckPanel只组合当前报告，不生成假进度。资源页在检测中轮询，验证完成刷新候选；LLM保存验证后再次刷新列表，避免保存成功但任务仍无可选项。资源接入报告长期保留，任务连接报告15分钟有效。

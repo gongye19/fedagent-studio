@@ -1,6 +1,7 @@
 import { taskModelSummary } from "../../domain/config";
 import { TASK_TYPES } from "../../domain/catalog";
 import { ScenarioTag } from "../ScenarioTag";
+import { CheckStatus } from "../CheckStatus";
 import { modelLabel } from "../../domain/resources";
 import { hrefOf, type Route } from "../../state/route";
 import { type State } from "../../state/store";
@@ -153,7 +154,7 @@ export function TaskSummary({
               });
             }}
           >
-            {config.preflight.valid ? "配置测试已通过" : "查看配置测试"}
+            {config.preflight.valid ? <><CheckStatus status="passed" />连接状态</> : "查看连接状态"}
           </a>
           <button
             type="button"

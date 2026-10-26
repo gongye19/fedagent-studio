@@ -8,6 +8,7 @@ from sqlalchemy import select
 
 from .. import models as m
 from .. import resources
+from ..resource_services.verification import endpoint_signature
 from ..schemas import EndpointIn, EndpointModelsOut, EndpointOut, EndpointTestOut, ModelCheckOut, ModelListIn
 from .dependencies import PlatformDep, SessionDep, admin_router
 
@@ -103,6 +104,13 @@ def test_endpoint(endpoint_id: str, platform: PlatformDep) -> EndpointTestOut:
     if missing:
         message += f"。接口的模型列表里没有：{'、'.join(missing)}"
     first = checks[0] if checks else None
+    with platform.db.session() as session:
+        row = session.get(m.Endpoint, endpoint_id)
+        if row:
+            # 只给真正受测的配置记凭据，避免测试中编辑接口造成假通过。
+            current = gateway.endpoint(endpoint_id)
+            unchanged = (current.base_url, current.models, current.api_key) == (endpoint.base_url, endpoint.models, endpoint.api_key)
+            row.verification_hash = endpoint_signature(row) if not failed and unchanged else None
     return EndpointTestOut(
         ok=not failed,
         model=first.model if first else None,

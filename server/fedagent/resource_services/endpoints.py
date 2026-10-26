@@ -11,6 +11,7 @@ from ..gateway import FAKE_ENDPOINT
 from ..platform import Platform
 from ..schemas import EndpointIn, EndpointOut
 from .common import new_id, not_found
+from .verification import endpoint_verified
 
 
 def endpoint_out(endpoint: m.Endpoint) -> EndpointOut:
@@ -28,6 +29,7 @@ def endpoint_out(endpoint: m.Endpoint) -> EndpointOut:
         has_key=bool(endpoint.api_key_enc),
         builtin=endpoint.builtin,
         configured=configured,
+        verified=endpoint_verified(endpoint),
         timeout=endpoint.timeout,
         max_retries=endpoint.max_retries,
     )
@@ -68,6 +70,8 @@ def save_endpoint(platform: Platform, session: Session, body: EndpointIn, endpoi
     if len(models) > 1:
         raise ServiceError(422, "每个接口只能选用一个模型；使用其他模型请另登记一个接口")
     endpoint.name = body.name.strip()
+    if (endpoint.base_url or "").rstrip("/") != base_url.rstrip("/"):
+        endpoint.api_key_enc = None
     endpoint.base_url = base_url
     endpoint.models = models
     endpoint.concurrency = body.concurrency

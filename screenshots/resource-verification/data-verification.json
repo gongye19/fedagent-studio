@@ -1,0 +1,13 @@
+{
+  "oldFieldsPreserved": true,
+  "filesPreserved": true,
+  "integrity": "ok",
+  "schema": "0008",
+  "newRows": {
+    "fedagent.db:agent_runs": 6,
+    "fedagent.db:calls": 72,
+    "fedagent.db:task_checks": 3,
+    "medical-agents/medical-a/runs.sqlite:runs": 3,
+    "medical-agents/medical-b/runs.sqlite:runs": 3
+  }
+}

@@ -8,9 +8,11 @@ import { deleteEndpoint, saveEndpoint } from "../state/actions";
 import { showFlash } from "../state/flash";
 import { backTo, navigate, type From } from "../state/route";
 import type { State } from "../state/store";
-import { Confirm, FormActions, NotFound, Notice, PageHead } from "./common";
+import { Confirm, FormActions, NotFound, PageHead } from "./common";
 import { Field, FieldGroup, Panel, UnitInput } from "./console";
 import { useDebounced } from "./hooks";
+import { CheckRows } from "./CheckStatus";
+import { keys, queryClient } from "../state/server";
 
 type Check = components["schemas"]["EndpointTestOut"];
 
@@ -43,9 +45,9 @@ export function EndpointForm({ state, endpoint, from, onSaved, onCancel, onBusyC
   const [removing, setRemoving] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [testing, setTesting] = useState(false);
+  const [savedId, setSavedId] = useState(endpoint?.id);
   const [tested, setTested] = useState<Check | null>(null);
-  const [testError, setTestError] = useState<string | null>(null);
+
   const url = baseUrl.trim();
   const validUrl = url === "" || /^https?:\/\/\S+$/.test(url);
   // 接口提供的模型：地址、密钥停下 0.5 秒后读一次；没填密钥时用已经保存的
@@ -78,7 +80,7 @@ export function EndpointForm({ state, endpoint, from, onSaved, onCancel, onBusyC
     onBusyChange?.(true);
     setError(null);
     try {
-      const saved = await saveEndpoint(endpoint?.id ?? null, {
+      const saved = await saveEndpoint(savedId ?? null, {
         name: name.trim(),
         baseUrl: url,
         models: [model.trim()],
@@ -89,11 +91,20 @@ export function EndpointForm({ state, endpoint, from, onSaved, onCancel, onBusyC
         timeout: endpoint?.timeout ?? 600,
         maxRetries: endpoint?.maxRetries ?? 8,
       });
-      if (onSaved) {onSaved(saved);return;}
-      showFlash(back, endpoint ? `已保存“${saved.name}”。` : `已添加“${saved.name}”，新建任务时可以选它。`);
+      setSavedId(saved.id);
+      if (!saved.verified) {
+        const checked = await api.testEndpoint(saved.id);
+        setTested(checked);
+        if (!checked.ok) { if (!checked.checks.length) setError(checked.message); return; }
+      }
+      const current = (await api.endpoints()).find((e) => e.id === saved.id);
+      if (!current?.verified) throw new Error("接口已变化，请重新验证");
+      await queryClient.invalidateQueries({queryKey: keys.endpoints});
+      if (onSaved) {onSaved(current);return;}
+      showFlash(back, `已保存“${saved.name}”。`);
       navigate(back);
     } catch (failure) {
-      setError(failure instanceof ApiError ? failure.message : "保存失败，稍后再试");
+      setError(failure instanceof Error ? failure.message : "保存失败，稍后再试");
     } finally {
       setSaving(false);
       onBusyChange?.(false);
@@ -107,40 +118,24 @@ export function EndpointForm({ state, endpoint, from, onSaved, onCancel, onBusyC
     navigate(back);
   }
 
-  async function test() {
-    if (!endpoint) return;
-    setTesting(true);
-    setTested(null);
-    setTestError(null);
-    try {
-      setTested(await api.testEndpoint(endpoint.id));
-    } catch (failure) {
-      setTestError(failure instanceof ApiError ? failure.message : "测试失败，稍后再试");
-    } finally {
-      setTesting(false);
-    }
-  }
-
   const deletable = endpoint && endpoint.id !== DEFAULT_ENDPOINT_ID && !endpoint.builtin;
   const actions = endpoint ? (
     <>
-      {endpoint.configured ? <button type="button" className="button button--secondary" disabled={testing} onClick={() => void test()}>{testing ? "正在测试…" : "测试连接"}</button> : null}
-      {deletable ? <button type="button" className="button button--secondary button--danger" onClick={() => setRemoving(true)}>删除接口</button> : null}
+      {deletable ? <button type="button" className="button button--secondary button--danger" disabled={saving} onClick={() => setRemoving(true)}>删除接口</button> : null}
     </>
   ) : null;
   return (
     <>
       {!onSaved ? <PageHead title={title} back={{ label: from === "newTask" ? "任务配置" : "LLM 接口", route: back }} actions={actions} /> : null}
-      {testError ? <Notice tone="warning" onDismiss={() => setTestError(null)}>{`测试失败：${testError}`}</Notice> : null}
       {removing && endpoint ? (
         <Confirm title={`删除“${endpoint.name}”？`} confirmLabel="删除" onConfirm={() => remove()} onCancel={() => setRemoving(false)}>
           排队、运行或暂停的任务使用此接口时不能删除；删除后，新建任务不能再选它的模型。
         </Confirm>
       ) : null}
       <div className="form-page">
-        {tested ? <CheckPanel result={tested} onClose={() => setTested(null)} /> : null}
+
         <Panel title="接口设置">
-          <div className="form-body">
+          <div className="form-body" inert={saving}>
             <FieldGroup>
               <Field label="名称" htmlFor="endpoint-name">
                 <input id="endpoint-name" name="endpoint-name" autoComplete="off" value={name} maxLength={30} onChange={(event) => setName(event.target.value)} placeholder="例如：实验室模型服务" />
@@ -199,54 +194,10 @@ export function EndpointForm({ state, endpoint, from, onSaved, onCancel, onBusyC
             </FieldGroup>
           </div>
         </Panel>
-        <FormActions missing={missing} saving={saving} error={error} saveLabel={endpoint ? "保存修改" : "保存接口"} onCancel={onCancel ?? (() => navigate(back))} onSave={() => void save()} />
+        {saving || tested || error ? <CheckRows items={saving ? [{ resource: model, status: "running" }] : error ? [{resource: model || "接口", status: "failed", message: error}]
+          : tested!.checks.map((c) => ({resource: c.model, status: c.ok ? "passed" : "failed", message: c.ok ? "" : c.message}))} /> : null}
+        <FormActions missing={missing} saving={saving} error={null} saveLabel="保存并验证" onCancel={onCancel ?? (() => navigate(back))} onSave={() => void save()} />
       </div>
     </>
   );
-}
-
-/** 测试连接的结果：按任务实际会用的生成参数发一条很短的请求，看这个模型能不能用。 */
-function CheckPanel({ result, onClose }: { result: Check; onClose: () => void }) {
-  const available = result.available;
-  const missing = available ? result.checks.map((check) => check.model).filter((name) => !available.includes(name)) : [];
-  return (
-    <Panel
-      title="检查结果"
-      extra={result.ok ? "能用" : "不能用"}
-      actions={<button type="button" className="button button--secondary button--compact" onClick={onClose}>收起</button>}
-      flush
-    >
-      <table className="table">
-        <caption className="visually-hidden">按任务实际的参数试一次的结果</caption>
-        <thead>
-          <tr>
-            <th scope="col">模型</th>
-            <th scope="col">结果</th>
-            <th scope="col" className="numeric">耗时</th>
-          </tr>
-        </thead>
-        <tbody>
-          {result.checks.map((check) => (
-            <tr key={check.model}>
-              {/* 模型名不能从中间断开 */}
-              <th scope="row" className="nowrap">{check.model}</th>
-              <td>{check.ok ? <span className="status-text">正常</span> : <span className="check-error">{check.message}</span>}</td>
-              <td className="numeric nowrap">{latencyText(check.latencyMs)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {missing.length || result.modelsError ? (
-        <div className="model-picks">
-          {missing.length ? <span className="check-error">接口的模型列表里没有：{missing.join("、")}</span> : null}
-          {result.modelsError ? <span>读不到接口的模型列表：{result.modelsError}</span> : null}
-        </div>
-      ) : null}
-    </Panel>
-  );
-}
-
-function latencyText(ms: number | null): string {
-  if (ms === null) return "—";
-  return ms < 1000 ? `${ms} 毫秒` : `${(ms / 1000).toFixed(1)} 秒`;
 }

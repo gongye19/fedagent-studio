@@ -401,6 +401,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/agents/{agent_id}/verifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify Agent */
+        post: operations["verify_agent_v1_agents__agent_id__verifications_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/agent-protocol": {
         parameters: {
             query?: never;
@@ -798,6 +815,33 @@ export interface components {
             capabilities: components["schemas"]["Capabilities"] | null;
             /** Revision */
             revision: number;
+            /** Verifications */
+            verifications?: components["schemas"]["AgentVerificationOut"][];
+        };
+        /** AgentVerificationIn */
+        AgentVerificationIn: {
+            /** Algorithm */
+            algorithm: string;
+            /** Tasktype */
+            taskType: string;
+            /** Datasetid */
+            datasetId: string;
+            /** Params */
+            params?: {
+                [key: string]: unknown;
+            };
+        };
+        /** AgentVerificationOut */
+        AgentVerificationOut: {
+            /** Algorithm */
+            algorithm: string;
+            /** Tasktype */
+            taskType: string;
+            /** Datasetid */
+            datasetId: string;
+            /** Current */
+            current: boolean;
+            report: components["schemas"]["TaskCheckOut"];
         };
         /** AlgorithmCapability */
         AlgorithmCapability: {
@@ -1358,6 +1402,11 @@ export interface components {
             builtin: boolean;
             /** Configured */
             configured: boolean;
+            /**
+             * Verified
+             * @default false
+             */
+            verified: boolean;
             /** Timeout */
             timeout: number;
             /** Maxretries */
@@ -3021,6 +3070,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_agent_v1_agents__agent_id__verifications_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                agent_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentVerificationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskCheckOut"];
                 };
             };
             /** @description Validation Error */

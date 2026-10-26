@@ -5,6 +5,7 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 from fedagent_sdk import Artifact, ChatResult
+from intake_helpers import verify_one
 from test_agents import fot_config
 from test_medical import cases, medical_agents, medical_config, medical_dataset
 
@@ -38,10 +39,10 @@ def test_configuration_checks_business_output_of_every_step(platform, client, re
         return status
 
     monkeypatch.setattr(AgentGateway, "execute", broken)
-    report = client.post("/v1/task-checks", json=config).json()
+    report = verify_one(client, config)
     result = client.get("/v1/task-checks/" + report["id"]).json()
     assert result["status"] == "failed", result
-    assert any(row["status"] == "failed" and "Agent" in row["resource"] for row in result["results"])
+    assert any(row["status"] == "failed" and row["message"] for row in result["results"])
     config["checkId"] = report["id"]
     assert client.post("/v1/tasks", json=config).status_code == 422
 
@@ -59,7 +60,7 @@ def test_medical_requires_agent_and_publishes_downloadable_contract(client):
 
 
 @pytest.mark.parametrize("code,retryable,hint", [
-    ("diagnosis_incomplete", True, "增加高级配置中的问诊回合"),
+    ("diagnosis_incomplete", True, "调整问诊回合上限"),
     ("invalid_output", False, "算法输出规范"),
 ])
 def test_agent_errors_are_actionable_and_stop_further_paid_checks(client, remote, monkeypatch, code, retryable, hint):
@@ -78,7 +79,7 @@ def test_agent_errors_are_actionable_and_stop_further_paid_checks(client, remote
         return original(self, agent_id, method, path, body)
 
     monkeypatch.setattr(AgentGateway, "request", failed)
-    checked = client.post("/v1/task-checks", json=config).json()
+    checked = verify_one(client, config)
     report = client.get("/v1/task-checks/" + checked["id"]).json()
     assert report["status"] == "failed" and 1 <= len(submitted) <= 2
     assert all(request["step"] == "diagnose" for request in submitted)

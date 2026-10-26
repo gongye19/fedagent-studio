@@ -27,7 +27,8 @@ export function useServerData(enabled: boolean) {
   const participants = useQuery({ queryKey: keys.participants, queryFn: api.participants, enabled, refetchInterval: 15_000 });
   const datasets = useQuery({ queryKey: keys.datasets, queryFn: api.datasets, enabled, refetchInterval: 30_000 });
   const endpoints = useQuery({ queryKey: keys.endpoints, queryFn: api.endpoints, enabled });
-  const agents = useQuery({ queryKey: keys.agents, queryFn: agentsApi.list, enabled });
+  const agents = useQuery({ queryKey: keys.agents, queryFn: agentsApi.list, enabled,
+    refetchInterval: (query) => query.state.data?.some((agent) => agent.verifications?.some((v) => ["queued", "running"].includes(v.report.status))) ? 1000 : 15_000 });
   const tasks = useQuery({
     queryKey: keys.tasks,
     queryFn: async (): Promise<Task[]> => (await api.tasks()).map(toTask),

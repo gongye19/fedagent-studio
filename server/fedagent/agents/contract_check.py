@@ -3,24 +3,26 @@ import time
 from collections.abc import Callable
 
 from .. import models as m
-from ..agents.adapter import validate_result
-from ..agents.gateway import AgentError, AgentGateway
-from ..agents.protocol import AgentRequest, SavedValue
-from ..agents.resources import compatible
-from ..agents.runtime import context_of
 from ..data import to_item
+from .adapter import validate_result
+from .gateway import AgentError, AgentGateway
+from .protocol import AgentRequest, SavedValue
+from .resources import compatible
+from .runtime import context_of
 
 AGENT_CHECK_SECONDS = 300
 
 
 def check_agent(platform, agent_id, algorithm, task_type, site, records, check_id, config,
-                progress: Callable[[str], None] = lambda _: None) -> str:
+                progress: Callable[[str], None] = lambda _: None,
+                on_step: Callable[[str, str, str], None] = lambda *_: None) -> str:
     deadline = time.monotonic() + AGENT_CHECK_SECONDS
     progress("正在核对能力声明")
     gateway = AgentGateway(platform)
     cap = gateway.capabilities(agent_id)
     if not compatible(cap, algorithm):
         raise ValueError("Agent 未声明支持当前算法的版本与全部参与方步骤")
+    on_step("capabilities", "接口协议", "passed")
     with platform.db.session() as session:
         endpoint = session.get(m.AgentEndpoint, agent_id)
         if endpoint:
@@ -35,6 +37,7 @@ def check_agent(platform, agent_id, algorithm, task_type, site, records, check_i
     for step in algorithm.manifest.steps:
         if step.at == "server":
             continue
+        on_step(step.id, step.label, "running")
         items = [to_item(task_type, row, labels=step.labels) for row in rows]
         for item in items if step.per == "item" else [None]:
             remaining = deadline - time.monotonic()
@@ -67,8 +70,10 @@ def check_agent(platform, agent_id, algorithm, task_type, site, records, check_i
             for key, item_id, saved in value.kept:
                 state = [entry for entry in state if (entry.key, entry.item_id) != (key, item_id)]
                 state.append(SavedValue(key=key, item_id=item_id, round=1, value=saved))
+        on_step(step.id, step.label, "passed")
     if not predictions:
         raise ValueError("Agent 没有返回可供独立评估的预测")
     if not uploads:
         raise ValueError("Agent 未返回可参与联邦聚合的经验，请检查经验提取输出")
+    on_step("output", "输出规范", "passed")
     return "能力声明、真实样本执行、全部本方步骤与经验格式通过；未评估准确率"

@@ -311,6 +311,11 @@ def test_active_resources_cannot_be_deleted(client: TestClient, platform: Platfo
         files={'file': ('d.jsonl', b'{"id":"2","question":"2+2?","answer":"4"}\n')})
     assert other.status_code == 201, other.text
     endpoint = client.post('/v1/endpoints', json={'name': '自定义接口', 'baseUrl': 'http://example.test/v1', 'models': ['model']}).json()['id']
+    import httpx
+    platform.gateway._transport = httpx.MockTransport(lambda req: httpx.Response(200, json=(
+        {"data": [{"id": "model"}]} if req.url.path.endswith("/models") else
+        {"model": "model", "choices": [{"message": {"content": "OK"}, "finish_reason": "stop"}], "usage": {}})))
+    assert client.post(f'/v1/endpoints/{endpoint}/test').json()['ok']
     task = client.post('/v1/tasks', json=config([{'participantId':'p-a','datasetId':'ds-aime24'},
         {'participantId':participant,'datasetId':dataset}], serverModel=f'{endpoint}:model')).json()['id']
     for path in [f'/v1/participants/{participant}', f'/v1/datasets/{dataset}', f'/v1/endpoints/{endpoint}']:

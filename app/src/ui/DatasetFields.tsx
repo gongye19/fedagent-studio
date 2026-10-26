@@ -7,6 +7,7 @@ import { Choices, Field } from "./console";
 import type { DatasetForm } from "./datasetForm";
 import { formatNumber } from "./format";
 import { Icon } from "./icons";
+import { CheckStatus } from "./CheckStatus";
 
 /**
  * 数据集的登记字段：场景 → 任务类型 → 平台托管时选文件并在浏览器里检查，参与方本地时只填名称和说明。
@@ -112,10 +113,10 @@ export function DatasetFields({ form, hosting, onChange, resourceIntake = false,
           {templateError ? <p className="field-error" role="alert">{templateError}</p> : null}
           {file ? (
             <div className={`check-result${failed ? " check-result--failed" : " check-result--ok"}`} aria-live="polite">
-              {file.checking ? <p>正在校验文件…</p> : null}
+              {file.checking ? <p><CheckStatus status="running" />{file.name}</p> : null}
               {file.error ? <p><Icon name="x" />{file.error}</p> : null}
               {file.check?.ok ? (
-                <p><Icon name="check" />检查通过：{formatNumber(file.check.count)} 条样本，其中 {formatNumber(file.check.answered)} 条有标注。</p>
+                <p><CheckStatus status="passed" />{formatNumber(file.check.count)} 条样本 · {formatNumber(file.check.answered)} 条标注</p>
               ) : null}
               {file.check && !file.check.ok ? (
                 <>

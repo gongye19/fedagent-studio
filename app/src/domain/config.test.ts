@@ -46,6 +46,8 @@ it("requires a user Agent for medical and excludes incompatible interfaces from 
     baseUrl: "https://agent.test",
     hasKey: false,
     revision: 1,
+    verifications: [{algorithm: "evomedclaw", taskType: "medical-diagnosis", datasetId: "verification-data", current: true,
+      report: {id: "check-resource", status: "passed", results: [], createdAt: "2026-10-26T00:00:00Z", finishedAt: "2026-10-26T00:01:00Z"}}],
     ownerId: "workspace",
     ownerName: "当前工作区",
     shared: false,
@@ -362,6 +364,7 @@ it("does not invent a default endpoint and only offers configured models for app
     name: "自定义接口",
     models: ["model"],
     configured: true,
+    verified: true,
   };
   expect(modelOptions([custom]).map((option) => option.ref)).toEqual([
     "custom:model",

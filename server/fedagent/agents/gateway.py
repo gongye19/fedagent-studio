@@ -30,9 +30,10 @@ class AgentBusy(AgentError):
 
 
 class AgentGateway:
-    def __init__(self, platform, *, transport: httpx.BaseTransport | None = None) -> None:
+    def __init__(self, platform, *, transport: httpx.BaseTransport | None = None, request_timeout: float = 15) -> None:
         self.platform = platform
         self.transport = transport
+        self.request_timeout = request_timeout
 
     def request(self, agent_id: str, method: str, path: str, body: Any = None) -> Any:
         with self.platform.db.session() as session:
@@ -43,7 +44,8 @@ class AgentGateway:
         started = time.monotonic()
         try:
             with (
-                httpx.Client(transport=self.transport, timeout=5 if path.endswith("/cancel") else 15, follow_redirects=False, trust_env=False) as client,
+                httpx.Client(transport=self.transport, timeout=5 if path.endswith("/cancel") else self.request_timeout,
+                             follow_redirects=False, trust_env=False) as client,
                 client.stream(method, address + path, headers=headers, json=body) as response,
             ):
                 if response.status_code == 429:
@@ -114,7 +116,7 @@ class AgentGateway:
                 return status
             if status.status == "failed":
                 guidance = {
-                    "diagnosis_incomplete": "Agent 在问诊上限内未形成最终诊断，请增加高级配置中的问诊回合上限后重新测试",
+                    "diagnosis_incomplete": "Agent 在问诊上限内未形成最终诊断，请调整问诊回合上限后重新验证",
                     "model_error": "Agent 的内部模型调用失败，请检查接入方的 LLM 连接和额度",
                     "invalid_output": "Agent 的业务输出不完整，请按下载的算法输出规范检查服务实现",
                 }.get(status.error_code or "", "Agent 执行失败，请检查该服务的运行记录")

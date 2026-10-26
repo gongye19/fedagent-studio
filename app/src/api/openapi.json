@@ -1743,6 +1743,74 @@
     }
    }
   },
+  "/v1/agents/{agent_id}/verifications": {
+   "post": {
+    "tags": [
+     "agents"
+    ],
+    "summary": "Verify Agent",
+    "operationId": "verify_agent_v1_agents__agent_id__verifications_post",
+    "parameters": [
+     {
+      "name": "agent_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Agent Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AgentVerificationIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "202": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TaskCheckOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/v1/agent-protocol": {
    "get": {
     "tags": [
@@ -3530,6 +3598,13 @@
      "revision": {
       "type": "integer",
       "title": "Revision"
+     },
+     "verifications": {
+      "items": {
+       "$ref": "#/components/schemas/AgentVerificationOut"
+      },
+      "type": "array",
+      "title": "Verifications"
      }
     },
     "type": "object",
@@ -3546,6 +3621,66 @@
      "revision"
     ],
     "title": "AgentOut"
+   },
+   "AgentVerificationIn": {
+    "properties": {
+     "algorithm": {
+      "type": "string",
+      "title": "Algorithm"
+     },
+     "taskType": {
+      "type": "string",
+      "title": "Tasktype"
+     },
+     "datasetId": {
+      "type": "string",
+      "title": "Datasetid"
+     },
+     "params": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Params"
+     }
+    },
+    "type": "object",
+    "required": [
+     "algorithm",
+     "taskType",
+     "datasetId"
+    ],
+    "title": "AgentVerificationIn"
+   },
+   "AgentVerificationOut": {
+    "properties": {
+     "algorithm": {
+      "type": "string",
+      "title": "Algorithm"
+     },
+     "taskType": {
+      "type": "string",
+      "title": "Tasktype"
+     },
+     "datasetId": {
+      "type": "string",
+      "title": "Datasetid"
+     },
+     "current": {
+      "type": "boolean",
+      "title": "Current"
+     },
+     "report": {
+      "$ref": "#/components/schemas/TaskCheckOut"
+     }
+    },
+    "type": "object",
+    "required": [
+     "algorithm",
+     "taskType",
+     "datasetId",
+     "current",
+     "report"
+    ],
+    "title": "AgentVerificationOut"
    },
    "AlgorithmCapability": {
     "properties": {
@@ -4910,6 +5045,11 @@
      "configured": {
       "type": "boolean",
       "title": "Configured"
+     },
+     "verified": {
+      "type": "boolean",
+      "title": "Verified",
+      "default": false
      },
      "timeout": {
       "type": "number",

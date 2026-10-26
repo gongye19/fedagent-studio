@@ -156,13 +156,13 @@ export function draftIssues(
     refs.filter(Boolean).some((ref) => {
       const endpoint = endpointOf(ref, endpoints);
       return (
-        !endpoint || !isConfigured(endpoint) || !availableResource(endpoint)
+        !endpoint || !isConfigured(endpoint) || !endpoint.verified || !availableResource(endpoint)
       );
     })
   ) {
     issues.push({
       field: "models",
-      message: "所选的模型接口不可用，请到 LLM 接口页面完成配置后重新选择",
+      message: "所选的模型接口不可用，请到 LLM 接口页完成接入验证后重新选择",
     });
   }
   if (

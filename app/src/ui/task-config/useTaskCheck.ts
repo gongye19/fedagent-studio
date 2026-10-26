@@ -52,18 +52,15 @@ export function useTaskCheck(
     report.data?.status === "queued" ||
     report.data?.status === "running";
   useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), running ? 1000 : 15_000);
+    const timer = setInterval(() => setNow(Date.now()), 15_000);
     return () => clearInterval(timer);
-  }, [running]);
+  }, []);
   const expired = Boolean(
     report.data && now - Date.parse(report.data.createdAt) >= 15 * 60_000,
   );
   const valid = Boolean(
     matches && !expired && report.data?.status === "passed",
   );
-  const elapsedSeconds = report.data
-    ? Math.max(0, Math.floor((Date.parse(report.data.finishedAt ?? new Date(now).toISOString()) - Date.parse(report.data.createdAt)) / 1000))
-    : 0;
   async function test() {
     if (!request || !ready || running) return;
     setSubmitting(true);
@@ -78,7 +75,7 @@ export function useTaskCheck(
         /* 本次页面仍保留测试 */
       }
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "测试失败，请重试");
+      setError(failure instanceof Error ? failure.message : "连接检查失败，请重试");
     } finally {
       setSubmitting(false);
       setNow(Date.now());
@@ -90,9 +87,8 @@ export function useTaskCheck(
     running: Boolean(running),
     matches,
     expired,
-    elapsedSeconds,
     report: report.data,
-    error: error ?? (report.error ? "无法读取测试结果，请重试" : null),
+    error: error ?? (report.error ? "无法读取连接状态，请重试" : null),
     test,
   };
 }

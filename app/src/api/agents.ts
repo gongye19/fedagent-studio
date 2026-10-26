@@ -8,4 +8,6 @@ export const agentsApi = {
     request<AgentEndpoint>(id ? "PUT" : "POST", `/v1/agents${id ? `/${encodeURIComponent(id)}` : ""}`, body),
   remove: (id: string) => request<void>("DELETE", `/v1/agents/${encodeURIComponent(id)}`),
   check: (id: string) => request<AgentEndpoint>("POST", `/v1/agents/${encodeURIComponent(id)}/check`),
+  verify: (id: string, body: components["schemas"]["AgentVerificationIn"]) =>
+    request<components["schemas"]["TaskCheckOut"]>("POST", `/v1/agents/${encodeURIComponent(id)}/verifications`, body),
 };

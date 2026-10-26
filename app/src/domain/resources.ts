@@ -16,11 +16,13 @@ import {
 export function compatibleAgents(
   agents: readonly components["schemas"]["AgentOut"][],
   algorithm: Algorithm | null,
+  taskType?: TaskType | null,
 ) {
   if (!algorithm) return [];
   const steps = algorithm.stages.filter((step) => step.side === "participant");
   return agents.filter((agent) => {
-    if (!availableResource(agent) || !agent.capabilities) return false;
+    if (!availableResource(agent) || !agent.capabilities || !(agent.verifications ?? []).some((v) =>
+      v.current && v.algorithm === algorithm.id && (!taskType || v.taskType === taskType))) return false;
     const capability = agent.capabilities.algorithms[algorithm.id];
     return (
       capability?.version === algorithm.version &&
@@ -143,7 +145,7 @@ export function modelOptions(
 export function usableModelOptions(endpoints: readonly Endpoint[]) {
   return modelOptions(endpoints).filter((option) => {
     const endpoint = endpointOf(option.ref, endpoints);
-    return endpoint && availableResource(endpoint) && isConfigured(endpoint);
+    return endpoint && availableResource(endpoint) && isConfigured(endpoint) && endpoint.verified;
   });
 }
 

@@ -89,6 +89,7 @@ class Endpoint(Base):
     api_key_enc: Mapped[str | None] = mapped_column(Text, default=None)
     timeout: Mapped[float] = mapped_column(Float, default=600.0)
     max_retries: Mapped[int] = mapped_column(default=8)
+    verification_hash: Mapped[str | None] = mapped_column(String(64), default=None)
     builtin: Mapped[bool] = mapped_column(default=False)
     created_at: Mapped[datetime] = mapped_column(default=now)
 
@@ -313,6 +314,7 @@ class AgentEndpoint(Base):
     shared: Mapped[bool] = mapped_column(default=False)
     api_key_enc: Mapped[str | None] = mapped_column(Text, default=None)
     capabilities: Mapped[dict[str, Any] | None] = mapped_column(JSON, default=None)
+    verifications: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     revision: Mapped[int] = mapped_column(default=1)
     created_at: Mapped[datetime] = mapped_column(default=now)
 

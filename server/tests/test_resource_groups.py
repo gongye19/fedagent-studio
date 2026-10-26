@@ -1,4 +1,5 @@
 """独立资源共享、任务内配对与测试失效的业务边界。"""
+from intake_helpers import verify_resources
 from sqlalchemy import select
 from test_medical import medical_config, medical_dataset
 
@@ -16,6 +17,7 @@ def setup_groups(platform, client, remote):
             row.resource_space, row.owner_id, row.owner_name, row.shared = "public", "peer-b", "团队协作系统 B", True
     body = medical_config([{"participantId": p, "datasetId": d} for p, d in zip(("p-a", "p-b"), datasets, strict=True)])
     body.update(execution="agent", agentId=None, agentOverrides={"p-a": first, "p-b": second})
+    verify_resources(client, body)
     return datasets, [first, second], body
 
 

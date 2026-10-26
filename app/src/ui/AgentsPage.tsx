@@ -11,31 +11,21 @@ import { ResourceScope } from "./resources/ResourceScope";
 import { ResourceDialog } from "./ResourceDialog";
 import { AgentEndpointForm } from "./AgentEndpointForm";
 import { Icon } from "./icons";
+import { CheckStatus } from "./CheckStatus";
+import { AgentVerificationDialog } from "./AgentVerificationDialog";
 
 export default function AgentsPage({
   space = "workspace",
 }: {
   space?: ResourceSpace;
 }) {
-  const query = useQuery({ queryKey: keys.agents, queryFn: agentsApi.list });
+  const query = useQuery({ queryKey: keys.agents, queryFn: agentsApi.list,
+    refetchInterval: (query) => query.state.data?.some((agent) => agent.verifications?.some((v) => ["queued", "running"].includes(v.report.status))) ? 1000 : false });
   const [editing, setEditing] = useState<AgentEndpoint | "new" | null>(null);
   const [deleting, setDeleting] = useState<AgentEndpoint | null>(null);
   const [busy, setBusy] = useState(false);
-  const [checking, setChecking] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState<AgentEndpoint | null>(null);
   const rows = (query.data ?? []).filter((a) => inResourceScope(a, space));
-  async function check(id: string) {
-    setChecking(id);
-    setError(null);
-    try {
-      await agentsApi.check(id);
-      await queryClient.invalidateQueries({ queryKey: keys.agents });
-    } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "检查失败");
-    } finally {
-      setChecking(null);
-    }
-  }
   return (
     <>
       <PageHead
@@ -59,7 +49,7 @@ export default function AgentsPage({
       />
       <ResourceTable label="Agent 接口列表" columns={[
         {label: "接口名称"}, {label: "所属方"}, {label: "支持的算法"},
-        {label: "能力检查"}, {label: "操作"},
+        {label: "接入验证"}, {label: "操作"},
       ]} empty={!rows.length} busy={query.isPending} emptyContent={
         query.isPending ? "正在读取接口…" : query.error ? <>
           <span>接口列表暂时无法读取。</span>
@@ -90,22 +80,18 @@ export default function AgentsPage({
                     .join("、") || "未声明"
                 : "—"}
             </td>
-            <td data-label="能力检查">
-              {a.capabilities ? (
-                <Tag>已读取能力</Tag>
-              ) : (
-                <Tag tone="warning">待检查</Tag>
-              )}
+            <td data-label="接入验证">
+              <CheckStatus status={(a.verifications ?? []).some((v) => ["queued", "running"].includes(v.report.status)) ? "running"
+                : (a.verifications ?? []).some((v) => v.current) ? "passed" : (a.verifications ?? []).some((v) => v.report.status === "failed") ? "failed" : "pending"} />
             </td>
             <td data-label="操作">
               <div className="button-group">
                 <SharingButton kind="agent" resource={a} />
                 <button
                   className="button button--secondary button--compact"
-                  disabled={Boolean(checking)}
-                  onClick={() => void check(a.id)}
+                  onClick={() => setVerifying(a)}
                 >
-                  {checking === a.id ? "检查中…" : "检查能力"}
+                  验证接入
                 </button>
                 {a.resourceSpace === "workspace" ? (
                   <>
@@ -128,11 +114,6 @@ export default function AgentsPage({
           </tr>
         ))}
       </ResourceTable>
-      {error ? (
-        <p className="field-error" role="alert">
-          {error}
-        </p>
-      ) : null}
       <ResourceDialog
         title={editing === "new" ? "接入 Agent" : "编辑 Agent 接口"}
         open={editing !== null}
@@ -146,10 +127,11 @@ export default function AgentsPage({
             endpoint={editing === "new" ? undefined : editing}
             onBusyChange={setBusy}
             onCancel={() => setEditing(null)}
-            onSaved={() => setEditing(null)}
+            onSaved={(agent) => { setEditing(null); setVerifying(agent); }}
           />
         ) : null}
       </ResourceDialog>
+      {verifying ? <AgentVerificationDialog key={verifying.id} agent={verifying} onClose={() => setVerifying(null)} /> : null}
       {deleting ? (
         <Confirm
           title={`删除“${deleting.name}”？`}

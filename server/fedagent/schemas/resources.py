@@ -106,6 +106,7 @@ class EndpointOut(ResourceInfo):
     has_key: bool
     builtin: bool
     configured: bool
+    verified: bool = False
     timeout: float
     max_retries: int
 

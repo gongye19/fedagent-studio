@@ -1,0 +1,32 @@
+[
+  {
+    "algorithm": "fot",
+    "seconds": 0.669,
+    "before": [
+      2136,
+      19
+    ],
+    "after": [
+      2136,
+      19
+    ],
+    "extraModelCalls": 0,
+    "extraAgentRuns": 0,
+    "passed": true
+  },
+  {
+    "algorithm": "evomedclaw",
+    "seconds": 0.646,
+    "before": [
+      2136,
+      19
+    ],
+    "after": [
+      2136,
+      19
+    ],
+    "extraModelCalls": 0,
+    "extraAgentRuns": 0,
+    "passed": true
+  }
+]

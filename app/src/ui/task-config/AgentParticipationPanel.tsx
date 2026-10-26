@@ -43,7 +43,7 @@ export function AgentParticipationPanel({
       {config.algorithm &&
       !compatibleAgents(state.agents, config.algorithm).length ? (
         <p className="field-static">
-          暂无通过能力检查的可用 Agent，请先在左侧{" "}
+          暂无通过接入验证的可用 Agent，请先在左侧{" "}
           <a className="text-link" href={hrefOf({ page: "agents" })}>
             Agent 接口
           </a>

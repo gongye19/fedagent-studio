@@ -9,6 +9,7 @@ from .. import models as m
 from ..data import select_items
 from ..gateway import parse_ref
 from ..platform import Platform
+from ..resource_services.verification import agent_verified, endpoint_verified
 from ..resources import dataset_ready, participant_status
 from ..schemas import EstimateOut, IssueOut, TaskConfigIn
 
@@ -149,6 +150,8 @@ def validate(platform: Platform, session: Session, body: TaskConfigIn) -> tuple[
                 issue("models", "每个参与系统需使用不同的 Agent 接口")
             elif endpoint.capabilities and not compatible(Capabilities.model_validate(endpoint.capabilities), algorithm):
                 issue("models", f"Agent“{endpoint.name}”不支持该算法的版本或完整步骤")
+            elif not agent_verified(platform, session, endpoint, algorithm, body.task_type):
+                issue("models", f"Agent“{endpoint.name}”尚未通过接入验证，请到 Agent 接口页完成验证")
             if endpoint:
                 selected_agents.add(endpoint.id)
                 for resource, label in ((endpoint, "Agent"), (site.dataset, "病例")):
@@ -161,6 +164,8 @@ def validate(platform: Platform, session: Session, body: TaskConfigIn) -> tuple[
         try:
             endpoint, _ = platform.gateway.resolve(ref)
             row = session.get(m.Endpoint, parse_ref(ref)[0])
+            if row and not endpoint_verified(row):
+                issue("models", f"LLM“{row.name}”尚未通过接入验证，请到 LLM 接口页验证")
             if row and row.resource_space != "workspace" and not row.shared:
                 issue("models", f"LLM 接口“{row.name}”已取消共享，请重新选择")
             if body.budget is not None and endpoint.kind != "fake" and endpoint.price is None:
