@@ -46,19 +46,21 @@ export function PageHead({
   }, [title]);
   return (
     <header className={`page-head${className ? ` ${className}` : ""}`}>
-      <div className="page-title">
+      <div className={`page-title${back ? " page-title--with-back" : ""}`}>
         {back ? (
           <nav className="page-back" aria-label="返回上级">
-            <a className="button button--secondary button--compact" href={hrefOf(back.route)}>
-              <Icon name="back" />返回{back.label}
+            <a className="button button--ghost" href={hrefOf(back.route)} aria-label={`返回${back.label}`} title={`返回${back.label}`}>
+              <Icon name="back" />
             </a>
           </nav>
         ) : null}
-        <div className="page-title-row">
-          <h1>{title}</h1>
-          {status}
+        <div className="page-title-content">
+          <div className="page-title-row">
+            <h1>{title}</h1>
+            {status}
+          </div>
+          {meta ? <p className="page-meta">{meta}</p> : null}
         </div>
-        {meta ? <p className="page-meta">{meta}</p> : null}
       </div>
       {actions ? <div className="page-actions">{actions}</div> : null}
     </header>

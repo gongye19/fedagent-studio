@@ -4,6 +4,7 @@
 .home::after { content: ""; position: absolute; z-index: -1; inset: 15% 0 12%; pointer-events: none; background-image: radial-gradient(#aebbcf 0.65px, transparent 0.65px); background-size: 20px 20px; opacity: .3; mask-image: radial-gradient(ellipse, #000, transparent 72%); }
 .page-head--center { justify-content: center; text-align: center; }
 .page-head--center .page-title { justify-items: center; }
+.page-head--center .page-title-content { justify-items: center; }
 .page-head--center .page-title-row h1 { font-size: var(--text-2xl); letter-spacing: -.025em; }
 .scenario-picker { container-type: inline-size; width: min(100%, 1040px); margin-inline: auto; }
 .scenario-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }

@@ -733,3 +733,11 @@ T90覆盖展示密度：桌面画布1040×520、最大880px，容器680px以下�
 ## 33. 下级页面返回（T91／D87）
 
 PageHead.back取代crumbs数组，用明确上级Route生成有左箭头的导航链接；链接复用次级按钮外观，支持键盘、新标签和直接深链。页面只声明父级，不调用history.back，不将任务重置或取消混入返回。from=newTask使用既有backTo及草稿场景，名称统一“任务配置”；资源展开页清除选中id并保留目录，顶级页面不传back。NotFound和规划页也使用同一入口，删除原内容区重复链接；资源模态继续使用既有关闭与焦点规则。
+
+T92覆盖视觉位置：back仍声明相同Route，但呈现为标题左侧同行的图标按钮，以aria-label和title说明目标；page-title-content保持标题／说明对齐，首页继续居中。桌面40px、手机44px，不再单独占一行。
+
+## 34. 统一资源列表（T92／D88）
+
+resources/ResourceTable集中维护Panel、table、thead和tbody；列由页面声明，空列表的PanelEmpty位于colSpan跨列行中，不再放在表头之前或完全隐藏表格。Agents保留读取／失败内容及原位重试，业务操作和查询仍由页面负责，公共显示组件不依赖API或领域状态。Models、Agents和DataResources共用框架，DataResources仅维护数据行展开。
+
+ResourcesPage删除搜索／类型筛选状态、重复面板标题和过期的任务返回尾部；普通上传仍从页面顶端进入并校验，任务资源匹配不变。ResourceScope及资源归属、共享／编辑权限均保持；LLM新增只在我的目录展示，与另外两页一致。无后端、接口、数据库和依赖变更。

@@ -1,10 +1,16 @@
 /* ——— 页面头部 ——— */
 .page-head { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-6); align-items: center; justify-content: space-between; padding-bottom: var(--space-5); border-bottom: 1px solid var(--border); }
 .page-title { display: grid; gap: 6px; min-width: 0; max-width: 100%; }
+.page-title-content { display: grid; gap: 6px; min-width: 0; max-width: 100%; }
+.page-title--with-back { grid-template-columns: 40px minmax(0, 1fr); column-gap: var(--space-3); align-items: start; }
+.page-title--with-back .page-title-row { min-height: 40px; }
 .page-back { display: flex; }
-.page-back .button { min-height: 40px; font-size: var(--text-sm); }
+.page-back .button { width: 40px; min-height: 40px; padding: 0; }
+.page-back .icon { width: 18px; height: 18px; }
 @media (max-width: 720px) {
-  .page-back .button { min-height: 44px; }
+  .page-title--with-back { grid-template-columns: 44px minmax(0, 1fr); }
+  .page-title--with-back .page-title-row { min-height: 44px; }
+  .page-back .button { width: 44px; min-height: 44px; }
 }
 .page-title-row { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; min-width: 0; }
 .page-title-row h1 { min-width: 0; max-width: 100%; overflow-wrap: anywhere; font-size: var(--text-xl); line-height: 1.35; letter-spacing: -.01em; }

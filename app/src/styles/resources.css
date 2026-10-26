@@ -19,7 +19,8 @@
 .resource-selection > span > span { min-width: 0; overflow-wrap: anywhere; }
 .resource-selection button { flex: none; width: 32px; height: 32px; border: 0; border-radius: 4px; background: none; cursor: pointer; }
 .resource-selection button:hover { background: var(--surface-hover); }
-.resource-return { display: block; margin-block: 16px; font-size: var(--text-sm); }
+.resource-table .resource-empty-row > td { padding: 0; }
+.resource-table .resource-empty-row .panel-empty { min-height: 144px; align-content: center; }
 .resource-space-bar { display: flex; align-items: center; gap: 4px; margin-bottom: 16px; }
 .resource-space-bar > :is(button,a) { display: inline-flex; align-items: center; justify-content: center;
   min-height: 36px; padding: 6px 12px; border: 0; border-radius: 6px; font-size: var(--text-sm);
