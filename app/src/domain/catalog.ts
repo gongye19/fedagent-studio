@@ -52,6 +52,7 @@ export type StageId = string;
 export type StageResult = "metric" | "uploads" | "received" | "groups" | "output";
 
 export type Stage = {
+  per?: "item" | "site";
   id: StageId;
   label: string;
   side: "participant" | "server";
@@ -153,6 +154,7 @@ export function installRegistry(registry: Registry): void {
       exchange: item.exchange,
       output: item.output ?? { name: "产出", unit: "条" },
       stages: item.stages.map((stage) => ({
+        per: stage.per,
         id: stage.id,
         label: stage.label,
         side: stage.side,

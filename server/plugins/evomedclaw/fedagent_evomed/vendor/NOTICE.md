@@ -2,7 +2,7 @@
 
 来源：https://github.com/xschen-beb/EvoMedClaw ，固定提交 ae333ec635fac5900d2b9f4455080444d28c0392，MIT（附 LICENSE）。source-manifest.json 记录复制前的源文件哈希。只包含诊断、科室会诊、过程卡学习与联邦聚合的依赖闭包及对应提示／配置。
 
-适配：导入命名空间改为 fedagent_evomed.vendor；standalone.BAgent 的网络调用替换为平台／客户端 SDK 模型桥接；诊断运行函数不自行读参考诊断或评分，由平台的独立判分处理；不打印原始病例，不插入每回合固定 sleep。持久共演化和外部 MedAgentSim 不接入。调用方禁用语义模型匹配与内置 bootstrap 经验，使用聚合产生的过程卡进行科室内检索；router 使用上游关键词路由，会诊采用上游单专家模式。其余逻辑保留。
+适配：导入命名空间改为 fedagent_evomed.vendor；standalone.BAgent 的网络调用替换为平台／客户端 SDK 模型桥接；诊断运行函数不自行读参考诊断或评分，由平台的独立判分处理；不打印原始病例，不插入每回合固定 sleep。持久共演化和外部 MedAgentSim 不接入。调用方禁用语义模型匹配与内置 bootstrap 经验，使用聚合产生的过程卡进行科室内检索；T96起 router 使用上游混合路由，会诊采用上游多专家／多科及冲突仲裁模式；问诊门槛恢复上游配置。25份原始提示文件保持不变。
 
 可选 skill_runtime 替换为明确禁用的适配器；不安装独立模型 SDK、不读取上游提供者配置，模型调用全部走本站 SDK。轨迹规范化增加内存记录入口，经验卡目标来自实际诊断，标签仅用于验证结果。
 

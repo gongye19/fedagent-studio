@@ -75,7 +75,7 @@ def test_remote_steps_two_rounds_share_artifact_and_grade_locally(platform, clie
         session.get(m.Task, task_id).status = "running"
     assert TaskEngine(platform, task_id, poll=0.01).run() == "completed"
     view = client.get("/v1/tasks/" + task_id).json()
-    assert len([r for r in view["rounds"] if r.get("output")]) == 2
+    assert len([r for r in view["rounds"] if r.get("output")]) == (1 if medical else 2)
     assert all(r.get("correct") is not None for r in view["rounds"])
     assert any(req.round == 2 and req.artifact for req in requests)
     assert all(
@@ -84,7 +84,7 @@ def test_remote_steps_two_rounds_share_artifact_and_grade_locally(platform, clie
     if medical:
         learning = [req for req in requests if req.step == "learn"]
         assert learning and all("answer" not in item.fields for req in learning for item in req.items if item.get("split") == "eval")
-    published = client.post("/v1/apps", json={"taskId": task_id, "builtAfterRound": 2, "name": "仅测试发布"})
+    published = client.post("/v1/apps", json={"taskId": task_id, "builtAfterRound": 1 if medical else 2, "name": "仅测试发布"})
     assert published.status_code == 201, published.text
     config["rounds"] = 3
     assert client.post("/v1/tasks", json=config).status_code == 422

@@ -66,14 +66,15 @@ def _work(settings: dict, path: Path, body: AgentRequest, model_ref: str) -> Non
         ctx = context_of(body, algorithm, model)
         algorithm.run_step(ctx)
         value = ctx.result
-        algorithm.validate_participant_result(ctx, value)
         if value.has_published:
             raise StepFailed("参与方 Agent 不能发布中心产出")
         result = AgentResult(kept=value.kept, sent=value.sent, reports=value.reports, predictions=value.predictions, logs=value.logs)
         from .store import AgentStore
 
+        public = result.model_copy(update={"kept": []}) if step and step.private_state else result
+        algorithm.validate_participant_result(ctx, public.unit_result())
         AgentStore(path.parent).record(body, result)
-        status = RunStatus(run_id=body.run_id, status="succeeded", result=result)
+        status = RunStatus(run_id=body.run_id, status="succeeded", result=public)
     except Exception as error:
         import logging
 

@@ -1,5 +1,4 @@
 """医疗 Agent 的业务输出规范，平台和用户侧可共同复用；不调用模型。"""
-import re
 from typing import Any
 
 from fedagent_sdk import StepContext, UnitResult
@@ -47,19 +46,37 @@ class ClinicalDelta(BaseModel):
 
 def validate_output(ctx: StepContext, result: UnitResult) -> None:
     try:
+        allowed_reports = {"diagnose": {"experience"}, "learn": {"localCards", "exportedCards"}, "load_memory": {"memoryVersion"}}
+        if set(result.reports) - allowed_reports.get(ctx.step.id, set()):
+            raise ValueError("服务返回了契约未声明的报告字段")
         if ctx.step.id == "diagnose":
-            saved = [value for key, item_id, value in result.kept if key == "diagnostic_trajectory" and item_id == ctx.item.id]
-            if len(saved) != 1:
-                raise ValueError("医疗 Agent 必须返回当前病例的完整 diagnostic_trajectory，不能只返回诊断答案")
-            trajectory = DiagnosticTrajectory.model_validate(saved[0])
-            if not re.fullmatch(r"DIAGNOSIS READY\s*:\s*\S.*", trajectory.predicted_diagnosis, re.I | re.S):
-                raise ValueError("医疗诊断必须形成 DIAGNOSIS READY: 开头的最终诊断")
-            if not any(e.speaker == "LocalDoctor" and e.text.strip() == trajectory.predicted_diagnosis.strip()
-                       for e in trajectory.dialogue_history):
-                raise ValueError("医疗诊断轨迹缺少与最终诊断一致的医生过程记录")
-            if ctx.item.get("split") == "eval" and result.predictions != [(ctx.item.id, trajectory.predicted_diagnosis)]:
-                raise ValueError("独立评测预测必须与诊断轨迹的最终诊断一致")
+            expected = ctx.item.get("split") == "eval"
+            if result.kept:
+                raise ValueError("完整诊断轨迹必须保留在接入方服务，不得回传中心")
+            if expected:
+                if (len(result.predictions) != 1 or result.predictions[0][0] != ctx.item.id
+                        or not isinstance(result.predictions[0][1], str) or not result.predictions[0][1].strip()):
+                    raise ValueError("评测必须返回当前病例的有效诊断预测")
+                report = result.reports.get("experience", {})
+                if not isinstance(report, dict) or set(report) != {"version", "retrieved"}:
+                    raise ValueError("经验回用报告结构无效")
+                artifact = ctx.artifact()
+                if report.get("version") != (artifact.version if artifact else None) or not isinstance(report.get("retrieved"), list):
+                    raise ValueError("评测缺少正确的经验版本及命中记录")
+                keys = {entry["entry_id"] for entry in (artifact.content.get("memory", {}).get("entries", []) if artifact else [])}
+                if any(not isinstance(key, str) or key not in keys for key in report["retrieved"]):
+                    raise ValueError("经验命中记录不属于指定版本")
+            elif result.predictions:
+                raise ValueError("经验生成病例不能提交评测预测")
+        elif ctx.step.id == "load_memory":
+            from .site import receipt
+            artifact = ctx.artifact()
+            saved = [value for key, item_id, value in result.kept if key == "memory_receipt" and item_id is None]
+            if len(result.kept) != 1 or artifact is None or saved != [receipt(artifact)] or result.reports.get("memoryVersion") != artifact.version:
+                raise ValueError("服务未确认加载指定版本的共享记忆")
         elif ctx.step.id == "learn":
+            if result.kept:
+                raise ValueError("本站轨迹及卡库不得回传中心")
             updates = [message for message in result.sent if message.channel == "clinical-cards"]
             if len(updates) != 1:
                 raise ValueError("医疗 Agent 必须提交一份 clinical-cards 经验更新")

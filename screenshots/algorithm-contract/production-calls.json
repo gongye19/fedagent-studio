@@ -1,0 +1,1 @@
+[{"purpose": "agent", "status": "ok", "calls": 142, "promptTokens": 148707, "completionTokens": 35841}, {"purpose": "agent-test", "status": "ok", "calls": 197, "promptTokens": 211554, "completionTokens": 54948}]

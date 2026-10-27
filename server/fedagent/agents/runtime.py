@@ -10,7 +10,7 @@ class PayloadIO:
         self.body = body
 
     def recall(self, key: str, item_id: str | None, round: int):
-        return next((entry.value for entry in self.body.state if entry.key == key and entry.item_id == item_id and entry.round == round), None)
+        return next((entry.value for entry in self.body.state if entry.key == key and entry.item_id == (item_id or None) and entry.round == round), None)
 
     def inbox(self, channel: str, round: int) -> list[Message]:
         return [entry for entry in self.body.inbox.get(channel, []) if entry.round == round]

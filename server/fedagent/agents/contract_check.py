@@ -2,15 +2,17 @@
 import time
 from collections.abc import Callable
 
+from fedagent_sdk import Artifact, Message, SiteInfo, StepContext
+
 from .. import models as m
 from ..data import to_item
 from .adapter import validate_result
 from .gateway import AgentError, AgentGateway
 from .protocol import AgentRequest, SavedValue
 from .resources import compatible
-from .runtime import context_of
+from .runtime import PayloadIO, context_of
 
-AGENT_CHECK_SECONDS = 300
+AGENT_CHECK_SECONDS = 600
 
 
 def check_agent(platform, agent_id, algorithm, task_type, site, records, check_id, config,
@@ -34,28 +36,48 @@ def check_agent(platform, agent_id, algorithm, task_type, site, records, check_i
     evaluation = algorithm.manifest.evaluation
     predictions = 0
     uploads = 0
-    for step in algorithm.manifest.steps:
+    first = algorithm.plan(1, 2)
+    extra = [step.id for step in algorithm.manifest.steps if step.at != "server" and step.id not in first]
+    artifact = None
+    sent = []
+    sequence = [(1, key) for key in first] + ([(2, key) for key in algorithm.plan(2, 2)] if extra else [])
+    for round, step_id in sequence:
+        step = algorithm.manifest.step(step_id)
+        assert step is not None
         if step.at == "server":
+            if not extra:
+                continue
+            if step.model:
+                raise ValueError("接入验证需要未配置的中心模型")
+            request = AgentRequest(run_id="pending", algorithm=algorithm.id, version=algorithm.version,
+                task_type=config.task_type, task_id=check_id, site_id="server", role="server", round=round, rounds=2,
+                step=step.id, unit_key="_", params=algorithm.manifest.params_of(config.params),
+                inbox={channel: [m for m in sent if m.channel == channel] for channel in step.reads})
+            ctx = StepContext(manifest=algorithm.manifest, step=step, site=SiteInfo("server", "server", "server"),
+                              round=round, rounds=2, params=request.params, io=PayloadIO(request))
+            algorithm.run_step(ctx)
+            if ctx.result.has_published:
+                artifact = Artifact(1, round, algorithm.manifest.artifact.kind, ctx.result.published)
             continue
         on_step(step.id, step.label, "running")
         items = [to_item(task_type, row, labels=step.labels) for row in rows]
         for item in items if step.per == "item" else [None]:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                raise ValueError("Agent 配置测试超过 5 分钟，请检查服务负载或模型响应后重试")
+                raise ValueError("Agent 接入验证超过 10 分钟，请检查服务负载或模型响应后重试")
             progress(f"正在执行{step.label} · 样本 {item.id}" if item else f"正在执行{step.label}")
             request = AgentRequest(
                 run_id="pending", algorithm=algorithm.id, version=algorithm.version,
                 task_type=config.task_type, task_id=check_id, site_id=site.participant.id,
-                role=step.at, round=1, rounds=config.rounds, step=step.id,
+                role=step.at, round=round, rounds=2, step=step.id,
                 unit_key=item.id if item else "_", params=algorithm.manifest.params_of(config.params),
-                items=[item] if item else items, state=state,
+                items=[item] if item else items, state=state, artifact=artifact,
             )
             try:
                 status = gateway.execute(agent_id, request, timeout=remaining)
             except AgentError:
                 if time.monotonic() >= deadline:
-                    raise ValueError("Agent 配置测试超过 5 分钟，请检查服务负载或模型响应后重试") from None
+                    raise ValueError("Agent 接入验证超过 10 分钟，请检查服务负载或模型响应后重试") from None
                 raise
             if status.result is None:
                 raise ValueError(f"Agent 的{step.label}没有返回结果")
@@ -66,10 +88,13 @@ def check_agent(platform, agent_id, algorithm, task_type, site, records, check_i
                 if actual != expected:
                     raise ValueError(f"Agent 的{step.label}缺少有效预测")
                 predictions += len(actual)
+            for outgoing in value.sent:
+                sent.append(Message(id=str(len(sent)), channel=outgoing.channel, sender=site.participant.id, sender_role=step.at,
+                                    round=round, step=step.id, payload=outgoing.payload, item_id=outgoing.item_id))
             uploads += len(value.sent)
             for key, item_id, saved in value.kept:
                 state = [entry for entry in state if (entry.key, entry.item_id) != (key, item_id)]
-                state.append(SavedValue(key=key, item_id=item_id, round=1, value=saved))
+                state.append(SavedValue(key=key, item_id=item_id, round=round, value=saved))
         on_step(step.id, step.label, "passed")
     if not predictions:
         raise ValueError("Agent 没有返回可供独立评估的预测")

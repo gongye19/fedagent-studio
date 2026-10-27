@@ -1,6 +1,6 @@
 /** 展示文字：任务的状态色、当前步骤、摘要、指标名、轮次和产出版本的叫法，数据集的用途，以及列表排序。 */
 import { algorithmOf, scenarioOf, TASK_TYPES, type Algorithm, type ScenarioId, type TaskType } from "../domain/catalog";
-import type { OutputVersion, Task } from "../domain/task";
+import { outputs, stagesOf, type OutputVersion, type Task } from "../domain/task";
 import type { Tone } from "./common";
 
 export function statusTone(task: Task): Tone {
@@ -15,7 +15,8 @@ export function statusTone(task: Task): Tone {
 }
 
 export function algorithmOfTask(task: Task): Algorithm {
-  return algorithmOf(task.config.algorithm);
+  const algorithm = algorithmOf(task.config.algorithm);
+  return { ...algorithm, stages: stagesOf(task) };
 }
 
 /** 任务的主要指标，由任务类型决定（数学推理是准确率）。 */
@@ -69,6 +70,6 @@ export function usageText(scenario: ScenarioId, taskType: TaskType): string {
 }
 
 export function versionLabel(task: Task, version: OutputVersion): string {
-  const final = task.status === "completed" && version.builtAfterRound === task.config.rounds;
+  const final = task.status === "completed" && version.builtAfterRound === outputs(task).at(-1)?.builtAfterRound;
   return final ? `第 ${version.builtAfterRound} 轮后（最终）` : `第 ${version.builtAfterRound} 轮后`;
 }

@@ -5,6 +5,7 @@ from typing import Any, Literal
 from pydantic import Field
 
 from .base import Model, Time
+from .registry import StageOut
 
 
 class TaskParticipantIn(Model):
@@ -116,6 +117,8 @@ class TaskOut(Model):
     rounds: list[RoundOut]
     fake: bool
     cost: float | None
+    stages: list[StageOut] = Field(default_factory=list)
+    plan: dict[str, list[str]] = Field(default_factory=dict)
 
 
 class MessageOut(Model):

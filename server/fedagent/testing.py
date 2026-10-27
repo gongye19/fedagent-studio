@@ -204,7 +204,8 @@ def run_contract(
         report.checks["标注没有离开持有方"] = not any(canary in text for canary in canaries for text in texts)
         if manifest.artifact is not None:
             produced = session.scalar(select(func.count()).where(m.Artifact.task_id == task_ids[0])) or 0
-            report.checks["每轮生成一版产出"] = produced == config.rounds
+            report.checks["按执行计划生成产出"] = produced == sum(
+                any(s.publishes for s in manifest.steps if s.id in plugin.plan(r, config.rounds)) for r in range(1, config.rounds + 1))
             report.details["artifacts"] = produced
     report.checks["中途暂停再继续，结果一致"] = _fingerprint(platform, task_ids[0]) == _fingerprint(platform, task_ids[1])
     return report

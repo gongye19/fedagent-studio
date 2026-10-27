@@ -759,3 +759,14 @@ schema0008为Endpoint添加verification_hash、AgentEndpoint添加verifications 
 agents/contract_check负责原全步骤校验，agents/verification负责单资源接入；checks/connectivity只GET模型目录或HEAD聊天路由、GET Agent能力，不发送病例或生成请求。task_services/preparation在validate／test／create统一拒绝无当前凭据的资源；前端候选同规则过滤。resource_services/verification不依赖HTTP与界面。
 
 CheckStatus与CheckRows独立于API与业务状态；TaskCheckPanel只组合当前报告，不生成假进度。资源页在检测中轮询，验证完成刷新候选；LLM保存验证后再次刷新列表，避免保存成功但任务仍无可选项。资源接入报告长期保留，任务连接报告15分钟有效。
+
+
+## 37. 算法接入规范与私有服务边界（T96）
+
+算法插件现有manifest声明资源角色／数量、执行方式、兼容任务和数据、步骤能力、通道、产物和参数；agent_output_contract提供具体业务Schema。GET /v1/algorithms/{id}/contract组合这些声明及通用协议，最少来源数只约束任务。任务类型负责模板／校验／评分，平台核心不识别医生角色或科室，服务可自行实现内部流程。
+
+StepDef.private_state默认false，医疗diagnose／learn为true：服务先构造受控公开响应，调用插件纯输出校验，通过后将完整kept保存在AgentStore，状态库仅写公开结果。中心不接收完整轨迹；load_memory公开凭据绑定version／round／sha256，由后续诊断检查。载入经验仍按task/site隔离；check-资源验证不保存本站轨迹或激活经验。
+
+EvoMedClaw 1.1.0覆盖rounds的计划，最后一轮不再生成未经评测的记忆；任务创建audit持久化manifest／plan，TaskOut提供冻结stages／plan，前端进度使用逐轮计划。历史1.0.0清单仅用于展示，不绕过执行版本与哈希校验。无需SQL迁移，schema仍0008。医疗运行辅助代码在插件site.py，由接入方SDK调用；平台只通过独立AgentHTTP边界调度，不在中心执行原始病例诊断。
+
+T96存储边界补充：private_state约束Agent协议响应，不回传完整轨迹。当前同机公共参考服务使用--platform-model复用平台模型，模型调用账本仍在平台数据库保存返回文本，因此不宣称实现模型日志隔离。独立用户服务可使用provider_platform的自有模型／独立数据库模式；上传病例也仍保存在平台。协议边界通过不等于完整隐私保证。

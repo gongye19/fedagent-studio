@@ -169,7 +169,7 @@ def test_medical_full_flow_and_single_invoke(client: TestClient, platform: Platf
         serialized = json.dumps([message.payload for message in messages])
         assert 'EVALUATION-ONLY' not in serialized and 'learn-private' not in serialized and 'eval-private' not in serialized
         assert 'source_cases' not in serialized and 'minimal_rationale' not in serialized
-    app = client.post('/v1/apps', json={'taskId': task_id, 'builtAfterRound': 2, 'name': '医疗测试应用'}).json()
+    app = client.post('/v1/apps', json={'taskId': task_id, 'builtAfterRound': 1, 'name': '医疗测试应用'}).json()
     app_id = app['id']
     body = {'input': {**cases()[1], 'answer': 'LABEL-CANARY'}, 'answer': 'migraine', 'model': 'fake:fake'}
     invoked = client.post(f'/v1/apps/{app_id}/invoke', json=body)
@@ -189,7 +189,7 @@ def test_medical_full_flow_and_single_invoke(client: TestClient, platform: Platf
 def test_medical_contract_resume(tmp_path):
     report = run_contract('evomedclaw', datasets={'site-one': cases(), 'site-two': cases()}, workdir=tmp_path)
     assert report.ok, report
-    assert report.details['artifacts'] == 2 and report.details['messages'] > 0
+    assert report.details['artifacts'] == 1 and report.details['messages'] > 0
 
 
 def test_local_medical_schema_and_plugin_capabilities(client: TestClient, platform: Platform, tmp_path: Path):
@@ -205,7 +205,7 @@ def test_local_medical_schema_and_plugin_capabilities(client: TestClient, platfo
     hello = worker.hello()
     assert hello['taskTypes'][did] == 'medical-diagnosis'
     assert worker.records[did]['learn-private']['split'] == 'learn'
-    assert next(p for p in client.get('/v1/participants').json() if p['id'] == pid)['clientPlugins']['evomedclaw'] == '1.0.0'
+    assert next(p for p in client.get('/v1/participants').json() if p['id'] == pid)['clientPlugins']['evomedclaw'] == '1.1.0'
     chosen = [{'participantId': 'p-a', 'datasetId': medical_dataset(client, 'p-a')}, {'participantId': pid, 'datasetId': did}]
     config = medical_config(chosen)
     issues = client.post('/v1/tasks/validate', json=config).json()['issues']
@@ -247,18 +247,18 @@ def test_diagnostic_consultation_path():
             self.prompts.append(text)
             if 'local clinic doctor' in text:
                 self.doctor += 1
-                actions = ['How long has the headache lasted?', 'REQUEST TEST: neurological examination',
+                actions = ['How long has the headache lasted?'] * 6 + ['REQUEST TEST: neurological examination',
                            'REQUEST CONSULTATION:\nChief Complaint: recurrent headache\nKey Positive Findings: photophobia\n'
                            'Key Negative Findings: no focal deficit\nTests Performed: neurological examination\n'
                            'Working Differential: migraine\nSpecific Question: confirm the leading diagnosis',
-                           'Any recent visual changes?', 'DIAGNOSIS READY: migraine']
+                           'Any recent visual changes?', 'Any recent fever?', 'DIAGNOSIS READY: migraine']
                 reply = actions[min(self.doctor-1, len(actions)-1)]
             else:
                 reply = ('Assessment: episodic headache with photophobia\nDifferential Ranking: 1. migraine\n'
                          'Recommended Tests: review neurological examination\nRed Flags to Exclude: focal deficit')
             return ChatResult(reply, self.name)
     model = ProtocolModel()
-    result, _ = diagnose(MedicalDiagnosis().strip_labels(cases()[0]), None, model, turns=8)
+    result, _ = diagnose(MedicalDiagnosis().strip_labels(cases()[0]), None, model, turns=12)
     assert result['num_tests'] == 1 and result['num_consultations'] == 1
     assert result['predicted_diagnosis'] == 'DIAGNOSIS READY: migraine'
     assert result['consultation_history']

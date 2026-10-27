@@ -129,20 +129,7 @@ class Registry:
             "summary": manifest.summary,
             "exchange": channel.label if channel else "",
             "output": {"name": manifest.artifact.name, "unit": manifest.artifact.unit} if manifest.artifact else None,
-            "stages": [
-                {
-                    "id": step.id,
-                    "label": step.label,
-                    "side": "server" if step.at == SERVER else "participant",
-                    "role": step.at,
-                    "per": step.per,
-                    "result": step.result,
-                    "seconds": step.estimate.seconds,
-                    "tokens": step.estimate.tokens or None,
-                    "model": step.model,
-                }
-                for step in manifest.steps
-            ],
+            "stages": stage_descriptions(manifest),
             "accepts": list(manifest.accepts),
             "roles": {key: role.model_dump() for key, role in manifest.roles.items()},
             "params": [param.model_dump(exclude_none=False) for param in manifest.params],
@@ -207,3 +194,20 @@ class Registry:
 @lru_cache
 def get_registry() -> Registry:
     return Registry.discover()
+
+
+def stage_descriptions(manifest):
+    return [
+                {
+                    "id": step.id,
+                    "label": step.label,
+                    "side": "server" if step.at == SERVER else "participant",
+                    "role": step.at,
+                    "per": step.per,
+                    "result": step.result,
+                    "seconds": step.estimate.seconds,
+                    "tokens": step.estimate.tokens or None,
+                    "model": step.model,
+                }
+                for step in manifest.steps
+            ]

@@ -1,7 +1,6 @@
 """EvoMedClaw 横向文本病例适配：诊断私有、独立评测、过程卡聚合和回用。"""
 from __future__ import annotations
 
-import hashlib
 import re
 from pathlib import Path
 from typing import Any, cast
@@ -24,17 +23,11 @@ from fedagent_sdk import (
 )
 
 from .bridge import diagnose
-from .contracts import ClinicalDelta, DiagnosticTrajectory, validate_output
-from .medical import DiagnosisExactGrader, MedicalDiagnosis
+from .contracts import ClinicalDelta, validate_output
+from .medical import MedicalDiagnosis
 from .vendor.federated.aggregate import aggregate_site_deltas
-from .vendor.federated.sanitize import build_federated_site_delta
 from .vendor.federated.types import FederatedSiteDelta
-from .vendor.learning.card_compiler import compile_card_bank
 from .vendor.learning.legacy_bank_export import build_legacy_bank_payload
-from .vendor.learning.retrieve_trace import generate_retrieval_traces
-from .vendor.learning.skill_attribution import summarize_skill_attribution
-from .vendor.learning.trajectory_canonicalizer import canonicalize_artifacts
-from .vendor.learning.types import RawScenarioArtifacts
 
 CARD_LABELS = {"test_card": "检查经验", "route_card": "科室路由", "clue_card": "会诊线索", "synthesis_card": "诊断综合", "error_card": "失败经验"}
 
@@ -46,12 +39,14 @@ class EvoMedClaw(Algorithm):
     def validate_participant_result(self, ctx: StepContext, result: UnitResult) -> None:
         validate_output(ctx, result)
 
-    def agent_output_contract(self) -> dict[str, Any]:
+    def agent_output_contract(self):
         return {
-            "diagnose": {"keptKey": "diagnostic_trajectory", "valueSchema": DiagnosticTrajectory.model_json_schema(),
-                         "prediction": "eval 病例必须返回与 predicted_diagnosis 一致的预测；learn 病例不评测"},
+            "diagnose": {"predictions": "仅eval病例返回最终诊断；learn病例跳过，不上传完整轨迹",
+                         "reports": "experience: {version: 整数或null, retrieved: 命中卡ID数组}"},
             "learn": {"channel": "clinical-cards", "payloadSchema": ClinicalDelta.model_json_schema(),
-                      "privacy": "不得上传原始病例、诊断对话、病例编号或自由文本推理；只上传规范内经验字段"},
+                      "privacy": "本站保留轨迹与完整卡库，中心仅接收精简更新"},
+            "load_memory": {"keptKey": "memory_receipt", "valueSchema": "{version, round, sha256}",
+                            "reports": "memoryVersion必须等于输入经验版本"},
         }
 
     def validate(self, spec: TaskSpec) -> list[Issue]:
@@ -69,45 +64,29 @@ class EvoMedClaw(Algorithm):
         result.participant_tokens = result.participant_calls * 1800
         return result
 
+    def manifest_for_version(self, version):
+        if version == "1.0.0":
+            return load_manifest(Path(__file__).with_name("legacy-manifest.yaml"))
+        return super().manifest_for_version(version)
+
+    def plan(self, round, rounds):
+        # 第1轮为基线；最后一轮只加载与评测，不生成未经评测的最终成果。
+        return (["load_memory"] if round > 1 else []) + ["diagnose"] + (["learn", "aggregate"] if round < rounds else [])
+
+    @step("load_memory")
+    def load_memory(self, ctx):
+        from .site import load_memory
+        load_memory(ctx)
+
     @step("diagnose")
-    def diagnose_case(self, ctx: StepContext) -> None:
-        artifact = ctx.artifact()
-        memory = artifact.content.get("memory") if artifact is not None else None
-        case = MedicalDiagnosis().strip_labels(dict(ctx.item.fields))
-        result, _ = diagnose(case, memory, ctx.model, turns=int(ctx.params.get("maxTurns", 12)))
-        prediction = str(result["predicted_diagnosis"]).strip()
-        if not prediction or "[maximum inferences reached]" in prediction:
-            raise StepFailed("本方诊断未形成有效结果，请重试或调整问诊上限")
-        ctx.keep("diagnostic_trajectory", result)
-        # 评测病例绝不进入后续经验提炼。
-        if case.get("split") == "eval":
-            ctx.predict(prediction)
-        ctx.log(f"病例完成：{result['num_turns']} 回合，{result['num_tests']} 项检查，{result['num_consultations']} 次会诊")
+    def diagnose_case(self, ctx):
+        from .site import diagnose_case
+        diagnose_case(ctx)
 
     @step("learn")
-    def learn(self, ctx: StepContext) -> None:
-        trajectories = []
-        grader = DiagnosisExactGrader()
-        for item in ctx.items():
-            if item.get("split") != "learn":
-                continue
-            result = ctx.recall("diagnostic_trajectory", item_id=item.id)
-            if not isinstance(result, dict):
-                raise StepFailed("经验生成病例的诊断轨迹缺失", pause=True)
-            scenario_id = int(hashlib.sha256(item.id.encode()).hexdigest()[:12], 16)
-            outcome = {"scenario_id": scenario_id, "answer": re.sub(r"^DIAGNOSIS READY:\s*", "", result["predicted_diagnosis"], flags=re.I),
-                       "is_correct": grader.grade(result["predicted_diagnosis"], item.fields)}
-            artifacts = RawScenarioArtifacts(Path("private-site"), outcome, result["dialogue_history"], result["consultation_history"])
-            trajectories.append(canonicalize_artifacts(artifacts))
-        if not trajectories:
-            raise StepFailed("所选病例缺少经验生成分组", pause=True)
-        bank = compile_card_bank(trajectories)
-        traces = generate_retrieval_traces(trajectories, bank, top_k=3)
-        attribution = summarize_skill_attribution(traces, bank)
-        delta = build_federated_site_delta(site_id=ctx.site.id, card_bank=bank, attribution_report=attribution).to_dict()
-        delta["metadata"] = {"round": ctx.round, "plugin_version": self.version}
-        ctx.keep("local_card_bank", bank.to_dict())
-        ctx.send("clinical-cards", delta)
+    def learn(self, ctx):
+        from .site import learn
+        learn(ctx, self.version)
 
     @step("aggregate")
     def aggregate(self, ctx: StepContext) -> None:

@@ -77,6 +77,8 @@ class StepDef(_Model):
     reads: list[str] = []
     sends: list[str] = []
     publishes: bool = False
+    private_state: bool = False
+    """外部服务在本站保存 kept，响应不返回私有中间状态。"""
     labels: bool = False
     """为 true 时平台才把标注字段交给这一步（记入审计）。"""
     result: ResultKind | None = None

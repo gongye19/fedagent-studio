@@ -27,14 +27,14 @@ export function OutputTab({ task, state }: { task: Task; state: State }) {
     if (isNaming) nameInput.current?.select();
   }, [isNaming]);
   if (!versions.length) {
-    return <EmptyState title={`还没有${output.name}`}><p>第 1 轮结束后生成第一版，之后每轮更新一次。</p></EmptyState>;
+    return <EmptyState title={`还没有${output.name}`}><p>生成后可在这里查看和发布。</p></EmptyState>;
   }
   const current = versions.find((version) => version.builtAfterRound === chosen) ?? versions[versions.length - 1];
   const previous = versions.find((version) => version.builtAfterRound === current.builtAfterRound - 1);
   const previousKeys = new Set(previous?.items.map((item) => item.key) ?? []);
   const added = current.items.filter((item) => !previousKeys.has(item.key)).length;
   const published = publishedOf(state, task.id, current.builtAfterRound);
-  const final = task.status === "completed" && current.builtAfterRound === task.config.rounds;
+  const final = task.status === "completed" && current.builtAfterRound === versions.at(-1)?.builtAfterRound;
   const suggested = final ? `${task.name} ${output.name}` : `${task.name} 第 ${current.builtAfterRound} 轮后${output.name}`;
 
   async function publish(name: string) {

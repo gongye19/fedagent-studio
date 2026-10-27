@@ -34,6 +34,8 @@ def test_configuration_checks_business_output_of_every_step(platform, client, re
                 status.result.sent[0].payload = {"name": ""}
             elif step == "learn":
                 status.result.sent = []
+            elif step == "diagnose":
+                status.result.reports = {}
             else:
                 status.result.kept = []
         return status
@@ -55,7 +57,8 @@ def test_medical_requires_agent_and_publishes_downloadable_contract(client):
     assert next(a for a in registry["algorithms"] if a["id"] == "evomedclaw")["requirements"]["agentRequired"]
     assert next(a for a in registry["algorithms"] if a["id"] == "evomedclaw")["requirements"]["executionModes"] == ["agent"]
     contract = client.get("/v1/agent-protocol").json()
-    assert "diagnostic_trajectory" in json.dumps(contract["outputContracts"]["evomedclaw"])
+    assert "clinical-cards" in json.dumps(contract["outputContracts"]["evomedclaw"])
+    assert "load_memory" in contract["outputContracts"]["evomedclaw"]
     assert contract["dataContracts"]["math-reasoning"]["template"][0]["question"] == ""
 
 

@@ -12,11 +12,11 @@
   "evomedclaw": {
     "width": 1040,
     "height": 520,
-    "sha256": "37b1b723ba0ef5f3306f8717de560ddd2b16ce9632310dbe65806c2ec4275156"
+    "sha256": "21e924004c745f697e1b315e1f87f7a1a0c5805696664b9ac2bfe156a57da575"
   },
   "evomedclaw-mobile": {
     "width": 320,
     "height": 766,
-    "sha256": "9f1705218c2c38aca4b9b00f020e84ae40a36fc8bf4c5e22425d48fb857fcfeb"
+    "sha256": "0fc647845b45bfd589510e0713ab0f68ac301540ab150a666b0e7d501156a09d"
   }
 }

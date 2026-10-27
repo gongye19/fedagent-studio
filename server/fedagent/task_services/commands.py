@@ -50,6 +50,8 @@ def create(platform: Platform, session: Session, body: TaskConfigIn) -> m.Task:
         "agents": {agent_id: {"name": row.name, "revision": row.revision}
                    for agent_id in agent_ids if agent_id and (row := session.get(m.AgentEndpoint, agent_id))},
         "pluginVersion": algorithm.version,
+        "manifest": algorithm.manifest.model_dump(mode="json", by_alias=True),
+        "plan": {str(r): algorithm.plan(r, body.rounds) for r in range(1, body.rounds + 1)},
         "pluginHash": algorithm.code_hash(),
         "promptHashes": algorithm.prompt_hashes(),
         "datasets": {site.dataset.id: site.dataset.content_hash for site in prepared.sites},

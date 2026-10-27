@@ -69,7 +69,7 @@ export function AgentParticipationRow({
       </div>
       <div className="participation-fields">
         <div>
-          <label htmlFor={`${prefix}-agent`}>Agent 接口</label>
+          <label htmlFor={`${prefix}-agent`}>Agent 服务</label>
           <div className="participation-control">
             <SelectField
               id={`${prefix}-agent`}
@@ -97,7 +97,7 @@ export function AgentParticipationRow({
               ) : null}
               {choices.agents.map((a) => (
                 <option key={a.id} value={a.id}>
-                  {a.name}
+                  {a.name} · {a.resourceSpace === "workspace" ? "我的" : "共享"}
                 </option>
               ))}
             </SelectField>

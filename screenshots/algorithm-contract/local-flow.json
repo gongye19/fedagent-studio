@@ -1,0 +1,39 @@
+{
+  "task": "task-8c2a348e",
+  "status": "completed",
+  "plan": {
+    "1": [
+      "diagnose",
+      "learn",
+      "aggregate"
+    ],
+    "2": [
+      "load_memory",
+      "diagnose"
+    ]
+  },
+  "scores": [
+    {
+      "round": 1,
+      "correct": {
+        "p-a": 1,
+        "p-b": 1
+      }
+    },
+    {
+      "round": 2,
+      "correct": {
+        "p-a": 1,
+        "p-b": 1
+      }
+    }
+  ],
+  "centralPrivateKeys": [
+    "memory_receipt",
+    "memory_receipt"
+  ],
+  "serviceMemory": {
+    "a": 1,
+    "b": 1
+  }
+}

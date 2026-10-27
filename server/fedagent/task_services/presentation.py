@@ -4,13 +4,15 @@ import json
 from collections import defaultdict
 from typing import Any
 
-from fedagent_sdk import SERVER, Algorithm, Artifact
+from fedagent_sdk import SERVER, Algorithm, Artifact, Manifest
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from .. import models as m
 from ..platform import Platform
+from ..registry import stage_descriptions
 from ..schemas import CursorOut, GroupOut, MemberOut, MessageOut, OutputItem, OutputVersionOut, RoundOut, TaskOut
+from ..schemas.registry import StageOut
 from ..units import load_sites
 
 
@@ -23,7 +25,10 @@ def _artifact_items(algorithm: Algorithm | None, row: m.Artifact) -> list[Output
 
 def task_out(platform: Platform, session: Session, task: m.Task) -> TaskOut:
     algorithm = platform.registry.algorithms.get(task.algorithm)
-    manifest = algorithm.manifest if algorithm else None
+    snapshot = task.audit.get("manifest")
+    manifest = (Manifest.model_validate(snapshot) if snapshot else algorithm.manifest_for_version(task.plugin_version) if algorithm else None)
+    plan = task.audit.get("plan") or {str(r): [s.id for s in manifest.steps] if manifest else []
+                                     for r in range(1, int(task.config.get("rounds", 1)) + 1)}
     config = dict(task.config)
     sites = load_sites(session, task.id)
     participants = [site for site in sites if site.kind == "participant"]
@@ -136,7 +141,7 @@ def task_out(platform: Platform, session: Session, task: m.Task) -> TaskOut:
 
     cursor = None
     if task.status != "completed" and manifest is not None:
-        stage = task.cursor_step or manifest.steps[0].id
+        stage = task.cursor_step or plan.get(str(task.cursor_round), [manifest.steps[0].id])[0]
         cursor = CursorOut(
             round=task.cursor_round,
             stage=stage,
@@ -149,6 +154,8 @@ def task_out(platform: Platform, session: Session, task: m.Task) -> TaskOut:
     cost = None if calls and priced < calls else (float(total_cost) if total_cost is not None else (0.0 if calls else None))
     return TaskOut(
         id=task.id,
+        stages=[StageOut.model_validate(s) for s in stage_descriptions(manifest)] if manifest else [],
+        plan=plan,
         name=task.name,
         created_at=task.created_at,
         started_at=task.started_at,

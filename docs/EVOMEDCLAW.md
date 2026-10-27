@@ -1,5 +1,17 @@
 # EvoMedClaw 接入调研
 
+## T96 当前接入范围（2026-10-27）
+
+算法协议1.1.0／安装包0.2.0：横向医疗过程记忆共享，至少两方合计参与，单方可独立接入验证并结合共享资源。平台只调度、独立评分、调用原版精简更新签名聚合及发布共享记忆；接入方服务执行诊断与本站批量学习，完整轨迹／卡库不回传中心。各服务管理自己的模型及状态；同机参考部署可复用已登记模型而不复制密钥。
+
+原版过程卡编译、离线检索归因、精简更新、签名聚合与记忆格式转换保留；25份提示不改。参考服务恢复上游混合科室路由、多专家／多科会诊、冲突仲裁，问诊配置为会诊前6次、最多2次会诊、会诊后2次；仍禁用可选语义工具、bootstrap和外部持续共演化，不接影像／蒸馏／独立纵向。模型仍走SDK桥：本站各角色同模型、温度0、最多4096输出、默认12回合；不是完整上游默认实验复现。底层运行辅助代码仍随插件包发布，site.py只由接入方执行器／SDK或应用运行时调用；中心不执行本方医疗步骤。
+
+评测与学习分开：每轮diagnose仅执行eval，learn步骤在本站独立运行learn病例再生成更新；eval答案不发送，eval轨迹不进入经验生成。第1轮无共享记忆形成基线；中间轮先加载前轮成果、评测后再学习与聚合；最后一轮只加载并评测，保证最终成果被实际评测。下载规范、加载凭据和实际检索ID见AGENT-API。诊断名称匹配仍与上游LLM moderator不同，经验统计不是因果效果证明。
+
+任务创建冻结manifest与逐轮plan，历史1.0.0任务按legacy-manifest展示，不能用1.1.0调度计划伪装旧结果；旧版本未结束任务仍受代码哈希守门。FoT保持paper-auto，不因本轮医疗接入改动算法。
+
+下面T88及更早内容记录各历史版本的核验边界，不应覆盖T96当前范围。
+
 调研时间：2026-10-12；T75 接入更新：2026-10-13。来源：[官方仓库](https://github.com/xschen-beb/EvoMedClaw)。本地完整克隆在 `/Users/han/Desktop/code/polyu/EvoMedClaw`，固定 main 的 `ae333ec635fac5900d2b9f4455080444d28c0392`；原仓库未修改。T75 已在平台加入横向文本病例插件，部署与真实验证状态见 PROGRESS；下面的 T73 调研记录为历史核验范围。
 
 ## T88 原版差异复核（2026-10-24）
@@ -90,3 +102,5 @@ T74（2026-10-13）补充用户接入原则：每个参与方应具备医疗诊�
 这些是接口与文件链路验证，未调用真实医疗模型，不代表临床效果，也没有完成平台插件接入。证据暂存`/tmp/fedagent-evomed-research/`；原始源码与许可证在上述本地克隆中，长期接入依据为该文档与固定提交的源码链接。
 
 官方来源：[运行与总览](https://github.com/xschen-beb/EvoMedClaw/blob/ae333ec635fac5900d2b9f4455080444d28c0392/README.md)、[联邦说明](https://github.com/xschen-beb/EvoMedClaw/blob/ae333ec635fac5900d2b9f4455080444d28c0392/federated/README.md)、[站点步骤](https://github.com/xschen-beb/EvoMedClaw/blob/ae333ec635fac5900d2b9f4455080444d28c0392/federated/site_round.py)、[聚合](https://github.com/xschen-beb/EvoMedClaw/blob/ae333ec635fac5900d2b9f4455080444d28c0392/federated/aggregate.py)、[输入格式](https://github.com/xschen-beb/EvoMedClaw/blob/ae333ec635fac5900d2b9f4455080444d28c0392/runtime/department_first/standalone.py)、[MIT](https://github.com/xschen-beb/EvoMedClaw/blob/ae333ec635fac5900d2b9f4455080444d28c0392/LICENSE)。
+
+T96存储边界补充：private_state约束Agent协议响应，不回传完整轨迹。当前同机公共参考服务使用--platform-model复用平台模型，模型调用账本仍在平台数据库保存返回文本，因此不宣称实现模型日志隔离。独立用户服务可使用provider_platform的自有模型／独立数据库模式；上传病例也仍保存在平台。协议边界通过不等于完整隐私保证。

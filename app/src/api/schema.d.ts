@@ -55,6 +55,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/algorithms/{algorithm_id}/contract": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Algorithm Contract
+         * @description 只返回算法声明和数据规范，不含已登记资源、地址或凭据。
+         */
+        get: operations["algorithm_contract_v1_algorithms__algorithm_id__contract_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/participants": {
         parameters: {
             query?: never;
@@ -2005,6 +2025,12 @@ export interface components {
             fake: boolean;
             /** Cost */
             cost: number | null;
+            /** Stages */
+            stages?: components["schemas"]["StageOut"][];
+            /** Plan */
+            plan?: {
+                [key: string]: string[];
+            };
         };
         /** TaskParticipantIn */
         TaskParticipantIn: {
@@ -2164,6 +2190,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AlgorithmOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    algorithm_contract_v1_algorithms__algorithm_id__contract_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                algorithm_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

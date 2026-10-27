@@ -133,6 +133,67 @@
     }
    }
   },
+  "/v1/algorithms/{algorithm_id}/contract": {
+   "get": {
+    "tags": [
+     "registry"
+    ],
+    "summary": "Algorithm Contract",
+    "description": "只返回算法声明和数据规范，不含已登记资源、地址或凭据。",
+    "operationId": "algorithm_contract_v1_algorithms__algorithm_id__contract_get",
+    "parameters": [
+     {
+      "name": "algorithm_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Algorithm Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Algorithm Contract V1 Algorithms  Algorithm Id  Contract Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/v1/participants": {
    "get": {
     "tags": [
@@ -6719,6 +6780,23 @@
        }
       ],
       "title": "Cost"
+     },
+     "stages": {
+      "items": {
+       "$ref": "#/components/schemas/StageOut"
+      },
+      "type": "array",
+      "title": "Stages"
+     },
+     "plan": {
+      "additionalProperties": {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      "type": "object",
+      "title": "Plan"
      }
     },
     "type": "object",

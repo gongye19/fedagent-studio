@@ -123,7 +123,7 @@ def validate(platform: Platform, session: Session, body: TaskConfigIn) -> tuple[
         model_ref = body.client_overrides.get(participant.id) or body.client_model
         prepared.sites.append(PreparedSite(participant, dataset, items, labeled, model_ref))
     if len(prepared.sites) < manifest.min_participants:
-        issue("participants", f"至少选择 {manifest.min_participants} 组可用资源" if manifest.agent_required
+        issue("participants", f"任务合计至少选择 {manifest.min_participants} 方资源，可结合自己与其他方共享的资源" if manifest.agent_required
               else f"至少选择 {manifest.min_participants} 个可用的数据来源，每个来源选择一份数据")
 
     if body.execution == "agent":

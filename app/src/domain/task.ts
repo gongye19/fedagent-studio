@@ -36,8 +36,10 @@ export function toTask(task: TaskOut): Task {
 }
 
 /** 这个任务每轮的步骤，来自所选算法的定义。 */
-export function stagesOf(task: Pick<Task, "config">): readonly Stage[] {
-  return algorithmOf(task.config.algorithm).stages;
+export function stagesOf(task: Pick<Task, "config"> & Partial<Pick<Task, "stages" | "plan">>, round?: number): readonly Stage[] {
+  const stages = task.stages?.length ? task.stages.map((s) => ({ ...s, tokens: s.tokens ?? undefined, result: s.result ?? undefined })) : algorithmOf(task.config.algorithm).stages;
+  const plan = round === undefined ? undefined : task.plan?.[String(round)];
+  return plan ? plan.flatMap((id) => stages.filter((stage) => stage.id === id)) : stages;
 }
 
 /** 还会变化的任务（界面要轮询）。 */
@@ -110,16 +112,17 @@ export function totalProblems(task: Pick<Task, "members">): number {
 export function progressOf(task: Task): number {
   const cursor = task.cursor;
   if (!cursor) return task.status === "completed" ? 1 : 0;
-  const stages = stagesOf(task);
-  const perRound = stages.length;
+  const stages = stagesOf(task, cursor.round);
+  const totalStages = Array.from({ length: task.config.rounds }, (_, i) => stagesOf(task, i + 1).length).reduce((a, b) => a + b, 0);
+  const before = Array.from({ length: cursor.round - 1 }, (_, i) => stagesOf(task, i + 1).length).reduce((a, b) => a + b, 0);
   const index = Math.max(0, stages.findIndex((stage) => stage.id === cursor.stage));
   let within = 0;
   if (stages[index]?.side === "participant") {
-    const total = totalProblems(task);
+    const total = stages[index]?.per === "site" ? task.members.length : totalProblems(task);
     const done = task.members.reduce((sum, member) => sum + (cursor.done[member.participantId] ?? 0), 0);
     within = total ? done / total : 0;
   }
-  return Math.min(1, ((cursor.round - 1) * perRound + index + within) / (task.config.rounds * perRound));
+  return Math.min(1, (before + index + within) / (totalStages));
 }
 
 export type StepState = "done" | "current" | "pending";
@@ -130,7 +133,7 @@ export function stepState(task: Task, round: number, stage: StageId): StepState 
   if (!cursor) return "done";
   if (round < cursor.round) return "done";
   if (round > cursor.round) return "pending";
-  const stages = stagesOf(task);
+  const stages = stagesOf(task, round);
   const current = stages.findIndex((item) => item.id === cursor.stage);
   const index = stages.findIndex((item) => item.id === stage);
   return index < current ? "done" : index === current ? "current" : "pending";

@@ -13,8 +13,8 @@ COLORS = {"blue": "#2563eb", "green": "#15803d", "purple": "#7c3aed", "ink": "#2
 ALGORITHMS = {
     "fot": {"name": "FoT", "inputs": "本方题库 + 所选 LLM", "actors": "平台提供解题工作流", "local": ["解题", "反思", "提取经验"],
             "server": ["汇总经验", "归类关系", "生成经验库"], "upload": "解题经验", "artifact": "共享经验库", "return": "下一轮解题时使用"},
-    "evomedclaw": {"name": "EvoMedClaw", "inputs": "本方病例 + 医疗 Agent API", "actors": "医生 / 病人 / 检查 / 专科", "local": ["本方诊断", "提炼经验卡"],
-                   "server": ["按签名聚合经验卡"], "upload": "精简经验卡", "artifact": "全局医疗经验库", "return": "下一轮诊断时检索"},
+    "evomedclaw": {"name": "EvoMedClaw", "inputs": "本站病例 + 医疗 Agent 服务", "actors": "原版诊断流程 / 本站轨迹", "local": ["独立评测 / 本站学习", "提炼并提交经验卡"],
+                   "server": ["按签名聚合经验卡"], "upload": "精简经验卡", "artifact": "全局医疗经验库", "return": "加载确认后独立评测"},
 }
 
 

@@ -1,5 +1,27 @@
 # 自有 Agent 接入协议
 
+## T96 当前接入规范（2026-10-27）
+
+每种算法的规范可从算法详情下载，也可 GET `/v1/algorithms/{id}/contract`：包含资源要求、已支持任务的数据模板／版本、步骤及执行位置、业务输出规范、默认逐轮计划和适用的 Agent 协议 Schema。内容只来自注册插件，不含已登记资源或凭据。FoT保持paper-auto，仅需要数据与LLM；不开放外部Agent新任务。EvoMedClaw 1.1.0使用医疗Agent服务＋同方病例，中心不需要LLM。
+
+**最少两方是任务整体要求，单个用户可仅登记并验证一组。** 在资源页上传／接入自己的资源，任务里统一选择自己与已共享可用资源；也可直接选择两组已有公共资源演示。资源组合只保存在任务配置，不把Agent嵌套绑定到数据。当前共用工作区的owner／shared元数据不构成真实账号隔离，两个公共服务由平台团队部署，不代表真实外部机构。
+
+医疗服务沿用 GET /capabilities、POST /runs、GET /runs/{id}、POST /runs/{id}/cancel；业务步骤由算法定义：
+
+| 步骤 | 输入与服务职责 | 输出给平台 |
+|---|---|---|
+| diagnose（独立评测） | 只处理eval病例，不提供参考答案；第1轮无共享记忆，其后须先通过load_memory确认 | 当前病例预测；experience报告含实际version与retrieved卡ID。不回传诊断轨迹；learn病例跳过 |
+| learn（本站学习） | 一批本站learn病例和允许使用的参考诊断；服务独立运行原版诊断，本站编译卡片 | 一份clinical-cards精简更新、localCards／exportedCards数量；完整轨迹与卡库留在服务侧 |
+| load_memory | 加载前轮共享记忆，按任务／本站隔离 | memory_receipt={version,round,sha256}及memoryVersion；版本或内容不符即拒绝后续评测 |
+
+rounds表示评测轮次：第1轮diagnose→learn→aggregate；中间轮load_memory→diagnose→learn→aggregate；最后一轮load_memory→diagnose。至少2轮，默认2轮即一次聚合闭环；最后不生成未经评测的成果。最终经验由任务内load_memory自动确认启用，原/experience入口保留供主动导入。原/diagnose继续使用本站已加载记忆；平台应用invoke仍为成果＋LLM试用，不等于发布完整用户服务。
+
+SDK0.2.4的StepDef.private_state声明外部服务只在本地保存kept。独立运行器校验脱去私有状态后的结果，再保存本站完整结果；运行状态查询不能带出轨迹。中心只保存预测、受控经验报告、加载凭据与精简更新。不能据格式检查证明任意第三方服务诚实使用经验，或证明文本已完全脱敏。病例目前仍先上传平台后按步骤发送，尚未实现远程数据引用。
+
+接入验证每服务共用600秒预算，超时请求停止；任务连接检查仍保持5秒读超时。接入验证只需一个服务和一份符合learn／eval分组的数据：真实完成首轮评测、本站学习，中心用该方精简更新构造验证用共享记忆，再验证加载及后续评测。check-上下文不激活正式记忆、不保存本站轨迹，验证凭据持久化。创建任务只做快速连通性检查，无生成或Agent /runs。
+
+以下为旧版本协议及接入历史，冲突处以本节和下载的当前规范为准。
+
 T83／D80：用户流程为场景→算法→任务→资源。当前FoT使用数据与LLM，平台提供完整固定流程，新任务不支持外部Agent；EvoMedClaw使用病例与用户医疗Agent API。已有SDK适配契约不代表每个算法都开放所有执行方式，以注册表executionModes为准。
 
 平台区分三类输入：数据文件、LLM 推理接口、能执行算法本方步骤的 Agent 服务。平台负责算法与规范、调度、共享产出、独立判分；外部 Agent 管理自己的模型和工具。普通聊天 API 只属于 LLM 接口，不能仅改名就作为联邦 Agent。
@@ -113,3 +135,7 @@ FEDAGENT_DATA_DIR=/实际的平台数据目录 uv run fedagent agent-serve \
 医疗任务及团队原API的默认问诊上限为本次真实验证的12回合，可在4–12内自行调整；这是上限，不要求每个病例用满。默认6回合曾触发未形成最终诊断，失败事实保留，增加上限也不保证每个病例收敛。
 
 T94：POST /v1/agents/{id}/verifications 接收algorithm／taskType／datasetId／params，返回持久化报告，用GET /v1/task-checks/{id}读进度；Agent列表verifications包含报告与current准入状态。只读取/capabilities不代表已验证业务输出。新建任务的task-checks仅GET能力／轻量LLM路由，不再调用/runs；数据、接口准入仍由后端统一校验。
+
+T96存储边界补充：private_state约束Agent协议响应，不回传完整轨迹。当前同机公共参考服务使用--platform-model复用平台模型，模型调用账本仍在平台数据库保存返回文本，因此不宣称实现模型日志隔离。独立用户服务可使用provider_platform的自有模型／独立数据库模式；上传病例也仍保存在平台。协议边界通过不等于完整隐私保证。
+
+T96检索可观测范围：当前参考服务experience.retrieved报告本地医生轨迹中的memory_entry_ids；未汇总专科内部的memory_ids。空数组不证明全部子Agent均未命中，版本确认也不证明经验被引用或效果改善。

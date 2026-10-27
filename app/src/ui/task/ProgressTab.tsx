@@ -3,7 +3,7 @@ import { useRef, useState, type KeyboardEvent } from "react";
 import { api } from "../../api/client";
 import type { Stage } from "../../domain/catalog";
 import { keys } from "../../state/server";
-import { averageAccuracy, roundOf, stageSeconds, stepState, type RoundRecord, type StepState, type Task } from "../../domain/task";
+import { averageAccuracy, roundOf, stageSeconds, stagesOf, stepState, type RoundRecord, type StepState, type Task } from "../../domain/task";
 import { ProgressBar } from "../common";
 import { Panel } from "../console";
 import { formatDuration, formatNumber, formatPercent } from "../format";
@@ -18,7 +18,7 @@ function sum(values: Record<string, number> | null | undefined): number {
 }
 
 function roundStateOf(task: Task, round: number): "done" | "current" | "pending" {
-  const states = algorithmOfTask(task).stages.map((stage) => stepState(task, round, stage.id));
+  const states = stagesOf(task, round).map((stage) => stepState(task, round, stage.id));
   if (states.every((state) => state === "done")) return "done";
   if (states.every((state) => state === "pending")) return "pending";
   return "current";
@@ -33,7 +33,8 @@ function stopTone(task: Task): "" | "paused" | "canceled" {
 function roundSummary(task: Task, record: RoundRecord | undefined): string {
   if (!record) return "";
   const output = algorithmOfTask(task).output;
-  const parts = [`${metricOf(task)} ${formatPercent(averageAccuracy(task, record.round))}`, `上传 ${formatNumber(sum(record.uploads))} 条`];
+  const parts = [`${metricOf(task)} ${formatPercent(averageAccuracy(task, record.round))}`];
+  if (record.uploads) parts.push(`上传 ${formatNumber(sum(record.uploads))} 条`);
   if (record.output) parts.push(`${output.name} ${record.output.items.length} 条`);
   return parts.join(" · ");
 }
@@ -87,7 +88,7 @@ function RoundItem({ task, round }: { task: Task; round: number }) {
   }
 
   if (state === "pending") {
-    const seconds = algorithmOfTask(task).stages.reduce((total, stage) => total + stageSeconds(task, stage.id), 0);
+    const seconds = stagesOf(task, round).reduce((total, stage) => total + stageSeconds(task, stage.id), 0);
     return (
       <li className="round round--pending">
         <div className="round-head">
@@ -95,7 +96,7 @@ function RoundItem({ task, round }: { task: Task; round: number }) {
           <span className="round-mark" aria-hidden="true">{round}</span>
           <span className="round-title">
             <h3>第 {round} 轮</h3>
-            <span className="round-summary">未开始 · {base} · 预计 {formatDuration(seconds)}</span>
+            <span className="round-summary">未开始 · {base}{task.config.execution === "agent" ? "" : ` · 预计 ${formatDuration(seconds)}`}</span>
           </span>
         </div>
       </li>
@@ -125,12 +126,12 @@ function stoppedText(task: Task): string {
 
 /** 每一步下面的一行结果。写什么由算法在注册表里声明（stage.result），这里不认具体的算法。 */
 function stepNote(task: Task, record: RoundRecord | undefined, stage: Stage, state: StepState): string {
-  if (state === "pending") return `预计 ${formatDuration(stageSeconds(task, stage.id))}`;
+  if (state === "pending") return stage.side === "participant" && task.config.execution === "agent" ? "等待执行" : `预计 ${formatDuration(stageSeconds(task, stage.id))}`;
   if (state === "current") {
     const cursor = task.cursor;
     if (!cursor) return "";
     if (stage.side === "participant") {
-      const total = task.members.reduce((count, member) => count + member.problems, 0);
+      const total = stage.per === "site" ? task.members.length : task.members.reduce((count, member) => count + member.problems, 0);
       const done = `${formatNumber(sum(cursor.done))} / ${formatNumber(total)} 条`;
       return task.status === "running" ? done : `${stoppedText(task)} · ${done}`;
     }
@@ -156,15 +157,15 @@ function stepNote(task: Task, record: RoundRecord | undefined, stage: Stage, sta
 /** 一轮的步骤：参与方、服务端分两组；参与方正在执行时，各方进度放在参与方这一组里。 */
 function StepLine({ task, round, record }: { task: Task; round: number; record: RoundRecord | undefined }) {
   const cursor = task.cursor;
-  const stages = algorithmOfTask(task).stages;
+  const stages = stagesOf(task, round);
   const showMembers = cursor?.round === round && stages.find((stage) => stage.id === cursor.stage)?.side === "participant";
   const tone = stopTone(task);
   const groups = [
     { label: "参与方", side: "participant", stages: stages.filter((stage) => stage.side === "participant") },
     { label: "服务端", side: "server", stages: stages.filter((stage) => stage.side === "server") },
-  ];
+  ].filter((group) => group.stages.length > 0);
   return (
-    <div className="step-line">
+    <div className={`step-line${groups.length === 1 ? " step-line--single" : ""}`}>
       {groups.map((group) => (
         <div key={group.label} className="step-group">
           <span className="step-group-label">{group.label}</span>
@@ -189,11 +190,12 @@ function StepLine({ task, round, record }: { task: Task; round: number; record: 
             <ul className="member-progress" aria-label="各参与方进度">
               {task.members.map((member) => {
                 const done = cursor.done[member.participantId] ?? 0;
+                const total = stages.find((s) => s.id === cursor.stage)?.per === "site" ? 1 : member.problems;
                 return (
                   <li key={member.participantId}>
                     <span>{member.participant}</span>
-                    <ProgressBar value={done / member.problems} label={`${member.participant} 的进度`} tone={tone === "paused" ? "warning" : tone === "canceled" ? "neutral" : "info"} />
-                    <span className="member-count">{done} / {member.problems}</span>
+                    <ProgressBar value={done / total} label={`${member.participant} 的进度`} tone={tone === "paused" ? "warning" : tone === "canceled" ? "neutral" : "info"} />
+                    <span className="member-count">{done} / {total}</span>
                   </li>
                 );
               })}

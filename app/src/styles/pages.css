@@ -325,3 +325,6 @@ a.algo-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
   .table--tasks thead th, .table--tasks td[data-label="场景"], .table--tasks td[data-label="算法"], .table--tasks td[data-label="任务类型"] { white-space: nowrap; }
 }
 
+
+/* 只在参与方执行的收尾评测，不显示空的服务端分组。 */
+.step-line--single { grid-template-columns: minmax(0, 1fr); }

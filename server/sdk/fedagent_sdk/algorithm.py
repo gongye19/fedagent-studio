@@ -77,6 +77,10 @@ class Algorithm:
     def validate(self, spec: TaskSpec) -> list[Issue]:
         return []
 
+    def manifest_for_version(self, version: str) -> Manifest | None:
+        """仅用于历史结果展示；不授权旧版本继续执行。"""
+        return self.manifest if version == self.version else None
+
     def plan(self, round: int, rounds: int) -> list[str]:
         """这一轮执行哪些步骤，默认按清单顺序。"""
         return [item.id for item in self.manifest.steps]

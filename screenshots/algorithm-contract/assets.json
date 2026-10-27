@@ -1,0 +1,70 @@
+[
+  {
+    "path": "index.html",
+    "match": true
+  },
+  {
+    "path": "icons.svg",
+    "match": true
+  },
+  {
+    "path": "favicon.svg",
+    "match": true
+  },
+  {
+    "path": "licenses/ai-elements.txt",
+    "match": true
+  },
+  {
+    "path": "licenses/live-panel.txt",
+    "match": true
+  },
+  {
+    "path": "algorithm-diagrams/evomedclaw.html",
+    "match": true
+  },
+  {
+    "path": "algorithm-diagrams/evomedclaw-mobile.html",
+    "match": true
+  },
+  {
+    "path": "algorithm-diagrams/fot-mobile.html",
+    "match": true
+  },
+  {
+    "path": "algorithm-diagrams/fot.html",
+    "match": true
+  },
+  {
+    "path": "algorithm-diagrams/manifest.json",
+    "match": true
+  },
+  {
+    "path": "fonts/OFL-Geist.txt",
+    "match": true
+  },
+  {
+    "path": "fonts/geist-sans.woff2",
+    "match": true
+  },
+  {
+    "path": "fonts/geist-mono.woff2",
+    "match": true
+  },
+  {
+    "path": "fonts/ibm-plex-sans-latin.woff2",
+    "match": true
+  },
+  {
+    "path": "assets/index-DcKM1OVC.js",
+    "match": true
+  },
+  {
+    "path": "assets/index-B0JzAXQO.css",
+    "match": true
+  },
+  {
+    "path": "assets/Chart-DEJiYvFA.js",
+    "match": true
+  }
+]

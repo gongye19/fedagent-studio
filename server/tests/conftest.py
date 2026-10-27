@@ -65,7 +65,8 @@ def remote(platform, client, monkeypatch):
         )
         ctx = context_of(req, algorithm, model)
         algorithm.run_step(ctx)
-        result = AgentResult(kept=ctx.result.kept, sent=ctx.result.sent, reports=ctx.result.reports, predictions=ctx.result.predictions)
+        result = AgentResult(kept=[] if step.private_state else ctx.result.kept, sent=ctx.result.sent,
+                             reports=ctx.result.reports, predictions=ctx.result.predictions)
         cache[req.run_id] = {"run_id": req.run_id, "status": "succeeded", "result": result.model_dump(mode="json")}
         return cache[req.run_id]
 

@@ -1,0 +1,160 @@
+{
+  "medical-a": [
+    {
+      "runId": "run_5409ced9b6a74d6cb8662e2b89e2a3c7",
+      "status": "succeeded",
+      "reports": {},
+      "keptKeys": [],
+      "receipts": [],
+      "predictions": 0,
+      "updates": 0
+    },
+    {
+      "runId": "run_0a618c35ecf74a44a9a50d5458c5960f",
+      "status": "succeeded",
+      "reports": {
+        "experience": {
+          "version": null,
+          "retrieved": []
+        }
+      },
+      "keptKeys": [],
+      "receipts": [],
+      "predictions": 1,
+      "updates": 0
+    },
+    {
+      "runId": "run_7f7e48847bf3405a8271a4e947bd6824",
+      "status": "succeeded",
+      "reports": {
+        "localCards": 4,
+        "exportedCards": 4
+      },
+      "keptKeys": [],
+      "receipts": [],
+      "predictions": 0,
+      "updates": 1
+    },
+    {
+      "runId": "run_709603426d4741deb058c47d8c41f7ae",
+      "status": "succeeded",
+      "reports": {
+        "memoryVersion": 1
+      },
+      "keptKeys": [
+        "memory_receipt"
+      ],
+      "receipts": [
+        {
+          "version": 1,
+          "round": 1,
+          "sha256": "85142b74ddcf578cf0f1ec17843be5b9e260b6f05634bc8083a043b2f618358d"
+        }
+      ],
+      "predictions": 0,
+      "updates": 0
+    },
+    {
+      "runId": "run_61a3717d33cb40b7b39564883997106e",
+      "status": "succeeded",
+      "reports": {
+        "experience": {
+          "version": 1,
+          "retrieved": []
+        }
+      },
+      "keptKeys": [],
+      "receipts": [],
+      "predictions": 1,
+      "updates": 0
+    },
+    {
+      "runId": "run_be7276e872ad458da882af9b814abe13",
+      "status": "succeeded",
+      "reports": {},
+      "keptKeys": [],
+      "receipts": [],
+      "predictions": 0,
+      "updates": 0
+    }
+  ],
+  "medical-b": [
+    {
+      "runId": "run_ffa1cadbb5f24be5a3940c6bbfb8cae4",
+      "status": "succeeded",
+      "reports": {},
+      "keptKeys": [],
+      "receipts": [],
+      "predictions": 0,
+      "updates": 0
+    },
+    {
+      "runId": "run_18c385de908347388e9e9f815cd58630",
+      "status": "succeeded",
+      "reports": {
+        "experience": {
+          "version": null,
+          "retrieved": []
+        }
+      },
+      "keptKeys": [],
+      "receipts": [],
+      "predictions": 1,
+      "updates": 0
+    },
+    {
+      "runId": "run_53f0ff6bdb40457cb8d07a9b0accbba9",
+      "status": "succeeded",
+      "reports": {
+        "localCards": 3,
+        "exportedCards": 3
+      },
+      "keptKeys": [],
+      "receipts": [],
+      "predictions": 0,
+      "updates": 1
+    },
+    {
+      "runId": "run_9710bf969b2145e496503643c0e5a10d",
+      "status": "succeeded",
+      "reports": {
+        "memoryVersion": 1
+      },
+      "keptKeys": [
+        "memory_receipt"
+      ],
+      "receipts": [
+        {
+          "version": 1,
+          "round": 1,
+          "sha256": "85142b74ddcf578cf0f1ec17843be5b9e260b6f05634bc8083a043b2f618358d"
+        }
+      ],
+      "predictions": 0,
+      "updates": 0
+    },
+    {
+      "runId": "run_e454a8989f39480187ceffde1bb09f0b",
+      "status": "succeeded",
+      "reports": {},
+      "keptKeys": [],
+      "receipts": [],
+      "predictions": 0,
+      "updates": 0
+    },
+    {
+      "runId": "run_5a522c72e9c64830ab93bec2392f7d91",
+      "status": "succeeded",
+      "reports": {
+        "experience": {
+          "version": 1,
+          "retrieved": []
+        }
+      },
+      "keptKeys": [],
+      "receipts": [],
+      "predictions": 1,
+      "updates": 0
+    }
+  ]
+}

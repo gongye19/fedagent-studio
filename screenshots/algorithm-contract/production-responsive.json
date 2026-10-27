@@ -1,0 +1,27 @@
+[
+  {
+    "hasContract": true,
+    "overflow": false,
+    "width": 1280
+  },
+  {
+    "hasContract": true,
+    "overflow": false,
+    "width": 1024
+  },
+  {
+    "hasContract": true,
+    "overflow": false,
+    "width": 768
+  },
+  {
+    "hasContract": true,
+    "overflow": false,
+    "width": 390
+  },
+  {
+    "hasContract": true,
+    "overflow": false,
+    "width": 320
+  }
+]

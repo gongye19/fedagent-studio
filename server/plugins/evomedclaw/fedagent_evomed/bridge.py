@@ -74,15 +74,15 @@ def diagnose(item: dict[str, Any], memory: dict[str, Any] | None, model: Model, 
     composer = PromptComposer(PromptRegistry())
     verifier = StructuredOutputVerifier()
     doctor = DepartmentFirstLocalAgent(model.name, composer, memory_bank=bank, verifier=verifier,
-                                      semantic_matching_enabled=False, max_infs=turns, min_questions_before_consult=2,
-                                      max_consultations=1, must_question_after_consult=1)
+                                      semantic_matching_enabled=False, max_infs=turns, min_questions_before_consult=6,
+                                      max_consultations=2, must_question_after_consult=2)
     doctor.update_scenario(scenario)
     patient = PatientAgent(model.name)
     patient.update_scenario(scenario)
     measurement = MeasurementAgent(model.name)
     measurement.update_scenario(scenario)
-    specialists = DepartmentSpecialistService(model.name, composer, DepartmentRouter(mode="keyword"), bank, verifier,
-                                             single_expert_mode=True, consultation_mode="single", arbiter_mode="off",
+    specialists = DepartmentSpecialistService(model.name, composer, DepartmentRouter(mode="hybrid", model_name=model.name), bank, verifier,
+                                             single_expert_mode=False, consultation_mode="multi", arbiter_mode="conflict_only",
                                              semantic_matching_enabled=False)
     with use_model(model) as bridge:
         result = run_department_first_interaction(scenario, doctor, specialists, patient, measurement,

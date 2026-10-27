@@ -59,7 +59,7 @@ def test_agent_check_has_one_shared_budget_for_all_steps(client, remote, monkeyp
     report = verify_one(client, config)
     result = client.get("/v1/task-checks/" + report["id"]).json()
     assert result["status"] == "failed"
-    assert any("超过 5 分钟" in r["message"] for r in result["results"])
+    assert any("接入验证超过 10 分钟" in r["message"] for r in result["results"])
     assert not remote[1]
 
 
