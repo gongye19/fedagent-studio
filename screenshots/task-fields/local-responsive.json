@@ -1,0 +1,398 @@
+[
+  {
+    "labels": [
+      {
+        "label": "场景",
+        "pseudo": "none"
+      },
+      {
+        "label": "算法",
+        "pseudo": "none"
+      },
+      {
+        "label": "任务类型",
+        "pseudo": "none"
+      },
+      {
+        "label": "状态",
+        "pseudo": "none"
+      },
+      {
+        "label": "主要指标",
+        "pseudo": "none"
+      },
+      {
+        "label": "创建时间",
+        "pseudo": "none"
+      },
+      {
+        "label": "操作",
+        "pseudo": "none"
+      }
+    ],
+    "layout": "table-row",
+    "pageOverflow": false,
+    "tableOverflow": false,
+    "width": 1440
+  },
+  {
+    "labels": [
+      {
+        "label": "场景",
+        "pseudo": "none"
+      },
+      {
+        "label": "算法",
+        "pseudo": "none"
+      },
+      {
+        "label": "任务类型",
+        "pseudo": "none"
+      },
+      {
+        "label": "状态",
+        "pseudo": "none"
+      },
+      {
+        "label": "主要指标",
+        "pseudo": "none"
+      },
+      {
+        "label": "创建时间",
+        "pseudo": "none"
+      },
+      {
+        "label": "操作",
+        "pseudo": "none"
+      }
+    ],
+    "layout": "table-row",
+    "pageOverflow": false,
+    "tableOverflow": false,
+    "width": 1280
+  },
+  {
+    "labels": [
+      {
+        "label": "场景",
+        "pseudo": "none"
+      },
+      {
+        "label": "算法",
+        "pseudo": "none"
+      },
+      {
+        "label": "任务类型",
+        "pseudo": "none"
+      },
+      {
+        "label": "状态",
+        "pseudo": "none"
+      },
+      {
+        "label": "主要指标",
+        "pseudo": "none"
+      },
+      {
+        "label": "创建时间",
+        "pseudo": "none"
+      },
+      {
+        "label": "操作",
+        "pseudo": "none"
+      }
+    ],
+    "layout": "table-row",
+    "pageOverflow": false,
+    "tableOverflow": false,
+    "width": 1181
+  },
+  {
+    "labels": [
+      {
+        "label": "场景",
+        "pseudo": "\"场景\""
+      },
+      {
+        "label": "算法",
+        "pseudo": "\"算法\""
+      },
+      {
+        "label": "任务类型",
+        "pseudo": "\"任务类型\""
+      },
+      {
+        "label": "状态",
+        "pseudo": "\"状态\""
+      },
+      {
+        "label": "主要指标",
+        "pseudo": "\"主要指标\""
+      },
+      {
+        "label": "创建时间",
+        "pseudo": "\"创建时间\""
+      },
+      {
+        "label": "操作",
+        "pseudo": "\"操作\""
+      }
+    ],
+    "layout": "grid",
+    "pageOverflow": false,
+    "tableOverflow": false,
+    "width": 1180
+  },
+  {
+    "labels": [
+      {
+        "label": "场景",
+        "pseudo": "\"场景\""
+      },
+      {
+        "label": "算法",
+        "pseudo": "\"算法\""
+      },
+      {
+        "label": "任务类型",
+        "pseudo": "\"任务类型\""
+      },
+      {
+        "label": "状态",
+        "pseudo": "\"状态\""
+      },
+      {
+        "label": "主要指标",
+        "pseudo": "\"主要指标\""
+      },
+      {
+        "label": "创建时间",
+        "pseudo": "\"创建时间\""
+      },
+      {
+        "label": "操作",
+        "pseudo": "\"操作\""
+      }
+    ],
+    "layout": "grid",
+    "pageOverflow": false,
+    "tableOverflow": false,
+    "width": 1024
+  },
+  {
+    "labels": [
+      {
+        "label": "场景",
+        "pseudo": "\"场景\""
+      },
+      {
+        "label": "算法",
+        "pseudo": "\"算法\""
+      },
+      {
+        "label": "任务类型",
+        "pseudo": "\"任务类型\""
+      },
+      {
+        "label": "状态",
+        "pseudo": "\"状态\""
+      },
+      {
+        "label": "主要指标",
+        "pseudo": "\"主要指标\""
+      },
+      {
+        "label": "创建时间",
+        "pseudo": "\"创建时间\""
+      },
+      {
+        "label": "操作",
+        "pseudo": "\"操作\""
+      }
+    ],
+    "layout": "grid",
+    "pageOverflow": false,
+    "tableOverflow": false,
+    "width": 901
+  },
+  {
+    "labels": [
+      {
+        "label": "场景",
+        "pseudo": "\"场景\""
+      },
+      {
+        "label": "算法",
+        "pseudo": "\"算法\""
+      },
+      {
+        "label": "任务类型",
+        "pseudo": "\"任务类型\""
+      },
+      {
+        "label": "状态",
+        "pseudo": "\"状态\""
+      },
+      {
+        "label": "主要指标",
+        "pseudo": "\"主要指标\""
+      },
+      {
+        "label": "创建时间",
+        "pseudo": "\"创建时间\""
+      },
+      {
+        "label": "操作",
+        "pseudo": "\"操作\""
+      }
+    ],
+    "layout": "grid",
+    "pageOverflow": false,
+    "tableOverflow": false,
+    "width": 900
+  },
+  {
+    "labels": [
+      {
+        "label": "场景",
+        "pseudo": "\"场景\""
+      },
+      {
+        "label": "算法",
+        "pseudo": "\"算法\""
+      },
+      {
+        "label": "任务类型",
+        "pseudo": "\"任务类型\""
+      },
+      {
+        "label": "状态",
+        "pseudo": "\"状态\""
+      },
+      {
+        "label": "主要指标",
+        "pseudo": "\"主要指标\""
+      },
+      {
+        "label": "创建时间",
+        "pseudo": "\"创建时间\""
+      },
+      {
+        "label": "操作",
+        "pseudo": "\"操作\""
+      }
+    ],
+    "layout": "grid",
+    "pageOverflow": false,
+    "tableOverflow": false,
+    "width": 768
+  },
+  {
+    "labels": [
+      {
+        "label": "场景",
+        "pseudo": "\"场景\""
+      },
+      {
+        "label": "算法",
+        "pseudo": "\"算法\""
+      },
+      {
+        "label": "任务类型",
+        "pseudo": "\"任务类型\""
+      },
+      {
+        "label": "状态",
+        "pseudo": "\"状态\""
+      },
+      {
+        "label": "主要指标",
+        "pseudo": "\"主要指标\""
+      },
+      {
+        "label": "创建时间",
+        "pseudo": "\"创建时间\""
+      },
+      {
+        "label": "操作",
+        "pseudo": "\"操作\""
+      }
+    ],
+    "layout": "grid",
+    "pageOverflow": false,
+    "tableOverflow": false,
+    "width": 720
+  },
+  {
+    "labels": [
+      {
+        "label": "场景",
+        "pseudo": "\"场景\""
+      },
+      {
+        "label": "算法",
+        "pseudo": "\"算法\""
+      },
+      {
+        "label": "任务类型",
+        "pseudo": "\"任务类型\""
+      },
+      {
+        "label": "状态",
+        "pseudo": "\"状态\""
+      },
+      {
+        "label": "主要指标",
+        "pseudo": "\"主要指标\""
+      },
+      {
+        "label": "创建时间",
+        "pseudo": "\"创建时间\""
+      },
+      {
+        "label": "操作",
+        "pseudo": "\"操作\""
+      }
+    ],
+    "layout": "grid",
+    "pageOverflow": false,
+    "tableOverflow": false,
+    "width": 390
+  },
+  {
+    "labels": [
+      {
+        "label": "场景",
+        "pseudo": "\"场景\""
+      },
+      {
+        "label": "算法",
+        "pseudo": "\"算法\""
+      },
+      {
+        "label": "任务类型",
+        "pseudo": "\"任务类型\""
+      },
+      {
+        "label": "状态",
+        "pseudo": "\"状态\""
+      },
+      {
+        "label": "主要指标",
+        "pseudo": "\"主要指标\""
+      },
+      {
+        "label": "创建时间",
+        "pseudo": "\"创建时间\""
+      },
+      {
+        "label": "操作",
+        "pseudo": "\"操作\""
+      }
+    ],
+    "layout": "grid",
+    "pageOverflow": false,
+    "tableOverflow": false,
+    "width": 320
+  }
+]

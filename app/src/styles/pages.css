@@ -317,6 +317,11 @@ a.algo-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 /* 列宽固定的表格（宽屏）：展开详情或新增一行时列不跳动；手机上改为自动 */
 @media (min-width: 721px) {
   .table--fixed { table-layout: fixed; }
-  .table--tasks tbody th { min-width: 220px; }
+}
+
+@media (min-width: 1181px) {
+  .table--tasks tbody th { min-width: 160px; max-width: 240px; overflow-wrap: anywhere; }
+  .table--tasks th, .table--tasks td { padding-inline: var(--space-3); }
+  .table--tasks thead th, .table--tasks td[data-label="场景"], .table--tasks td[data-label="算法"], .table--tasks td[data-label="任务类型"] { white-space: nowrap; }
 }
 

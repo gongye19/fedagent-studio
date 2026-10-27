@@ -1,0 +1,70 @@
+[
+  {
+    "path": "index.html",
+    "matches": true
+  },
+  {
+    "path": "icons.svg",
+    "matches": true
+  },
+  {
+    "path": "favicon.svg",
+    "matches": true
+  },
+  {
+    "path": "licenses/ai-elements.txt",
+    "matches": true
+  },
+  {
+    "path": "licenses/live-panel.txt",
+    "matches": true
+  },
+  {
+    "path": "algorithm-diagrams/evomedclaw.html",
+    "matches": true
+  },
+  {
+    "path": "algorithm-diagrams/evomedclaw-mobile.html",
+    "matches": true
+  },
+  {
+    "path": "algorithm-diagrams/fot-mobile.html",
+    "matches": true
+  },
+  {
+    "path": "algorithm-diagrams/fot.html",
+    "matches": true
+  },
+  {
+    "path": "algorithm-diagrams/manifest.json",
+    "matches": true
+  },
+  {
+    "path": "fonts/OFL-Geist.txt",
+    "matches": true
+  },
+  {
+    "path": "fonts/geist-sans.woff2",
+    "matches": true
+  },
+  {
+    "path": "fonts/geist-mono.woff2",
+    "matches": true
+  },
+  {
+    "path": "fonts/ibm-plex-sans-latin.woff2",
+    "matches": true
+  },
+  {
+    "path": "assets/index-BKo8jaft.css",
+    "matches": true
+  },
+  {
+    "path": "assets/Chart-TtrV3xF2.js",
+    "matches": true
+  },
+  {
+    "path": "assets/index-BOjJR03N.js",
+    "matches": true
+  }
+]

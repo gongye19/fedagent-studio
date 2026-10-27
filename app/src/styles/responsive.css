@@ -56,6 +56,23 @@
   .page { width: calc(100% - 32px); }
 }
 
+/* 任务有八个独立字段，中等宽度提前使用卡片；不挤压字段或隐藏列。 */
+@media (min-width: 721px) and (max-width: 1180px) {
+  .table--tasks thead { display: none; }
+  .table--tasks, .table--tasks tbody { display: block; width: 100%; }
+  .table--tasks tbody tr { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3) var(--space-4); padding: var(--space-4); border-bottom: 1px solid var(--border); }
+  .table--tasks tbody tr:last-child { border-bottom: 0; }
+  .table--tasks tbody th, .table--tasks tbody td { display: block; padding: 0; border: 0; background: none; }
+  .table--tasks tbody th { grid-column: 1 / -1; }
+  .table--tasks td[data-label] { display: grid; gap: 2px; align-content: start; text-align: left; white-space: normal; }
+  .table--tasks td[data-label]::before { content: attr(data-label); color: var(--muted); font-size: var(--text-xs); }
+  .table--tasks .progress-cell { min-width: 0; }
+  .table--tasks .table-link::after { content: ""; position: absolute; inset: 0; }
+  .table--tasks td button { position: relative; z-index: 1; }
+  .table--tasks td[data-label="操作"] { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
+  .table--tasks td[data-label="操作"]::before { display: none; }
+}
+
 /* ——— 手机（≤720）：内容改为一栏，表格收起次要列 ——— */
 @media (max-width: 720px) {
   .compare-grid { grid-template-columns: minmax(0, 1fr); }

@@ -1,0 +1,563 @@
+[
+  {
+    "cells": [
+      {
+        "label": null,
+        "text": "医疗诊断任务 10-27 12:40"
+      },
+      {
+        "label": "场景",
+        "text": "横向联邦"
+      },
+      {
+        "label": "算法",
+        "text": "EvoMedClaw"
+      },
+      {
+        "label": "任务类型",
+        "text": "医疗诊断"
+      },
+      {
+        "label": "状态",
+        "text": "已完成"
+      },
+      {
+        "label": "主要指标",
+        "text": "50.0% → 50.0%诊断匹配率 持平"
+      },
+      {
+        "label": "创建时间",
+        "text": "10/27 12:40"
+      },
+      {
+        "label": "操作",
+        "text": "删除"
+      }
+    ],
+    "headers": [
+      "任务名称",
+      "场景",
+      "算法",
+      "任务类型",
+      "状态",
+      "主要指标",
+      "创建时间",
+      "操作"
+    ],
+    "layout": "table-row",
+    "nameHasSubtitle": false,
+    "pageOverflow": false,
+    "tableOverflow": false,
+    "width": 1440
+  },
+  {
+    "cells": [
+      {
+        "label": null,
+        "text": "医疗诊断任务 10-27 12:40"
+      },
+      {
+        "label": "场景",
+        "text": "横向联邦"
+      },
+      {
+        "label": "算法",
+        "text": "EvoMedClaw"
+      },
+      {
+        "label": "任务类型",
+        "text": "医疗诊断"
+      },
+      {
+        "label": "状态",
+        "text": "已完成"
+      },
+      {
+        "label": "主要指标",
+        "text": "50.0% → 50.0%诊断匹配率 持平"
+      },
+      {
+        "label": "创建时间",
+        "text": "10/27 12:40"
+      },
+      {
+        "label": "操作",
+        "text": "删除"
+      }
+    ],
+    "headers": [
+      "任务名称",
+      "场景",
+      "算法",
+      "任务类型",
+      "状态",
+      "主要指标",
+      "创建时间",
+      "操作"
+    ],
+    "layout": "table-row",
+    "nameHasSubtitle": false,
+    "pageOverflow": false,
+    "tableOverflow": false,
+    "width": 1280
+  },
+  {
+    "cells": [
+      {
+        "label": null,
+        "text": "医疗诊断任务 10-27 12:40"
+      },
+      {
+        "label": "场景",
+        "text": "横向联邦"
+      },
+      {
+        "label": "算法",
+        "text": "EvoMedClaw"
+      },
+      {
+        "label": "任务类型",
+        "text": "医疗诊断"
+      },
+      {
+        "label": "状态",
+        "text": "已完成"
+      },
+      {
+        "label": "主要指标",
+        "text": "50.0% → 50.0%诊断匹配率 持平"
+      },
+      {
+        "label": "创建时间",
+        "text": "10/27 12:40"
+      },
+      {
+        "label": "操作",
+        "text": "删除"
+      }
+    ],
+    "headers": [
+      "任务名称",
+      "场景",
+      "算法",
+      "任务类型",
+      "状态",
+      "主要指标",
+      "创建时间",
+      "操作"
+    ],
+    "layout": "table-row",
+    "nameHasSubtitle": false,
+    "pageOverflow": false,
+    "tableOverflow": false,
+    "width": 1181
+  },
+  {
+    "cells": [
+      {
+        "label": null,
+        "text": "医疗诊断任务 10-27 12:40"
+      },
+      {
+        "label": "场景",
+        "text": "横向联邦"
+      },
+      {
+        "label": "算法",
+        "text": "EvoMedClaw"
+      },
+      {
+        "label": "任务类型",
+        "text": "医疗诊断"
+      },
+      {
+        "label": "状态",
+        "text": "已完成"
+      },
+      {
+        "label": "主要指标",
+        "text": "50.0% → 50.0%诊断匹配率 持平"
+      },
+      {
+        "label": "创建时间",
+        "text": "10/27 12:40"
+      },
+      {
+        "label": "操作",
+        "text": "删除"
+      }
+    ],
+    "headers": [
+      "任务名称",
+      "场景",
+      "算法",
+      "任务类型",
+      "状态",
+      "主要指标",
+      "创建时间",
+      "操作"
+    ],
+    "layout": "grid",
+    "nameHasSubtitle": false,
+    "pageOverflow": false,
+    "tableOverflow": false,
+    "width": 1180
+  },
+  {
+    "cells": [
+      {
+        "label": null,
+        "text": "医疗诊断任务 10-27 12:40"
+      },
+      {
+        "label": "场景",
+        "text": "横向联邦"
+      },
+      {
+        "label": "算法",
+        "text": "EvoMedClaw"
+      },
+      {
+        "label": "任务类型",
+        "text": "医疗诊断"
+      },
+      {
+        "label": "状态",
+        "text": "已完成"
+      },
+      {
+        "label": "主要指标",
+        "text": "50.0% → 50.0%诊断匹配率 持平"
+      },
+      {
+        "label": "创建时间",
+        "text": "10/27 12:40"
+      },
+      {
+        "label": "操作",
+        "text": "删除"
+      }
+    ],
+    "headers": [
+      "任务名称",
+      "场景",
+      "算法",
+      "任务类型",
+      "状态",
+      "主要指标",
+      "创建时间",
+      "操作"
+    ],
+    "layout": "grid",
+    "nameHasSubtitle": false,
+    "pageOverflow": false,
+    "tableOverflow": false,
+    "width": 1024
+  },
+  {
+    "cells": [
+      {
+        "label": null,
+        "text": "医疗诊断任务 10-27 12:40"
+      },
+      {
+        "label": "场景",
+        "text": "横向联邦"
+      },
+      {
+        "label": "算法",
+        "text": "EvoMedClaw"
+      },
+      {
+        "label": "任务类型",
+        "text": "医疗诊断"
+      },
+      {
+        "label": "状态",
+        "text": "已完成"
+      },
+      {
+        "label": "主要指标",
+        "text": "50.0% → 50.0%诊断匹配率 持平"
+      },
+      {
+        "label": "创建时间",
+        "text": "10/27 12:40"
+      },
+      {
+        "label": "操作",
+        "text": "删除"
+      }
+    ],
+    "headers": [
+      "任务名称",
+      "场景",
+      "算法",
+      "任务类型",
+      "状态",
+      "主要指标",
+      "创建时间",
+      "操作"
+    ],
+    "layout": "grid",
+    "nameHasSubtitle": false,
+    "pageOverflow": false,
+    "tableOverflow": false,
+    "width": 901
+  },
+  {
+    "cells": [
+      {
+        "label": null,
+        "text": "医疗诊断任务 10-27 12:40"
+      },
+      {
+        "label": "场景",
+        "text": "横向联邦"
+      },
+      {
+        "label": "算法",
+        "text": "EvoMedClaw"
+      },
+      {
+        "label": "任务类型",
+        "text": "医疗诊断"
+      },
+      {
+        "label": "状态",
+        "text": "已完成"
+      },
+      {
+        "label": "主要指标",
+        "text": "50.0% → 50.0%诊断匹配率 持平"
+      },
+      {
+        "label": "创建时间",
+        "text": "10/27 12:40"
+      },
+      {
+        "label": "操作",
+        "text": "删除"
+      }
+    ],
+    "headers": [
+      "任务名称",
+      "场景",
+      "算法",
+      "任务类型",
+      "状态",
+      "主要指标",
+      "创建时间",
+      "操作"
+    ],
+    "layout": "grid",
+    "nameHasSubtitle": false,
+    "pageOverflow": false,
+    "tableOverflow": false,
+    "width": 900
+  },
+  {
+    "cells": [
+      {
+        "label": null,
+        "text": "医疗诊断任务 10-27 12:40"
+      },
+      {
+        "label": "场景",
+        "text": "横向联邦"
+      },
+      {
+        "label": "算法",
+        "text": "EvoMedClaw"
+      },
+      {
+        "label": "任务类型",
+        "text": "医疗诊断"
+      },
+      {
+        "label": "状态",
+        "text": "已完成"
+      },
+      {
+        "label": "主要指标",
+        "text": "50.0% → 50.0%诊断匹配率 持平"
+      },
+      {
+        "label": "创建时间",
+        "text": "10/27 12:40"
+      },
+      {
+        "label": "操作",
+        "text": "删除"
+      }
+    ],
+    "headers": [
+      "任务名称",
+      "场景",
+      "算法",
+      "任务类型",
+      "状态",
+      "主要指标",
+      "创建时间",
+      "操作"
+    ],
+    "layout": "grid",
+    "nameHasSubtitle": false,
+    "pageOverflow": false,
+    "tableOverflow": false,
+    "width": 768
+  },
+  {
+    "cells": [
+      {
+        "label": null,
+        "text": "医疗诊断任务 10-27 12:40"
+      },
+      {
+        "label": "场景",
+        "text": "横向联邦"
+      },
+      {
+        "label": "算法",
+        "text": "EvoMedClaw"
+      },
+      {
+        "label": "任务类型",
+        "text": "医疗诊断"
+      },
+      {
+        "label": "状态",
+        "text": "已完成"
+      },
+      {
+        "label": "主要指标",
+        "text": "50.0% → 50.0%诊断匹配率 持平"
+      },
+      {
+        "label": "创建时间",
+        "text": "10/27 12:40"
+      },
+      {
+        "label": "操作",
+        "text": "删除"
+      }
+    ],
+    "headers": [
+      "任务名称",
+      "场景",
+      "算法",
+      "任务类型",
+      "状态",
+      "主要指标",
+      "创建时间",
+      "操作"
+    ],
+    "layout": "grid",
+    "nameHasSubtitle": false,
+    "pageOverflow": false,
+    "tableOverflow": false,
+    "width": 720
+  },
+  {
+    "cells": [
+      {
+        "label": null,
+        "text": "医疗诊断任务 10-27 12:40"
+      },
+      {
+        "label": "场景",
+        "text": "横向联邦"
+      },
+      {
+        "label": "算法",
+        "text": "EvoMedClaw"
+      },
+      {
+        "label": "任务类型",
+        "text": "医疗诊断"
+      },
+      {
+        "label": "状态",
+        "text": "已完成"
+      },
+      {
+        "label": "主要指标",
+        "text": "50.0% → 50.0%诊断匹配率 持平"
+      },
+      {
+        "label": "创建时间",
+        "text": "10/27 12:40"
+      },
+      {
+        "label": "操作",
+        "text": "删除"
+      }
+    ],
+    "headers": [
+      "任务名称",
+      "场景",
+      "算法",
+      "任务类型",
+      "状态",
+      "主要指标",
+      "创建时间",
+      "操作"
+    ],
+    "layout": "grid",
+    "nameHasSubtitle": false,
+    "pageOverflow": false,
+    "tableOverflow": false,
+    "width": 390
+  },
+  {
+    "cells": [
+      {
+        "label": null,
+        "text": "医疗诊断任务 10-27 12:40"
+      },
+      {
+        "label": "场景",
+        "text": "横向联邦"
+      },
+      {
+        "label": "算法",
+        "text": "EvoMedClaw"
+      },
+      {
+        "label": "任务类型",
+        "text": "医疗诊断"
+      },
+      {
+        "label": "状态",
+        "text": "已完成"
+      },
+      {
+        "label": "主要指标",
+        "text": "50.0% → 50.0%诊断匹配率 持平"
+      },
+      {
+        "label": "创建时间",
+        "text": "10/27 12:40"
+      },
+      {
+        "label": "操作",
+        "text": "删除"
+      }
+    ],
+    "headers": [
+      "任务名称",
+      "场景",
+      "算法",
+      "任务类型",
+      "状态",
+      "主要指标",
+      "创建时间",
+      "操作"
+    ],
+    "layout": "grid",
+    "nameHasSubtitle": false,
+    "pageOverflow": false,
+    "tableOverflow": false,
+    "width": 320
+  }
+]

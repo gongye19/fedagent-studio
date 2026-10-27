@@ -32,8 +32,8 @@ export function stageText(task: Task): string | null {
 }
 
 /**
- * 列表和详情页标题下的摘要：场景、任务类型、算法、参与方数、运行方式。交给 Meta 排版，折行时分隔点不落在行首行尾。
- * 任务列表已经按场景分块、任务类型单独一列，传 withCategory: false 省掉这两项。
+ * 详情页标题下的摘要：场景、任务类型、算法、参与方数、运行方式。
+ * 交给 Meta 排版，折行时分隔点不落在行首行尾；列表各自使用独立字段。
  */
 export function taskSummaryParts(task: Task, { withCategory = true }: { withCategory?: boolean } = {}): string[] {
   const mode = task.config.mode === "trial" ? "试跑" : "正式运行";

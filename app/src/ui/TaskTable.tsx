@@ -1,9 +1,9 @@
 import { TASK_TYPES } from "../domain/catalog";
 import { averageAccuracy, canDeleteTask, latestScoredRound, progressOf, TASK_STATUS, type Task } from "../domain/task";
 import { hrefOf } from "../state/route";
-import { Meta, ProgressBar, Tag } from "./common";
+import { ProgressBar, Tag } from "./common";
 import { formatDate, formatDelta, formatPercent } from "./format";
-import { deltaClass, metricOf, stageText, statusTone, taskSummaryParts } from "./labels";
+import { algorithmOfTask, deltaClass, metricOf, stageText, statusTone } from "./labels";
 import { ScenarioTag } from "./ScenarioTag";
 
 /** 运行中、暂停、取消用标签提醒；已完成是常态，用普通文字。 */
@@ -28,17 +28,19 @@ export function MetricChange({ task }: { task: Task }) {
   );
 }
 
-/** 统一任务表：场景标签与任务类型在同一分类单元，窄屏沿用卡片布局。 */
+/** 场景、算法和任务类型各占一列；窄屏保留独立字段，改为卡片布局。 */
 export function TaskTable({ tasks, onDelete }: { tasks: readonly Task[]; onDelete: (task: Task) => void }) {
   return (
     <div className="table-shell">
       <table className="table table--stack table--tasks">
         <thead>
           <tr>
-            <th scope="col">任务</th>
+            <th scope="col">任务名称</th>
+            <th scope="col">场景</th>
+            <th scope="col">算法</th>
             <th scope="col">任务类型</th>
             <th scope="col">状态</th>
-            <th scope="col" className="numeric">主要指标（本地 → 联邦）</th>
+            <th scope="col" className="numeric">主要指标</th>
             <th scope="col" className="numeric">创建时间</th>
             <th scope="col" className="numeric">操作</th>
           </tr>
@@ -50,9 +52,10 @@ export function TaskTable({ tasks, onDelete }: { tasks: readonly Task[]; onDelet
               <tr key={task.id}>
                 <th scope="row">
                   <a className="table-link" href={hrefOf({ page: "task", id: task.id })}>{task.name}</a>
-                  <small><Meta parts={taskSummaryParts(task, { withCategory: false })} /></small>
                 </th>
-                <td data-label="任务类型"><div className="task-classification"><ScenarioTag scenario={task.config.scenario} /><span>{TASK_TYPES[task.config.taskType].label}</span></div></td>
+                <td data-label="场景"><ScenarioTag scenario={task.config.scenario} /></td>
+                <td data-label="算法">{algorithmOfTask(task).name}</td>
+                <td data-label="任务类型">{TASK_TYPES[task.config.taskType].label}</td>
                 <td className="progress-cell" data-label="状态">
                   <div className="progress-line">
                     <TaskStatus task={task} />
