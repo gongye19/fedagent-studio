@@ -15,6 +15,7 @@ from . import models as m
 from .data import to_item
 from .gateway import LedgerKey
 from .platform import Platform
+from .task_services.cases import snapshot as case_snapshot
 from .units import DbStepIO, Graded, SiteView, store_result
 
 log = logging.getLogger("fedagent.engine")
@@ -145,7 +146,7 @@ class UnitExecutor:
                 record = records.get(item_id, {})
                 labeled = self.task_type.is_evaluated(record)
                 correct = bool(labeled and self.grader.evaluate(prediction, record, grading_model))
-                graded.append(Graded(item_id, labeled, correct))
+                graded.append(Graded(item_id, labeled, correct, case_snapshot(self.task_type, record, item_id, prediction, labeled, correct)))
         except ModelError as error:
             return Outcome(False, f"判分失败：{error}")
         except Exception as error:

@@ -78,7 +78,8 @@ def task_out(platform: Platform, session: Session, task: m.Task) -> TaskOut:
 
     reports: dict[tuple[int, str, str], list[tuple[str, Any]]] = defaultdict(list)
     for round, step, site_id, name, value in session.execute(
-        select(m.Report.round, m.Report.step, m.Report.site_id, m.Report.name, m.Report.value).where(m.Report.task_id == task.id)
+        select(m.Report.round, m.Report.step, m.Report.site_id, m.Report.name, m.Report.value)
+        .where(m.Report.task_id == task.id, m.Report.name != "case_result")
     ).all():
         reports[(round, step, name)].append((site_id, value))
     if manifest is not None and manifest.evaluation is not None and complete(1, manifest.evaluation.step):

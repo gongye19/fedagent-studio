@@ -295,3 +295,7 @@ T92覆盖位置：PageHead返回在标题左侧同行，以aria-label及title标
 T98判分扩展：确定性判分继续实现grade；需要模型时设置requires_model并实现evaluate，失败必须抛ModelError或业务错误，禁止把无响应当答错。模型通过网关提供，不在插件读密钥；注册表需暴露模型需求，任务连接检查保持只读探测。TaskType.is_evaluated用于任务分母，上传标注计数仍用is_labeled。规则语义变更使用新grader ID及算法版本，旧结果不重算。医疗源码在grading.py，原版函数不修改，网络重试由平台管理；回归见test_medical_grading.py。学习／判分有明确读取标注的授权，不能放宽诊断请求或联邦产出的标注隔离。
 
 T99收尾：备份须先停止四项服务（无活动任务／验证），所有SQLite库均通过backup API生成不依赖WAL／SHM的独立快照；普通文件及密钥一起保存，逐库校验。不能只对主库做快照、再把接入方原文件当独立数据库。ProgressStore连接显式closing，读写事务结束及时释放。
+
+### T100：简洁进度与案例记录
+
+ProgressTab只组合已有Task.cursor／冻结plan和ProgressBar／CheckStatus，不读取通信或多层动作。CaseResults使用管理API GET /tasks/{id}/cases，按round／site／outcome筛选、offset／limit分页；schema变更后仍运行npm run api:types。案例由UnitExecutor完成独立判分后生成去标注预览，与store_result所有权／attempt门禁同事务写入Reports(case_result)。保留名不得由Agent或旧客户端上报；只允许管理侧读取参考标注，不将结果记录作为Agent输入。历史数据不回填或重评。TaskOut轮询明确排除case_result长正文，避免每次进度查询加载完整回答。新增用例在test_cases.py、check-state.test.ts和ProgressTab.test.tsx。

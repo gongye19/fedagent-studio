@@ -160,6 +160,7 @@ class Graded:
     item_id: str
     labeled: bool
     correct: bool
+    case: dict[str, Any] | None = None
 
 
 def store_result(
@@ -218,6 +219,8 @@ def store_result(
         session.add(message)
         written.append({"channel": outgoing.channel, "sender": site.id, "item_id": outgoing.item_id, "payload": outgoing.payload})
     for grade in graded:
+        if grade.case is not None:
+            session.add(m.Report(task_id=task_id, round=round, step=step, site_id=site.id, unit_key=unit.unit_key, name="case_result", value=grade.case))
         session.add(m.Report(task_id=task_id, round=round, step=step, site_id=site.id, unit_key=unit.unit_key, name="labeled", value=int(grade.labeled)))
         session.add(m.Report(task_id=task_id, round=round, step=step, site_id=site.id, unit_key=unit.unit_key, name="correct", value=int(grade.correct)))
     for name, value in result.reports.items():

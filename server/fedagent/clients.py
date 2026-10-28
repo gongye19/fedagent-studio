@@ -194,7 +194,7 @@ def complete(platform: Platform, session: Session, token: m.ClientToken, partici
             raise ServiceError(413, "单条消息超过 1 MB")
         if step.per == "item" and sent.item_id not in (None, unit.unit_key):
             raise ServiceError(422, "消息对应的样本和工作单元不一致")
-    if any(name in body.reports for name in ("labeled", "correct")):
+    if any(name in body.reports for name in ("labeled", "correct", "case_result")):
         raise ServiceError(422, "判分汇总只能通过 graded 提交")
     grade_ids = [grade.item_id for grade in body.graded]
     if len(grade_ids) != len(set(grade_ids)) or any(grade.correct and not grade.labeled for grade in body.graded):

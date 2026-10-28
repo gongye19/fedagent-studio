@@ -1,0 +1,74 @@
+{
+  "frontendTests": 53,
+  "backendTests": 148,
+  "lintTypesStructure": "passed",
+  "connectionBug": "主动检查不再触发开始缺项提示；POST预填报告缓存，首次读取维持running，重测隐藏旧报告",
+  "algorithmsUnchanged": true,
+  "sdk": "0.2.6",
+  "evomedPackage": "0.2.2",
+  "databaseSchema": "0008",
+  "realRuns": {
+    "fot": {
+      "id": "task-e2dc5dd7",
+      "seconds": 141.53,
+      "caseCounts": {
+        "passed": 2,
+        "incorrect": 2
+      },
+      "roundScores": [
+        {
+          "p-h": 0,
+          "p-g": 1
+        },
+        {
+          "p-h": 0,
+          "p-g": 1
+        }
+      ],
+      "outputItems": 12,
+      "realProgressChanges": 15
+    },
+    "evomedclaw": {
+      "id": "task-e9a5f562",
+      "seconds": 393.74,
+      "caseCounts": {
+        "passed": 4
+      },
+      "roundScores": [
+        {
+          "p-b": 1,
+          "p-a": 1
+        },
+        {
+          "p-b": 1,
+          "p-a": 1
+        }
+      ],
+      "outputItems": 8,
+      "realProgressChanges": 11
+    }
+  },
+  "ownedTemporaryTasksCleaned": true,
+  "usage": {
+    "usage": [
+      [
+        "task-e2dc5dd7",
+        "task",
+        "ok",
+        16,
+        41221,
+        28608
+      ],
+      [
+        "task-e9a5f562",
+        "agent",
+        "ok",
+        150,
+        160600,
+        42785
+      ]
+    ],
+    "calls": 166,
+    "tokens": 273214
+  }
+}

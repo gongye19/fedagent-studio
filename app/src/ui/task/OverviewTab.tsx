@@ -13,6 +13,7 @@ import { hrefOf } from "../../state/route";
 import { publishedOf, type State } from "../../state/store";
 import { GRADERS, TASK_TYPES } from "../../domain/catalog";
 import { InfoTip } from "../InfoTip";
+import { CaseResults } from "./CaseResults";
 import { MetricComparison } from "./MetricComparison";
 import { EmptyState, Stat, Tag } from "../common";
 import { Panel } from "../console";
@@ -26,9 +27,9 @@ export function OverviewTab({ task, state }: { task: Task; state: State }) {
   const historicalGrader = Boolean(task.config.grader && task.config.grader !== TASK_TYPES[task.config.taskType].grader);
   if (!rounds.length) {
     return (
-      <EmptyState title="还没有结果" action={<a className="button button--secondary" href={hrefOf({ page: "task", id: task.id, tab: "progress" })}>查看进度</a>}>
+      <div className="panel-stack"><EmptyState title="还没有结果" action={<a className="button button--secondary" href={hrefOf({ page: "task", id: task.id, tab: "progress" })}>查看进度</a>}>
         <p>第 1 轮完成后，这里显示各参与方的{metric}。</p>
-      </EmptyState>
+      </EmptyState>{task.status === "paused" || task.status === "canceled" ? <CaseResults key={task.id} task={task} /> : null}</div>
     );
   }
   const latest = rounds[rounds.length - 1];
@@ -62,6 +63,8 @@ export function OverviewTab({ task, state }: { task: Task; state: State }) {
       <Panel title="逐轮效果" id="accuracy">
         <MetricComparison task={task} latest={latest} />
       </Panel>
+
+      <CaseResults key={task.id} task={task} />
 
       <Panel title="明细" id="comparison" flush>
         <ComparisonTable task={task} />

@@ -1,0 +1,10 @@
+{
+  "health": {
+    "ok": true
+  },
+  "tasks": 4,
+  "allCompleted": true,
+  "currentAdmissionProofs": 2,
+  "oldCasesReadOnly": true,
+  "backupIndependentAndExact": true
+}

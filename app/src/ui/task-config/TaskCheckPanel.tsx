@@ -41,7 +41,7 @@ export function TaskCheckPanel({ config }: { config: TaskConfigController }) {
           {preflight.error}
         </p>
       ) : null}
-      <InlineError id="check-error" message={preflight.matches && preflight.report?.status === "failed" ? undefined : fieldError("check")} />
+      <InlineError id="check-error" message={preflight.running || preflight.error || (preflight.matches && preflight.report?.status === "failed") ? undefined : fieldError("check")} />
     </Panel>
   );
 }

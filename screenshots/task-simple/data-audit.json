@@ -1,0 +1,177 @@
+{
+  "databases": {
+    "fedagent.db": {
+      "changesToOriginal": {},
+      "integrity": "ok",
+      "foreignKeys": [],
+      "counts": {
+        "agent_endpoints": {
+          "before": 2,
+          "after": 2,
+          "added": 0
+        },
+        "agent_runs": {
+          "before": 131,
+          "after": 131,
+          "added": 0
+        },
+        "alembic_version": {
+          "before": 1,
+          "after": 1,
+          "added": 0
+        },
+        "apps": {
+          "before": 0,
+          "after": 0,
+          "added": 0
+        },
+        "artifacts": {
+          "before": 7,
+          "after": 7,
+          "added": 0
+        },
+        "calls": {
+          "before": 4430,
+          "after": 4596,
+          "added": 166
+        },
+        "client_tokens": {
+          "before": 0,
+          "after": 0,
+          "added": 0
+        },
+        "datasets": {
+          "before": 10,
+          "after": 10,
+          "added": 0
+        },
+        "endpoints": {
+          "before": 1,
+          "after": 1,
+          "added": 0
+        },
+        "events": {
+          "before": 639,
+          "after": 639,
+          "added": 0
+        },
+        "messages": {
+          "before": 561,
+          "after": 561,
+          "added": 0
+        },
+        "participants": {
+          "before": 8,
+          "after": 8,
+          "added": 0
+        },
+        "reports": {
+          "before": 173,
+          "after": 173,
+          "added": 0
+        },
+        "site_state": {
+          "before": 157,
+          "after": 157,
+          "added": 0
+        },
+        "task_checks": {
+          "before": 16,
+          "after": 16,
+          "added": 0
+        },
+        "task_sites": {
+          "before": 14,
+          "after": 14,
+          "added": 0
+        },
+        "tasks": {
+          "before": 4,
+          "after": 4,
+          "added": 0
+        },
+        "work_units": {
+          "before": 265,
+          "after": 265,
+          "added": 0
+        }
+      }
+    },
+    "medical-agents/medical-a/agent.sqlite": {
+      "changesToOriginal": {},
+      "integrity": "ok",
+      "foreignKeys": [],
+      "counts": {
+        "memories": {
+          "before": 8,
+          "after": 8,
+          "added": 0
+        },
+        "private_state": {
+          "before": 72,
+          "after": 72,
+          "added": 0
+        }
+      }
+    },
+    "medical-agents/medical-a/runs.sqlite": {
+      "changesToOriginal": {},
+      "integrity": "ok",
+      "foreignKeys": [],
+      "counts": {
+        "progress": {
+          "before": 309,
+          "after": 309,
+          "added": 0
+        },
+        "runs": {
+          "before": 148,
+          "after": 154,
+          "added": 6
+        }
+      }
+    },
+    "medical-agents/medical-b/agent.sqlite": {
+      "changesToOriginal": {},
+      "integrity": "ok",
+      "foreignKeys": [],
+      "counts": {
+        "memories": {
+          "before": 8,
+          "after": 8,
+          "added": 0
+        },
+        "private_state": {
+          "before": 72,
+          "after": 72,
+          "added": 0
+        }
+      }
+    },
+    "medical-agents/medical-b/runs.sqlite": {
+      "changesToOriginal": {},
+      "integrity": "ok",
+      "foreignKeys": [],
+      "counts": {
+        "progress": {
+          "before": 307,
+          "after": 307,
+          "added": 0
+        },
+        "runs": {
+          "before": 137,
+          "after": 143,
+          "added": 6
+        }
+      }
+    }
+  },
+  "files": {
+    "removed": [],
+    "changed": [],
+    "added": []
+  },
+  "restartExact": true,
+  "independentBackupExact": true,
+  "backup": "20261028T165037341948Z"
+}

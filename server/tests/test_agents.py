@@ -77,6 +77,10 @@ def test_remote_steps_two_rounds_share_artifact_and_grade_locally(platform, clie
     view = client.get("/v1/tasks/" + task_id).json()
     assert len([r for r in view["rounds"] if r.get("output")]) == (1 if medical else 2)
     assert all(r.get("correct") is not None for r in view["rounds"])
+    cases = client.get(f"/v1/tasks/{task_id}/cases").json()
+    assert cases["total"] == 4 and all(c["prediction"] for c in cases["items"])
+    if medical:
+        assert all(c["itemId"] == "eval-private" for c in cases["items"])
     assert any(req.round == 2 and req.artifact for req in requests)
     assert all(
         "answer" not in item.fields for req in requests if not platform.registry.algorithm(req.algorithm).manifest.step(req.step).labels for item in req.items
@@ -128,6 +132,7 @@ def test_agent_result_cannot_forge_scores_channels_or_item_ids(platform):
     ctx = context_of(body, algorithm)
     for result in [
         AgentResult(reports={"correct": 99}),
+        AgentResult(reports={"case_result": {"outcome": "passed", "itemId": "x"}}),
         AgentResult(predictions=[("other", "4")]),
         AgentResult(predictions=[("one", "4"), ("one", "4")]),
         AgentResult(sent=[OutgoingMessage("trace", "bad", "one")]),

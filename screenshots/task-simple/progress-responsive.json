@@ -1,0 +1,58 @@
+[
+  {
+    "animations": [
+      "check-spin",
+      "check-spin",
+      "check-spin"
+    ],
+    "progress": [
+      "95",
+      "50",
+      "100"
+    ],
+    "scroll": 320,
+    "width": 320
+  },
+  {
+    "animations": [
+      "check-spin",
+      "check-spin",
+      "check-spin"
+    ],
+    "progress": [
+      "95",
+      "50",
+      "100"
+    ],
+    "scroll": 390,
+    "width": 390
+  },
+  {
+    "animations": [
+      "check-spin",
+      "check-spin",
+      "check-spin"
+    ],
+    "progress": [
+      "95",
+      "50",
+      "100"
+    ],
+    "scroll": 768,
+    "width": 768
+  },
+  {
+    "animations": [
+      "check-spin",
+      "check-spin",
+      "check-spin"
+    ],
+    "progress": [
+      "95",
+      "50",
+      "100"
+    ],
+    "scroll": 1280,
+    "width": 1280
+  }
+]

@@ -95,7 +95,7 @@ export default function TaskPage({ task, state, dispatch, tab }: Props) {
         </Confirm>
       ) : null}
       <TabLinks label="任务详情" tabs={tabs} active={active} routeOf={(id) => ({ page: "task", id: task.id, tab: id })} />
-      {task.cursor && (running || paused) ? <LiveBanner task={task} /> : null}
+      {active !== "progress" && task.cursor && (running || paused) ? <LiveBanner task={task} /> : null}
       <div className="tab-panel" ref={panelMotion}>
         {active === "overview" ? <OverviewTab task={task} state={state} /> : null}
         {active === "progress" ? <ProgressTab key={task.id} task={task} /> : null}

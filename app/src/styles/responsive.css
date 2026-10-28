@@ -33,7 +33,6 @@
 @media (max-width: 1100px) {
   .uploads { grid-template-columns: minmax(0, 1fr); }
   /* 进度保留两组，缩短间距；手机再改为单栏。 */
-  .step-line { gap: var(--space-4); }
 }
 
 /* ——— 窄屏（≤900）：侧栏收成顶栏，导航放进"菜单"，展开后和侧栏一样是一列（基础管理可以展开） ——— */
@@ -83,7 +82,6 @@
   .facts--columns { grid-template-columns: minmax(0, 1fr); }
   .algo-steps { grid-template-columns: minmax(0, 1fr); }
   .choice { min-width: 0; flex: 1 1 0; }
-  .step-line { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
   .step-group ol { grid-template-columns: minmax(0, 1fr); }
   .facts > div { grid-template-columns: 104px minmax(0, 1fr); }
   .live-banner { grid-template-columns: minmax(0, 1fr) 40px; }
@@ -91,7 +89,6 @@
   .table th, .table td { padding-inline: var(--space-3); }
   .detail-row > td { padding: 0 var(--space-3) var(--space-4); }
   /* 步骤不再缩进到轮次标题下面，给内容留出宽度 */
-  .round > details > .step-line, .round--current > .step-line { padding-left: 0; }
   /* 面板标题栏的操作换到下一行时左对齐，不被推到右边缩进 */
   .panel-actions { flex-basis: 100%; margin-left: 0; }
   /* 列表页的搜索和筛选撑满整行：搜索单独一行，筛选平分下一行，左右边缘和下面的面板对齐 */

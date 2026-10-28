@@ -328,3 +328,7 @@ T92根据用户四项明确反馈继续沿用控制台风格：返回在标题�
 ### T99：已确认方向下的执行细节与趋势
 
 用户在当前聊天确认“执行时间线／通信折叠／逐轮折线”后实施，延续T62及后续已确认控制台规范，未引入新主视觉参考。组件依据：现有Radix菜单、Panel和状态图标；Apache ECharts仅为本次逐轮趋势的成熟图表实现，参考[模块导入](https://echarts.apache.org/handbook/en/basics/import/)及[容器尺寸与销毁](https://echarts.apache.org/handbook/en/concepts/chart-size/)官方文档。设计五项交付见FLOW的T99章节，截图与验证证据在screenshots/task-process。
+
+### T100：按用户反馈收敛执行界面
+
+本次沿用已确认控制台、反馈和选择器规范，没有新增主参考或宣称重新检索Mobbin。用户明确要求通用、少文字和动画反馈，先展示screenshots/task-simple/progress-preview.png，再完成单面板进度与默认折叠的结果案例；不再显示T99多层过程或通信正文。复用ProgressBar、CheckStatus、SelectField与details，五项设计输出见FLOW的T100章节。案例按执行完成／失败及判分匹配分开，不添加无依据的因果解释。

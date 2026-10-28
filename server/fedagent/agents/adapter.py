@@ -46,7 +46,7 @@ def validate_result(result: AgentResult, ctx: StepContext, sites, algorithm: Alg
     ids = [item_id for item_id, _ in result.predictions]
     if len(ids) != len(set(ids)) or any(item_id not in allowed for item_id in ids):
         raise AgentError("Agent 预测重复或对应了其他样本")
-    if any(name in result.reports for name in ("labeled", "correct")):
+    if any(name in result.reports for name in ("labeled", "correct", "case_result")):
         raise AgentError("Agent 不能自行提交平台判分汇总")
     for key, item_id, _ in result.kept:
         if not key or len(key) > 120 or (item_id is not None and item_id not in allowed):

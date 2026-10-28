@@ -628,6 +628,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/tasks/{task_id}/cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Task Cases */
+        get: operations["task_cases_v1_tasks__task_id__cases_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/apps": {
         parameters: {
             query?: never;
@@ -1097,6 +1114,50 @@ export interface components {
             algorithms: {
                 [key: string]: components["schemas"]["AlgorithmCapability"];
             };
+        };
+        /** CaseOut */
+        CaseOut: {
+            /** Key */
+            key: string;
+            /** Round */
+            round: number;
+            /** Site */
+            site: string;
+            /** Itemid */
+            itemId: string;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "passed" | "incorrect" | "unlabeled" | "error";
+            /** Step */
+            step: string;
+            /** Input */
+            input?: string | null;
+            /**
+             * Fields
+             * @default []
+             */
+            fields: components["schemas"]["PreviewFieldOut"][];
+            /** Prediction */
+            prediction?: string | null;
+            /** Reference */
+            reference?: string | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** CasePageOut */
+        CasePageOut: {
+            /** Items */
+            items: components["schemas"]["CaseOut"][];
+            /** Total */
+            total: number;
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+            /** Hasmore */
+            hasMore: boolean;
         };
         /** CheckProblem */
         CheckProblem: {
@@ -3747,6 +3808,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProcessPageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    task_cases_v1_tasks__task_id__cases_get: {
+        parameters: {
+            query?: {
+                round?: number | null;
+                site?: string | null;
+                outcome?: ("passed" | "incorrect" | "unlabeled" | "error") | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CasePageOut"];
                 };
             };
             /** @description Validation Error */

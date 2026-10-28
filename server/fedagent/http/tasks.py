@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import BackgroundTasks, HTTPException, Query, Response
 from sqlalchemy import select
@@ -8,7 +8,9 @@ from sqlalchemy import select
 from .. import models as m
 from .. import tasks
 from ..schemas import EstimateOut, EventOut, MessageOut, TaskConfigIn, TaskOut, ValidateOut
+from ..schemas.cases import CasePageOut
 from ..schemas.process import ProcessPageOut
+from ..task_services.cases import page as cases_page
 from ..task_services.process import page as process_page
 from .dependencies import PlatformDep, SessionDep, admin_router
 
@@ -101,3 +103,11 @@ def task_process(task_id: str, session: SessionDep, after: Annotated[int, Query(
                  round: Annotated[int | None, Query(ge=1)] = None, site: str | None = None) -> ProcessPageOut:
     tasks.get_task(session, task_id)
     return process_page(session, task_id, after=after, round=round, site=site)
+
+
+@router.get("/tasks/{task_id}/cases", response_model=CasePageOut, tags=["tasks"])
+def task_cases(task_id: str, platform: PlatformDep, session: SessionDep,
+               round: Annotated[int | None, Query(ge=1)] = None, site: str | None = None,
+               outcome: Literal["passed", "incorrect", "unlabeled", "error"] | None = None,
+               offset: Annotated[int, Query(ge=0)] = 0, limit: Annotated[int, Query(ge=1, le=100)] = 20) -> CasePageOut:
+    return cases_page(platform, session, tasks.get_task(session, task_id), round=round, site=site, outcome=outcome, offset=offset, limit=limit)

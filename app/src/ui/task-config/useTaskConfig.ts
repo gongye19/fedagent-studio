@@ -35,7 +35,7 @@ export function useTaskConfig(
   initialScenario?: ScenarioId,
 ) {
   const draft = state.draft;
-  // 没动过的草稿不保留：每次打开都按当前的参与方和数据重新选，默认名称也按这次打开的时间生成。
+  // 没动过的草稿不保留：每次打开都按当前的参与方和数据重新选，默认名称按当前任务类型生成。
   const resetOnOpen = useRef(!draft.touched);
   const [pending, setPending] = useState<Pending>(null);
   const [attempted, setAttempted] = useState(false);
@@ -300,7 +300,6 @@ export function useTaskConfig(
       start(event);
       return;
     }
-    setAttempted(true);
     setCreateError(null);
     void preflight.test();
   }

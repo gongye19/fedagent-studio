@@ -2820,6 +2820,142 @@
     }
    }
   },
+  "/v1/tasks/{task_id}/cases": {
+   "get": {
+    "tags": [
+     "tasks"
+    ],
+    "summary": "Task Cases",
+    "operationId": "task_cases_v1_tasks__task_id__cases_get",
+    "parameters": [
+     {
+      "name": "task_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Task Id"
+      }
+     },
+     {
+      "name": "round",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "minimum": 1
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Round"
+      }
+     },
+     {
+      "name": "site",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Site"
+      }
+     },
+     {
+      "name": "outcome",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "enum": [
+          "passed",
+          "incorrect",
+          "unlabeled",
+          "error"
+         ],
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Outcome"
+      }
+     },
+     {
+      "name": "offset",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 0,
+       "default": 0,
+       "title": "Offset"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 100,
+       "minimum": 1,
+       "default": 20,
+       "title": "Limit"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CasePageOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/v1/apps": {
    "get": {
     "tags": [
@@ -4419,6 +4555,136 @@
      "algorithms"
     ],
     "title": "Capabilities"
+   },
+   "CaseOut": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "round": {
+      "type": "integer",
+      "title": "Round"
+     },
+     "site": {
+      "type": "string",
+      "title": "Site"
+     },
+     "itemId": {
+      "type": "string",
+      "title": "Itemid"
+     },
+     "outcome": {
+      "type": "string",
+      "enum": [
+       "passed",
+       "incorrect",
+       "unlabeled",
+       "error"
+      ],
+      "title": "Outcome"
+     },
+     "step": {
+      "type": "string",
+      "title": "Step"
+     },
+     "input": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Input"
+     },
+     "fields": {
+      "items": {
+       "$ref": "#/components/schemas/PreviewFieldOut"
+      },
+      "type": "array",
+      "title": "Fields",
+      "default": []
+     },
+     "prediction": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Prediction"
+     },
+     "reference": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reference"
+     },
+     "error": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Error"
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "round",
+     "site",
+     "itemId",
+     "outcome",
+     "step"
+    ],
+    "title": "CaseOut"
+   },
+   "CasePageOut": {
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/CaseOut"
+      },
+      "type": "array",
+      "title": "Items"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "counts": {
+      "additionalProperties": {
+       "type": "integer"
+      },
+      "type": "object",
+      "title": "Counts"
+     },
+     "hasMore": {
+      "type": "boolean",
+      "title": "Hasmore"
+     }
+    },
+    "type": "object",
+    "required": [
+     "items",
+     "total",
+     "counts",
+     "hasMore"
+    ],
+    "title": "CasePageOut"
    },
    "CheckProblem": {
     "properties": {

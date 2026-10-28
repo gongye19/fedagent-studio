@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { checkState } from "./check-state";
 import { api, type TaskConfigIn } from "../../api/client";
 
 const KEY = "fedagent-studio:config-check";
@@ -20,7 +21,7 @@ function saved(): Saved | null {
   }
 }
 
-/** 测试只由用户触发；刷新继续读取原报告，改配置不会自动重复付费调用。 */
+/** 测试只由用户触发；刷新继续读取原报告，改配置不会自动发起新检查。 */
 export function useTaskCheck(
   request: TaskConfigIn | null,
   ready: boolean,
@@ -31,9 +32,10 @@ export function useTaskCheck(
       ? { config: { ...request, name: "" }, resources: resourceVersion }
       : null,
   );
+  const client = useQueryClient();
   const [current, setCurrent] = useState<Saved | null>(saved);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ signature: string; message: string } | null>(null);
   const [now, setNow] = useState(Date.now);
   const report = useQuery({
     queryKey: ["task-check", current?.id],
@@ -47,10 +49,8 @@ export function useTaskCheck(
         : false,
   });
   const matches = current?.config === signature;
-  const running =
-    submitting ||
-    report.data?.status === "queued" ||
-    report.data?.status === "running";
+  const view = checkState(submitting, matches, report.isPending, report.data);
+  const running = view.running;
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 15_000);
     return () => clearInterval(timer);
@@ -59,7 +59,7 @@ export function useTaskCheck(
     report.data && now - Date.parse(report.data.createdAt) >= 15 * 60_000,
   );
   const valid = Boolean(
-    matches && !expired && report.data?.status === "passed",
+    matches && !running && !report.isError && !expired && report.data?.status === "passed",
   );
   async function test() {
     if (!request || !ready || running) return;
@@ -67,6 +67,7 @@ export function useTaskCheck(
     setError(null);
     try {
       const value = await api.testTask(request);
+      client.setQueryData(["task-check", value.id], value);
       const next = { id: value.id, config: signature };
       setCurrent(next);
       try {
@@ -75,7 +76,7 @@ export function useTaskCheck(
         /* 本次页面仍保留测试 */
       }
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "连接检查失败，请重试");
+      setError({ signature, message: failure instanceof Error ? failure.message : "连接检查失败，请重试" });
     } finally {
       setSubmitting(false);
       setNow(Date.now());
@@ -87,8 +88,8 @@ export function useTaskCheck(
     running: Boolean(running),
     matches,
     expired,
-    report: report.data,
-    error: error ?? (report.error ? "无法读取连接状态，请重试" : null),
+    report: view.report,
+    error: submitting ? null : error?.signature === signature ? error.message : matches && !running && report.isError ? "无法读取连接状态，请重试" : null,
     test,
   };
 }

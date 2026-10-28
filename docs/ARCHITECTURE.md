@@ -786,3 +786,11 @@ SDK progress.py定义受限ProgressUpdate／ProgressEvent，StepContext.progress
 平台GET /tasks/{id}/process按事件ID、轮次／来源分页，并返回实际AgentRun／WorkUnit状态，前端可停止已取消或旧尝试的转圈。useProcess增量缓存已读取的事件并跟随任务终态刷新；process-model把开始／结束合为一个动作，ProcessPanel负责筛选及资源／步骤／样本层级，ProcessTimeline只展示。CommunicationPanel独立分页选择，ExchangeMessage折叠消息与卡片。算法describe_message_items提供结构化已共享条目，旧插件默认单条文本。
 
 MetricComparison管理图例，trend.ts保持既有宏平均／分母与null，TrendCanvas懒加载ECharts并用ResizeObserver调整、卸载时dispose。图表为辅助视图，所有轮次的精确值和分母保留在可键盘横向滚动的明细表。模块遵守400行业务文件门禁。
+
+## 40. T100：回答案例与轻量进度
+
+- 前端ProgressTab直接使用Task.cursor／冻结plan与完成数，只有总进度、轮次步骤和各方条形进度，运行时活动动画，暂停／取消停止。T99过程和通信组件及其无用样式移除；后端公开过程API与协议保留，原算法不变。
+- UnitExecutor对实际预测完成独立判分后，经task_services/cases.snapshot生成通用显示快照，Graded.case随store_result同事务写Reports(case_result)，与labeled／correct一起通过工作单元状态及attempt所有权门禁，不重复计分。数据预览取TaskType.preview(strip_labels(record))，参考标签只存管理侧结果，不发送Agent。过滤隐藏推理块，显示文本限制20000字符并标记截断。
+- GET /tasks/{id}/cases使用同一admin_router，冻结manifest确定评测步骤，支持round／site／outcome与offset／limit（默认20、最大100），返回分类数量。历史按单样本原判分降级，缺少正文不补造。失败单元仅给真实失败步骤及首行错误；未判分不算错误。
+- 远程Agent／旧客户端reports保留名增加case_result，禁止冒充平台结果。没有数据库迁移、SDK或算法版本变化；旧客户端不强求提交回答。
+- useTaskCheck的状态由提交阶段与当前签名报告共同决定；POST响应先写入TanStack缓存再切报告ID，首读pending仍为running。提交中／签名不符隐藏旧报告，valid排除检查中与读失败；testConfiguration不再触发“尚未检查”的开始校验。
