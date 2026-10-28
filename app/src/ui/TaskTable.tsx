@@ -41,7 +41,7 @@ export function TaskTable({ tasks, onDelete }: { tasks: readonly Task[]; onDelet
             <th scope="col">任务类型</th>
             <th scope="col">状态</th>
             <th scope="col" className="numeric">主要指标</th>
-            <th scope="col" className="numeric">创建时间</th>
+            <th scope="col" className="numeric">开始时间</th>
             <th scope="col" className="numeric">操作</th>
           </tr>
         </thead>
@@ -66,7 +66,7 @@ export function TaskTable({ tasks, onDelete }: { tasks: readonly Task[]; onDelet
                   ) : null}
                 </td>
                 <td className="numeric" data-label="主要指标"><MetricChange task={task} /></td>
-                <td className="numeric nowrap" data-label="创建时间">{formatDate(task.createdAt)}</td>
+                <td className="numeric nowrap" data-label="开始时间">{task.startedAt ? <time dateTime={task.startedAt}>{formatDate(task.startedAt)}</time> : <span className="muted">尚未开始</span>}</td>
                 <td className="numeric" data-label="操作">
                   <button type="button" className="button button--ghost button--danger button--compact" disabled={!canDeleteTask(task)} title={canDeleteTask(task) ? undefined : "请先取消任务，结束后才能删除"} aria-label={`删除任务“${task.name}”`} onClick={() => onDelete(task)}>删除</button>
                 </td>

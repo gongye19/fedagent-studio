@@ -496,7 +496,7 @@ server/                        uv workspace，虚拟环境在 server/.venv
 | 插件 | Python entry points + YAML 清单 | Python 打包的标准做法；清单可以单独校验，前端直接用 |
 | 环境与打包 | uv（workspace） | 依赖锁定；虚拟环境放在项目目录里 |
 | 测试与检查 | pytest、ruff、pyright | 主流 |
-| 前端 | React 19 + TypeScript + Vite、ECharts、TanStack Query、openapi-typescript | 沿用现有前端；服务端状态交给 TanStack Query，类型从 OpenAPI 生成 |
+| 前端 | React 19 + TypeScript + Vite、TanStack Query、openapi-typescript | 沿用现有前端；服务端状态交给 TanStack Query，类型从 OpenAPI 生成 |
 | 部署 | 用户进程 + 部署脚本 | 实验室服务器没有 Docker 和 sudo |
 
 没采用的方案和理由见 [DECISIONS.md](./DECISIONS.md) D47：Celery、RQ 一类任务队列；Temporal、Prefect 一类工作流引擎；Flower 一类联邦学习框架；Docker Compose 和 K8s。

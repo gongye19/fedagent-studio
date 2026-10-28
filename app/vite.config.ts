@@ -13,8 +13,5 @@ export default defineConfig({
       '/healthz': backend,
     },
   },
-  build: {
-    // 图表库（ECharts）单独成包、按需加载，约 520 kB；首屏包不含它。
-    chunkSizeWarningLimit: 600,
-  },
+  build: { chunkSizeWarningLimit: 600 },
 })

@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
-from zoneinfo import ZoneInfo
 
 from fedagent_sdk import SERVER
 from sqlalchemy import delete as sql_delete
@@ -18,12 +16,10 @@ from ..schemas import TaskConfigIn
 from ..units import add_event
 from .preparation import validate
 
-LOCAL_TZ = ZoneInfo("Asia/Shanghai")
-
 
 def _default_name(platform: Platform, task_type: str) -> str:
     label = platform.registry.task_type(task_type).label
-    return f"{label}任务 {datetime.now(LOCAL_TZ):%m-%d %H:%M}"
+    return f"{label}任务"
 
 
 def create(platform: Platform, session: Session, body: TaskConfigIn) -> m.Task:

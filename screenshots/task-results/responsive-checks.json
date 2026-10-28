@@ -1,0 +1,128 @@
+{
+  "local": [
+    {
+      "overflow": false,
+      "route": "#/tasks/task-c164324b",
+      "scoreRows": 4,
+      "scrollWidth": 320,
+      "width": 320
+    },
+    {
+      "overflow": false,
+      "route": "#/tasks/task-c164324b",
+      "scoreRows": 4,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "overflow": false,
+      "route": "#/tasks/task-c164324b",
+      "scoreRows": 4,
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "overflow": false,
+      "route": "#/tasks/task-c164324b",
+      "scoreRows": 4,
+      "scrollWidth": 1024,
+      "width": 1024
+    },
+    {
+      "overflow": false,
+      "route": "#/tasks/task-c164324b",
+      "scoreRows": 4,
+      "scrollWidth": 1280,
+      "width": 1280
+    }
+  ],
+  "productionResults": [
+    {
+      "overflow": false,
+      "route": "#/tasks/task-c164324b",
+      "rows": 4,
+      "scroll": 320,
+      "width": 320
+    },
+    {
+      "overflow": false,
+      "route": "#/tasks/task-c164324b",
+      "rows": 4,
+      "scroll": 390,
+      "width": 390
+    },
+    {
+      "overflow": false,
+      "route": "#/tasks/task-c164324b",
+      "rows": 4,
+      "scroll": 768,
+      "width": 768
+    },
+    {
+      "overflow": false,
+      "route": "#/tasks/task-c164324b",
+      "rows": 4,
+      "scroll": 1024,
+      "width": 1024
+    },
+    {
+      "overflow": false,
+      "route": "#/tasks/task-c164324b",
+      "rows": 4,
+      "scroll": 1280,
+      "width": 1280
+    }
+  ],
+  "productionTaskList": [
+    {
+      "rows": 3,
+      "scroll": 320,
+      "startFields": [
+        "10/28 12:31",
+        "10/27 12:40",
+        "10/14 21:52"
+      ],
+      "width": 320
+    },
+    {
+      "rows": 3,
+      "scroll": 390,
+      "startFields": [
+        "10/28 12:31",
+        "10/27 12:40",
+        "10/14 21:52"
+      ],
+      "width": 390
+    },
+    {
+      "rows": 3,
+      "scroll": 768,
+      "startFields": [
+        "10/28 12:31",
+        "10/27 12:40",
+        "10/14 21:52"
+      ],
+      "width": 768
+    },
+    {
+      "rows": 3,
+      "scroll": 1024,
+      "startFields": [
+        "10/28 12:31",
+        "10/27 12:40",
+        "10/14 21:52"
+      ],
+      "width": 1024
+    },
+    {
+      "rows": 3,
+      "scroll": 1280,
+      "startFields": [
+        "10/28 12:31",
+        "10/27 12:40",
+        "10/14 21:52"
+      ],
+      "width": 1280
+    }
+  ]
+}

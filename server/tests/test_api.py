@@ -119,7 +119,7 @@ def test_validation_issues(client: TestClient, platform: Platform) -> None:
 
 
 def test_full_flow_with_fake_model(client: TestClient, platform: Platform) -> None:
-    body = config([{"participantId": "p-a", "datasetId": "ds-aime24"}, {"participantId": "p-b", "datasetId": "ds-aime25"}])
+    body = config([{"participantId": "p-a", "datasetId": "ds-aime24"}, {"participantId": "p-b", "datasetId": "ds-aime25"}], name="")
     validated = client.post("/v1/tasks/validate", json=body).json()
     assert validated["issues"] == []
     assert validated["estimate"]["problems"] == 4 and validated["estimate"]["participantCalls"] == 4 * 3 * 2
@@ -127,6 +127,8 @@ def test_full_flow_with_fake_model(client: TestClient, platform: Platform) -> No
     assert created.status_code == 201, created.text
     task_id = created.json()["id"]
     assert created.json()["status"] == "queued"
+    assert created.json()["name"] == "数学推理任务"
+    assert created.json()["startedAt"] is None
     assert run(platform, task_id) == "completed"
 
     task = client.get(f"/v1/tasks/{task_id}").json()

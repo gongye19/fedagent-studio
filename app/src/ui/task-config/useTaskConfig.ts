@@ -37,7 +37,6 @@ export function useTaskConfig(
   const draft = state.draft;
   // 没动过的草稿不保留：每次打开都按当前的参与方和数据重新选，默认名称也按这次打开的时间生成。
   const resetOnOpen = useRef(!draft.touched);
-  const [openedAt] = useState(() => new Date());
   const [pending, setPending] = useState<Pending>(null);
   const [attempted, setAttempted] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
@@ -191,7 +190,7 @@ export function useTaskConfig(
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const full = draft.mode === "full";
-  const autoName = defaultTaskName(draft, openedAt);
+  const autoName = defaultTaskName(draft);
   const overrideCount =
     draft.execution === "agent"
       ? Object.keys(draft.agentOverrides ?? {}).filter((id) =>
@@ -205,7 +204,7 @@ export function useTaskConfig(
     if (!canCreate || creating) return;
     const body = taskRequest(
       draft,
-      draft.name?.trim() || defaultTaskName(draft, new Date()),
+      draft.name?.trim() || defaultTaskName(draft),
       state.datasets,
       state.participants,
     );

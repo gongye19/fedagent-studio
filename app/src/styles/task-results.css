@@ -1,0 +1,18 @@
+/* 独立的成对结果，不重叠、不裁切端点；零分仍保留数值与分母。 */
+.metric-comparison { display: grid; gap: var(--space-5); list-style: none; padding: 0; margin: 0; }
+.metric-comparison > li + li { border-top: 1px solid var(--border); padding-top: var(--space-5); }
+.metric-comparison-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2) var(--space-4); font-size: var(--text-sm); }
+.metric-comparison-head > div { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); min-width: 0; overflow-wrap: anywhere; }
+.metric-comparison-count { display: flex; align-items: center; gap: var(--space-1); color: var(--muted); font-size: var(--text-xs); margin-top: var(--space-1); margin-bottom: var(--space-3); }
+.metric-score { display: grid; grid-template-columns: 112px minmax(40px, 1fr) 64px 80px; gap: var(--space-3); align-items: center; font-size: var(--text-sm); min-height: 30px; }
+.metric-score-label, .metric-score-count { color: var(--muted); font-size: var(--text-xs); }
+.metric-score-track { height: 8px; background: var(--surface-hover); border-radius: 4px; overflow: hidden; }
+.metric-score-track > span { display: block; height: 100%; background: var(--muted); border-radius: inherit; }
+.metric-score--federated .metric-score-track > span { background: var(--accent); }
+.metric-score-value, .metric-score-count { text-align: right; font-variant-numeric: tabular-nums; }
+.metric-score--federated .metric-score-value { font-weight: 600; }
+@media (max-width: 540px) {
+  .metric-score { grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 12px; padding-block: 6px; }
+  .metric-score-track { grid-column: 1 / -1; grid-row: 2; }
+  .metric-score-value { font-size: var(--text-sm); }
+}

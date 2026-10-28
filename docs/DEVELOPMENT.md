@@ -111,7 +111,7 @@ app/src/
 │   ├── AlgorithmPage.tsx    算法详情：概况、每轮步骤、参数（默认值和说明）、来源
 │   ├── ModelsPage.tsx       模型接口列表
 │   ├── EndpointPage.tsx     新增、编辑模型接口（独立页面；密钥只能写入，可以测试连接）
-│   ├── Chart.tsx            ECharts 封装（按需加载，概览页的哑铃图）
+│   ├── task/MetricComparison.tsx  联邦前后结果横条、匹配数与评测分母
 │   ├── OutputGroups.tsx     按类别列出产出里的条目（任务产出和应用内容共用）
 │   ├── console.tsx          控制台风格的表单组件：Panel、Field / FieldGroup、UnitInput、Choices
 │   ├── common.tsx / shared/ 共用展示／表单；反馈、代码块和标签导航分别实现，common保留稳定导出

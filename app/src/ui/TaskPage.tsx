@@ -81,7 +81,7 @@ export default function TaskPage({ task, state, dispatch, tab }: Props) {
         meta={<Meta parts={[
           ...taskSummaryParts(task),
           `${task.config.rounds} 轮`,
-          `创建于 ${formatDate(task.createdAt)}`,
+          task.startedAt ? `开始于 ${formatDate(task.startedAt)}` : "尚未开始",
           task.finishedAt && task.status === "completed" ? `完成于 ${formatDate(task.finishedAt)}` : null,
         ]} />}
         actions={actions}

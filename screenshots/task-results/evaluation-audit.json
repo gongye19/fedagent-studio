@@ -1,0 +1,23 @@
+{
+  "task": "task-c164324b",
+  "selectedPerSite": 5,
+  "evaluatedPerSite": 1,
+  "grader": "diagnosis-exact",
+  "case": "medqa-086",
+  "reference": "Leprosy",
+  "predictions": {
+    "1": "Paucibacillary tuberculoid leprosy",
+    "2": "Borderline lepromatous Hansen disease (multibacillary leprosy)"
+  },
+  "matchCounts": {
+    "p-b": [
+      0,
+      0
+    ],
+    "p-a": [
+      1,
+      1
+    ]
+  },
+  "note": "读取现有审计核对；未重跑、未修改判分或结果。"
+}

@@ -58,10 +58,10 @@ export function deltaClass(value: number | null): string {
   return value < 0 ? "delta delta--down" : "delta delta--up";
 }
 
-/** 表头用的短写法：第 1 轮标"（本地）"，最后一轮标"（联邦）"；窄屏时括号里的说明收起。 */
+/** 表头用的短写法：第 1 轮标"（联邦前）"，最后一轮标"（联邦后）"；窄屏时括号里的说明收起。 */
 export function roundHeader(round: number, last = false): { main: string; note?: string } {
-  if (round === 1) return { main: "第 1 轮", note: "（本地）" };
-  return last ? { main: `第 ${round} 轮`, note: "（联邦）" } : { main: `第 ${round} 轮` };
+  if (round === 1) return { main: "第 1 轮", note: "（联邦前）" };
+  return last ? { main: `第 ${round} 轮`, note: "（联邦后）" } : { main: `第 ${round} 轮` };
 }
 
 /** 数据集的用途：登记时选定的场景和任务类型，例如"横向联邦 · 数学推理"。 */

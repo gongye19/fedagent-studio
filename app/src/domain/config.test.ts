@@ -322,12 +322,11 @@ describe("draft", () => {
     expect(toConfig(deselected)?.clientOverrides).toEqual({});
   });
 
-  it("names tasks by what they do (task type) and time, not by the algorithm", () => {
-    const at = new Date(2026, 8, 28, 16, 36);
-    expect(defaultTaskName(draft({ mode: "trial" }), at)).toBe(
-      "数学推理任务 09-28 16:36",
+  it("names tasks by task type without embedding a timestamp", () => {
+    expect(defaultTaskName(draft({ mode: "trial" }))).toBe(
+      "数学推理任务",
     );
-    expect(defaultTaskName(withDefaults({}), at)).toBe("联邦任务 09-28 16:36");
+    expect(defaultTaskName(withDefaults({}))).toBe("联邦任务");
   });
 });
 
