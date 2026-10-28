@@ -210,7 +210,7 @@ export const api = {
     post<S["TaskOut"]>(`/v1/tasks/${encodeURIComponent(id)}/${action}`),
   taskMessages: (
     id: string,
-    filter: { round?: number; site?: string; limit?: number },
+    filter: { round?: number; site?: string; limit?: number; after?: number },
   ) =>
     get<S["MessageOut"][]>(
       `/v1/tasks/${encodeURIComponent(id)}/messages${query(filter)}`,

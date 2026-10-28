@@ -1,0 +1,32 @@
+[
+  {
+    "chart": 254,
+    "hasChart": true,
+    "scroll": 320,
+    "width": 320
+  },
+  {
+    "chart": 324,
+    "hasChart": true,
+    "scroll": 390,
+    "width": 390
+  },
+  {
+    "chart": 694,
+    "hasChart": true,
+    "scroll": 768,
+    "width": 768
+  },
+  {
+    "chart": 718,
+    "hasChart": true,
+    "scroll": 1024,
+    "width": 1024
+  },
+  {
+    "chart": 974,
+    "hasChart": true,
+    "scroll": 1280,
+    "width": 1280
+  }
+]

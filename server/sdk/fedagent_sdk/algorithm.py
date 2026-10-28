@@ -159,6 +159,10 @@ class Algorithm:
             return OutputEntry(key=str(key), text=json.dumps(payload, ensure_ascii=False))
         return OutputEntry(key="", text=str(payload))
 
+    def describe_message_items(self, channel: str, payload: Any) -> list[OutputEntry]:
+        """已授权交换消息中的结构化条目；默认沿用单条文本。"""
+        return [self.describe_message(channel, payload)]
+
     def model_settings(self) -> dict[str, Any]:
         """模型调用里最严格的生成参数（例如最大的 max_tokens、temperature、top_p）。
 

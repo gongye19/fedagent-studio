@@ -11,13 +11,14 @@ from contextlib import asynccontextmanager, contextmanager
 from multiprocessing.process import BaseProcess
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fedagent_sdk import ModelError, StepFailed
 
 from ..gateway import LedgerKey
 from ..platform import Platform
 from ..settings import Settings
-from .protocol import MAX_BYTES, AgentRequest, AgentResult, AlgorithmCapability, Capabilities, RunStatus
+from .progress import ProgressStore
+from .protocol import MAX_BYTES, AgentRequest, AgentResult, AlgorithmCapability, Capabilities, ProgressPage, RunStatus
 from .runtime import context_of
 
 
@@ -63,7 +64,9 @@ def _work(settings: dict, path: Path, body: AgentRequest, model_ref: str) -> Non
             if step and step.model
             else None
         )
-        ctx = context_of(body, algorithm, model)
+        events = ProgressStore(path)
+        emit = None if body.task_id.startswith("check-") else lambda event: events.append(body.run_id, event)
+        ctx = context_of(body, algorithm, model, progress=emit)
         algorithm.run_step(ctx)
         value = ctx.result
         if value.has_published:
@@ -104,6 +107,7 @@ def create_agent_app(
                     "UPDATE runs SET output=? WHERE id=?",
                     (RunStatus(run_id=run_id, status="failed", error="Agent 服务重启中断了执行").model_dump_json(), run_id),
                 )
+    progress_store = ProgressStore(path)
     os.chmod(path, 0o600)
     processes: dict[str, BaseProcess] = {}
     lock = threading.Lock()
@@ -161,7 +165,13 @@ def create_agent_app(
         if process and not process.is_alive() and status.status == "running":
             status = RunStatus(run_id=run_id, status="failed", error="Agent 执行进程意外退出")
             _write(path, run_id, status)
-        return status
+        return status.model_copy(update={"events_available": True})
+
+    @app.get("/runs/{run_id}/events", response_model=ProgressPage)
+    def get_events(run_id: str, after: int = Query(default=0, ge=0)):
+        with lock:
+            read(run_id)
+            return progress_store.page(run_id, after)
 
     @app.post("/runs", response_model=RunStatus, status_code=202)
     def submit(body: AgentRequest):
@@ -186,7 +196,7 @@ def create_agent_app(
                         del processes[run_id]
                 if len(processes) >= 8:
                     raise HTTPException(429, "Agent 并发已满，请稍后重试")
-                status = RunStatus(run_id=body.run_id, status="running")
+                status = RunStatus(run_id=body.run_id, status="running", events_available=True)
                 db.execute("INSERT INTO runs VALUES(?,?,?)", (body.run_id, digest, status.model_dump_json()))
             process = multiprocessing.get_context("spawn").Process(target=_work, args=(platform.settings.model_dump(), path, body, model_ref), daemon=True)
             processes[body.run_id] = process

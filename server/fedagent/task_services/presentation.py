@@ -171,9 +171,9 @@ def task_out(platform: Platform, session: Session, task: m.Task) -> TaskOut:
     )
 
 
-def messages_out(platform: Platform, session: Session, task: m.Task, *, round: int | None, site: str | None, limit: int) -> list[MessageOut]:
+def messages_out(platform: Platform, session: Session, task: m.Task, *, round: int | None, site: str | None, limit: int, after: int = 0) -> list[MessageOut]:
     algorithm = platform.registry.algorithms.get(task.algorithm)
-    query = select(m.Message).where(m.Message.task_id == task.id)
+    query = select(m.Message).where(m.Message.task_id == task.id, m.Message.id > after)
     if round is not None:
         query = query.where(m.Message.round == round)
     if site is not None:
@@ -193,6 +193,11 @@ def messages_out(platform: Platform, session: Session, task: m.Task, *, round: i
                 key=entry.key if entry else "",
                 text=entry.text if entry else json.dumps(row.payload, ensure_ascii=False),
                 size=row.size,
+                category=entry.category if entry else None,
+                entries=[OutputItem(key=e.key, text=e.text, category=e.category)
+                         for e in algorithm.describe_message_items(row.channel, row.payload)] if algorithm else [],
+                created_at=row.created_at,
+                receiver=row.receiver_site or row.receiver_role,
             )
         )
     return out

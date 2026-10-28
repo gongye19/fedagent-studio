@@ -34,15 +34,19 @@ def backup(root: Path) -> Path | None:
     destination = backups / stamp
     temporary.mkdir(mode=0o700)
     try:
+        databases = sorted(path for path in data.rglob('*') if path.is_file() and path.suffix in ('.db', '.sqlite', '.sqlite3'))
+        excluded = {entry for path in databases for entry in (path, path.with_name(path.name + '-wal'), path.with_name(path.name + '-shm'))}
         shutil.copytree(data, temporary / 'data', ignore=lambda directory, names:
-                        [name for name in names if name in ('fedagent.db', 'fedagent.db-wal', 'fedagent.db-shm')]
-                        if Path(directory) == data else [])
-        with closing(sqlite3.connect(f'file:{db}?mode=ro', uri=True)) as source, closing(sqlite3.connect(temporary / 'data' / 'fedagent.db')) as target:
-            source.backup(target)
-            target.execute('PRAGMA journal_mode=DELETE')
-            if target.execute('PRAGMA integrity_check').fetchone() != ('ok',):
-                raise RuntimeError('备份数据库完整性检查失败')
-        manifest = {'createdAt': stamp, 'source': str(data), 'schema': None}
+                        [name for name in names if Path(directory) / name in excluded])
+        for path in databases:
+            snapshot = temporary / 'data' / path.relative_to(data)
+            with closing(sqlite3.connect(f'file:{path}?mode=ro', uri=True)) as source, closing(sqlite3.connect(snapshot)) as target:
+                source.backup(target)
+                target.execute('PRAGMA journal_mode=DELETE')
+                if target.execute('PRAGMA integrity_check').fetchone() != ('ok',) or target.execute('PRAGMA foreign_key_check').fetchone():
+                    raise RuntimeError('备份数据库完整性检查失败：' + str(path.relative_to(data)))
+            os.chmod(snapshot, path.stat().st_mode & 0o777)
+        manifest = {'createdAt': stamp, 'source': str(data), 'schema': None, 'databases': [str(path.relative_to(data)) for path in databases]}
         with closing(sqlite3.connect(f'file:{temporary}/data/fedagent.db?mode=ro', uri=True)) as connection:
             manifest['schema'] = connection.execute('select version_num from alembic_version').fetchone()[0]
         (temporary / 'manifest.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')

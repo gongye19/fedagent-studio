@@ -47,7 +47,8 @@ def use_model(model: Model):
         _active.reset(token)
 
 
-def diagnose(item: dict[str, Any], memory: dict[str, Any] | None, model: Model, *, turns: int = 6) -> tuple[dict[str, Any], dict[str, int]]:
+def diagnose(item: dict[str, Any], memory: dict[str, Any] | None, model: Model, *, turns: int = 6,
+             progress=None, item_id: str | None = None) -> tuple[dict[str, Any], dict[str, int]]:
     # 懒加载：其他算法不需要加载医疗运行时。
     from .vendor.runtime.department_first.core import (
         DepartmentFirstLocalAgent,
@@ -84,6 +85,11 @@ def diagnose(item: dict[str, Any], memory: dict[str, Any] | None, model: Model, 
     specialists = DepartmentSpecialistService(model.name, composer, DepartmentRouter(mode="hybrid", model_name=model.name), bank, verifier,
                                              single_expert_mode=False, consultation_mode="multi", arbiter_mode="conflict_only",
                                              semantic_matching_enabled=False)
+    from .progress import Trace
+
+    trace = Trace(progress, item_id)
+    if progress is not None:
+        trace.attach(doctor, patient, measurement, specialists)
     with use_model(model) as bridge:
         result = run_department_first_interaction(scenario, doctor, specialists, patient, measurement,
                                                  None, turns, 0, 0, 1)
@@ -92,4 +98,5 @@ def diagnose(item: dict[str, Any], memory: dict[str, Any] | None, model: Model, 
     unfinished = re.search(r"[?？]|REQUEST (?:TEST|CONSULTATION)|maximum inferences reached|Most likely working diagnosis", prediction, flags=re.I)
     if final is None or not final.group(1).strip() or unfinished:
         raise ModelError("问诊回合结束，但模型未形成最终诊断，请重试或调整问诊上限")
+    trace.send(f"{trace.prefix}:diagnosis", "诊断完成", "completed", detail=final.group(1).strip())
     return result, dict(bridge.usage)

@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from fedagent_sdk import Algorithm, CapabilityError, Grader, ModelError, SiteInfo, StepContext, StepDef, StepFailed, TaskType
+from fedagent_sdk import Algorithm, CapabilityError, Grader, ModelError, ProgressUpdate, SiteInfo, StepContext, StepDef, StepFailed, TaskType
 from sqlalchemy import update
 
 from . import models as m
@@ -49,6 +49,30 @@ class UnitExecutor:
         return self.plugin.manifest
 
     def execute(self, unit_id: int, attempt: int, round: int, step: StepDef) -> Outcome:
+        from .task_services.process import append
+
+        with self.db.session() as session:
+            unit = session.get(m.WorkUnit, unit_id)
+            assert unit is not None
+            site, key = unit.site_id, unit.unit_key
+            external = self.site_by_id[site].executor == "agent"
+        origin = f"unit-{unit_id}-attempt-{attempt}"
+        def emit(seq, status):
+            if external:
+                return
+            append(self.platform, task_id=self.task_id, origin=origin, seq=seq, site=site, round=round,
+                   step=step.id, unit=key, event=ProgressUpdate(activity="unit", title=step.label, status=status,
+                                                             item_id=key if step.per == "item" else None))
+        emit(1, "running")
+        outcome = self._execute(unit_id, attempt, round, step)
+        with self.db.session() as session:
+            stored = session.get(m.WorkUnit, unit_id)
+            completed = stored is not None and stored.status == "done"
+        if completed or not outcome.ok:
+            emit(2, "completed" if completed else "failed")
+        return outcome
+
+    def _execute(self, unit_id: int, attempt: int, round: int, step: StepDef) -> Outcome:
         with self.db.session() as session:
             unit = session.get(m.WorkUnit, unit_id)
             assert unit is not None

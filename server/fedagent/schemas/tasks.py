@@ -131,6 +131,10 @@ class MessageOut(Model):
     key: str
     text: str
     size: int
+    category: str | None = None
+    entries: list[OutputItem] = Field(default_factory=list)
+    created_at: Time | None = None
+    receiver: str | None = None
 
 
 class EventOut(Model):

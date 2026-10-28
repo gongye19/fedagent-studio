@@ -2601,6 +2601,17 @@
       }
      },
      {
+      "name": "after",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 0,
+       "default": 0,
+       "title": "After"
+      }
+     },
+     {
       "name": "authorization",
       "in": "header",
       "required": false,
@@ -2690,6 +2701,108 @@
           "$ref": "#/components/schemas/EventOut"
          },
          "title": "Response Task Events V1 Tasks  Task Id  Events Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/tasks/{task_id}/process": {
+   "get": {
+    "tags": [
+     "tasks"
+    ],
+    "summary": "Task Process",
+    "operationId": "task_process_v1_tasks__task_id__process_get",
+    "parameters": [
+     {
+      "name": "task_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Task Id"
+      }
+     },
+     {
+      "name": "after",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 0,
+       "default": 0,
+       "title": "After"
+      }
+     },
+     {
+      "name": "round",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "minimum": 1
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Round"
+      }
+     },
+     {
+      "name": "site",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Site"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ProcessPageOut"
         }
        }
       }
@@ -5573,6 +5686,47 @@
      "size": {
       "type": "integer",
       "title": "Size"
+     },
+     "category": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Category"
+     },
+     "entries": {
+      "items": {
+       "$ref": "#/components/schemas/OutputItem"
+      },
+      "type": "array",
+      "title": "Entries"
+     },
+     "createdAt": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Createdat"
+     },
+     "receiver": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Receiver"
      }
     },
     "type": "object",
@@ -6020,6 +6174,153 @@
      "text"
     ],
     "title": "PreviewFieldOut"
+   },
+   "ProcessEventOut": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "origin": {
+      "type": "string",
+      "title": "Origin"
+     },
+     "site": {
+      "type": "string",
+      "title": "Site"
+     },
+     "round": {
+      "type": "integer",
+      "title": "Round"
+     },
+     "step": {
+      "type": "string",
+      "title": "Step"
+     },
+     "unit": {
+      "type": "string",
+      "title": "Unit"
+     },
+     "at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "At"
+     },
+     "event": {
+      "$ref": "#/components/schemas/ProgressUpdate"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "origin",
+     "site",
+     "round",
+     "step",
+     "unit",
+     "at",
+     "event"
+    ],
+    "title": "ProcessEventOut"
+   },
+   "ProcessPageOut": {
+    "properties": {
+     "events": {
+      "items": {
+       "$ref": "#/components/schemas/ProcessEventOut"
+      },
+      "type": "array",
+      "title": "Events"
+     },
+     "after": {
+      "type": "integer",
+      "title": "After",
+      "default": 0
+     },
+     "hasMore": {
+      "type": "boolean",
+      "title": "Hasmore",
+      "default": false
+     },
+     "states": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object",
+      "title": "States"
+     }
+    },
+    "type": "object",
+    "title": "ProcessPageOut"
+   },
+   "ProgressUpdate": {
+    "properties": {
+     "activity": {
+      "type": "string",
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Activity"
+     },
+     "title": {
+      "type": "string",
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Title"
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "running",
+       "completed",
+       "failed"
+      ],
+      "title": "Status"
+     },
+     "parent": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 120
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Parent"
+     },
+     "item_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 200
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Item Id"
+     },
+     "summary": {
+      "type": "string",
+      "maxLength": 500,
+      "title": "Summary",
+      "default": ""
+     },
+     "detail": {
+      "type": "string",
+      "maxLength": 6000,
+      "title": "Detail",
+      "default": ""
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "activity",
+     "title",
+     "status"
+    ],
+    "title": "ProgressUpdate"
    },
    "RegistryOut": {
     "properties": {

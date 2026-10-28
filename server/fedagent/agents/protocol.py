@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from fedagent_sdk import Artifact, Item, Message, OutgoingMessage, UnitResult
+from fedagent_sdk import Artifact, Item, Message, OutgoingMessage, ProgressEvent, UnitResult
 from pydantic import BaseModel, ConfigDict, Field
 
 PROTOCOL = "fedagent-agent/1"
@@ -66,10 +66,16 @@ class AgentResult(Wire):
 class RunStatus(Wire):
     run_id: str
     status: Literal["queued", "running", "succeeded", "failed", "canceling", "canceled"]
+    events_available: bool = False
     result: AgentResult | None = None
     error: str | None = None
     retryable: bool = False
     error_code: Literal["diagnosis_incomplete", "model_error", "invalid_output"] | None = None
+
+
+class ProgressPage(Wire):
+    events: list[ProgressEvent] = Field(default_factory=list, max_length=100)
+    has_more: bool = False
 
 
 def document(registry) -> dict[str, Any]:
@@ -89,12 +95,15 @@ def document(registry) -> dict[str, Any]:
         "endpoints": {
             "GET /capabilities": "返回能力声明，版本与全部参与方步骤须匹配。",
             "POST /runs": "幂等提交 AgentRequest，返回 RunStatus；完成时必须有 result。",
+            "GET /runs/{run_id}/events?after=0": ("可选公开事件分页；仅events_available=true时读取。seq递增，每页最多100条，has_more继续拉取。"
+                                                   "禁止包含评测标注、私有卡库、凭据、完整提示词或隐藏推理。"),
             "GET /runs/{run_id}": "查询同一编号的运行状态与结果，重启后仍可去重查询。",
             "POST /runs/{run_id}/cancel": "请求停止；确认后才返回 canceled，尚未确认返回 canceling。应保存尚未接收编号的取消标记。",
         },
         "capabilitiesSchema": Capabilities.model_json_schema(),
         "requestSchema": AgentRequest.model_json_schema(),
         "responseSchema": RunStatus.model_json_schema(),
+        "progressSchema": ProgressPage.model_json_schema(),
         "algorithms": {algorithm.id: algorithm.manifest.model_dump(mode="json", by_alias=True) for algorithm in registry.algorithms.values()},
         "outputContracts": {algorithm.id: algorithm.agent_output_contract() for algorithm in registry.algorithms.values()},
         "dataContracts": {task.id: {"schemaVersion": task.schema_version, "format": task.format_hint,

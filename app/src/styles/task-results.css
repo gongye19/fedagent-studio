@@ -1,18 +1,29 @@
-/* 独立的成对结果，不重叠、不裁切端点；零分仍保留数值与分母。 */
-.metric-comparison { display: grid; gap: var(--space-5); list-style: none; padding: 0; margin: 0; }
-.metric-comparison > li + li { border-top: 1px solid var(--border); padding-top: var(--space-5); }
-.metric-comparison-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2) var(--space-4); font-size: var(--text-sm); }
-.metric-comparison-head > div { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); min-width: 0; overflow-wrap: anywhere; }
-.metric-comparison-count { display: flex; align-items: center; gap: var(--space-1); color: var(--muted); font-size: var(--text-xs); margin-top: var(--space-1); margin-bottom: var(--space-3); }
-.metric-score { display: grid; grid-template-columns: 112px minmax(40px, 1fr) 64px 80px; gap: var(--space-3); align-items: center; font-size: var(--text-sm); min-height: 30px; }
-.metric-score-label, .metric-score-count { color: var(--muted); font-size: var(--text-xs); }
-.metric-score-track { height: 8px; background: var(--surface-hover); border-radius: 4px; overflow: hidden; }
-.metric-score-track > span { display: block; height: 100%; background: var(--muted); border-radius: inherit; }
-.metric-score--federated .metric-score-track > span { background: var(--accent); }
-.metric-score-value, .metric-score-count { text-align: right; font-variant-numeric: tabular-nums; }
-.metric-score--federated .metric-score-value { font-weight: 600; }
+.metric-trend { min-width: 0; }
+.trend-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.trend-legend button { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--border); background: var(--surface); border-radius: 6px; padding: 7px 10px; color: var(--muted); font: inherit; font-size: var(--text-xs); cursor: pointer; min-height: 36px; }
+.trend-legend button[aria-pressed="true"] { background: var(--surface-hover); color: var(--text); border-color: var(--muted); }
+.trend-legend button > span { width: 8px; height: 8px; border-radius: 50%; opacity: .3; flex-shrink: 0; }
+.trend-legend button[aria-pressed="true"] > span { opacity: 1; }
+.trend-canvas { width: 100%; height: 280px; margin-top: 12px; }
+.trend-caption { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; font-size: var(--text-xs); color: var(--muted); margin: 4px 0 0; }
+.exchange-list { list-style: none; padding: 0; margin: 12px 0 0; }
+.exchange-message { border-bottom: 1px solid var(--border); }
+.exchange-message > summary { display: flex; align-items: center; gap: 10px; padding: 13px 0; cursor: pointer; font-size: var(--text-sm); list-style: none; }
+.exchange-message > summary::-webkit-details-marker { display: none; }
+.exchange-message > summary > svg { width: 16px; height: 16px; flex-shrink: 0; transition: transform 160ms; }
+.exchange-message[open] > summary > svg { transform: rotate(90deg); }
+.exchange-message > summary > strong { overflow-wrap: anywhere; min-width: 0; }
+.exchange-message > summary > .muted { margin-left: auto; font-size: var(--text-xs); text-align: right; }
+.exchange-body { padding: 0 0 16px 26px; font-size: var(--text-sm); overflow-wrap: anywhere; }
+.exchange-body p, .process-detail { white-space: pre-wrap; margin: 8px 0; line-height: 1.7; }
+.exchange-cards { list-style: none; padding: 0; display: grid; gap: 8px; }
+.exchange-cards details { background: var(--surface-hover); border-radius: 6px; padding: 10px 12px; }
+.exchange-cards summary { cursor: pointer; font-size: var(--text-xs); }
 @media (max-width: 540px) {
-  .metric-score { grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 12px; padding-block: 6px; }
-  .metric-score-track { grid-column: 1 / -1; grid-row: 2; }
-  .metric-score-value { font-size: var(--text-sm); }
+  .trend-legend button { min-height: 44px; }
+  .trend-canvas { height: 240px; }
+  .exchange-message > summary { flex-wrap: wrap; }
+  .exchange-message > summary > .muted { flex-basis: 100%; padding-left: 26px; text-align: left; }
 }
+.exchange-message > summary > strong { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.exchange-body p { max-height: 360px; overflow: auto; }

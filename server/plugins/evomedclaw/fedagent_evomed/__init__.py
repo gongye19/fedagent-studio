@@ -123,6 +123,15 @@ class EvoMedClaw(Algorithm):
         return [OutputEntry(card["entry_id"], card.get("target_action") or card.get("target_diagnosis_shift") or card["minimal_rationale"],
                             CARD_LABELS.get(card["memory_type"], "过程经验")) for card in artifact.content.get("cards", [])]
 
+    def describe_message(self, channel, payload):
+        cards = payload.get("cards", []) if isinstance(payload, dict) else []
+        return OutputEntry(f"经验更新 · {len(cards)} 张卡", "本次上传的精简经验卡", "经验更新")
+
+    def describe_message_items(self, channel, payload):
+        cards = payload.get("cards", []) if isinstance(payload, dict) else []
+        from .exchange import card_entries
+        return card_entries(cards, CARD_LABELS)
+
     def fake_reply(self, step_id: str | None, prompt: str, seed: str) -> str | None:
         # 仅由开发／测试的假模型执行，生产接口不使用此分支。
         if "CLINICAL EQUIVALENCE" in prompt:

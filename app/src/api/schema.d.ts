@@ -611,6 +611,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/tasks/{task_id}/process": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Task Process */
+        get: operations["task_process_v1_tasks__task_id__process_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/apps": {
         parameters: {
             query?: never;
@@ -1613,6 +1630,14 @@ export interface components {
             text: string;
             /** Size */
             size: number;
+            /** Category */
+            category?: string | null;
+            /** Entries */
+            entries?: components["schemas"]["OutputItem"][];
+            /** Createdat */
+            createdAt?: string | null;
+            /** Receiver */
+            receiver?: string | null;
         };
         /** MetaOut */
         MetaOut: {
@@ -1749,6 +1774,72 @@ export interface components {
             label: string;
             /** Text */
             text: string;
+        };
+        /** ProcessEventOut */
+        ProcessEventOut: {
+            /** Id */
+            id: number;
+            /** Origin */
+            origin: string;
+            /** Site */
+            site: string;
+            /** Round */
+            round: number;
+            /** Step */
+            step: string;
+            /** Unit */
+            unit: string;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            event: components["schemas"]["ProgressUpdate"];
+        };
+        /** ProcessPageOut */
+        ProcessPageOut: {
+            /** Events */
+            events?: components["schemas"]["ProcessEventOut"][];
+            /**
+             * After
+             * @default 0
+             */
+            after: number;
+            /**
+             * Hasmore
+             * @default false
+             */
+            hasMore: boolean;
+            /** States */
+            states?: {
+                [key: string]: string;
+            };
+        };
+        /** ProgressUpdate */
+        ProgressUpdate: {
+            /** Activity */
+            activity: string;
+            /** Title */
+            title: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "running" | "completed" | "failed";
+            /** Parent */
+            parent?: string | null;
+            /** Item Id */
+            item_id?: string | null;
+            /**
+             * Summary
+             * @default
+             */
+            summary: string;
+            /**
+             * Detail
+             * @default
+             */
+            detail: string;
         };
         /** RegistryOut */
         RegistryOut: {
@@ -3567,6 +3658,7 @@ export interface operations {
                 round?: number | null;
                 site?: string | null;
                 limit?: number;
+                after?: number;
             };
             header?: {
                 authorization?: string | null;
@@ -3618,6 +3710,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EventOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    task_process_v1_tasks__task_id__process_get: {
+        parameters: {
+            query?: {
+                after?: number;
+                round?: number | null;
+                site?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProcessPageOut"];
                 };
             };
             /** @description Validation Error */

@@ -1,0 +1,22 @@
+{
+  "originalRowsPreserved": true,
+  "changedOriginalTables": {
+    "agent_endpoints": 2
+  },
+  "originalFilesPreserved": true,
+  "backupMatchesLive": true,
+  "restartPreservedData": true,
+  "allFiveDatabasesIntegrity": "ok",
+  "foreignKeyErrors": 0,
+  "backup": "20261028T160041480669Z",
+  "standaloneWithoutWal": true,
+  "changedOriginalAgentColumns": {
+    "agent-66584e68": [
+      "verifications"
+    ],
+    "agent-319cec16": [
+      "verifications"
+    ]
+  },
+  "oldBackupWithWalRestorable": true
+}

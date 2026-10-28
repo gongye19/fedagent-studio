@@ -9,6 +9,7 @@ from .algorithm import Algorithm, step
 from .context import OutgoingMessage, SiteInfo, StepContext, StepIO, UnitResult
 from .manifest import SERVER, Manifest, ParamDef, StepDef, load_manifest
 from .model import ChatResult, Model, ModelError
+from .progress import ProgressEvent, ProgressUpdate
 from .tasktype import CheckIssue, CheckReport, Grader, InputField, Row, TaskType
 from .types import (
     ApplyRequest,
@@ -47,6 +48,8 @@ __all__ = [
     "OutgoingMessage",
     "OutputEntry",
     "ParamDef",
+    "ProgressEvent",
+    "ProgressUpdate",
     "Row",
     "SiteInfo",
     "SiteSpec",

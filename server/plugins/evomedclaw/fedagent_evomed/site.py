@@ -23,6 +23,7 @@ def load_memory(ctx):
         raise StepFailed("缺少有效的共享记忆，不能继续评测", pause=True)
     ctx.keep("memory_receipt", receipt(artifact))
     ctx.report("memoryVersion", artifact.version)
+    ctx.progress("load-memory", "加载联邦经验", "completed", summary=f"已确认版本 {artifact.version}")
 
 
 def diagnose_case(ctx):
@@ -33,7 +34,7 @@ def diagnose_case(ctx):
         raise StepFailed("共享记忆尚未确认加载或版本不一致", pause=True)
     case = MedicalDiagnosis().strip_labels(dict(ctx.item.fields))
     result, _ = diagnose(case, artifact.content.get("memory") if artifact else None, ctx.model,
-                         turns=int(ctx.params.get("maxTurns", 12)))
+                         turns=int(ctx.params.get("maxTurns", 12)), progress=ctx.progress, item_id=ctx.item.id)
     ctx.keep("diagnostic_trajectory", result)
     ctx.predict(result["predicted_diagnosis"])
     hits = sorted({key for event in result["dialogue_history"] for key in event.get("memory_entry_ids", [])})
@@ -56,7 +57,7 @@ def learn(ctx, version):
         if item.get("split") != "learn":
             continue
         case = MedicalDiagnosis().strip_labels(dict(item.fields))
-        result, _ = diagnose(case, memory, ctx.model, turns=int(ctx.params.get("maxTurns", 12)))
+        result, _ = diagnose(case, memory, ctx.model, turns=int(ctx.params.get("maxTurns", 12)), progress=ctx.progress, item_id=item.id)
         result["is_correct"] = DiagnosisClinicalGrader().evaluate(result["predicted_diagnosis"], item.fields, ctx.model)
         ctx.keep("diagnostic_trajectory", result, item_id=item.id)
         outcome = {"scenario_id": int(hashlib.sha256(item.id.encode()).hexdigest()[:12], 16),
@@ -66,6 +67,7 @@ def learn(ctx, version):
         trajectories.append(canonicalize_artifacts(raw))
     if not trajectories:
         raise StepFailed("缺少经验生成病例", pause=True)
+    ctx.progress("compile-cards", "生成经验卡", "running")
     bank = compile_card_bank(trajectories)
     attribution = summarize_skill_attribution(generate_retrieval_traces(trajectories, bank, top_k=3), bank)
     delta = build_federated_site_delta(site_id=ctx.site.id, card_bank=bank, attribution_report=attribution).to_dict()
@@ -74,3 +76,4 @@ def learn(ctx, version):
     ctx.report("localCards", len(bank.cards))
     ctx.report("exportedCards", len(delta["cards"]))
     ctx.send("clinical-cards", delta)
+    ctx.progress("compile-cards", "生成经验卡", "completed", summary=f"生成 {len(bank.cards)} 张，上传 {len(delta['cards'])} 张")

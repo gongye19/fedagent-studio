@@ -324,3 +324,7 @@ T90密度修订沿用T89的live-panel和既有控制台组件，没有新增主�
 T91沿用已确认控制台风格与既有PageHead／次级按钮，将小面包屑统一替换为明确返回上级；不新增主参考或第三方组件。箭头复用同一SVG图标体系，桌面与手机命中区统一检查。
 
 T92根据用户四项明确反馈继续沿用控制台风格：返回在标题左侧同行，资源三页使用相同表头和空态框架。复用既有Panel／按钮／ResourceScope，不新增主参考；实际查看线上LLM空提示先于表头的截图后定位结构问题，修复空和有资源两种状态。
+
+### T99：已确认方向下的执行细节与趋势
+
+用户在当前聊天确认“执行时间线／通信折叠／逐轮折线”后实施，延续T62及后续已确认控制台规范，未引入新主视觉参考。组件依据：现有Radix菜单、Panel和状态图标；Apache ECharts仅为本次逐轮趋势的成熟图表实现，参考[模块导入](https://echarts.apache.org/handbook/en/basics/import/)及[容器尺寸与销毁](https://echarts.apache.org/handbook/en/concepts/chart-size/)官方文档。设计五项交付见FLOW的T99章节，截图与验证证据在screenshots/task-process。

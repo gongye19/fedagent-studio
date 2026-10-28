@@ -778,3 +778,11 @@ T96存储边界补充：private_state约束Agent协议响应，不回传完整�
 - UnitExecutor在预测返回后独立判分，使用真实eval参考、现有账本及工作单元身份。判分异常返回失败并沿用重试，不能落correct=0。MeteredModel计入应用生成和判分合计用量。
 - fedagent_evomed/grading.py封装原版快匹配／比较函数，平台核心不识别病名、前缀或阈值。site.learn先统一判分再保存轨迹／编卡；eval答案只在平台判分器读取，完整轨迹仍在服务。
 - 新判分器用新ID与算法1.2.0，保留旧ID和历史值。冻结配置显示实际判分器与中心模型；历史判分标记提醒解释边界。字段及协议版本见AGENT-API／EVOMEDCLAW的T98章节。
+
+## 39. T99 公开过程、通信摘要和逐轮趋势
+
+SDK progress.py定义受限ProgressUpdate／ProgressEvent，StepContext.progress为可选回调，不加入UnitResult。agents/progress.py管理接入方独立progress表；service仅接线与鉴权；progress_collector负责分页、授权样本边界与游标，task_services/process负责平台持久化和只读分页，schemas/process定义HTTP契约。平台核心只知道通用动作；EvoMedClaw的progress观察对象边界、exchange描述已共享卡片，不改固定上游源码。UnitExecutor只记录实际内置／中心工作单元，外部Agent由公开事件描述，跳过的医疗学习样本不伪装为已诊断。
+
+平台GET /tasks/{id}/process按事件ID、轮次／来源分页，并返回实际AgentRun／WorkUnit状态，前端可停止已取消或旧尝试的转圈。useProcess增量缓存已读取的事件并跟随任务终态刷新；process-model把开始／结束合为一个动作，ProcessPanel负责筛选及资源／步骤／样本层级，ProcessTimeline只展示。CommunicationPanel独立分页选择，ExchangeMessage折叠消息与卡片。算法describe_message_items提供结构化已共享条目，旧插件默认单条文本。
+
+MetricComparison管理图例，trend.ts保持既有宏平均／分母与null，TrendCanvas懒加载ECharts并用ResizeObserver调整、卸载时dispose。图表为辅助视图，所有轮次的精确值和分母保留在可键盘横向滚动的明细表。模块遵守400行业务文件门禁。

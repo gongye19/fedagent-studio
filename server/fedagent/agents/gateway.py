@@ -90,6 +90,9 @@ class AgentGateway:
         body = body.model_copy(update={"run_id": run_id})
         if len(body.model_dump_json().encode()) > MAX_BYTES:
             raise AgentError("Agent 单次输入超过 8 MB，请减小数据或共享内容")
+        from .progress_collector import ProgressCollector
+
+        collector = ProgressCollector(self.platform, self, agent_id, body, unit_id)
         started = time.monotonic()
         while True:
             try:
@@ -110,6 +113,10 @@ class AgentGateway:
                 row = session.get(m.AgentRun, run_id)
                 if row:
                     row.status = status.status
+            more = collector.pull(status.events_available)
+            if status.status in ("succeeded", "failed", "canceled"):
+                while more:
+                    more = collector.pull(status.events_available)
             if status.status == "succeeded":
                 if status.result is None:
                     raise AgentError("Agent 报告完成但缺少结果")

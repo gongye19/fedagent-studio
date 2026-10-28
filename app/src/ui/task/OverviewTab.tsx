@@ -59,7 +59,7 @@ export function OverviewTab({ task, state }: { task: Task; state: State }) {
         </dl>
       </Panel>
 
-      <Panel title="各方评测对比" id="accuracy">
+      <Panel title="逐轮效果" id="accuracy">
         <MetricComparison task={task} latest={latest} />
       </Panel>
 
@@ -77,15 +77,13 @@ function byChange(task: Task) {
 
 function ComparisonTable({ task }: { task: Task }) {
   const rounds = Array.from({ length: task.config.rounds }, (_, index) => index + 1);
-  // 窄屏只保留第 1 轮、最后一轮和变化，中间轮次收起。
-  const middle = (round: number) => round !== 1 && round !== rounds.length;
   const first = averageAccuracy(task, 1);
   const latest = latestScoredRound(task);
   const latestAverage = latest ? averageAccuracy(task, latest) : null;
   const averageDelta = latest && latest > 1 && first !== null && latestAverage !== null ? latestAverage - first : null;
 
   return (
-    <div className="table-shell">
+    <div className="table-shell" tabIndex={0} role="region" aria-label="逐轮评测明细，可横向滚动">
       <table className="table table--numbers">
         <thead>
           <tr>
@@ -94,7 +92,7 @@ function ComparisonTable({ task }: { task: Task }) {
             {rounds.map((round) => {
               const header = roundHeader(round, round === rounds.length);
               return (
-                <th key={round} scope="col" className={`numeric${middle(round) ? " col-optional" : ""}`}>
+                <th key={round} scope="col" className="numeric">
                   {header.main}{header.note ? <span className="wide-only">{header.note}</span> : null}
                 </th>
               );
@@ -116,7 +114,7 @@ function ComparisonTable({ task }: { task: Task }) {
                   const value = accuracy(task, member, round);
                   const correct = roundOf(task, round)?.correct?.[member.participantId];
                   return (
-                    <td key={round} className={`numeric${middle(round) ? " col-optional" : ""}`}>
+                    <td key={round} className="numeric">
                       {member.answered === 0 ? <span className="muted">无标注</span> : formatPercent(value)}
                       {correct !== undefined ? <small>匹配 {correct} / {member.answered}</small> : null}
                     </td>
@@ -131,7 +129,7 @@ function ComparisonTable({ task }: { task: Task }) {
           <tr>
             <th scope="row">平均</th>
             <td className="numeric col-optional" />
-            {rounds.map((round) => <td key={round} className={`numeric${middle(round) ? " col-optional" : ""}`}>{formatPercent(averageAccuracy(task, round))}</td>)}
+            {rounds.map((round) => <td key={round} className="numeric">{formatPercent(averageAccuracy(task, round))}</td>)}
             <td className={`numeric ${deltaClass(averageDelta)}`}>{formatDelta(averageDelta, { compact: true })}</td>
           </tr>
         </tfoot>

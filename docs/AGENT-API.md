@@ -147,3 +147,13 @@ T94：POST /v1/agents/{id}/verifications 接收algorithm／taskType／datasetId�
 T96存储边界补充：private_state约束Agent协议响应，不回传完整轨迹。当前同机公共参考服务使用--platform-model复用平台模型，模型调用账本仍在平台数据库保存返回文本，因此不宣称实现模型日志隔离。独立用户服务可使用provider_platform的自有模型／独立数据库模式；上传病例也仍保存在平台。协议边界通过不等于完整隐私保证。
 
 T96检索可观测范围：当前参考服务experience.retrieved报告本地医生轨迹中的memory_entry_ids；未汇总专科内部的memory_ids。空数组不证明全部子Agent均未命中，版本确认也不证明经验被引用或效果改善。
+
+## 可选公开过程事件（T99，SDK 0.2.6）
+
+新平台兼容不返回过程事件的旧服务。支持的服务在RunStatus中返回`events_available: true`，并提供`GET /runs/{run_id}/events?after=0`，与运行接口使用相同鉴权。响应`{events: [...], has_more: false}`，每页最多100条，seq从1连续递增。平台按持久游标续传，终态也拉取剩余页；查询不得重新执行任务。协议下载包含progressSchema。
+
+每条事件：`seq`、UTC时间`at`、同一运行内稳定的`activity`、可选`parent`／`item_id`、短标题`title`、`status`（running／completed／failed）、短摘要`summary`及可展开的`detail`。标题≤120字、摘要≤500字、正文≤6000字，未知字段拒绝；item_id必须属于该次授权输入。相同动作开始和结束复用activity；重试采用新的运行编号，不覆盖原记录。公开动作不属于sent／kept／predictions，不能改变算法结果和判分。
+
+**开启该能力代表服务明确允许平台持久化和展示该公开子集。** 仅发送可见的问答、检查请求／返回、路由选择、专家结论等业务动作；不发送评测标注、完整提示词、凭据、私有卡库或隐藏推理。第三方服务不希望公开病例正文时可只发阶段与短摘要，或不启用此能力。参考服务的资源接入验证不保存患者过程，正式任务才记录。普通接口不需要实现医疗专用路径。
+
+T99完整资源接入验证总预算为900秒（15分钟），覆盖前后评测、本站学习和加载；超时仍取消并确认停止。创建任务的连通检查仍为5秒，不生成、不运行上述完整流程。

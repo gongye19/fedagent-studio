@@ -1,9 +1,9 @@
 [project]
 name = "fedagent-evomedclaw"
-version = "0.2.1"
+version = "0.2.2"
 description = "FedAgent Studio 的 EvoMedClaw 横向医疗过程经验插件"
 requires-python = ">=3.12"
-dependencies = ["fedagent-sdk>=0.2.5", "pyyaml>=6.0"]
+dependencies = ["fedagent-sdk>=0.2.6", "pyyaml>=6.0"]
 
 [project.entry-points."fedagent.algorithms"]
 evomedclaw = "fedagent_evomed:EvoMedClaw"

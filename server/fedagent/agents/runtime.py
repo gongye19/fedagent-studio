@@ -23,7 +23,7 @@ class PayloadIO:
         return self.body.items
 
 
-def context_of(body: AgentRequest, algorithm, model=None) -> StepContext:
+def context_of(body: AgentRequest, algorithm, model=None, *, progress=None) -> StepContext:
     step = algorithm.manifest.step(body.step)
     if body.version != algorithm.version or step is None or step.at == "server" or step.at != body.role:
         raise ValueError("算法版本、执行角色或步骤不受支持")
@@ -40,4 +40,5 @@ def context_of(body: AgentRequest, algorithm, model=None) -> StepContext:
         io=PayloadIO(body),
         model=model,
         item=item,
+        progress=progress,
     )

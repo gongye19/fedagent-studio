@@ -19,6 +19,7 @@ from typing import Any, Protocol
 
 from .manifest import SERVER, Manifest, StepDef
 from .model import Model
+from .progress import ProgressUpdate
 from .types import Artifact, CapabilityError, Item, Message
 
 
@@ -80,6 +81,7 @@ class StepContext:
         model: Model | None = None,
         item: Item | None = None,
         log: Callable[[str], None] | None = None,
+        progress: Callable[[ProgressUpdate], None] | None = None,
     ) -> None:
         self.manifest = manifest
         self.step = step
@@ -91,6 +93,7 @@ class StepContext:
         self._model = model
         self._item = item
         self._log = log
+        self._progress = progress
         self.result = UnitResult()
 
     # —— 读 ——
@@ -168,3 +171,12 @@ class StepContext:
         self.result.logs.append(text)
         if self._log is not None:
             self._log(text)
+
+    def progress(self, activity: str, title: str, status: str, *, parent: str | None = None,
+                 item_id: str | None = None, summary: str = "", detail: str = "") -> None:
+        """仅发布允许平台用户查看的动作与结果；不传标注、提示词或隐藏推理。"""
+        event = ProgressUpdate.model_validate(dict(activity=activity, title=title, status=status, parent=parent,
+                                                   item_id=item_id if item_id is not None else self.item_id,
+                                                   summary=summary, detail=detail))
+        if self._progress is not None:
+            self._progress(event)

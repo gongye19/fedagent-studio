@@ -1,17 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
-import { useRef, useState, type KeyboardEvent } from "react";
-import { api } from "../../api/client";
+import { useState } from "react";
 import type { Stage } from "../../domain/catalog";
-import { keys } from "../../state/server";
 import { averageAccuracy, roundOf, stageSeconds, stagesOf, stepState, type RoundRecord, type StepState, type Task } from "../../domain/task";
 import { ProgressBar } from "../common";
 import { Panel } from "../console";
 import { formatDuration, formatNumber, formatPercent } from "../format";
+import { ProcessPanel } from "./ProcessPanel";
+import { CommunicationPanel } from "./CommunicationPanel";
 import { Icon } from "../icons";
 import { algorithmOfTask, metricOf } from "../labels";
 
-/** 一格最多列出的上传条数（再多就只写总数）。 */
-const SHOWN = 200;
 
 function sum(values: Record<string, number> | null | undefined): number {
   return Object.values(values ?? {}).reduce((total, value) => total + value, 0);
@@ -41,7 +38,6 @@ function roundSummary(task: Task, record: RoundRecord | undefined): string {
 
 export function ProgressTab({ task }: { task: Task }) {
   const rounds = Array.from({ length: task.config.rounds }, (_, index) => index + 1);
-  const algorithm = algorithmOfTask(task);
   return (
     <div className="panel-stack">
       <Panel title="各轮进度" id="rounds">
@@ -49,9 +45,8 @@ export function ProgressTab({ task }: { task: Task }) {
           {rounds.map((round) => <RoundItem key={round} task={task} round={round} />)}
         </ol>
       </Panel>
-      <Panel title="通信记录" id="uploads" extra={`上传内容：${algorithm.exchange}`}>
-        <Uploads task={task} />
-      </Panel>
+      <ProcessPanel task={task} />
+      <CommunicationPanel task={task} />
     </div>
   );
 }
@@ -204,101 +199,5 @@ function StepLine({ task, round, record }: { task: Task; round: number; record: 
         </div>
       ))}
     </div>
-  );
-}
-
-/**
- * 通信记录：每个参与方每轮上传的条数，点数字在右边看内容。
- * 整张表只占一个 Tab 停靠点，用方向键在格子之间移动（和表格网格的键盘习惯一致）。
- */
-function Uploads({ task }: { task: Task }) {
-  const rounds = task.rounds.filter((record) => record.uploads).map((record) => record.round);
-  const [cell, setCell] = useState<{ participantId: string; round: number } | null>(null);
-  const grid = useRef<HTMLTableSectionElement>(null);
-  if (!rounds.length) return <p className="section-empty">第 1 轮参与方步骤完成后，这里列出每个参与方上传的内容。</p>;
-
-  const active = cell ?? { participantId: task.members[0].participantId, round: rounds[rounds.length - 1] };
-  const member = task.members.find((item) => item.participantId === active.participantId) ?? task.members[0];
-  const count = task.rounds.find((record) => record.round === active.round)?.uploads?.[member.participantId] ?? 0;
-  const allRounds = Array.from({ length: task.config.rounds }, (_, index) => index + 1).filter((round) => round <= Math.max(...rounds));
-
-  function move(event: KeyboardEvent<HTMLButtonElement>, row: number, column: number) {
-    const delta: Record<string, [number, number]> = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
-    const step = delta[event.key];
-    if (!step) return;
-    event.preventDefault();
-    const nextRow = Math.min(task.members.length - 1, Math.max(0, row + step[0]));
-    const nextColumn = Math.min(allRounds.length - 1, Math.max(0, column + step[1]));
-    setCell({ participantId: task.members[nextRow].participantId, round: allRounds[nextColumn] });
-    grid.current?.querySelector<HTMLButtonElement>(`[data-cell="${nextRow}-${nextColumn}"]`)?.focus();
-  }
-
-  return (
-    <div className="uploads">
-      <div className="table-shell">
-        <table className="table table--numbers">
-          <caption className="visually-hidden">每个参与方每轮上传的条数，点数字查看内容；方向键在格子之间移动</caption>
-          <thead>
-            <tr>
-              <th scope="col">参与方</th>
-              {allRounds.map((round) => <th key={round} scope="col" className="numeric">第 {round} 轮</th>)}
-            </tr>
-          </thead>
-          <tbody ref={grid}>
-            {task.members.map((item, row) => (
-              <tr key={item.participantId}>
-                <th scope="row">{item.participant}</th>
-                {allRounds.map((round, column) => {
-                  const value = task.rounds.find((record) => record.round === round)?.uploads?.[item.participantId] ?? 0;
-                  const selected = active.participantId === item.participantId && active.round === round;
-                  return (
-                    <td key={round} className="numeric">
-                      <button
-                        type="button"
-                        data-cell={`${row}-${column}`}
-                        tabIndex={selected ? 0 : -1}
-                        className={`cell-button${selected ? " cell-button--active" : ""}`}
-                        aria-pressed={selected}
-                        aria-label={`${item.participant} 第 ${round} 轮上传 ${value} 条，查看内容`}
-                        onClick={() => setCell({ participantId: item.participantId, round })}
-                        onKeyDown={(event) => move(event, row, column)}
-                      >
-                        {formatNumber(value)}
-                      </button>
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="trace-panel" aria-live="polite">
-        <h3>{member.participant} · 第 {active.round} 轮</h3>
-        <UploadList task={task} round={active.round} participantId={member.participantId} count={count} />
-      </div>
-    </div>
-  );
-}
-
-/** 某个参与方某一轮实际上传的内容（服务端收到的消息），由算法插件决定每条怎么显示。 */
-function UploadList({ task, round, participantId, count }: { task: Task; round: number; participantId: string; count: number }) {
-  const messages = useQuery({
-    queryKey: keys.messages(task.id, round, participantId),
-    queryFn: () => api.taskMessages(task.id, { round, site: participantId, limit: SHOWN }),
-    enabled: count > 0,
-    staleTime: 60_000,
-  });
-  if (!count) return <p className="section-meta">这一轮没有上传</p>;
-  return (
-    <>
-      <p className="section-meta">{count > SHOWN ? `共 ${formatNumber(count)} 条，这里列出前 ${SHOWN} 条` : `共 ${formatNumber(count)} 条`}</p>
-      {messages.isError ? <p className="section-meta">读取失败，稍后再试</p> : null}
-      <ol className="trace-list">
-        {(messages.data ?? []).map((message) => (
-          <li key={message.id} lang="en">{message.text}</li>
-        ))}
-      </ol>
-    </>
   );
 }

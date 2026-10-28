@@ -12,7 +12,7 @@ from .protocol import AgentRequest, SavedValue
 from .resources import compatible
 from .runtime import PayloadIO, context_of
 
-AGENT_CHECK_SECONDS = 600
+AGENT_CHECK_SECONDS = 900
 
 
 def check_agent(platform, agent_id, algorithm, task_type, site, records, check_id, config,
@@ -64,7 +64,7 @@ def check_agent(platform, agent_id, algorithm, task_type, site, records, check_i
         for item in items if step.per == "item" else [None]:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                raise ValueError("Agent 接入验证超过 10 分钟，请检查服务负载或模型响应后重试")
+                raise ValueError("Agent 接入验证超过 15 分钟，请检查服务负载或模型响应后重试")
             progress(f"正在执行{step.label} · 样本 {item.id}" if item else f"正在执行{step.label}")
             request = AgentRequest(
                 run_id="pending", algorithm=algorithm.id, version=algorithm.version,
@@ -77,7 +77,7 @@ def check_agent(platform, agent_id, algorithm, task_type, site, records, check_i
                 status = gateway.execute(agent_id, request, timeout=remaining)
             except AgentError:
                 if time.monotonic() >= deadline:
-                    raise ValueError("Agent 接入验证超过 10 分钟，请检查服务负载或模型响应后重试") from None
+                    raise ValueError("Agent 接入验证超过 15 分钟，请检查服务负载或模型响应后重试") from None
                 raise
             if status.result is None:
                 raise ValueError(f"Agent 的{step.label}没有返回结果")

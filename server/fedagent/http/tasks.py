@@ -8,6 +8,8 @@ from sqlalchemy import select
 from .. import models as m
 from .. import tasks
 from ..schemas import EstimateOut, EventOut, MessageOut, TaskConfigIn, TaskOut, ValidateOut
+from ..schemas.process import ProcessPageOut
+from ..task_services.process import page as process_page
 from .dependencies import PlatformDep, SessionDep, admin_router
 
 router = admin_router()
@@ -82,12 +84,20 @@ def task_messages(
     round: int | None = None,
     site: str | None = None,
     limit: Annotated[int, Query(ge=1, le=1000)] = 200,
+    after: Annotated[int, Query(ge=0)] = 0,
 ) -> list[MessageOut]:
-    return tasks.messages_out(platform, session, tasks.get_task(session, task_id), round=round, site=site, limit=limit)
+    return tasks.messages_out(platform, session, tasks.get_task(session, task_id), round=round, site=site, limit=limit, after=after)
 
 
 @router.get("/tasks/{task_id}/events", response_model=list[EventOut], tags=["tasks"])
 def task_events(task_id: str, session: SessionDep) -> list[EventOut]:
     tasks.get_task(session, task_id)
-    rows = session.scalars(select(m.Event).where(m.Event.task_id == task_id).order_by(m.Event.id))
+    rows = session.scalars(select(m.Event).where(m.Event.task_id == task_id, m.Event.kind != "process").order_by(m.Event.id))
     return [EventOut(id=row.id, kind=row.kind, message=row.message, created_at=row.created_at) for row in rows]
+
+
+@router.get("/tasks/{task_id}/process", response_model=ProcessPageOut, tags=["tasks"])
+def task_process(task_id: str, session: SessionDep, after: Annotated[int, Query(ge=0)] = 0,
+                 round: Annotated[int | None, Query(ge=1)] = None, site: str | None = None) -> ProcessPageOut:
+    tasks.get_task(session, task_id)
+    return process_page(session, task_id, after=after, round=round, site=site)
