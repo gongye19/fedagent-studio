@@ -1,0 +1,132 @@
+{
+  "task": "task-65390bc6",
+  "reports": [
+    {
+      "round": 1,
+      "site": "p-a",
+      "name": "correct",
+      "value": 1
+    },
+    {
+      "round": 1,
+      "site": "p-a",
+      "name": "exportedCards",
+      "value": 3
+    },
+    {
+      "round": 1,
+      "site": "p-a",
+      "name": "labeled",
+      "value": 1
+    },
+    {
+      "round": 1,
+      "site": "p-a",
+      "name": "localCards",
+      "value": 3
+    },
+    {
+      "round": 1,
+      "site": "p-b",
+      "name": "correct",
+      "value": 1
+    },
+    {
+      "round": 1,
+      "site": "p-b",
+      "name": "exportedCards",
+      "value": 4
+    },
+    {
+      "round": 1,
+      "site": "p-b",
+      "name": "labeled",
+      "value": 1
+    },
+    {
+      "round": 1,
+      "site": "p-b",
+      "name": "localCards",
+      "value": 4
+    },
+    {
+      "round": 2,
+      "site": "p-a",
+      "name": "correct",
+      "value": 1
+    },
+    {
+      "round": 2,
+      "site": "p-a",
+      "name": "labeled",
+      "value": 1
+    },
+    {
+      "round": 2,
+      "site": "p-a",
+      "name": "memoryVersion",
+      "value": 1
+    },
+    {
+      "round": 2,
+      "site": "p-b",
+      "name": "correct",
+      "value": 1
+    },
+    {
+      "round": 2,
+      "site": "p-b",
+      "name": "labeled",
+      "value": 1
+    },
+    {
+      "round": 2,
+      "site": "p-b",
+      "name": "memoryVersion",
+      "value": 1
+    }
+  ],
+  "centralKeys": [
+    "memory_receipt"
+  ],
+  "cards": 7,
+  "services": {
+    "medical-a": {
+      "privateRows": 6,
+      "memoryVersions": [
+        1
+      ],
+      "learning": [
+        {
+          "case": "medqa-002",
+          "correct": true,
+          "diagnosis": "DIAGNOSIS READY: Natalizumab-associated progressive multifocal leukoencephalopathy (PML)"
+        }
+      ],
+      "cardTypes": {
+        "test_card": 1,
+        "route_card": 1,
+        "clue_card": 1,
+        "synthesis_card": 1
+      }
+    },
+    "medical-b": {
+      "privateRows": 6,
+      "memoryVersions": [
+        1
+      ],
+      "learning": [
+        {
+          "case": "medqa-001",
+          "correct": true,
+          "diagnosis": "DIAGNOSIS READY: Generalized myasthenia gravis"
+        }
+      ],
+      "cardTypes": {
+        "route_card": 1,
+        "clue_card": 1,
+        "synthesis_card": 1
+      }
+    }
+  }
+}

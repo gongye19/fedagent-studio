@@ -19,6 +19,7 @@ class GraderOut(Model):
     id: str
     label: str
     detail: str
+    requires_model: bool = False
 
 
 class InputFieldOut(Model):
@@ -100,6 +101,7 @@ class ResourceRequirementsOut(Model):
     min_samples: int
     participant_model: bool
     server_model: bool
+    server_model_label: str = "汇总模型"
     execution_label: str
     execution_modes: list[Literal["platform", "local", "agent"]]
 

@@ -1,14 +1,14 @@
 import type { Estimate } from "../../domain/config";
 import { formatDuration, formatNumber, formatTokens, formatYuan } from "../format";
 
-export function EstimateBlock({ result, priceHref }: { result: Estimate; priceHref: string }) {
+export function EstimateBlock({ result, priceHref, serverModelLabel = "平台模型" }: { result: Estimate; priceHref: string; serverModelLabel?: string }) {
   if (result.remoteExecution)
     return (
       <div className="summary-estimate">
         <h3>预估</h3>
         <p className="muted">
-          Agent 内部的调用量、耗时与费用由服务自行管理，平台无法估算。汇总模型
-          {result.serverCalls ? `至少调用 ${result.serverCalls} 次。` : "不产生调用。"}
+          Agent 内部的调用量、耗时与费用由服务自行管理，平台无法估算。{serverModelLabel}
+          {result.serverCalls ? `${result.callsAreUpperBound ? "最多" : "至少"}调用 ${result.serverCalls} 次。` : "不产生调用。"}
         </p>
       </div>
     );
@@ -26,7 +26,7 @@ export function EstimateBlock({ result, priceHref }: { result: Estimate; priceHr
         <div>
           <dt>服务端调用</dt>
           <dd>
-            {result.serverCalls ? "至少 " : ""}
+            {result.serverCalls ? result.callsAreUpperBound ? "最多 " : "至少 " : ""}
             {result.serverCalls} 次
           </dd>
         </div>

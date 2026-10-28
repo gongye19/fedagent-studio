@@ -770,3 +770,11 @@ StepDef.private_state默认false，医疗diagnose／learn为true：服务先构�
 EvoMedClaw 1.1.0覆盖rounds的计划，最后一轮不再生成未经评测的记忆；任务创建audit持久化manifest／plan，TaskOut提供冻结stages／plan，前端进度使用逐轮计划。历史1.0.0清单仅用于展示，不绕过执行版本与哈希校验。无需SQL迁移，schema仍0008。医疗运行辅助代码在插件site.py，由接入方SDK调用；平台只通过独立AgentHTTP边界调度，不在中心执行原始病例诊断。
 
 T96存储边界补充：private_state约束Agent协议响应，不回传完整轨迹。当前同机公共参考服务使用--platform-model复用平台模型，模型调用账本仍在平台数据库保存返回文本，因此不宣称实现模型日志隔离。独立用户服务可使用provider_platform的自有模型／独立数据库模式；上传病例也仍保存在平台。协议边界通过不等于完整隐私保证。
+
+## 38. 通用模型判分与医疗规则修复（T98）
+
+- SDK Grader.evaluate(prediction,item,model=None)默认转发grade，requires_model默认False；既有数学判分不改。TaskType.is_evaluated默认is_labeled，医疗排除learn。
+- Registry按算法步骤和任务判分器共同声明中心模型需求；requirements.serverModelLabel及grader.requiresModel供前端呈现。沿用serverModel存储，准备、准入／连接、报告指纹和假模型识别均覆盖该引用。
+- UnitExecutor在预测返回后独立判分，使用真实eval参考、现有账本及工作单元身份。判分异常返回失败并沿用重试，不能落correct=0。MeteredModel计入应用生成和判分合计用量。
+- fedagent_evomed/grading.py封装原版快匹配／比较函数，平台核心不识别病名、前缀或阈值。site.learn先统一判分再保存轨迹／编卡；eval答案只在平台判分器读取，完整轨迹仍在服务。
+- 新判分器用新ID与算法1.2.0，保留旧ID和历史值。冻结配置显示实际判分器与中心模型；历史判分标记提醒解释边界。字段及协议版本见AGENT-API／EVOMEDCLAW的T98章节。

@@ -1,4 +1,4 @@
-import { paramText, scenarioOf, TASK_TYPES } from "../../domain/catalog";
+import { paramText, scenarioOf, TASK_TYPES, GRADERS } from "../../domain/catalog";
 import { DATA_LOCATION_LABELS, modelLabel } from "../../domain/resources";
 import { totalProblems, type Member, type Task } from "../../domain/task";
 import type { State } from "../../state/store";
@@ -17,6 +17,8 @@ function uniform<T>(members: readonly Member[], pick: (member: Member) => T): T 
 export function ConfigTab({ task, state }: { task: Task; state: State }) {
   const config = task.config;
   const algorithm = algorithmOfTask(task);
+  const grader = GRADERS[config.grader ?? TASK_TYPES[config.taskType].grader];
+  const serverStageModel = algorithm.stages.some((stage) => stage.side === "server" && stage.model);
   const model = uniform(task.members, (member) => member.model);
   const label = (ref: string) => ref.startsWith("agent:")
     ? task.members.find((m) => m.model === ref)?.agentName ?? "自有 Agent"
@@ -33,7 +35,8 @@ export function ConfigTab({ task, state }: { task: Task; state: State }) {
           ["轮次", `${config.rounds} 轮`],
           ["样本", `${formatNumber(totalProblems(task))} 条`],
           [config.execution === "agent" ? "执行 Agent" : "运行模型", model ? label(model) : "各来源不同，见下表"],
-          ...(algorithm.stages.some((stage) => stage.side === "server" && stage.model) ? [["服务端模型", label(config.serverModel)] as const] : []),
+          ...(serverStageModel || grader?.requiresModel ? [[serverStageModel ? "服务端模型" : "评测模型", label(config.serverModel)] as const] : []),
+          ["判分规则", grader?.label ?? config.grader ?? "—"],
           ["并发数", String(config.workers)],
           ["随机种子", String(config.seed)],
           ["创建时间", formatDate(task.createdAt)],

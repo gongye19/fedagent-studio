@@ -1,5 +1,13 @@
 # 自有 Agent 接入协议
 
+## T98：医疗独立评测模型（2026-10-28）
+
+EvoMedClaw协议1.2.0在医疗Agent＋同方病例之外，任务需主动选择一个已验证LLM作为独立评测模型；不是给每组数据再嵌套一个LLM，也不替用户选择。复用serverModel字段，registry.requirements.serverModelLabel为评测模型。资源接入步骤仍由用户自己的服务与模型执行，原四接口和数据格式保持；升级版本／代码会使旧资源凭据失效，须重新验证新版本。
+
+SDK0.2.5的Grader.requires_model／evaluate支持模型判分，原有grade仍兼容。平台独立判分可读取评测参考答案，作答Agent的diagnose请求不可读取；learn步骤仍按原授权读取学习答案。TaskType.is_evaluated定义任务评测分母，MedicalDiagnosis排除learn；资源上传的标注总数不受影响。完整算法规范会包含新评测资源要求。
+
+学习与任务评测默认同用原版判分规则。模型异常不当成答错；复用网关的凭据、取消、账本与任务重试，保持平台核心不识别医疗病名或诊断前缀。更多边界见EVOMEDCLAW的T98章节。
+
 ## T96 当前接入规范（2026-10-27）
 
 每种算法的规范可从算法详情下载，也可 GET `/v1/algorithms/{id}/contract`：包含资源要求、已支持任务的数据模板／版本、步骤及执行位置、业务输出规范、默认逐轮计划和适用的 Agent 协议 Schema。内容只来自注册插件，不含已登记资源或凭据。FoT保持paper-auto，仅需要数据与LLM；不开放外部Agent新任务。EvoMedClaw 1.1.0使用医疗Agent服务＋同方病例，中心不需要LLM。

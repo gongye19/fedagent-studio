@@ -1,0 +1,9 @@
+{
+  "prediction": "Hansen disease",
+  "reference": "Leprosy",
+  "passed": true,
+  "usage": {
+    "prompt_tokens": 252,
+    "completion_tokens": 9
+  }
+}

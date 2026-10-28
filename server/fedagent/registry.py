@@ -114,6 +114,14 @@ class Registry:
     def task_types_for(self, scenario: str) -> list[str]:
         return [task_type for task_type in self.task_types if self.algorithms_for(scenario, task_type)]
 
+    def requires_server_model(self, algorithm: Algorithm, task_type: str | None = None, grader: str | None = None) -> bool:
+        if any(step.at == SERVER and step.model for step in algorithm.manifest.steps):
+            return True
+        if grader:
+            return bool((chosen := self.graders.get(grader)) and chosen.requires_model)
+        types = [task_type] if task_type in self.task_types else algorithm.manifest.accepts
+        return any(self.task_type(key).graders and self.grader(self.task_type(key).graders[0]).requires_model for key in types)
+
     # —— 给前端的描述 ——
 
     def describe_algorithm(self, algorithm: Algorithm) -> dict[str, Any]:
@@ -144,7 +152,8 @@ class Registry:
                 "minSources": manifest.min_participants,
                 "minSamples": algorithm.min_samples_per_site,
                 "participantModel": any(step.at != SERVER and step.model for step in manifest.steps),
-                "serverModel": any(step.at == SERVER and step.model for step in manifest.steps),
+                "serverModel": self.requires_server_model(algorithm),
+                "serverModelLabel": "汇总模型" if any(s.at == SERVER and s.model for s in manifest.steps) else "评测模型",
                 "executionLabel": f"{manifest.name} 执行流程",
                 "executionModes": ["agent"] if manifest.agent_required else ["platform", "local", *(["agent"] if manifest.agent_supported else [])],
             },
@@ -163,7 +172,8 @@ class Registry:
             "label": task_type.label,
             "metric": task_type.metric,
             "grader": default.id if default else None,
-            "graders": [{"id": grader, "label": self.graders[grader].label, "detail": self.graders[grader].detail} for grader in task_type.graders],
+            "graders": [{"id": grader, "label": self.graders[grader].label, "detail": self.graders[grader].detail,
+                         "requiresModel": self.graders[grader].requires_model} for grader in task_type.graders],
             "format": task_type.format_hint,
             "unlabeledNote": task_type.unlabeled_note,
             "placeholder": task_type.placeholder,

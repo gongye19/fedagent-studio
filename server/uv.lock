@@ -321,7 +321,7 @@ requires-dist = [
 
 [[package]]
 name = "fedagent-evomedclaw"
-version = "0.2.0"
+version = "0.2.1"
 source = { editable = "plugins/evomedclaw" }
 dependencies = [
     { name = "fedagent-sdk" },
@@ -358,7 +358,7 @@ requires-dist = [{ name = "fedagent-sdk", editable = "sdk" }]
 
 [[package]]
 name = "fedagent-sdk"
-version = "0.2.4"
+version = "0.2.5"
 source = { editable = "sdk" }
 dependencies = [
     { name = "pydantic" },

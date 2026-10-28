@@ -55,7 +55,7 @@ it("requires a user Agent for medical and excludes incompatible interfaces from 
     capabilities: {
       protocol: "fedagent-agent/1",
       algorithms: {
-        evomedclaw: { version: medical.version, steps: ["diagnose", "learn"] },
+        evomedclaw: { version: medical.version, steps: medical.stages.filter((s) => s.side === "participant").map((s) => s.id) },
       },
     },
   };

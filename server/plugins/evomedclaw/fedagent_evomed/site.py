@@ -6,7 +6,8 @@ from pathlib import Path
 from fedagent_sdk import StepFailed
 
 from .bridge import diagnose
-from .medical import DiagnosisExactGrader, MedicalDiagnosis
+from .grading import DiagnosisClinicalGrader
+from .medical import MedicalDiagnosis
 
 
 def receipt(artifact):
@@ -56,10 +57,11 @@ def learn(ctx, version):
             continue
         case = MedicalDiagnosis().strip_labels(dict(item.fields))
         result, _ = diagnose(case, memory, ctx.model, turns=int(ctx.params.get("maxTurns", 12)))
+        result["is_correct"] = DiagnosisClinicalGrader().evaluate(result["predicted_diagnosis"], item.fields, ctx.model)
         ctx.keep("diagnostic_trajectory", result, item_id=item.id)
         outcome = {"scenario_id": int(hashlib.sha256(item.id.encode()).hexdigest()[:12], 16),
                    "answer": re.sub(r"^DIAGNOSIS READY:\s*", "", result["predicted_diagnosis"], flags=re.I),
-                   "is_correct": DiagnosisExactGrader().grade(result["predicted_diagnosis"], item.fields)}
+                   "is_correct": result["is_correct"]}
         raw = RawScenarioArtifacts(Path("private-site"), outcome, result["dialogue_history"], result["consultation_history"])
         trajectories.append(canonicalize_artifacts(raw))
     if not trajectories:

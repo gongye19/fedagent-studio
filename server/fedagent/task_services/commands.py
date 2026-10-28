@@ -37,7 +37,7 @@ def create(platform: Platform, session: Session, body: TaskConfigIn) -> m.Task:
     config["params"] = algorithm.manifest.params_of(body.params)
     config["grader"] = body.grader or platform.registry.task_type(body.task_type).graders[0]
     refs = [site.model_ref for site in prepared.sites] if body.execution == "builtin" else []
-    if any(step.at == SERVER and step.model for step in algorithm.manifest.steps):
+    if platform.registry.requires_server_model(algorithm, body.task_type, body.grader):
         refs.append(body.server_model)
     fake = any(parse_ref(ref)[0] == FAKE_ENDPOINT for ref in refs)
     agent_ids = ({site.agent_id for site in prepared.sites}

@@ -1,0 +1,27 @@
+{
+  "calls": 296,
+  "tokens": 405368,
+  "groups": [
+    {
+      "purpose": "agent",
+      "status": "ok",
+      "calls": 152,
+      "promptTokens": 169758,
+      "completionTokens": 45122
+    },
+    {
+      "purpose": "agent-test",
+      "status": "ok",
+      "calls": 143,
+      "promptTokens": 151724,
+      "completionTokens": 38503
+    },
+    {
+      "purpose": "grade-test",
+      "status": "ok",
+      "calls": 1,
+      "promptTokens": 252,
+      "completionTokens": 9
+    }
+  ]
+}

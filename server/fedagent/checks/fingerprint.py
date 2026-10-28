@@ -29,7 +29,7 @@ def fingerprint(platform, session, body) -> str:
             )
     refs = {body.client_model, *body.client_overrides.values()} if body.execution == "builtin" else set()
     algorithm = platform.registry.algorithms.get(body.algorithm)
-    if algorithm and any(step.at == "server" and step.model for step in algorithm.manifest.steps):
+    if algorithm and platform.registry.requires_server_model(algorithm, body.task_type, body.grader):
         refs.add(body.server_model)
     models = []
     for ref in sorted(refs):

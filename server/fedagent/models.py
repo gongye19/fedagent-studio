@@ -264,7 +264,7 @@ class CallRecord(Base):
     unit_key: Mapped[str | None] = mapped_column(String(200), default=None)
     ordinal: Mapped[int] = mapped_column(default=0)
     purpose: Mapped[str] = mapped_column(String(32), default="task")
-    """task：任务里的调用；apply：应用试用；test：测试接口。"""
+    """task／agent：任务；grade：独立判分；apply：应用；test／agent-test／grade-test：验证。"""
     endpoint_id: Mapped[str] = mapped_column(String(64))
     model: Mapped[str] = mapped_column(String(160))
     request_hash: Mapped[str] = mapped_column(String(64))

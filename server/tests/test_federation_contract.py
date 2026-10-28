@@ -95,7 +95,7 @@ def test_provider_keeps_trajectories_local_and_requires_loaded_version(platform,
             _work(platform.settings.model_dump(), root / "runs.sqlite", body, "fake:fake")
             return api.get("/runs/"+body.run_id).json()
 
-        base = dict(algorithm="evomedclaw", version="1.1.0", task_type="medical-diagnosis", task_id="real-task",
+        base = dict(algorithm="evomedclaw", version="1.2.0", task_type="medical-diagnosis", task_id="real-task",
                     site_id="site", role="participant", rounds=2, params={"maxTurns": 4})
         item = to_item(task_type, cases()[1], labels=False)
         first = execute(AgentRequest(**base, run_id="baseline", round=1, step="diagnose", unit_key=item.id, items=[item]))

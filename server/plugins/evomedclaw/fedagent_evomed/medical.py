@@ -69,7 +69,7 @@ class MedicalDiagnosis(TaskType):
     label = "医疗诊断"
     metric = "诊断匹配率"
     label_fields = ("answer",)
-    graders = ("diagnosis-exact",)
+    graders = ("diagnosis-clinical", "diagnosis-exact")
     structured_input = True
     input_label = "病例"
     answer_label = "参考诊断"
@@ -137,6 +137,9 @@ class MedicalDiagnosis(TaskType):
             report.items = first + [item for item in report.items if item is not first[0] and item is not first[1]]
         report.sample = report.items[0] if report.items else None
         return report
+
+    def is_evaluated(self, item: Mapping[str, Any]) -> bool:
+        return item.get("split") == "eval" and self.is_labeled(item)
 
     def labels_allowed(self, item: Mapping[str, Any]) -> bool:
         return item.get("split") == "learn"

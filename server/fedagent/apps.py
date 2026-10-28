@@ -9,6 +9,7 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 
 from fedagent_sdk import ApplyRequest, Artifact, ModelError
+from fedagent_sdk.model import MeteredModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -92,12 +93,12 @@ def _application(platform: Platform, app: m.App, body: ApplyIn):
     request = ApplyRequest(input=task_type.application_input(item))
 
     def side(artifact: Artifact | None) -> ApplySide:
-        model = platform.gateway.model(body.model, purpose="apply", plugin=algorithm)
+        model = MeteredModel(platform.gateway.model(body.model, purpose="apply", plugin=algorithm))
         result = algorithm.apply(artifact, request, model)
         correct = None
         if task_type.is_labeled(item) and task_type.graders:
-            correct = registry.grader(task_type.graders[0]).grade(result.output, item)
-        tokens = int(result.usage.get("prompt_tokens", 0)) + int(result.usage.get("completion_tokens", 0))
+            correct = registry.grader(task_type.graders[0]).evaluate(result.output, item, model)
+        tokens = int(model.usage.get("prompt_tokens", 0)) + int(model.usage.get("completion_tokens", 0))
         return ApplySide(output=result.output, correct=correct, tokens=tokens, details=result.details)
 
     return side

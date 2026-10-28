@@ -58,7 +58,7 @@ export function ResourceModels({
             />
           </Field>
         ) : null}
-        {draft.execution === "agent" ? (
+        {draft.execution === "agent" && !algorithm?.requirements.agentRequired ? (
           <Field
             label="Agent 接口"
             htmlFor="task-agent"
@@ -86,7 +86,7 @@ export function ResourceModels({
             </div>
           </Field>
         ) : null}
-        {draft.execution === "agent" &&
+        {draft.execution === "agent" && !algorithm?.requirements.agentRequired &&
         joined.length > 1 &&
         agents.length > 0 ? (
           <Field
@@ -115,7 +115,7 @@ export function ResourceModels({
           .map((role) => {
             const local = role === "clientModel" && allLocal;
             const id = role === "clientModel" ? "client-model" : "server-model";
-            const label = role === "clientModel" ? "运行模型" : "汇总模型";
+            const label = role === "clientModel" ? "运行模型" : (algorithm?.requirements.serverModelLabel ?? "汇总模型");
             const error = modelsError && !local && !draft[role] ? `请选择${label}` : undefined;
             return (
               <Field
@@ -126,7 +126,7 @@ export function ResourceModels({
                 info={
                   role === "clientModel"
                     ? "平台使用该 LLM 执行算法声明的本方流程；无需另行接入 Agent。本地客户端自行配置模型。"
-                    : "用于算法在服务端汇总各来源的交换内容。"
+                    : algorithm?.requirements.serverModelLabel === "评测模型" ? "用于独立比较最终诊断与参考答案，不参与问诊；评测参考答案不会发送给问诊 Agent。" : "用于算法在服务端汇总各来源的交换内容。"
                 }
               >
                 {local ? (

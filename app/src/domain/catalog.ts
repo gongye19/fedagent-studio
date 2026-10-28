@@ -99,7 +99,7 @@ export type Algorithm = {
 
 export const SCENARIOS: Scenario[] = [];
 export const TASK_TYPES: Record<TaskType, TaskTypeDef> = {};
-export const GRADERS: Record<GraderId, { label: string; detail: string }> = {};
+export const GRADERS: Record<GraderId, { label: string; detail: string; requiresModel: boolean }> = {};
 export const ALGORITHMS: Algorithm[] = [];
 
 type Registry = components["schemas"]["RegistryOut"];
@@ -138,7 +138,7 @@ export function installRegistry(registry: Registry): void {
       answerLabel: item.answerLabel,
       inputFields: item.inputFields,
     };
-    for (const grader of item.graders) GRADERS[grader.id] = { label: grader.label, detail: grader.detail };
+    for (const grader of item.graders) GRADERS[grader.id] = { label: grader.label, detail: grader.detail, requiresModel: grader.requiresModel ?? false };
   }
   ALGORITHMS.splice(
     0,

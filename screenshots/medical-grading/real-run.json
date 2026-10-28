@@ -1,0 +1,50 @@
+{
+  "task": "task-65390bc6",
+  "algorithmVersion": "1.2.0",
+  "grader": "diagnosis-clinical",
+  "model": "default:gpt-5.6-luna",
+  "members": [
+    {
+      "participantId": "p-b",
+      "participant": "参与方 B",
+      "datasetId": "ds-73dafbc1",
+      "dataset": "MedQA · 分组 2",
+      "hosting": "platform",
+      "problems": 2,
+      "answered": 1,
+      "model": "agent:agent-66584e68",
+      "agentName": "医疗 Agent A"
+    },
+    {
+      "participantId": "p-a",
+      "participant": "参与方 A",
+      "datasetId": "ds-7cda527c",
+      "dataset": "MedQA · 分组 1",
+      "hosting": "platform",
+      "problems": 2,
+      "answered": 1,
+      "model": "agent:agent-319cec16",
+      "agentName": "医疗 Agent B"
+    }
+  ],
+  "scores": [
+    {
+      "round": 1,
+      "correct": {
+        "p-b": 1,
+        "p-a": 1
+      }
+    },
+    {
+      "round": 2,
+      "correct": {
+        "p-b": 1,
+        "p-a": 1
+      }
+    }
+  ],
+  "cards": 7,
+  "intakeSeconds": 407.96,
+  "connectionSeconds": 1.413,
+  "taskSeconds": 436.77
+}

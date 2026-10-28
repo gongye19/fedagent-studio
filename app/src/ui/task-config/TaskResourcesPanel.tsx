@@ -104,6 +104,9 @@ export function TaskResourcesPanel({
             id="participants-error"
             message={fieldError("participants")}
           />
+
+        </>
+      )}
           <ResourceModels
             state={state}
             draft={draft}
@@ -119,8 +122,6 @@ export function TaskResourcesPanel({
               )
             }
           />
-        </>
-      )}
     </Panel>
   );
 }

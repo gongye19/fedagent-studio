@@ -5361,6 +5361,11 @@
      "detail": {
       "type": "string",
       "title": "Detail"
+     },
+     "requiresModel": {
+      "type": "boolean",
+      "title": "Requiresmodel",
+      "default": false
      }
     },
     "type": "object",
@@ -6074,6 +6079,11 @@
      "serverModel": {
       "type": "boolean",
       "title": "Servermodel"
+     },
+     "serverModelLabel": {
+      "type": "string",
+      "title": "Servermodellabel",
+      "default": "汇总模型"
      },
      "executionLabel": {
       "type": "string",

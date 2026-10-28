@@ -55,10 +55,11 @@ def test_shared_resources_support_formal_runs_and_active_resources_cannot_delete
     assert client.delete('/v1/resources/data/'+own['dataset']['id']).status_code == 409
 
 
-def test_requirements_are_from_actual_algorithm_steps(client):
+def test_requirements_include_independent_grading_model(client):
     algorithms = {a['id']: a for a in client.get('/v1/registry').json()['algorithms']}
     assert algorithms['fot']['requirements']['serverModel']
-    assert not algorithms['evomedclaw']['requirements']['serverModel']
+    assert algorithms['evomedclaw']['requirements']['serverModel']
+    assert algorithms['evomedclaw']['requirements']['serverModelLabel'] == '评测模型'
     assert algorithms['evomedclaw']['requirements']['minSamples'] == 2
     assert all(d['resourceSpace'] == 'public' for d in client.get('/v1/datasets').json())
     endpoint = client.post('/v1/endpoints', json={'name': '我的模型', 'baseUrl': 'https://unused.invalid/v1', 'models': ['private-model']}).json()

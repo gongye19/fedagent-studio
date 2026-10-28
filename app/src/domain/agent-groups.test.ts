@@ -22,7 +22,7 @@ it("共享保留原归属；Agent先选、只列同方且已共享的数据，�
     capabilities: {
       protocol: "fedagent-agent/1",
       algorithms: {
-        evomedclaw: { version: "1.0.0", steps: ["diagnose", "learn"] },
+        evomedclaw: { version: algorithmOf("evomedclaw").version, steps: algorithmOf("evomedclaw").stages.filter((s) => s.side === "participant").map((s) => s.id) },
       },
     },
   };

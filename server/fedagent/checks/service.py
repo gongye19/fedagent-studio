@@ -83,7 +83,7 @@ def run(platform, check_id: str, body: TaskConfigIn) -> None:
         for site in prepared.sites:
             result("participants", site.dataset.name, "passed", "资源已就绪")
         refs = {site.model_ref for site in prepared.sites if body.execution == "builtin" and site.participant.hosting == "platform"}
-        if any(step.at == "server" and step.model for step in algorithm.manifest.steps):
+        if platform.registry.requires_server_model(algorithm, body.task_type, body.grader):
             refs.add(body.server_model)
         resolved = {endpoint.id: endpoint.name for endpoint, _ in (platform.gateway.resolve(ref) for ref in sorted(refs))}
         jobs: list[Callable[[], bool]] = [lambda endpoint_id=endpoint_id, name=name: progress.attempt(

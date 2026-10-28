@@ -14,7 +14,7 @@ import { publishedOf, type State } from "../../state/store";
 import { GRADERS, TASK_TYPES } from "../../domain/catalog";
 import { InfoTip } from "../InfoTip";
 import { MetricComparison } from "./MetricComparison";
-import { EmptyState, Stat } from "../common";
+import { EmptyState, Stat, Tag } from "../common";
 import { Panel } from "../console";
 import { formatDelta, formatPercent } from "../format";
 import { algorithmOfTask, deltaClass, metricOf, roundHeader } from "../labels";
@@ -23,6 +23,7 @@ export function OverviewTab({ task, state }: { task: Task; state: State }) {
   const rounds = scoredRounds(task);
   const metric = metricOf(task);
   const product = algorithmOfTask(task).output;
+  const historicalGrader = Boolean(task.config.grader && task.config.grader !== TASK_TYPES[task.config.taskType].grader);
   if (!rounds.length) {
     return (
       <EmptyState title="还没有结果" action={<a className="button button--secondary" href={hrefOf({ page: "task", id: task.id, tab: "progress" })}>查看进度</a>}>
@@ -40,7 +41,7 @@ export function OverviewTab({ task, state }: { task: Task; state: State }) {
 
   return (
     <div className="panel-stack">
-      <Panel title={<>{metric}<InfoTip label="评分规则">{GRADERS[task.config.grader || TASK_TYPES[task.config.taskType].grader]?.detail ?? "按任务所选判分规则统计匹配数。"}百分比表示评测结果，不是运行进度。</InfoTip></>}>
+      <Panel extra={historicalGrader ? <Tag>历史判分</Tag> : undefined} title={<>{metric}<InfoTip label="评分规则">{historicalGrader ? "本任务保留创建时的判分规则。" : ""}{GRADERS[task.config.grader || TASK_TYPES[task.config.taskType].grader]?.detail ?? "按任务所选判分规则统计匹配数。"}百分比表示评测结果，不是运行进度。</InfoTip></>}>
         <dl className="stats">
           <Stat label="联邦前（第 1 轮）" value={formatPercent(first)} sub="各方单独作答" />
           <Stat

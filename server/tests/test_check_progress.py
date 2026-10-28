@@ -16,6 +16,7 @@ def test_independent_agents_overlap_and_publish_real_step_progress(platform, cli
     config.update(execution="agent", agentId=remote[0])
     medical_agents(client, config, remote[0])
     verify_resources(client, config)
+    config["grader"] = "diagnosis-exact"  # 单独验证两Agent并行，独立评测模型的第三个探测由其他测试覆盖。
     calls_before = len(remote[1])
     original = AgentGateway.request
     rendezvous = Barrier(2)

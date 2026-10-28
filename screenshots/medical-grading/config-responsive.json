@@ -1,0 +1,37 @@
+[
+  {
+    "extraAgentPicker": 0,
+    "gradingPickers": 1,
+    "modelSections": 1,
+    "scrollWidth": 320,
+    "width": 320
+  },
+  {
+    "extraAgentPicker": 0,
+    "gradingPickers": 1,
+    "modelSections": 1,
+    "scrollWidth": 390,
+    "width": 390
+  },
+  {
+    "extraAgentPicker": 0,
+    "gradingPickers": 1,
+    "modelSections": 1,
+    "scrollWidth": 768,
+    "width": 768
+  },
+  {
+    "extraAgentPicker": 0,
+    "gradingPickers": 1,
+    "modelSections": 1,
+    "scrollWidth": 1024,
+    "width": 1024
+  },
+  {
+    "extraAgentPicker": 0,
+    "gradingPickers": 1,
+    "modelSections": 1,
+    "scrollWidth": 1280,
+    "width": 1280
+  }
+]

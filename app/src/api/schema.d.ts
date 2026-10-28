@@ -1520,6 +1520,11 @@ export interface components {
             label: string;
             /** Detail */
             detail: string;
+            /**
+             * Requiresmodel
+             * @default false
+             */
+            requiresModel: boolean;
         };
         /** GroupOut */
         GroupOut: {
@@ -1771,6 +1776,11 @@ export interface components {
             participantModel: boolean;
             /** Servermodel */
             serverModel: boolean;
+            /**
+             * Servermodellabel
+             * @default 汇总模型
+             */
+            serverModelLabel: string;
             /** Executionlabel */
             executionLabel: string;
             /** Executionmodes */

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from fedagent_sdk import SERVER, Algorithm, ModelError, SiteSpec, TaskSpec
+from fedagent_sdk import Algorithm, ModelError, SiteSpec, TaskSpec
 from sqlalchemy.orm import Session
 
 from .. import models as m
@@ -41,7 +41,7 @@ def _items_of(platform: Platform, dataset: m.Dataset, cap: int | None) -> tuple[
         return chosen, min(labeled, len(chosen))
     rows = platform.files.load(dataset.content_path or "")
     chosen_rows = rows[:cap] if cap else rows
-    return [task_type.item_id(row) for row in chosen_rows], sum(1 for row in chosen_rows if task_type.is_labeled(row))
+    return [task_type.item_id(row) for row in chosen_rows], sum(1 for row in chosen_rows if task_type.is_evaluated(row))
 
 
 def validate(platform: Platform, session: Session, body: TaskConfigIn) -> tuple[list[IssueOut], Prepared | None]:
@@ -158,7 +158,7 @@ def validate(platform: Platform, session: Session, body: TaskConfigIn) -> tuple[
                     if resource.resource_space != "workspace" and not resource.shared:
                         issue("participants", f"{label}“{resource.name}”已取消共享，请重新选择")
     refs = {site.model_ref for site in prepared.sites if site.participant.hosting == "platform" and body.execution == "builtin"}
-    if any(step.at == SERVER and step.model for step in manifest.steps):
+    if platform.registry.requires_server_model(prepared.algorithm, body.task_type, body.grader):
         refs.add(body.server_model)
     for ref in sorted(refs):
         try:
@@ -202,6 +202,12 @@ def estimate(platform: Platform, body: TaskConfigIn, prepared: Prepared) -> Esti
     spec = _spec(body, prepared)
     result = prepared.algorithm.estimate(spec)
     problems = sum(len(site.items) for site in prepared.sites)
+    grader = platform.registry.grader(body.grader or platform.registry.task_type(body.task_type).graders[0])
+    if grader.requires_model:
+        judges = sum(site.labeled for site in prepared.sites) * body.rounds
+        result.server_calls += judges
+        result.server_tokens += judges * 2300
+        result.calls_are_upper_bound = True
     cost: float | None = 0.0
     if problems and result.participant_tokens:
         for site in prepared.sites:

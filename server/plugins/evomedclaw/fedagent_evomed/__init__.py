@@ -125,6 +125,8 @@ class EvoMedClaw(Algorithm):
 
     def fake_reply(self, step_id: str | None, prompt: str, seed: str) -> str | None:
         # 仅由开发／测试的假模型执行，生产接口不使用此分支。
+        if "CLINICAL EQUIVALENCE" in prompt:
+            return "[0.0]"
         if "local clinic doctor" in prompt or "single most likely diagnosis" in prompt:
             return "DIAGNOSIS READY: migraine"
         if "patient" in prompt.lower():

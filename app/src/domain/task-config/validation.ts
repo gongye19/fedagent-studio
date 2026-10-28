@@ -111,7 +111,7 @@ export function draftIssues(
           )
           .map((p) => overrides[p.participantId] || draft.clientModel)
       : []),
-    ...(algorithm.stages.some((stage) => stage.side === "server" && stage.model)
+    ...(algorithm.requirements.serverModel
       ? [draft.serverModel]
       : []),
   ];

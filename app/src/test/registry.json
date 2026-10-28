@@ -27,12 +27,19 @@
       "id": "medical-diagnosis",
       "label": "医疗诊断",
       "metric": "诊断匹配率",
-      "grader": "diagnosis-exact",
+      "grader": "diagnosis-clinical",
       "graders": [
+        {
+          "id": "diagnosis-clinical",
+          "label": "原版诊断判分",
+          "detail": "先按原仓库检查诊断名称、缩写等包含关系；未命中时由独立模型比较临床等价程度，达到0.75通过。模型异常会中止判分，不计为错误。此指标不是临床有效性验证。",
+          "requiresModel": true
+        },
         {
           "id": "diagnosis-exact",
           "label": "诊断名称匹配",
-          "detail": "去掉诊断前缀、大小写与标点后匹配完整名称；参考诊断可用 | 分隔明确的别名。此指标不是临床有效性评价。"
+          "detail": "去掉诊断前缀、大小写与标点后匹配完整名称；参考诊断可用 | 分隔明确的别名。此指标不是临床有效性评价。",
+          "requiresModel": false
         }
       ],
       "format": "{\"id\", \"patient\", \"objective\", \"examination\", \"tests\", \"answer\", \"split\"}；也可上传 MedAgentSim OSCE JSONL",
@@ -82,12 +89,14 @@
         {
           "id": "math-answer",
           "label": "答案比对",
-          "detail": "抽取 \\boxed{} 里的答案，规范化后与标准答案比较（论文兼容口径）"
+          "detail": "抽取 \\boxed{} 里的答案，规范化后与标准答案比较（论文兼容口径）",
+          "requiresModel": false
         },
         {
           "id": "math-answer-strict",
           "label": "答案比对（严格）",
-          "detail": "只认最后一个 \\boxed{} 里的答案，规范化后整体相等才算对"
+          "detail": "只认最后一个 \\boxed{} 里的答案，规范化后整体相等才算对",
+          "requiresModel": false
         }
       ],
       "format": "{\"id\", \"question\", \"answer\"}",
@@ -111,10 +120,10 @@
   "algorithms": [
     {
       "id": "evomedclaw",
-      "version": "1.0.0",
+      "version": "1.2.0",
       "scenario": "horizontal",
       "name": "EvoMedClaw",
-      "fullName": "EvoMedClaw · 医疗过程经验协作",
+      "fullName": "EvoMedClaw · 横向医疗记忆共享",
       "summary": "各方完成诊断并提炼过程经验，聚合后用于下一轮诊断",
       "exchange": "医疗过程经验卡",
       "output": {
@@ -123,8 +132,19 @@
       },
       "stages": [
         {
+          "id": "load_memory",
+          "label": "加载共享记忆",
+          "side": "participant",
+          "role": "participant",
+          "per": "site",
+          "result": null,
+          "seconds": 0,
+          "tokens": null,
+          "model": false
+        },
+        {
           "id": "diagnose",
-          "label": "本方诊断",
+          "label": "独立评测",
           "side": "participant",
           "role": "participant",
           "per": "item",
@@ -142,7 +162,7 @@
           "result": "uploads",
           "seconds": 2.0,
           "tokens": null,
-          "model": false
+          "model": true
         },
         {
           "id": "aggregate",
@@ -191,7 +211,8 @@
         "minSources": 2,
         "minSamples": 2,
         "participantModel": true,
-        "serverModel": false,
+        "serverModel": true,
+        "serverModelLabel": "评测模型",
         "executionLabel": "EvoMedClaw 执行流程",
         "executionModes": [
           "agent"
@@ -396,6 +417,7 @@
         "minSamples": 1,
         "participantModel": true,
         "serverModel": true,
+        "serverModelLabel": "汇总模型",
         "executionLabel": "FoT 执行流程",
         "executionModes": [
           "platform",

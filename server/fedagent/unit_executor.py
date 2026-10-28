@@ -109,11 +109,24 @@ class UnitExecutor:
             log.exception("unit %s failed", unit_id)
             return Outcome(False, f"{type(error).__name__}: {error}\n{traceback.format_exc(limit=3)}")
         graded = []
-        for item_id, prediction in ctx.result.predictions:
-            record = records.get(item_id, {})
-            labeled = self.task_type.is_labeled(record)
-            correct = bool(labeled and self.grader.grade(prediction, record))
-            graded.append(Graded(item_id, labeled, correct))
+        try:
+            grading_model = None
+            if self.grader.requires_model and ctx.result.predictions:
+                grading_model = self.platform.gateway.model(
+                    self.site_by_id["server"].model_ref or "default",
+                    ledger=LedgerKey(self.task_id, site.id, round, step.id, unit_key),
+                    plugin=self.plugin, step_id=step.id, purpose="grade",
+                )
+            for item_id, prediction in ctx.result.predictions:
+                record = records.get(item_id, {})
+                labeled = self.task_type.is_evaluated(record)
+                correct = bool(labeled and self.grader.evaluate(prediction, record, grading_model))
+                graded.append(Graded(item_id, labeled, correct))
+        except ModelError as error:
+            return Outcome(False, f"判分失败：{error}")
+        except Exception as error:
+            log.exception("unit %s grading failed", unit_id)
+            return Outcome(False, f"判分失败：{type(error).__name__}: {error}", pause=True)
         with self.db.session() as session:
             unit = session.get(m.WorkUnit, unit_id)
             task = session.get(m.Task, self.task_id)

@@ -291,3 +291,5 @@ T92覆盖位置：PageHead返回在标题左侧同行，以aria-label及title标
 新增算法先补manifest、任务类型合同和agent_output_contract，再实现本站步骤与中心聚合；复用现有四接口，不为算法增加平台核心分支。private_state声明服务本地中间状态，公开输出必须纯校验；不要把完整轨迹塞进reports或logs绕过边界。plan可按轮次变化，TaskOut冻结stages／plan，进度组件使用stagesOf(task, round)。SDK0.2.4、EvoMed包0.2.0／协议1.1.0；新增能力须更新安装包、规范、OpenAPI和验证凭据。
 
 任务最少两方不意味着资源接入需要两方；验证单方能力后可与共享资源组合。新增医疗执行路径必须测eval答案隔离、本站轨迹不回传、加载版本拒错、最后成果确实被评测，以及旧1.0.0结果展示。UI沿用现有参考，规范折叠呈现，下载走api统一鉴权与原位错误反馈。
+
+T98判分扩展：确定性判分继续实现grade；需要模型时设置requires_model并实现evaluate，失败必须抛ModelError或业务错误，禁止把无响应当答错。模型通过网关提供，不在插件读密钥；注册表需暴露模型需求，任务连接检查保持只读探测。TaskType.is_evaluated用于任务分母，上传标注计数仍用is_labeled。规则语义变更使用新grader ID及算法版本，旧结果不重算。医疗源码在grading.py，原版函数不修改，网络重试由平台管理；回归见test_medical_grading.py。学习／判分有明确读取标注的授权，不能放宽诊断请求或联邦产出的标注隔离。

@@ -11,6 +11,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, Literal
 
+from .model import Model
+
 MAX_ISSUES = 5
 
 
@@ -112,6 +114,10 @@ class TaskType:
             return value
         return bool(self.label_fields) and all(_present(get(name)) for name in self.label_fields)
 
+    def is_evaluated(self, item: Mapping[str, Any]) -> bool:
+        """任务评测分母；有独立学习集的任务类型可排除学习样本。"""
+        return self.is_labeled(item)
+
     def labels_allowed(self, item: Mapping[str, Any]) -> bool:
         """声明 labels 的学习步骤可读取哪些样本的标注；评测集可覆盖为 False。"""
         return True
@@ -139,11 +145,16 @@ class Grader:
     id: ClassVar[str]
     label: ClassVar[str]
     detail: ClassVar[str] = ""
+    requires_model: ClassVar[bool] = False
     isolation: ClassVar[Literal["none", "sandbox"]] = "none"
     """要执行代码的判分标 sandbox，由隔离环境执行。"""
 
     def grade(self, prediction: Any, item: Mapping[str, Any]) -> bool:
         raise NotImplementedError
+
+    def evaluate(self, prediction: Any, item: Mapping[str, Any], model: Model | None = None) -> bool:
+        """可选模型判分；既有确定性判分器无需修改。标注仅交给独立判分器。"""
+        return self.grade(prediction, item)
 
 
 def _present(value: Any) -> bool:

@@ -3,7 +3,7 @@
 检查项：
 1. 任务跑完（没有因为插件出错暂停）；
 2. 每条消息都走声明过的通道，发送方的角色和通道一致；
-3. 标注没有离开持有方：数据里的标注换成唯一的标记，跑完后模型收到的所有提示词、所有消息、所有产出里都不能出现它；
+3. 标注没有越过授权边界：非学习／非判分提示词、所有联邦消息与产出都不能出现标注标记；
 4. 声明了产出的算法，每轮都生成一版产出；
 5. 中途暂停再继续（续跑）的结果，和一次跑完的结果完全一样（假模型的回答是确定的）。
 """
@@ -59,7 +59,7 @@ def _canary_rows(rows: list[dict[str, Any]], label_fields: tuple[str, ...]) -> t
 
 
 class _PromptRecorder:
-    """记下假模型收到的每一个提示词（检查标注有没有进到提示词里）。"""
+    """记录未获标注权限的模型提示词；学习与独立判分按契约允许读标注。"""
 
     def __init__(self) -> None:
         self.prompts: list[str] = []
@@ -71,7 +71,9 @@ class _PromptRecorder:
 
         def fake(model: GatewayModel, text: str, digest: str) -> str:
             with recorder.lock:
-                recorder.prompts.append(text)
+                step = model.plugin.manifest.step(model.step_id) if model.plugin and model.step_id else None
+                if model.purpose != "grade" and not (step and step.labels):
+                    recorder.prompts.append(text)
             return recorder._original(model, text, digest)
 
         GatewayModel._fake = fake  # type: ignore[method-assign]

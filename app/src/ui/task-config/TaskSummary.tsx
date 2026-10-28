@@ -121,11 +121,17 @@ export function TaskSummary({
                           </span>
                         ))
                       : "—"
-                    : `${state.agents.find((a) => a.id === draft.agentId)?.name ?? "Agent 待选"}${algorithm.requirements.serverModel ? `；汇总 ${modelLabel(draft.serverModel, state.endpoints)}` : ""}`
+                    : `${state.agents.find((a) => a.id === draft.agentId)?.name ?? "Agent 待选"}${algorithm.requirements.serverModel ? `；${algorithm.requirements.serverModelLabel ?? "汇总模型"} ${modelLabel(draft.serverModel, state.endpoints)}` : ""}`
                   : taskModelSummary(draft, state.endpoints, algorithm)
                 : "—"}
             </dd>
           </div>
+          {algorithm?.requirements.agentRequired && algorithm.requirements.serverModel ? (
+            <div>
+              <dt>{algorithm.requirements.serverModelLabel ?? "汇总模型"}</dt>
+              <dd>{modelLabel(draft.serverModel, state.endpoints)}</dd>
+            </div>
+          ) : null}
           {overrideCount && !algorithm?.requirements.agentRequired ? (
             <div>
               <dt>单独指定</dt>
@@ -136,6 +142,7 @@ export function TaskSummary({
         {result ? (
           <EstimateBlock
             result={result}
+            serverModelLabel={algorithm?.requirements.serverModelLabel}
             priceHref={hrefOf(endpointRoute(priceEndpoint))}
           />
         ) : null}

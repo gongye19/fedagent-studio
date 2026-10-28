@@ -21,7 +21,7 @@ export const ALGORITHM_GUIDES: Record<string, AlgorithmGuide> = {
   },
   evomedclaw: {
     purpose: "共享诊断过程经验，供医疗 Agent 后续检索。",
-    resources: "选择医疗 Agent 服务与同方病例，结合其他方共享资源，任务合计至少两方。",
+    resources: "医疗 Agent 服务、同方病例和评测 LLM；任务合计至少两方，可结合共享资源。",
     process: "基线评测 → 本站学习 → 聚合 → 加载记忆 → 再评测。",
     integration: "本站保存诊断轨迹；平台聚合精简经验，加载确认后独立评测。",
     desktop: diagramAssets.evomedclaw,

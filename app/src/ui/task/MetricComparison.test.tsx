@@ -33,3 +33,20 @@ it("shows actual start time separately and never substitutes creation time", () 
   expect(html).toContain('dateTime="2026-10-28T03:25:00Z"');
   expect(html).not.toContain("尚未开始");
 });
+
+it("keeps the frozen grading rule and only shows a model for model-based grading", async () => {
+  const { ConfigTab } = await import("./ConfigTab");
+  const { withDefaults } = await import("../../domain/config");
+  const { ENDPOINTS } = await import("../../test/fixtures");
+  const task = completedTask();
+  task.config = { ...task.config, algorithm: "evomedclaw", taskType: "medical-diagnosis", execution: "agent",
+    grader: "diagnosis-clinical", serverModel: "fake:fake" };
+  const state = { tasks: [task], participants: [], datasets: [], endpoints: ENDPOINTS, agents: [], published: [], draft: withDefaults({}) };
+  let html = renderToStaticMarkup(<ConfigTab task={task} state={state} />);
+  expect(html).toContain("评测模型");
+  expect(html).toContain("原版诊断判分");
+  task.config = { ...task.config, grader: "diagnosis-exact", serverModel: "" };
+  html = renderToStaticMarkup(<ConfigTab task={task} state={state} />);
+  expect(html).not.toContain("评测模型");
+  expect(html).toContain("诊断名称匹配");
+});
