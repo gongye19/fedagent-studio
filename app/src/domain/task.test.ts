@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { completedTask } from "../test/fixtures";
-import { accuracy, averageAccuracy, changeOf, latestScoredRound, negativeTransfer, outputs, progressOf, stepState, totalTokens } from "./task";
+import { accuracy, averageAccuracy, changeOf, latestScoredRound, negativeTransfer, outputs, stepState, totalTokens } from "./task";
 
 describe("task metrics", () => {
   it("reports round 1 as the local baseline and the last scored round as federated", () => {
@@ -24,25 +24,26 @@ describe("task metrics", () => {
     expect(totalTokens(task)).toBe(2700);
   });
 
-  it("derives progress and step states from the backend cursor", () => {
+  it("preserves earlier stages and future stages from the backend cursor", () => {
     const done = completedTask();
-    expect(progressOf(done)).toBe(1);
+    expect(stepState(done, 3, "library")).toBe("done");
     const running = completedTask({ status: "running", rounds: [], cursor: { round: 2, stage: "extract", done: { "p-a": 5, "p-b": 5 }, ticks: 0 } });
     expect(stepState(running, 1, "library")).toBe("done");
     expect(stepState(running, 2, "reflect")).toBe("done");
     expect(stepState(running, 2, "extract")).toBe("current");
     expect(stepState(running, 2, "collect")).toBe("pending");
     expect(stepState(running, 3, "solve")).toBe("pending");
-    // 第 2 轮第 3 步做了一半：(6 + 2 + 0.5) / 18
-    expect(progressOf(running)).toBeCloseTo(8.5 / 18);
-    const queued = completedTask({ status: "queued", rounds: [], cursor: { round: 1, stage: "solve", done: {}, ticks: 0 } });
-    expect(progressOf(queued)).toBe(0);
+    const queued = completedTask({ status: "queued", rounds: [], cursor: null });
+    expect(stepState(queued, 1, "solve")).toBe("pending");
   });
 
-  it("does not invent progress while a server step is executing or paused", () => {
-    const cursor = { round: 2, stage: "collect" as const, done: {}, ticks: 0 };
-    const running = completedTask({ status: "running", cursor });
-    expect(progressOf(running)).toBeCloseTo(9 / 18);
-    expect(progressOf({ ...running, status: "paused" })).toBe(progressOf(running));
+  it("keeps completed history while a server stage is paused or canceled", () => {
+    const cursor = { round: 2, stage: "collect", done: {}, ticks: 0 };
+    for (const status of ["running", "paused", "canceled"] as const) {
+      const task = completedTask({ status, cursor });
+      expect(stepState(task, 1, "library")).toBe("done");
+      expect(stepState(task, 2, "collect")).toBe("current");
+      expect(stepState(task, 2, "library")).toBe("pending");
+    }
   });
 });

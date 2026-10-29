@@ -1,11 +1,11 @@
 import { useState, type Dispatch } from "react";
 import { ApiError } from "../api/client";
 import { toDraft } from "../domain/config";
-import { canDeleteTask, progressOf, scoredRounds, type Task } from "../domain/task";
+import { canDeleteTask, scoredRounds, type Task } from "../domain/task";
 import { controlTask } from "../state/actions";
 import { navigate, type TaskTab } from "../state/route";
 import type { Action, State } from "../state/store";
-import { Confirm, Meta, Notice, PageHead, ProgressBar, TabLinks, Tag } from "./common";
+import { Confirm, Meta, Notice, PageHead, TabLinks, Tag } from "./common";
 import { formatDate } from "./format";
 import { Icon } from "./icons";
 import { stageText, taskSummaryParts } from "./labels";
@@ -106,17 +106,14 @@ export default function TaskPage({ task, state, dispatch, tab }: Props) {
   );
 }
 
-/** 运行中或暂停的任务在标签下方显示当前步骤和总进度；读屏只播报步骤变化，不播报百分比。 */
+/** 运行中或暂停的任务在标签下方显示当前步骤；不根据不同耗时的阶段推算百分比。 */
 function LiveBanner({ task }: { task: Task }) {
-  const progress = progressOf(task);
   const stage = stageText(task);
   const paused = task.status === "paused";
   const queued = task.status === "queued";
   return (
     <div className={`live-banner live-banner--${task.status}`}>
       <strong className="live-copy">{queued ? "排队中，等前面的任务完成后开始" : `${stage}${paused ? " · 已暂停" : ""}`}</strong>
-      <ProgressBar value={progress} label="步骤完成进度" tone={paused ? "warning" : "info"} />
-      <span className="live-percent" title="按已完成步骤及样本计算" aria-hidden="true">{Math.round(progress * 100)}%</span>
       <span className="visually-hidden" aria-live="polite">{stage}</span>
     </div>
   );

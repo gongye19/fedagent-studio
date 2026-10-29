@@ -299,3 +299,7 @@ T99收尾：备份须先停止四项服务（无活动任务／验证），所�
 ### T100：简洁进度与案例记录
 
 ProgressTab只组合已有Task.cursor／冻结plan和ProgressBar／CheckStatus，不读取通信或多层动作。CaseResults使用管理API GET /tasks/{id}/cases，按round／site／outcome筛选、offset／limit分页；schema变更后仍运行npm run api:types。案例由UnitExecutor完成独立判分后生成去标注预览，与store_result所有权／attempt门禁同事务写入Reports(case_result)。保留名不得由Agent或旧客户端上报；只允许管理侧读取参考标注，不将结果记录作为Agent输入。历史数据不回填或重评。TaskOut轮询明确排除case_result长正文，避免每次进度查询加载完整回答。新增用例在test_cases.py、check-state.test.ts和ProgressTab.test.tsx。
+
+### T101：阶段状态及纯前端发布
+
+不使用异构单元数或阶段权重推算任务百分比；ProgressBar／progressOf／stageSeconds已删除。stagesOf和stepState只决定阶段顺序与状态，成绩指标不受影响。纯前端更新可只备份旧dist，再上传除index外文件，最后以rsync临时文件重命名切换index，保留旧哈希资源；不用重启API／runner或中断任务。此类验证只读观察已有任务、配合状态回归，无模型或编排改动时不自动追加付费试跑。

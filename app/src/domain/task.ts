@@ -5,7 +5,7 @@
  * metric = 各方本轮答对多少，uploads = 各方上传多少条，groups = 服务端归成几类，output = 这一轮的产出。
  */
 import type { components } from "../api/schema";
-import { algorithmOf, stageOf, type Stage, type StageId } from "./catalog";
+import { algorithmOf, type Stage, type StageId } from "./catalog";
 import type { TaskConfig } from "./config";
 
 type TaskOut = components["schemas"]["TaskOut"];
@@ -108,40 +108,16 @@ export function totalProblems(task: Pick<Task, "members">): number {
   return task.members.reduce((sum, member) => sum + member.problems, 0);
 }
 
-/** 步骤完成比例（0–1）：参与方按已完成样本计，服务端只计完成的步骤，不猜测执行中的百分比。 */
-export function progressOf(task: Task): number {
-  const cursor = task.cursor;
-  if (!cursor) return task.status === "completed" ? 1 : 0;
-  const stages = stagesOf(task, cursor.round);
-  const totalStages = Array.from({ length: task.config.rounds }, (_, i) => stagesOf(task, i + 1).length).reduce((a, b) => a + b, 0);
-  const before = Array.from({ length: cursor.round - 1 }, (_, i) => stagesOf(task, i + 1).length).reduce((a, b) => a + b, 0);
-  const index = Math.max(0, stages.findIndex((stage) => stage.id === cursor.stage));
-  let within = 0;
-  if (stages[index]?.side === "participant") {
-    const total = stages[index]?.per === "site" ? task.members.length : totalProblems(task);
-    const done = task.members.reduce((sum, member) => sum + (cursor.done[member.participantId] ?? 0), 0);
-    within = total ? done / total : 0;
-  }
-  return Math.min(1, (before + index + within) / (totalStages));
-}
-
 export type StepState = "done" | "current" | "pending";
 
 /** 某一轮某一步的状态；暂停或取消的任务停在 current 那一步。 */
 export function stepState(task: Task, round: number, stage: StageId): StepState {
   const cursor = task.cursor;
-  if (!cursor) return "done";
+  if (!cursor) return task.status === "completed" ? "done" : "pending";
   if (round < cursor.round) return "done";
   if (round > cursor.round) return "pending";
   const stages = stagesOf(task, round);
   const current = stages.findIndex((item) => item.id === cursor.stage);
   const index = stages.findIndex((item) => item.id === stage);
   return index < current ? "done" : index === current ? "current" : "pending";
-}
-
-/** 每一步的预估耗时（秒）：按算法给出的每步耗时计算，所有参与方的样本共用同一组并发。 */
-export function stageSeconds(task: Task, stage: StageId): number {
-  const definition = stageOf(algorithmOf(task.config.algorithm), stage);
-  if (definition.side === "server") return definition.seconds;
-  return Math.ceil(totalProblems(task) / Math.max(1, task.config.workers)) * definition.seconds;
 }

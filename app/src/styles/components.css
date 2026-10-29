@@ -187,13 +187,7 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 .form-buttons { margin-left: auto; display: flex; flex-wrap: wrap; gap: var(--space-2); justify-content: flex-end; }
 
 
-/* ——— 进度条与指标 ——— */
-.progress { height: 6px; background: var(--surface-hover); border-radius: 999px; overflow: hidden; }
-.progress span { display: block; width: 100%; height: 100%; background: var(--accent); border-radius: inherit; transform-origin: left center; transition: transform .4s ease; }
-.progress--warning span { background: var(--warning); }
-.progress--neutral span { background: var(--faint); }
-
-.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-6); }
+/* ——— 指标 ——— */.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-6); }
 .stat { display: grid; gap: var(--space-1); align-content: start; }
 .stat dt { color: var(--secondary); font-size: var(--text-sm); }
 .stat dd { display: grid; gap: 2px; }
@@ -239,10 +233,9 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 .table td.cell-action .button--compact { margin-block: -5px; }
 /* 表格行里的下拉框（例如参与方选用哪份数据集）：和行里的文字同高，不把行撑高 */
 .table .select-trigger.cell-select { width: auto; min-width: 140px; max-width: 100%; height: 28px; min-height: 28px; margin-block: -5px; padding: 3px 8px; }
-.progress-cell { min-width: 150px; }
-.progress-line { display: flex; flex-wrap: wrap; gap: 2px var(--space-2); align-items: center; }
-.progress-cell .progress { margin-top: 6px; }
-.progress-line small { margin: 0 !important; }
+.task-status-cell { min-width: 150px; }
+.task-status-line { display: flex; flex-wrap: wrap; gap: 2px var(--space-2); align-items: center; }
+.task-status-line small { margin: 0 !important; }
 .table--rows tbody tr:not(.detail-row):hover > * { background: var(--surface); }
 .row--toggle { cursor: pointer; }
 .row--open > * { border-bottom-color: transparent !important; }

@@ -4,17 +4,26 @@ import { completedTask } from "../../test/fixtures";
 import { ProgressTab } from "./ProgressTab";
 import { CaseItem } from "./CaseResults";
 
-it("uses real progress with animation only while running and removes communication/nested process UI", () => {
-  const task = completedTask();
-  let html = renderToStaticMarkup(<ProgressTab task={task} />);
-  expect(html).toContain("100%");
-  expect(html).not.toContain("execution-progress--active");
-  expect(html).not.toContain("通讯"); expect(html).not.toContain("执行过程");
-  task.status = "paused"; task.cursor = { round: 1, stage: "solve", done: {}, ticks: 0 };
-  html = renderToStaticMarkup(<ProgressTab task={task} />);
-  expect(html).toContain("已暂停"); expect(html).not.toContain("check-status-spinner"); expect(html).not.toContain("100%");
-  task.status = "running";
-  expect(renderToStaticMarkup(<ProgressTab task={task} />)).toContain("execution-progress--active");
+it("shows stages vertically with history, without pseudo percentages or ambiguous unit ratios", () => {
+  const task = completedTask({ status: "running", cursor: { round: 2, stage: "extract", done: { "p-a": 4, "p-b": 5 }, ticks: 0 } });
+  task.members = task.members.map((m) => ({ ...m, problems: 5 }));
+  const html = renderToStaticMarkup(<ProgressTab task={task} />);
+  expect(html).toContain('aria-label="第 1 轮步骤"');
+  expect(html).toContain('aria-label="第 2 轮步骤"');
+  expect(html.indexOf("第 1 轮")).toBeLessThan(html.indexOf("第 2 轮"));
+  expect(html).toContain("进行中"); expect(html).toContain("未完成"); expect(html).toContain("已完成");
+  expect(html).not.toContain("progressbar"); expect(html).not.toContain("%"); expect(html).not.toContain("4 / 5");
+  expect(html).not.toContain("通讯"); expect(html).not.toContain("execution-percent");
+  expect(html.match(/check-status-spinner/g)).toHaveLength(1);
+});
+it("does not present batch counters as sample progress, and stops animation after stopping", () => {
+  const task = completedTask({ status: "running", cursor: { round: 1, stage: "collect", done: {}, ticks: 0 } });
+  for (const status of ["paused", "canceled", "queued", "completed"] as const) {
+    task.status = status;
+    if (status === "completed") task.cursor = null;
+    const html = renderToStaticMarkup(<ProgressTab task={task} />);
+    expect(html).not.toContain("check-status-spinner"); expect(html).not.toContain("0 / 1"); expect(html).not.toContain("progressbar");
+  }
 });
 it("locates incorrect answers at grading without claiming the execution step failed", () => {
   const task = completedTask();

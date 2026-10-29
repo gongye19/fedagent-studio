@@ -1,0 +1,17 @@
+{
+  "files": 17,
+  "allMatch": true,
+  "pids": [
+    511207,
+    511208
+  ],
+  "health": {
+    "ok": true
+  },
+  "frontendTests": 54,
+  "backendChanged": false,
+  "extraModelCalls": 0,
+  "observedUserTask": "task-19e72f50",
+  "userTaskStatus": "completed",
+  "frontendBackup": "frontend-20261029T050222487470Z"
+}

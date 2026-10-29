@@ -158,15 +158,6 @@ export function PanelEmpty({ children, action }: { children: ReactNode; action?:
   );
 }
 
-export function ProgressBar({ value, label, tone = "info" }: { value: number; label: string; tone?: "info" | "warning" | "neutral" }) {
-  const ratio = Math.min(1, Math.max(0, value));
-  return (
-    <div className={`progress progress--${tone}`} role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(ratio * 100)}>
-      <span style={{ transform: `scaleX(${ratio})` }} />
-    </div>
-  );
-}
-
 export function Stat({ label, value, sub, tone, href }: { label: string; value: ReactNode; sub?: ReactNode; tone?: "up" | "down"; href?: string }) {
   return (
     <div className={`stat${tone ? ` stat--${tone}` : ""}`}>

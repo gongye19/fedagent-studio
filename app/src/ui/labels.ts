@@ -29,7 +29,7 @@ export function stageText(task: Task): string | null {
   if (!task.cursor) return null;
   const cursor = task.cursor;
   const stage = algorithmOfTask(task).stages.find((item) => item.id === cursor.stage);
-  return `第 ${cursor.round} / ${task.config.rounds} 轮 · ${stage?.label ?? ""}`;
+  return `第 ${cursor.round} 轮 · ${stage?.label ?? ""}`;
 }
 
 /**

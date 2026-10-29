@@ -794,3 +794,9 @@ MetricComparison管理图例，trend.ts保持既有宏平均／分母与null，T
 - GET /tasks/{id}/cases使用同一admin_router，冻结manifest确定评测步骤，支持round／site／outcome与offset／limit（默认20、最大100），返回分类数量。历史按单样本原判分降级，缺少正文不补造。失败单元仅给真实失败步骤及首行错误；未判分不算错误。
 - 远程Agent／旧客户端reports保留名增加case_result，禁止冒充平台结果。没有数据库迁移、SDK或算法版本变化；旧客户端不强求提交回答。
 - useTaskCheck的状态由提交阶段与当前签名报告共同决定；POST响应先写入TanStack缓存再切报告ID，首读pending仍为running。提交中／签名不符隐藏旧报告，valid排除检查中与读失败；testConfiguration不再触发“尚未检查”的开始校验。
+
+## 41. T101：阶段状态时间线
+
+覆盖§40的进度条展示：ProgressTab用stagesOf(task, round)读取冻结各轮plan，用stepState读取cursor前后状态，原生ol按轮次／步骤纵向列出全部历史；不依据单元完成比估计耗时。参与方done计数只与该步骤期望工作单元数比较，用于整个步骤完成二态，不作为病例数或进度条。没有更细数据时，不猜测排队、内部动作和剩余时间。
+
+删除progressOf、未再使用的stageSeconds、ProgressBar及其CSS；任务列表与其他详情标签页同步不展示估算条。stepState在非completed且没有cursor时返回pending，避免排队空状态显示全绿。后台API、编排、算法与病例合同不变。

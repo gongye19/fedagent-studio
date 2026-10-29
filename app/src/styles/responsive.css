@@ -65,7 +65,7 @@
   .table--tasks tbody th { grid-column: 1 / -1; }
   .table--tasks td[data-label] { display: grid; gap: 2px; align-content: start; text-align: left; white-space: normal; }
   .table--tasks td[data-label]::before { content: attr(data-label); color: var(--muted); font-size: var(--text-xs); }
-  .table--tasks .progress-cell { min-width: 0; }
+  .table--tasks .task-status-cell { min-width: 0; }
   .table--tasks .table-link::after { content: ""; position: absolute; inset: 0; }
   .table--tasks td button { position: relative; z-index: 1; }
   .table--tasks td[data-label="操作"] { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
@@ -84,8 +84,6 @@
   .choice { min-width: 0; flex: 1 1 0; }
   .step-group ol { grid-template-columns: minmax(0, 1fr); }
   .facts > div { grid-template-columns: 104px minmax(0, 1fr); }
-  .live-banner { grid-template-columns: minmax(0, 1fr) 40px; }
-  .live-banner .progress { grid-column: 1 / -1; grid-row: 2; }
   .table th, .table td { padding-inline: var(--space-3); }
   .detail-row > td { padding: 0 var(--space-3) var(--space-4); }
   /* 步骤不再缩进到轮次标题下面，给内容留出宽度 */
@@ -115,7 +113,7 @@
   .table--stack td[data-label] { display: grid; gap: 2px; align-content: start; text-align: left; white-space: normal; }
   .table--stack td[data-label]::before { content: attr(data-label); color: var(--muted); font-size: var(--text-xs); }
   .table--stack td[data-label] small { display: block; margin: 2px 0 0; }
-  .table--stack .progress-cell { min-width: 0; }
+  .table--stack .task-status-cell { min-width: 0; }
   .table--tasks td[data-label="操作"] { grid-column: 1 / -1; display: flex; justify-content: flex-end; padding-top: var(--space-2); }
   .table--tasks td[data-label="操作"]::before { display: none; }
   .table--stack tr.row--open { padding-bottom: var(--space-1); border-bottom: 0; background: var(--surface); }

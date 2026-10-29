@@ -1,7 +1,7 @@
 import { TASK_TYPES } from "../domain/catalog";
-import { averageAccuracy, canDeleteTask, latestScoredRound, progressOf, TASK_STATUS, type Task } from "../domain/task";
+import { averageAccuracy, canDeleteTask, latestScoredRound, TASK_STATUS, type Task } from "../domain/task";
 import { hrefOf } from "../state/route";
-import { ProgressBar, Tag } from "./common";
+import { Tag } from "./common";
 import { formatDate, formatDelta, formatPercent } from "./format";
 import { algorithmOfTask, deltaClass, metricOf, stageText, statusTone } from "./labels";
 import { ScenarioTag } from "./ScenarioTag";
@@ -56,14 +56,12 @@ export function TaskTable({ tasks, onDelete }: { tasks: readonly Task[]; onDelet
                 <td data-label="场景"><ScenarioTag scenario={task.config.scenario} /></td>
                 <td data-label="算法">{algorithmOfTask(task).name}</td>
                 <td data-label="任务类型">{TASK_TYPES[task.config.taskType].label}</td>
-                <td className="progress-cell" data-label="状态">
-                  <div className="progress-line">
+                <td className="task-status-cell" data-label="状态">
+                  <div className="task-status-line">
                     <TaskStatus task={task} />
                     {stage ? <small>{stage}</small> : null}
                   </div>
-                  {task.cursor && task.status !== "canceled" ? (
-                    <ProgressBar value={progressOf(task)} label={`${task.name} 的步骤完成进度`} tone={task.status === "paused" ? "warning" : "info"} />
-                  ) : null}
+
                 </td>
                 <td className="numeric" data-label="主要指标"><MetricChange task={task} /></td>
                 <td className="numeric nowrap" data-label="开始时间">{task.startedAt ? <time dateTime={task.startedAt}>{formatDate(task.startedAt)}</time> : <span className="muted">尚未开始</span>}</td>
