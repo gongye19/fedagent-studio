@@ -1,5 +1,13 @@
 # 自有 Agent 接入协议
 
+## T104 当前医疗协议：1.4.0
+
+覆盖T102学习批步骤：第2组计划为`learn → compile → load_local_memory → diagnose → aggregate`，其余组不变。learn现在per:item，只处理当前learn病例并私有保存完整轨迹和学习判分，返回`reports.learnedCase = {id, sha256}`，eval样本跳过；不得发卡、预测或私有kept。compile为per:site，读取本方本组完成的全部学习轨迹，按输入顺序调用原编译器，再返回原clinical-cards精简更新、卡数报告；不得在compile重新诊断病例或调用模型。缺失轨迹则失败，不生成部分卡库。load_local_memory等后续合同沿用1.3。
+
+参考服务按病例持久化私有状态及幂等run结果；中断后平台跳过已完成工作单元。可选`RunStatus.error_code = model_unavailable | interrupted`标明没有有效输出的暂时中断，平台暂停并保留成功调用；实际坏输出／诊断不完整保留原错误语义。第三方服务不得把坏输出标成中断以逃避验证，需自行保证服务内部检查点与幂等。事件支持仍可选，正式批总预算随items扩展但有上限，接入完整验证总预算仍900秒。
+
+协议变更须重新下载规范并通过资源准入；已完成旧任务仍按冻结旧清单展示。SDK0.2.8可选ForkableModel为独立专家提供稳定分支，普通Model可继续串行。平台不要求第三方服务采用同一线程池实现。
+
 ## T102 当前医疗接入：三组固定对照
 
 EvoMedClaw算法协议1.3.0，包0.3.0，SDK0.2.7。rounds固定为3，用户不填写。按下载契约plans执行：1 diagnose（none）；2 learn、load_local_memory、diagnose（local）、aggregate（中心）；3 load_memory、diagnose（federated）。三组用同一份本站eval病例，learn病例不参与评测，评测病例标注不交给Agent。

@@ -8,12 +8,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from fedagent_sdk import Algorithm, CapabilityError, Grader, ModelError, ProgressUpdate, SiteInfo, StepContext, StepDef, StepFailed, TaskType
-from sqlalchemy import update
+from fedagent_sdk import Algorithm, CapabilityError, Grader, ModelError, ModelUnavailable, ProgressUpdate, SiteInfo, StepContext, StepDef, StepFailed, TaskType
+from sqlalchemy import or_, update
 
 from . import models as m
 from .data import to_item
 from .gateway import LedgerKey
+from .model_runtime import fork_prefix
 from .platform import Platform
 from .task_services.cases import snapshot as case_snapshot
 from .units import DbStepIO, Graded, SiteView, store_result
@@ -26,6 +27,7 @@ class Outcome:
     ok: bool
     error: str | None = None
     pause: bool = False
+    preserve_calls: bool = False
 
 
 @dataclass
@@ -125,9 +127,14 @@ class UnitExecutor:
             else:
                 self.plugin.run_step(ctx)
         except StepFailed as error:
+            from .agents.gateway import AgentPending
+            if isinstance(error, AgentPending):
+                return Outcome(False, str(error), pause=True, preserve_calls=True)
             return Outcome(False, str(error), pause=error.pause)
         except CapabilityError as error:
             return Outcome(False, f"插件用了清单没有声明的能力：{error}", pause=True)
+        except ModelUnavailable as error:
+            return Outcome(False, f"模型暂时不可用：{error}", pause=True, preserve_calls=True)
         except ModelError as error:
             return Outcome(False, f"模型调用失败：{error}")
         except Exception as error:
@@ -147,6 +154,8 @@ class UnitExecutor:
                 labeled = self.task_type.is_evaluated(record)
                 correct = bool(labeled and self.grader.evaluate(prediction, record, grading_model))
                 graded.append(Graded(item_id, labeled, correct, case_snapshot(self.task_type, record, item_id, prediction, labeled, correct)))
+        except ModelUnavailable as error:
+            return Outcome(False, f"判分模型暂时不可用：{error}", pause=True, preserve_calls=True)
         except ModelError as error:
             return Outcome(False, f"判分失败：{error}")
         except Exception as error:
@@ -189,6 +198,8 @@ def fail_unit(db, unit_id: int, attempt: int, step: StepDef, outcome: Outcome) -
             return
         unit = session.get(m.WorkUnit, unit_id)
         assert unit is not None
+        if outcome.preserve_calls:
+            return
         # 这次尝试的调用作废：重试（或修好后继续）时重新调用模型，而不是从账本取回让这一步失败的结果。
         # 费用照记（账本里的行还在），只是不再拿来续跑。
         session.execute(
@@ -198,7 +209,7 @@ def fail_unit(db, unit_id: int, attempt: int, step: StepDef, outcome: Outcome) -
                 m.CallRecord.site_id == unit.site_id,
                 m.CallRecord.round == unit.round,
                 m.CallRecord.step == unit.step,
-                m.CallRecord.unit_key == unit.unit_key,
+                or_(m.CallRecord.unit_key == unit.unit_key, m.CallRecord.unit_key.startswith(fork_prefix(unit.unit_key) + "~", autoescape=True)),
                 m.CallRecord.status == "ok",
             )
             .values(status="discarded"),

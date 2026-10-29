@@ -169,16 +169,13 @@ class TaskEngine:
     def _claim_platform_units(self, round: int, step: StepDef, limit: int) -> list[tuple[int, int]]:
         """领取待执行的单元，返回（单元 id，第几次尝试）；保存结果时按尝试次数核对，过期的执行不会覆盖新的。"""
         with self.db.session() as session:
+            pending = select(m.WorkUnit.id, func.row_number().over(partition_by=m.WorkUnit.site_id, order_by=m.WorkUnit.id).label("position")).where(
+                m.WorkUnit.task_id == self.task_id, m.WorkUnit.round == round, m.WorkUnit.step == step.id,
+                m.WorkUnit.executor.in_(("platform", "agent")), m.WorkUnit.status == "pending").subquery()
             units = session.scalars(
                 select(m.WorkUnit)
-                .where(
-                    m.WorkUnit.task_id == self.task_id,
-                    m.WorkUnit.round == round,
-                    m.WorkUnit.step == step.id,
-                    m.WorkUnit.executor.in_(("platform", "agent")),
-                    m.WorkUnit.status == "pending",
-                )
-                .order_by(m.WorkUnit.id)
+                .join(pending, m.WorkUnit.id == pending.c.id)
+                .order_by(pending.c.position, m.WorkUnit.id)
                 .limit(limit)
             ).all()
             for unit in units:

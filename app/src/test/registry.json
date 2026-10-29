@@ -120,7 +120,7 @@
   "algorithms": [
     {
       "id": "evomedclaw",
-      "version": "1.3.0",
+      "version": "1.4.0",
       "scenario": "horizontal",
       "name": "EvoMedClaw",
       "fullName": "EvoMedClaw · 横向医疗记忆共享",
@@ -166,6 +166,17 @@
         },
         {
           "id": "learn",
+          "label": "诊疗学习病例",
+          "side": "participant",
+          "role": "participant",
+          "per": "item",
+          "result": null,
+          "seconds": 100.0,
+          "tokens": null,
+          "model": true
+        },
+        {
+          "id": "compile",
           "label": "提炼并提交经验",
           "side": "participant",
           "role": "participant",
@@ -173,7 +184,7 @@
           "result": "uploads",
           "seconds": 2.0,
           "tokens": null,
-          "model": true
+          "model": false
         },
         {
           "id": "aggregate",

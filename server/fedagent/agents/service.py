@@ -12,7 +12,7 @@ from multiprocessing.process import BaseProcess
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
-from fedagent_sdk import ModelError, StepFailed
+from fedagent_sdk import ModelError, ModelUnavailable, StepFailed
 
 from ..gateway import LedgerKey
 from ..platform import Platform
@@ -83,7 +83,8 @@ def _work(settings: dict, path: Path, body: AgentRequest, model_ref: str) -> Non
         import logging
 
         logging.getLogger(__name__).exception("Agent run %s failed", body.run_id)
-        code = ("diagnosis_incomplete" if isinstance(error, ModelError) and str(error).startswith("问诊回合结束")
+        code = ("model_unavailable" if isinstance(error, ModelUnavailable) else
+                "diagnosis_incomplete" if isinstance(error, ModelError) and str(error).startswith("问诊回合结束")
                 else "model_error" if isinstance(error, ModelError) else "invalid_output" if isinstance(error, ValueError) else None)
         status = RunStatus(run_id=body.run_id, status="failed", error="执行失败，请检查 Agent 服务日志", error_code=code,
                            retryable=isinstance(error, ModelError) or (isinstance(error, StepFailed) and not error.pause))
@@ -106,7 +107,8 @@ def create_agent_app(
             if status.status in ("running", "queued", "canceling"):
                 db.execute(
                     "UPDATE runs SET output=? WHERE id=?",
-                    (RunStatus(run_id=run_id, status="failed", error="Agent 服务重启中断了执行").model_dump_json(), run_id),
+                    (RunStatus(run_id=run_id, status="failed", error="Agent 服务重启中断了执行",
+                               error_code="interrupted", retryable=True).model_dump_json(), run_id),
                 )
     progress_store = ProgressStore(path)
     os.chmod(path, 0o600)
@@ -165,7 +167,7 @@ def create_agent_app(
         status = RunStatus.model_validate_json(row[0])
         process = processes.get(run_id)
         if process and not process.is_alive() and status.status == "running":
-            status = RunStatus(run_id=run_id, status="failed", error="Agent 执行进程意外退出")
+            status = RunStatus(run_id=run_id, status="failed", error="Agent 执行进程意外退出", error_code="interrupted", retryable=True)
             _write(path, run_id, status)
         return status.model_copy(update={"events_available": True})
 

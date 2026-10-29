@@ -60,6 +60,8 @@ class EvoMedClaw(Algorithm):
                         exchanged=learning, calls_are_upper_bound=True)
 
     def manifest_for_version(self, version):
+        if version == "1.3.0":
+            return load_manifest(Path(__file__).with_name("v1.3-manifest.yaml"))
         if version in ("1.1.0", "1.2.0"):
             return load_manifest(Path(__file__).with_name("v1.2-manifest.yaml")).model_copy(update={"version": version})
         if version == "1.0.0":
@@ -68,7 +70,7 @@ class EvoMedClaw(Algorithm):
 
     def plan(self, round, rounds):
         # 内部编号只用于调度；用户看到的是三组固定对照，不进行多轮学习。
-        return {1: ["diagnose"], 2: ["learn", "load_local_memory", "diagnose", "aggregate"],
+        return {1: ["diagnose"], 2: ["learn", "compile", "load_local_memory", "diagnose", "aggregate"],
                 3: ["load_memory", "diagnose"]}[round]
 
     @step("load_memory")
@@ -89,7 +91,12 @@ class EvoMedClaw(Algorithm):
     @step("learn")
     def learn(self, ctx):
         from .site import learn
-        learn(ctx, self.version)
+        learn(ctx)
+
+    @step("compile")
+    def compile(self, ctx):
+        from .site import compile_experience
+        compile_experience(ctx, self.version)
 
     @step("aggregate")
     def aggregate(self, ctx: StepContext) -> None:

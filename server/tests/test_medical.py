@@ -209,7 +209,7 @@ def test_local_medical_schema_and_plugin_capabilities(client: TestClient, platfo
     hello = worker.hello()
     assert hello['taskTypes'][did] == 'medical-diagnosis'
     assert worker.records[did]['learn-private']['split'] == 'learn'
-    assert next(p for p in client.get('/v1/participants').json() if p['id'] == pid)['clientPlugins']['evomedclaw'] == '1.3.0'
+    assert next(p for p in client.get('/v1/participants').json() if p['id'] == pid)['clientPlugins']['evomedclaw'] == '1.4.0'
     chosen = [{'participantId': 'p-a', 'datasetId': medical_dataset(client, 'p-a')}, {'participantId': pid, 'datasetId': did}]
     config = medical_config(chosen)
     issues = client.post('/v1/tasks/validate', json=config).json()['issues']

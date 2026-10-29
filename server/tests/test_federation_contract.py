@@ -43,7 +43,7 @@ def test_own_group_combines_with_shared_group_without_private_trajectories(platf
     task_id = made.json()["id"]
     assert run(platform, task_id) == "completed"
     view = client.get("/v1/tasks/"+task_id).json()
-    assert view["plan"] == {"1": ["diagnose"], "2": ["learn", "load_local_memory", "diagnose", "aggregate"], "3": ["load_memory", "diagnose"]}
+    assert view["plan"] == {"1": ["diagnose"], "2": ["learn", "compile", "load_local_memory", "diagnose", "aggregate"], "3": ["load_memory", "diagnose"]}
     assert view["rounds"][0]["output"] is None and view["rounds"][1]["output"] and view["rounds"][2]["output"] is None
     with platform.db.session() as db:
         from sqlalchemy import select
@@ -62,7 +62,7 @@ def test_contract_is_specific_to_algorithm_and_has_no_registered_resources(clien
     assert fot["manifest"]["params"][0]["default"] == "paper-auto"
     assert set(fot["dataContracts"]) == {"math-reasoning"}
     assert set(evo["dataContracts"]) == {"medical-diagnosis"}
-    assert set(evo["outputContract"]) == {"diagnose", "learn", "load_memory", "load_local_memory"}
+    assert set(evo["outputContract"]) == {"diagnose", "learn", "compile", "load_memory", "load_local_memory"}
     assert "单个用户" in evo["resourcesNote"]
     assert "base_url" not in json.dumps(evo) and "api_key_enc" not in json.dumps(evo)
     assert client.get("/v1/algorithms/missing/contract").status_code == 404
@@ -96,7 +96,7 @@ def test_provider_keeps_trajectories_local_and_requires_loaded_version(platform,
             _work(platform.settings.model_dump(), root / "runs.sqlite", body, "fake:fake")
             return api.get("/runs/"+body.run_id).json()
 
-        base = dict(algorithm="evomedclaw", version="1.3.0", task_type="medical-diagnosis", task_id="real-task",
+        base = dict(algorithm="evomedclaw", version="1.4.0", task_type="medical-diagnosis", task_id="real-task",
                     site_id="site", role="participant", rounds=3, params={"maxTurns": 4})
         item = to_item(task_type, cases()[1], labels=False)
         first = execute(AgentRequest(**base, run_id="baseline", round=1, step="diagnose", unit_key=item.id, items=[item]))

@@ -54,7 +54,6 @@ def diagnose(item: dict[str, Any], memory: dict[str, Any] | None, model: Model, 
         DepartmentFirstLocalAgent,
         DepartmentMemoryBank,
         DepartmentRouter,
-        DepartmentSpecialistService,
         PromptComposer,
         PromptRegistry,
         StructuredOutputVerifier,
@@ -82,7 +81,8 @@ def diagnose(item: dict[str, Any], memory: dict[str, Any] | None, model: Model, 
     patient.update_scenario(scenario)
     measurement = MeasurementAgent(model.name)
     measurement.update_scenario(scenario)
-    specialists = DepartmentSpecialistService(model.name, composer, DepartmentRouter(mode="hybrid", model_name=model.name), bank, verifier,
+    from .parallel import ParallelSpecialists
+    specialists = ParallelSpecialists(model.name, composer, DepartmentRouter(mode="hybrid", model_name=model.name), bank, verifier,
                                              single_expert_mode=False, consultation_mode="multi", arbiter_mode="conflict_only",
                                              semantic_matching_enabled=False)
     from .progress import Trace

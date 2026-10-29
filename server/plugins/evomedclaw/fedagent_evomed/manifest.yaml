@@ -1,5 +1,5 @@
 id: evomedclaw
-version: 1.3.0
+version: 1.4.0
 name: EvoMedClaw
 full_name: EvoMedClaw · 横向医疗记忆共享
 summary: 对照无经验、本地经验与联邦经验，比较共享诊断经验的作用
@@ -23,7 +23,8 @@ steps:
   - {id: load_memory, label: 加载共享记忆, at: participant, per: site, retries: 0}
   - {id: load_local_memory, label: 加载本地经验, at: participant, per: site, retries: 0}
   - {id: diagnose, label: 独立评测, at: participant, per: item, model: true, private_state: true, result: metric, estimate: {seconds: 100, tokens: 18000}, retries: 2}
-  - {id: learn, label: 提炼并提交经验, at: participant, per: site, model: true, private_state: true, labels: true, sends: [clinical-cards], result: uploads, estimate: {seconds: 2}, retries: 1}
+  - {id: learn, label: 诊疗学习病例, at: participant, per: item, model: true, private_state: true, labels: true, estimate: {seconds: 100}, retries: 1}
+  - {id: compile, label: 提炼并提交经验, at: participant, per: site, private_state: true, sends: [clinical-cards], result: uploads, estimate: {seconds: 2}, retries: 0}
   - {id: aggregate, label: 聚合医疗经验库, at: server, reads: [clinical-cards], publishes: true, result: output, estimate: {seconds: 2}, retries: 0}
 params:
   - key: maxTurns

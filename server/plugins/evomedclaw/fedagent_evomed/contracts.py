@@ -46,7 +46,8 @@ class ClinicalDelta(BaseModel):
 
 def validate_output(ctx: StepContext, result: UnitResult) -> None:
     try:
-        allowed_reports = {"diagnose": {"experience"}, "learn": {"localCards", "exportedCards"}, "load_memory": {"memoryVersion"}, "load_local_memory": set()}
+        allowed_reports = {"diagnose": {"experience"}, "learn": {"learnedCase"}, "compile": {"localCards", "exportedCards"},
+                           "load_memory": {"memoryVersion"}, "load_local_memory": set()}
         if set(result.reports) - allowed_reports.get(ctx.step.id, set()):
             raise ValueError("服务返回了契约未声明的报告字段")
         if ctx.step.id == "diagnose":
@@ -75,6 +76,17 @@ def validate_output(ctx: StepContext, result: UnitResult) -> None:
             if memory is not None and saved[0] != content_receipt(memory):
                 raise ValueError("本地经验确认与实际内容不一致")
         elif ctx.step.id == "learn":
+            import re
+            if result.kept or result.predictions or result.sent:
+                raise ValueError("学习病例只能返回完成摘要，轨迹留在本站")
+            proof = result.reports.get("learnedCase")
+            if ctx.item.get("split") != "learn":
+                if proof is not None:
+                    raise ValueError("独立评测病例不能生成学习记录")
+            elif (not isinstance(proof, dict) or set(proof) != {"id", "sha256"} or proof["id"] != ctx.item.id
+                  or not isinstance(proof["sha256"], str) or not re.fullmatch(r"[0-9a-f]{64}", proof["sha256"])):
+                raise ValueError("缺少当前学习病例的有效完成摘要")
+        elif ctx.step.id == "compile":
             if result.kept:
                 raise ValueError("本站轨迹及卡库不得回传中心")
             updates = [message for message in result.sent if message.channel == "clinical-cards"]
@@ -126,8 +138,10 @@ def output_contract():
     return {
         "diagnose": {"predictions": "仅eval病例返回最终诊断；learn病例跳过，禁止回传完整轨迹",
                      "reports": "experience: {scope: none/local/federated, version: 整数或null, sha256: 摘要或null, retrieved: 卡ID数组}"},
-        "learn": {"channel": "clinical-cards", "payloadSchema": ClinicalDelta.model_json_schema(),
-                  "privacy": "仅第2组生成一次本地经验；轨迹、原卡库及本地检索库留在本站；发送精简经验更新"},
+        "learn": {"reports": "learnedCase: {id: 当前learn病例ID, sha256: 本站诊疗结果摘要}；eval病例跳过",
+                  "privacy": "每个病例独立持久化；完整轨迹留在本站，恢复时跳过已经完成的病例"},
+        "compile": {"channel": "clinical-cards", "payloadSchema": ClinicalDelta.model_json_schema(),
+                    "privacy": "按原始病例顺序汇总本站轨迹；每方只编译一次经验库并上传精简卡，不再运行诊断或调用模型"},
         "load_local_memory": {"keptKey": "local_memory_receipt", "valueSchema": "{sha256, entries: 本地卡ID数组}",
                               "behavior": "确认本次任务本站生成的固定版本；只返回摘要与卡ID，不返回本地轨迹"},
         "load_memory": {"keptKey": "memory_receipt", "valueSchema": "{version, round, sha256}",

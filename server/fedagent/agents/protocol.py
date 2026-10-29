@@ -71,7 +71,7 @@ class RunStatus(Wire):
     result: AgentResult | None = None
     error: str | None = None
     retryable: bool = False
-    error_code: Literal["diagnosis_incomplete", "model_error", "invalid_output"] | None = None
+    error_code: Literal["diagnosis_incomplete", "model_error", "model_unavailable", "interrupted", "invalid_output"] | None = None
 
 
 class ProgressPage(Wire):

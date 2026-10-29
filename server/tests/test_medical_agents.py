@@ -17,9 +17,9 @@ from fedagent.data import check_file
 from fedagent.gateway import GatewayModel
 
 
-@pytest.mark.parametrize("step", ["solve", "reflect", "extract", "diagnose", "learn"])
+@pytest.mark.parametrize("step", ["solve", "reflect", "extract", "diagnose", "learn", "compile"])
 def test_configuration_checks_business_output_of_every_step(platform, client, remote, monkeypatch, step):
-    medical = step in ("diagnose", "learn")
+    medical = step in ("diagnose", "learn", "compile")
     config = (medical_config([{"participantId": p, "datasetId": medical_dataset(client, p)} for p in ("p-a", "p-b")])
               if medical else fot_config(client))
     config.update(execution="agent", agentId=remote[0])
@@ -33,6 +33,8 @@ def test_configuration_checks_business_output_of_every_step(platform, client, re
             if step == "extract":
                 status.result.sent[0].payload = {"name": ""}
             elif step == "learn":
+                status.result.reports = {}
+            elif step == "compile":
                 status.result.sent = []
             elif step == "diagnose":
                 status.result.reports = {}

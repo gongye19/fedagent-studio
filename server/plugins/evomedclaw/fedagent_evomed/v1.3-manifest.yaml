@@ -1,0 +1,40 @@
+id: evomedclaw
+version: 1.3.0
+name: EvoMedClaw
+full_name: EvoMedClaw · 横向医疗记忆共享
+summary: 对照无经验、本地经验与联邦经验，比较共享诊断经验的作用
+scenario: horizontal
+accepts: [medical-diagnosis]
+agent_required: true
+roles:
+  participant: {label: 参与方, min: 2, evaluated: true}
+rounds: {min: 3, max: 3, default: 3, labels: [无经验, 本地经验, 联邦经验]}
+channels:
+  clinical-cards:
+    label: 医疗过程经验卡
+    from: participant
+    to: server
+    kind: json
+    per_item: 1
+    tokens: 250
+artifact: {kind: clinical-memory, name: 医疗经验库, unit: 张过程卡, to: [participant]}
+evaluation: {step: diagnose, baseline: round-1}
+steps:
+  - {id: load_memory, label: 加载共享记忆, at: participant, per: site, retries: 0}
+  - {id: load_local_memory, label: 加载本地经验, at: participant, per: site, retries: 0}
+  - {id: diagnose, label: 独立评测, at: participant, per: item, model: true, private_state: true, result: metric, estimate: {seconds: 100, tokens: 18000}, retries: 2}
+  - {id: learn, label: 提炼并提交经验, at: participant, per: site, model: true, private_state: true, labels: true, sends: [clinical-cards], result: uploads, estimate: {seconds: 2}, retries: 1}
+  - {id: aggregate, label: 聚合医疗经验库, at: server, reads: [clinical-cards], publishes: true, result: output, estimate: {seconds: 2}, retries: 0}
+params:
+  - key: maxTurns
+    label: 每病例最多问诊回合
+    help: 限制医生的行动次数，接近上限时要求形成最终诊断。调用数按正常路径上限估算，接口重试另计；Token、费用和时长为估计值。
+    kind: number
+    min: 4
+    max: 12
+    unit: 回合
+    default: 12
+source:
+  code: github.com/xschen-beb/EvoMedClaw
+  code_url: https://github.com/xschen-beb/EvoMedClaw
+  commit: ae333ec635fac5900d2b9f4455080444d28c0392

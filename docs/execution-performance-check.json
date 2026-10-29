@@ -1,0 +1,185 @@
+{
+  "backendTests": 165,
+  "frontendTests": 59,
+  "protocol": "1.4.0",
+  "sdk": "0.2.8",
+  "medicalPackage": "0.3.1",
+  "realTask": "task-d8cbdf6c",
+  "taskSeconds": 1300.5,
+  "realLearningPeak": 4,
+  "admissions": {
+    "agent-66584e68": "check-8d381900",
+    "agent-319cec16": "check-d778d308"
+  },
+  "quickCheckSeconds": "see live.log",
+  "verification": {
+    "reports": [
+      {
+        "group": 1,
+        "site": "p-a",
+        "case": "medqa-087",
+        "scope": "none",
+        "retrieved": 0,
+        "foreignOnly": 0
+      },
+      {
+        "group": 1,
+        "site": "p-b",
+        "case": "medqa-086",
+        "scope": "none",
+        "retrieved": 0,
+        "foreignOnly": 0
+      },
+      {
+        "group": 2,
+        "site": "p-a",
+        "case": "medqa-087",
+        "scope": "local",
+        "retrieved": 0,
+        "foreignOnly": 0
+      },
+      {
+        "group": 2,
+        "site": "p-b",
+        "case": "medqa-086",
+        "scope": "local",
+        "retrieved": 0,
+        "foreignOnly": 0
+      },
+      {
+        "group": 3,
+        "site": "p-a",
+        "case": "medqa-087",
+        "scope": "federated",
+        "retrieved": 0,
+        "foreignOnly": 0
+      },
+      {
+        "group": 3,
+        "site": "p-b",
+        "case": "medqa-086",
+        "scope": "federated",
+        "retrieved": 0,
+        "foreignOnly": 0
+      }
+    ],
+    "learningUnits": 6,
+    "artifactVersion": 1,
+    "artifactGroup": 2,
+    "cards": 19,
+    "localCards": {
+      "p-b": 10,
+      "p-a": 9
+    },
+    "privateRecords": {
+      "medical-a": 15,
+      "medical-b": 15
+    },
+    "admissionPrivateRecords": {
+      "medical-a": 0,
+      "medical-b": 0
+    },
+    "learningWindows": [
+      [
+        "p-b",
+        "medqa-002",
+        "2026-10-29 15:39:42.179679",
+        "2026-10-29 15:42:22.917777"
+      ],
+      [
+        "p-b",
+        "medqa-004",
+        "2026-10-29 15:39:43.559303",
+        "2026-10-29 15:42:39.501203"
+      ],
+      [
+        "p-a",
+        "medqa-001",
+        "2026-10-29 15:39:42.179724",
+        "2026-10-29 15:42:04.907924"
+      ],
+      [
+        "p-a",
+        "medqa-003",
+        "2026-10-29 15:42:38.214581",
+        "2026-10-29 15:44:14.787012"
+      ]
+    ],
+    "duplicateSuccessfulCalls": 0,
+    "scopedCalls": 48,
+    "observedLearningConcurrency": {
+      "at": "2026-10-29T15:40:13.838268+00:00",
+      "runningCases": [
+        "medqa-002",
+        "medqa-004",
+        "medqa-001",
+        "medqa-003"
+      ],
+      "peak": 4
+    }
+  },
+  "usage": [
+    {
+      "owner": "check-8d381900",
+      "status": "ok",
+      "calls": 118,
+      "tokens": 188683,
+      "maxLatencyMs": 123513,
+      "cost": null
+    },
+    {
+      "owner": "check-d778d308",
+      "status": "ok",
+      "calls": 74,
+      "tokens": 73782,
+      "maxLatencyMs": 162539,
+      "cost": null
+    },
+    {
+      "owner": "task-d8cbdf6c",
+      "status": "discarded",
+      "calls": 28,
+      "tokens": 39923,
+      "maxLatencyMs": 45711,
+      "cost": null
+    },
+    {
+      "owner": "task-d8cbdf6c",
+      "status": "ok",
+      "calls": 255,
+      "tokens": 339835,
+      "maxLatencyMs": 209018,
+      "cost": null
+    }
+  ],
+  "preservation": {
+    "changedOriginalRows": [
+      [
+        "fedagent.db",
+        "agent_endpoints",
+        "[\"agent-319cec16\"]"
+      ],
+      [
+        "fedagent.db",
+        "agent_endpoints",
+        "[\"agent-66584e68\"]"
+      ]
+    ],
+    "originalFilesPreserved": true,
+    "databases": 5
+  },
+  "finalBackup": "20261029T155151511982Z",
+  "publishedFiles": 17,
+  "limits": {
+    "taskWorkers": 4,
+    "expertsPerPanel": 3,
+    "sharedModelSlots": 8
+  },
+  "upstreamVendorChanged": false,
+  "recovery": {
+    "keptCallRecords": 43,
+    "unchangedCompletedUnits": 5,
+    "retainedStatuses": true
+  },
+  "claims": "协议与恢复／并行约束验证；不证明准确率提升或固定提速倍数"
+}

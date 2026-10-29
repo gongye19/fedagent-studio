@@ -53,9 +53,9 @@ def test_timeout_and_missing_model_are_not_zero():
 def test_learning_marks_subtype_diagnosis_success_in_trajectory_and_cards(monkeypatch):
     from fedagent_evomed import EvoMedClaw
     from fedagent_evomed.medical import MedicalDiagnosis
-    from fedagent_evomed.site import learn
+    from fedagent_evomed.site import compile_experience, learn
 
-    from fedagent.agents.protocol import AgentRequest
+    from fedagent.agents.protocol import AgentRequest, SavedValue
     from fedagent.agents.runtime import context_of
     from fedagent.data import to_item
 
@@ -67,11 +67,16 @@ def test_learning_marks_subtype_diagnosis_success_in_trajectory_and_cards(monkey
     monkeypatch.setattr("fedagent_evomed.site.diagnose", lambda *args, **kw: (result.copy(), {}))
     request = AgentRequest(run_id="learning-test", algorithm="evomedclaw", version=algorithm.version,
         task_type="medical-diagnosis", task_id="local-test", site_id="one", role="participant", round=2, rounds=3,
-        step="learn", unit_key="_", params={"maxTurns": 4}, items=[to_item(MedicalDiagnosis(), case, labels=True)])
+        step="learn", unit_key="learn", params={"maxTurns": 4}, items=[to_item(MedicalDiagnosis(), case, labels=True)])
     ctx = context_of(request, algorithm, Judge(error=AssertionError("fast match must not call model")))
-    learn(ctx, algorithm.version)
+    learn(ctx)
     kept = {key: value for key, _, value in ctx.result.kept}
     assert kept["diagnostic_trajectory"]["is_correct"] is True
+    request = request.model_copy(update={"step": "compile", "unit_key": "_",
+                                         "state": [SavedValue(key=k, item_id=i, round=2, value=v) for k, i, v in ctx.result.kept]})
+    ctx = context_of(request, algorithm)
+    compile_experience(ctx, algorithm.version)
+    kept = {key: value for key, _, value in ctx.result.kept}
     cards = kept["local_card_bank"]["cards"]
     assert cards and all(card["memory_type"] != "error_card" for card in cards)
 

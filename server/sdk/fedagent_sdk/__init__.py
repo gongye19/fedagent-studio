@@ -8,7 +8,7 @@
 from .algorithm import Algorithm, step
 from .context import OutgoingMessage, SiteInfo, StepContext, StepIO, UnitResult
 from .manifest import SERVER, Manifest, ParamDef, StepDef, load_manifest
-from .model import ChatResult, Model, ModelError
+from .model import ChatResult, ForkableModel, Model, ModelError, ModelUnavailable
 from .progress import ProgressEvent, ProgressUpdate
 from .tasktype import CheckIssue, CheckReport, Grader, InputField, Row, TaskType
 from .types import (
@@ -37,6 +37,7 @@ __all__ = [
     "CheckIssue",
     "CheckReport",
     "Estimate",
+    "ForkableModel",
     "Grader",
     "InputField",
     "Issue",
@@ -45,6 +46,7 @@ __all__ = [
     "Message",
     "Model",
     "ModelError",
+    "ModelUnavailable",
     "OutgoingMessage",
     "OutputEntry",
     "ParamDef",

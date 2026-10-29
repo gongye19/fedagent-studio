@@ -10,7 +10,7 @@ import time
 from typing import TYPE_CHECKING, Any
 
 import httpx
-from fedagent_sdk import Algorithm, ChatResult, ModelError
+from fedagent_sdk import Algorithm, ChatResult, ModelError, ModelUnavailable
 from fedagent_sdk.openai_compat import error_text, read_json, read_stream, retryable, streaming
 from sqlalchemy import select
 
@@ -22,6 +22,10 @@ if TYPE_CHECKING:
 
 def request_hash(body: dict[str, Any]) -> str:
     return hashlib.sha256(json.dumps(body, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+
+
+def fork_prefix(unit_key: str) -> str:
+    return "fork:" + hashlib.sha256(unit_key.encode()).hexdigest()
 
 
 def prompt_text(prompt: str | list[dict[str, Any]]) -> str:
@@ -43,6 +47,8 @@ class GatewayModel:
         purpose: str,
         plugin: Algorithm | None,
         step_id: str | None,
+        _scope_root: str | None = None,
+        _scope_path: str = "",
     ) -> None:
         self.gateway = gateway
         self.endpoint = endpoint
@@ -53,6 +59,8 @@ class GatewayModel:
         self.step_id = step_id
         self._ordinal = 0
         self._lock = threading.Lock()
+        self._scope_root = _scope_root
+        self._scope_path = _scope_path
 
     def chat(
         self,
@@ -91,6 +99,21 @@ class GatewayModel:
         return result
 
     # —— 内部 ——
+
+    def fork(self, scope: str) -> GatewayModel:
+        """稳定子分支支持并发与重放；每个分支独立编号，仍受同一模型槽位限制。"""
+        from dataclasses import replace
+        ledger = self.ledger
+        root = self._scope_root
+        path = self._scope_path + "~" + hashlib.sha256(scope.encode()).hexdigest()[:32]
+        if ledger is not None:
+            root = root or fork_prefix(ledger.unit_key)
+            key = root + path
+            if len(key) > 200:
+                raise ValueError("模型分支嵌套过深")
+            ledger = replace(ledger, unit_key=key)
+        return GatewayModel(self.gateway, self.endpoint, self.name, ledger=ledger, purpose=self.purpose,
+                            plugin=self.plugin, step_id=self.step_id, _scope_root=root, _scope_path=path)
 
     def _cached(self, ordinal: int, digest: str) -> ChatResult | None:
         if self.ledger is None:
@@ -211,7 +234,7 @@ class GatewayModel:
                     usage={"prompt_tokens": reply.usage.get("prompt_tokens", 0), "completion_tokens": reply.usage.get("completion_tokens", 0)},
                     finish_reason=reply.finish_reason,
                 )
-        raise ModelError(f"重试 {endpoint.max_retries} 次后仍失败（{last_error}）")
+        raise ModelUnavailable(f"重试 {endpoint.max_retries} 次后仍失败（{last_error}）")
 
 
 def _snippet(text: str, limit: int = 300) -> str:

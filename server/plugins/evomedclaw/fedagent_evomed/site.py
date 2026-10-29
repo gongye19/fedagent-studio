@@ -1,5 +1,6 @@
 """接入方可复用的本站执行器；完整轨迹只由服务本地保存。"""
 import hashlib
+import json
 import re
 from pathlib import Path
 
@@ -44,7 +45,19 @@ def diagnose_case(ctx):
     ctx.log(f"评测完成：{result['num_turns']} 回合，{len(hits)} 条经验命中")
 
 
-def learn(ctx, version):
+def learn(ctx):
+    if ctx.round != 2 or ctx.artifact() is not None:
+        raise StepFailed("本地经验只能独立生成一次", pause=True)
+    if ctx.item.get("split") != "learn":
+        return
+    case = MedicalDiagnosis().strip_labels(dict(ctx.item.fields))
+    result, _ = diagnose(case, None, ctx.model, turns=int(ctx.params.get("maxTurns", 12)), progress=ctx.progress, item_id=ctx.item.id)
+    result["is_correct"] = DiagnosisClinicalGrader().evaluate(result["predicted_diagnosis"], ctx.item.fields, ctx.model)
+    ctx.keep("diagnostic_trajectory", result)
+    ctx.report("learnedCase", {"id": ctx.item.id, "sha256": hashlib.sha256(json.dumps(result, sort_keys=True, ensure_ascii=False).encode()).hexdigest()})
+
+
+def compile_experience(ctx, version):
     from .vendor.federated.sanitize import build_federated_site_delta
     from .vendor.learning.card_compiler import compile_card_bank
     from .vendor.learning.retrieve_trace import generate_retrieval_traces
@@ -54,15 +67,13 @@ def learn(ctx, version):
 
     if ctx.round != 2 or ctx.artifact() is not None:
         raise StepFailed("本地经验只能独立生成一次", pause=True)
-    memory = None
     trajectories = []
     for item in ctx.items():
         if item.get("split") != "learn":
             continue
-        case = MedicalDiagnosis().strip_labels(dict(item.fields))
-        result, _ = diagnose(case, memory, ctx.model, turns=int(ctx.params.get("maxTurns", 12)), progress=ctx.progress, item_id=item.id)
-        result["is_correct"] = DiagnosisClinicalGrader().evaluate(result["predicted_diagnosis"], item.fields, ctx.model)
-        ctx.keep("diagnostic_trajectory", result, item_id=item.id)
+        result = ctx.recall("diagnostic_trajectory", item_id=item.id)
+        if not isinstance(result, dict) or not isinstance(result.get("is_correct"), bool):
+            raise StepFailed("学习病例尚未完成，不能编译经验", pause=True)
         outcome = {"scenario_id": int(hashlib.sha256(item.id.encode()).hexdigest()[:12], 16),
                    "answer": re.sub(r"^DIAGNOSIS READY:\s*", "", result["predicted_diagnosis"], flags=re.I),
                    "is_correct": result["is_correct"]}

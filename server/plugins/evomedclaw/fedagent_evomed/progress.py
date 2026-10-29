@@ -4,7 +4,9 @@ from __future__ import annotations
 import hashlib
 import logging
 import re
+import threading
 from collections.abc import Callable
+from contextvars import ContextVar
 
 DEPARTMENTS = {
     "pediatrics": "儿科", "gastro_hepatology": "消化肝病科", "infectious_disease": "感染科",
@@ -25,7 +27,8 @@ class Trace:
         self.item_id = item_id
         self.prefix = hashlib.sha256((item_id or "case").encode()).hexdigest()[:10]
         self.number = 0
-        self.parent = None
+        self._parent: ContextVar[str | None] = ContextVar("medical_progress_parent", default=None)
+        self._lock = threading.Lock()
 
     def send(self, activity, title, status, *, summary="", detail="", parent=None):
         if self.emit:
@@ -40,12 +43,13 @@ class Trace:
         original = getattr(obj, method)
 
         def call(*args, **kwargs):
-            self.number += 1
-            activity = f"{self.prefix}:{self.number}"
+            with self._lock:
+                self.number += 1
+                activity = f"{self.prefix}:{self.number}"
             label = title(kwargs) if callable(title) else title
-            parent = self.parent
+            parent = self._parent.get()
             self.send(activity, label, "running", parent=parent)
-            self.parent = activity
+            token = self._parent.set(activity)
             try:
                 value = original(*args, **kwargs)
                 try:
@@ -58,7 +62,7 @@ class Trace:
                 self.send(activity, label, "failed", summary="本步骤未完成，请查看任务状态", parent=parent)
                 raise
             finally:
-                self.parent = parent
+                self._parent.reset(token)
         setattr(obj, method, call)
 
     def attach(self, doctor, patient, measurement, specialists):

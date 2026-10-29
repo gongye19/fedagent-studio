@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import Any, Protocol, runtime_checkable
 
 
 @dataclass
@@ -20,6 +20,10 @@ class ModelError(Exception):
     """模型调用失败（重试之后仍失败，或者请求本身有问题）。"""
 
 
+class ModelUnavailable(ModelError):
+    """没有获得可用回复的暂时性错误；此前成功调用仍可重放。"""
+
+
 class Model(Protocol):
     name: str
 
@@ -32,6 +36,12 @@ class Model(Protocol):
         top_p: float | None = None,
         **extra: Any,
     ) -> ChatResult: ...
+
+
+@runtime_checkable
+class ForkableModel(Model, Protocol):
+    """可选能力：为独立并行分支提供稳定账本位置，不共享调用序号。"""
+    def fork(self, scope: str) -> Model: ...
 
 
 @dataclass

@@ -25,7 +25,11 @@ class AgentError(StepFailed):
         super().__init__(message, pause=True)
 
 
-class AgentBusy(AgentError):
+class AgentPending(AgentError):
+    """调度或传输中断，尚不能判定模型输出失败；保留成功调用供恢复。"""
+
+
+class AgentBusy(AgentPending):
     pass
 
 
@@ -50,19 +54,23 @@ class AgentGateway:
             ):
                 if response.status_code == 429:
                     raise AgentBusy("Agent 服务繁忙")
+                if response.status_code >= 500:
+                    raise AgentPending(f"Agent 服务暂时不可用（HTTP {response.status_code}），恢复后可继续")
                 if response.status_code >= 300:
                     raise AgentError(f"Agent 服务返回 HTTP {response.status_code}，请检查地址、鉴权与协议")
                 data = bytearray()
                 for chunk in response.iter_bytes():
                     if time.monotonic() - started > 30:
-                        raise AgentError("Agent 响应传输超过 30 秒")
+                        raise AgentPending("Agent 响应传输超过 30 秒，恢复后可继续")
                     data.extend(chunk)
                     if len(data) > MAX_BYTES:
                         raise AgentError("Agent 返回超过 8 MB，请减小单次输出")
             value = json.loads(data)
             json.dumps(value, allow_nan=False)
             return value
-        except (httpx.HTTPError, ValueError, UnicodeDecodeError, RecursionError) as error:
+        except httpx.HTTPError as error:
+            raise AgentPending(f"Agent 连接中断（{type(error).__name__}），恢复后可继续") from error
+        except (ValueError, UnicodeDecodeError, RecursionError) as error:
             # 不公开服务响应正文、请求头或含凭据的底层错误。
             raise AgentError(f"Agent 无法连接或未返回有效 JSON（{type(error).__name__}）") from error
 
@@ -94,13 +102,17 @@ class AgentGateway:
 
         collector = ProgressCollector(self.platform, self, agent_id, body, unit_id)
         started = time.monotonic()
+        last_activity = started
+        # 接入验证仍有明确总预算；正式批步骤按输入量给总上限，真实过程事件刷新空闲时限。
+        total_limit = timeout if unit_id is None else min(86400, timeout * max(1, len(body.items)))
+        previous_status = None
         while True:
             try:
                 data = self.request(agent_id, "POST", "/runs", body.model_dump(mode="json"))
                 break
             except AgentBusy:
                 if time.monotonic() - started >= timeout:
-                    raise AgentError("Agent 持续繁忙，请降低并发后重试") from None
+                    raise AgentPending("Agent 持续繁忙，请降低并发后继续") from None
                 time.sleep(1)
         while True:
             try:
@@ -113,7 +125,11 @@ class AgentGateway:
                 row = session.get(m.AgentRun, run_id)
                 if row:
                     row.status = status.status
+            before = collector.after
             more = collector.pull(status.events_available)
+            if collector.after > before or status.status != previous_status:
+                last_activity = time.monotonic()
+            previous_status = status.status
             if status.status in ("succeeded", "failed", "canceled"):
                 while more:
                     more = collector.pull(status.events_available)
@@ -122,6 +138,8 @@ class AgentGateway:
                     raise AgentError("Agent 报告完成但缺少结果")
                 return status
             if status.status == "failed":
+                if status.error_code in ("model_unavailable", "interrupted"):
+                    raise AgentPending("Agent 执行暂时中断；此前成功调用已保留，恢复后可继续")
                 guidance = {
                     "diagnosis_incomplete": "Agent 在问诊上限内未形成最终诊断，请调整问诊回合上限后重新验证",
                     "model_error": "Agent 的内部模型调用失败，请检查接入方的 LLM 连接和额度",
@@ -132,8 +150,9 @@ class AgentGateway:
                 raise AgentError(f"{guidance}（运行 {run_id}）")
             if status.status == "canceled":
                 raise AgentError(f"Agent 执行已取消，请在该服务中检查运行 {run_id}")
-            if time.monotonic() - started > timeout:
-                raise AgentError("等待 Agent 结果超时；运行编号已保留，继续任务将查询同一次运行")
+            now = time.monotonic()
+            if now - started > total_limit or (unit_id is not None and collector.enabled and status.events_available and now - last_activity > timeout):
+                raise AgentPending("Agent 长时间没有进展或已达本批时限；已保存完成部分，恢复后可继续")
             time.sleep(0.2)
             data = self.request(agent_id, "GET", f"/runs/{run_id}")
 
