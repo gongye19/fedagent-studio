@@ -19,7 +19,8 @@ def receipt(artifact):
 
 def load_memory(ctx):
     artifact = ctx.artifact()
-    if artifact is None or artifact.kind != "clinical-memory" or not isinstance(artifact.content.get("memory", {}).get("entries"), list):
+    if (ctx.round != 3 or artifact is None or artifact.round != 2 or artifact.version != 1
+            or artifact.kind != "clinical-memory" or not isinstance(artifact.content.get("memory", {}).get("entries"), list)):
         raise StepFailed("缺少有效的共享记忆，不能继续评测", pause=True)
     ctx.keep("memory_receipt", receipt(artifact))
     ctx.report("memoryVersion", artifact.version)
@@ -29,16 +30,17 @@ def load_memory(ctx):
 def diagnose_case(ctx):
     if ctx.item.get("split") != "eval":
         return
+    from .memory import content_receipt, evaluation_memory, scope
+    memory = evaluation_memory(ctx)
     artifact = ctx.artifact()
-    if ctx.round > 1 and (artifact is None or ctx.recall("memory_receipt", item_id="") != receipt(artifact)):
-        raise StepFailed("共享记忆尚未确认加载或版本不一致", pause=True)
     case = MedicalDiagnosis().strip_labels(dict(ctx.item.fields))
-    result, _ = diagnose(case, artifact.content.get("memory") if artifact else None, ctx.model,
+    result, _ = diagnose(case, memory, ctx.model,
                          turns=int(ctx.params.get("maxTurns", 12)), progress=ctx.progress, item_id=ctx.item.id)
     ctx.keep("diagnostic_trajectory", result)
     ctx.predict(result["predicted_diagnosis"])
     hits = sorted({key for event in result["dialogue_history"] for key in event.get("memory_entry_ids", [])})
-    ctx.report("experience", {"version": artifact.version if artifact else None, "retrieved": hits})
+    ctx.report("experience", {"scope": scope(ctx.round), "version": artifact.version if artifact else None,
+                              "sha256": content_receipt(memory)["sha256"] if memory is not None else None, "retrieved": hits})
     ctx.log(f"评测完成：{result['num_turns']} 回合，{len(hits)} 条经验命中")
 
 
@@ -50,8 +52,9 @@ def learn(ctx, version):
     from .vendor.learning.trajectory_canonicalizer import canonicalize_artifacts
     from .vendor.learning.types import RawScenarioArtifacts
 
-    artifact = ctx.artifact()
-    memory = artifact.content.get("memory") if artifact else None
+    if ctx.round != 2 or ctx.artifact() is not None:
+        raise StepFailed("本地经验只能独立生成一次", pause=True)
+    memory = None
     trajectories = []
     for item in ctx.items():
         if item.get("split") != "learn":
@@ -72,8 +75,18 @@ def learn(ctx, version):
     attribution = summarize_skill_attribution(generate_retrieval_traces(trajectories, bank, top_k=3), bank)
     delta = build_federated_site_delta(site_id=ctx.site.id, card_bank=bank, attribution_report=attribution).to_dict()
     delta["metadata"] = {"round": ctx.round, "plugin_version": version}
+    from .memory import shared_content
     ctx.keep("local_card_bank", bank.to_dict())
+    ctx.keep("local_memory", shared_content([delta])["memory"])
     ctx.report("localCards", len(bank.cards))
     ctx.report("exportedCards", len(delta["cards"]))
     ctx.send("clinical-cards", delta)
     ctx.progress("compile-cards", "生成经验卡", "completed", summary=f"生成 {len(bank.cards)} 张，上传 {len(delta['cards'])} 张")
+
+
+def load_local_memory(ctx):
+    from .memory import content_receipt
+    memory = ctx.recall("local_memory", item_id="")
+    if ctx.round != 2 or not isinstance(memory, dict) or not isinstance(memory.get("entries"), list):
+        raise StepFailed("缺少本方已生成的经验", pause=True)
+    ctx.keep("local_memory_receipt", content_receipt(memory))

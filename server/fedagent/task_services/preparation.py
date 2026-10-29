@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass, field
 
 from fedagent_sdk import Algorithm, ModelError, SiteSpec, TaskSpec
@@ -24,6 +25,7 @@ class PreparedSite:
     labeled: int
     model_ref: str
     agent_id: str | None = None
+    sample_counts: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass
@@ -32,16 +34,18 @@ class Prepared:
     sites: list[PreparedSite] = field(default_factory=list)
 
 
-def _items_of(platform: Platform, dataset: m.Dataset, cap: int | None) -> tuple[list[str], int]:
+def _items_of(platform: Platform, dataset: m.Dataset, cap: int | None) -> tuple[list[str], int, dict[str, int]]:
     task_type = platform.registry.task_type(dataset.task_type)
     if dataset.source == "local":
         ids = [str(item) for item in dataset.item_ids or []]
         chosen = select_items(ids, cap)
         labeled = round(len(chosen) * dataset.answered / max(dataset.count, 1)) if dataset.count else 0
-        return chosen, min(labeled, len(chosen))
+        return chosen, min(labeled, len(chosen)), {}
     rows = platform.files.load(dataset.content_path or "")
     chosen_rows = rows[:cap] if cap else rows
-    return [task_type.item_id(row) for row in chosen_rows], sum(1 for row in chosen_rows if task_type.is_evaluated(row))
+    return ([task_type.item_id(row) for row in chosen_rows],
+            sum(1 for row in chosen_rows if task_type.is_evaluated(row)),
+            dict(Counter(task_type.sample_purpose(row) for row in chosen_rows)))
 
 
 def validate(platform: Platform, session: Session, body: TaskConfigIn) -> tuple[list[IssueOut], Prepared | None]:
@@ -113,7 +117,7 @@ def validate(platform: Platform, session: Session, body: TaskConfigIn) -> tuple[
             issue("participants", f"{participant.name} 需要安装 {manifest.name} {algorithm.version} 并重新连接客户端")
             continue
         try:
-            items, labeled = _items_of(platform, dataset, cap)
+            items, labeled, counts = _items_of(platform, dataset, cap)
         except (OSError, ValueError) as error:
             issue("participants", f"{dataset.name} 的数据文件无法读取，请恢复数据备份（{type(error).__name__}）")
             continue
@@ -121,7 +125,7 @@ def validate(platform: Platform, session: Session, body: TaskConfigIn) -> tuple[
             issue("participants", f"{dataset.name} 没有可用的样本")
             continue
         model_ref = body.client_overrides.get(participant.id) or body.client_model
-        prepared.sites.append(PreparedSite(participant, dataset, items, labeled, model_ref))
+        prepared.sites.append(PreparedSite(participant, dataset, items, labeled, model_ref, sample_counts=counts))
     if len(prepared.sites) < manifest.min_participants:
         issue("participants", f"任务合计至少选择 {manifest.min_participants} 方资源，可结合自己与其他方共享的资源" if manifest.agent_required
               else f"至少选择 {manifest.min_participants} 个可用的数据来源，每个来源选择一份数据")
@@ -185,7 +189,7 @@ def _spec(body: TaskConfigIn, prepared: Prepared) -> TaskSpec:
         task_type=body.task_type,
         rounds=body.rounds,
         params=prepared.algorithm.manifest.params_of(body.params),
-        sites=[SiteSpec(site.participant.id, role, len(site.items), site.labeled) for site in prepared.sites],
+        sites=[SiteSpec(site.participant.id, role, len(site.items), site.labeled, site.sample_counts) for site in prepared.sites],
         workers=body.workers,
     )
 
@@ -222,6 +226,7 @@ def estimate(platform: Platform, body: TaskConfigIn, prepared: Prepared) -> Esti
     return EstimateOut(
         remote_execution=body.execution == "agent",
         problems=problems,
+        sample_counts={site.participant.id: site.sample_counts for site in prepared.sites},
         participant_calls=result.participant_calls,
         calls_are_upper_bound=result.calls_are_upper_bound,
         server_calls=result.server_calls,

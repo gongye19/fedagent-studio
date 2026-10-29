@@ -19,6 +19,9 @@ ALGORITHMS = {
 
 
 def diagram(key: str, mobile: bool = False) -> dict:
+    if key == "evomedclaw":
+        from medical_flow import diagram as medical_diagram
+        return medical_diagram(mobile)
     data = ALGORITHMS[key]
     width = 320 if mobile else 1040
     font, line = (15, 24) if mobile else (18, 26)
@@ -136,6 +139,8 @@ def build(check: bool = False):
             page = page.replace('<div id="stage">', '<div id="stage" role="img" aria-label="' + cfg["meta"]["title"] + '">')
             policy = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; img-src data:; font-src 'none'; base-uri 'none'; form-action 'none'"
             page = page.replace('<meta name="viewport"', '<meta http-equiv="Content-Security-Policy" content="' + policy + '"><meta name="viewport"')
+            # 嵌入时只由controller播放，srcDoc没有URL查询参数，不能依赖?manual。
+            page = page.replace("if(!/[?&]manual/.test(location.search))", "if(window.parent===window&&!/[?&]manual/.test(location.search))")
             page = page.replace("</body>", "<script>" + controller + "</script></body>")
             page = "<!-- Generated with live-panel, MIT. License: /licenses/live-panel.txt -->\n" + page
             path = TARGET / (name + ".html")

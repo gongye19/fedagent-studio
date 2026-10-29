@@ -40,6 +40,7 @@ def task_out(platform: Platform, session: Session, task: m.Task) -> TaskOut:
             dataset=site.dataset_name,
             hosting="local" if site.executor == "client" else "platform",
             problems=len(site.items),
+            sample_counts=task.audit.get("sample_counts", {}).get(site.id, {}),
             answered=site.labeled,
             model=site.model_ref or "default",
             agent_name=(task.audit.get("agents", {}).get((site.model_ref or "").removeprefix("agent:"), {}).get("name")
@@ -167,6 +168,7 @@ def task_out(platform: Platform, session: Session, task: m.Task) -> TaskOut:
         error=task.error,
         cursor=cursor,
         rounds=rounds,
+        evaluation_labels=manifest.rounds.labels if manifest else [],
         fake=task.fake,
         cost=None if config.get("execution") == "agent" else cost,
     )

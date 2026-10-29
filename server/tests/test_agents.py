@@ -78,19 +78,19 @@ def test_remote_steps_two_rounds_share_artifact_and_grade_locally(platform, clie
     assert len([r for r in view["rounds"] if r.get("output")]) == (1 if medical else 2)
     assert all(r.get("correct") is not None for r in view["rounds"])
     cases = client.get(f"/v1/tasks/{task_id}/cases").json()
-    assert cases["total"] == 4 and all(c["prediction"] for c in cases["items"])
+    assert cases["total"] == (6 if medical else 4) and all(c["prediction"] for c in cases["items"])
     if medical:
         assert all(c["itemId"] == "eval-private" for c in cases["items"])
-    assert any(req.round == 2 and req.artifact for req in requests)
+    assert any(req.round == (3 if medical else 2) and req.artifact for req in requests)
     assert all(
         "answer" not in item.fields for req in requests if not platform.registry.algorithm(req.algorithm).manifest.step(req.step).labels for item in req.items
     )
     if medical:
         learning = [req for req in requests if req.step == "learn"]
         assert learning and all("answer" not in item.fields for req in learning for item in req.items if item.get("split") == "eval")
-    published = client.post("/v1/apps", json={"taskId": task_id, "builtAfterRound": 1 if medical else 2, "name": "仅测试发布"})
+    published = client.post("/v1/apps", json={"taskId": task_id, "builtAfterRound": 2, "name": "仅测试发布"})
     assert published.status_code == 201, published.text
-    config["rounds"] = 3
+    config["rounds"] = 4 if medical else 3
     assert client.post("/v1/tasks", json=config).status_code == 422
 
 

@@ -37,3 +37,30 @@
 .case-empty { padding: 16px 0; font-size: var(--text-sm); display: flex; align-items: center; gap: 12px; }
 @media (max-width: 640px) { .case-result > summary { gap: 8px; } .case-summary > span { display: block; margin: 3px 0 0; } .case-body { padding-left: 0; } }
 @media (prefers-reduced-motion: reduce) { .case-result > summary > svg { transition: none; } }
+
+.stats--comparison { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.comparison-note { margin: 0; padding: 12px 20px; font-size: 12px; color: var(--muted); }
+.case-group-status { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-left: auto; }
+.case-group-status > span { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; white-space: nowrap; }
+.case-answers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.case-answers section { min-width: 0; padding-top: 12px; border-top: 1px solid var(--border); }
+.case-answers h3 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 13px; }
+.case-answers p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.65; }
+.resource-sample-counts { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 8px 0 0; color: var(--muted); font-size: 12px; }
+@media (max-width: 640px) {
+  .stats--comparison { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .stats--comparison .stat strong { font-size: 20px; }
+  .stats--comparison .stat dt { font-size: 12px; }
+  .stats--comparison .stat-sub { font-size: 11px; line-height: 1.5; }
+  .case-result--comparison > summary { flex-wrap: wrap; }
+  .case-result--comparison .case-summary { flex-basis: calc(100% - 36px); }
+  .case-group-status { order: 2; width: 100%; margin-left: 0; }
+  .case-answers { grid-template-columns: 1fr; }
+}
+
+.case-reference { display: flex; flex-wrap: wrap; gap: 6px 12px; margin: 0 0 16px; }
+.case-reference dt { color: var(--muted); }
+.case-reference dd { margin: 0; overflow-wrap: anywhere; }
+.case-input { margin-top: 18px; font-size: var(--text-sm); }
+.case-input > summary { cursor: pointer; color: var(--muted); padding-block: 8px; }
+.case-input > .case-content { padding-top: 12px; }

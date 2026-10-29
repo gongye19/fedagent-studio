@@ -138,6 +138,9 @@ class MedicalDiagnosis(TaskType):
         report.sample = report.items[0] if report.items else None
         return report
 
+    def sample_purpose(self, item: Mapping[str, Any]) -> str:
+        return "经验生成" if item.get("split") == "learn" else "独立评测"
+
     def is_evaluated(self, item: Mapping[str, Any]) -> bool:
         return item.get("split") == "eval" and self.is_labeled(item)
 

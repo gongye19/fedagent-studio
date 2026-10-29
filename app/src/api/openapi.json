@@ -2956,6 +2956,87 @@
     }
    }
   },
+  "/v1/tasks/{task_id}/case-comparisons": {
+   "get": {
+    "tags": [
+     "tasks"
+    ],
+    "summary": "Task Case Comparisons",
+    "operationId": "task_case_comparisons_v1_tasks__task_id__case_comparisons_get",
+    "parameters": [
+     {
+      "name": "task_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Task Id"
+      }
+     },
+     {
+      "name": "offset",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 0,
+       "default": 0,
+       "title": "Offset"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 100,
+       "minimum": 1,
+       "default": 20,
+       "title": "Limit"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CaseComparisonPageOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/v1/apps": {
    "get": {
     "tags": [
@@ -4103,6 +4184,13 @@
       "type": "integer",
       "title": "Defaultrounds"
      },
+     "evaluationLabels": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Evaluationlabels"
+     },
      "source": {
       "$ref": "#/components/schemas/SourceOut"
      },
@@ -4547,6 +4635,11 @@
       },
       "type": "object",
       "title": "Algorithms"
+     },
+     "check_state_cleanup": {
+      "type": "boolean",
+      "title": "Check State Cleanup",
+      "default": false
      }
     },
     "additionalProperties": false,
@@ -4555,6 +4648,63 @@
      "algorithms"
     ],
     "title": "Capabilities"
+   },
+   "CaseComparisonOut": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "site": {
+      "type": "string",
+      "title": "Site"
+     },
+     "itemId": {
+      "type": "string",
+      "title": "Itemid"
+     },
+     "cases": {
+      "items": {
+       "$ref": "#/components/schemas/CaseOut"
+      },
+      "type": "array",
+      "title": "Cases"
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "site",
+     "itemId",
+     "cases"
+    ],
+    "title": "CaseComparisonOut"
+   },
+   "CaseComparisonPageOut": {
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/CaseComparisonOut"
+      },
+      "type": "array",
+      "title": "Items"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "hasMore": {
+      "type": "boolean",
+      "title": "Hasmore"
+     }
+    },
+    "type": "object",
+    "required": [
+     "items",
+     "total",
+     "hasMore"
+    ],
+    "title": "CaseComparisonPageOut"
    },
    "CaseOut": {
     "properties": {
@@ -5602,6 +5752,16 @@
       "type": "integer",
       "title": "Problems"
      },
+     "sampleCounts": {
+      "additionalProperties": {
+       "additionalProperties": {
+        "type": "integer"
+       },
+       "type": "object"
+      },
+      "type": "object",
+      "title": "Samplecounts"
+     },
      "remoteExecution": {
       "type": "boolean",
       "title": "Remoteexecution",
@@ -5893,6 +6053,13 @@
        }
       ],
       "title": "Agentname"
+     },
+     "sampleCounts": {
+      "additionalProperties": {
+       "type": "integer"
+      },
+      "type": "object",
+      "title": "Samplecounts"
      }
     },
     "type": "object",
@@ -7374,6 +7541,13 @@
       },
       "type": "object",
       "title": "Plan"
+     },
+     "evaluationLabels": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Evaluationlabels"
      }
     },
     "type": "object",

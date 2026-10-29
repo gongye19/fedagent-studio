@@ -1,5 +1,5 @@
 import { TASK_TYPES } from "../domain/catalog";
-import { averageAccuracy, canDeleteTask, latestScoredRound, TASK_STATUS, type Task } from "../domain/task";
+import { averageAccuracy, canDeleteTask, evaluationLabel, scoreDifference, latestScoredRound, TASK_STATUS, type Task } from "../domain/task";
 import { hrefOf } from "../state/route";
 import { Tag } from "./common";
 import { formatDate, formatDelta, formatPercent } from "./format";
@@ -16,6 +16,11 @@ export function TaskStatus({ task }: { task: Task }) {
 export function MetricChange({ task }: { task: Task }) {
   const latest = latestScoredRound(task);
   if (!latest) return <span className="muted">—</span>;
+  if (task.evaluationLabels?.length) {
+    const local = averageAccuracy(task, 2), shared = averageAccuracy(task, 3);
+    return shared === null ? <span>{formatPercent(averageAccuracy(task, latest))}<small>{evaluationLabel(task, latest)}</small></span>
+      : <span><span className="nowrap">{formatPercent(local)} → {formatPercent(shared)}</span><small>本地 → 联邦 <span className={deltaClass(scoreDifference(task, 2, 3))}>{formatDelta(scoreDifference(task, 2, 3))}</span></small></span>;
+  }
   const first = averageAccuracy(task, 1);
   if (latest === 1) return <span>{formatPercent(first)}<small>{metricOf(task)} · 第 1 轮</small></span>;
   const last = averageAccuracy(task, latest);

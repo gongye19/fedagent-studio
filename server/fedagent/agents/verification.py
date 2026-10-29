@@ -98,6 +98,14 @@ def run(platform, check_id, agent_id, body):
                 progress.put(result.model_copy(update={"status": "failed", "message": "验证中断，请重试"}), index)
         if AgentGateway(platform).stop_check(check_id):
             progress.put(CheckResult(field="agent", resource="停止确认", status="failed", message="Agent 尚未确认停止，请在接口页恢复连接后重试"))
+        else:
+            try:
+                with platform.db.session() as session:
+                    cap = get(session, agent_id).capabilities or {}
+                if cap.get("check_state_cleanup"):
+                    AgentGateway(platform).request(agent_id, "DELETE", f"/checks/{check_id}/state")
+            except (ServiceError, StepFailed):
+                progress.put(CheckResult(field="agent", resource="验证清理", status="failed", message="验证临时状态未确认清理，请重试"))
         with platform.db.session() as session:
             row = session.get(m.TaskCheck, check_id)
             row.results = [result.model_dump() for result in progress.results]

@@ -336,3 +336,7 @@ T92根据用户四项明确反馈继续沿用控制台风格：返回在标题�
 ### T101：纵向历史取代百分比条
 
 沿用用户已确认的参考和CheckStatus状态反馈，按本次明确要求改成纵向轮次／阶段时间线，没有新增主参考或Mobbin检索声明。T100的总条／各方条及裸计数退出界面，各轮历史完整保留；已有真实任务的预览与发布效果见screenshots/task-timeline。五项交付物见FLOW T101。
+
+### T102：医疗三组对照与算法图
+
+沿用已确认的reference-first-ui控制台规范，没有新增主参考、Mobbin检索或第三方依赖。Panel／Stat／InfoTip／CheckStatus、原生details与既有ECharts实现三组成绩、对照柱状图及配对案例；医疗流程图沿用用户指定live-panel-skill渲染器，新增独立medical_flow布局，FoT图布局与算法流程不变。桌面预览已展示给用户；五项设计交付物见FLOW T102，实际浏览器证据screenshots/medical-comparison。

@@ -41,7 +41,7 @@ try{
   check('刷新保留任务内组合 '+width,await evaluate(send,"document.querySelectorAll('.participation-row').length===2&&JSON.parse(localStorage.getItem('fedagent-studio:draft')).agentGroups.every(g=>g.agentId&&g.datasetId)"));
   await click('添加资源');await evaluate(send,"document.querySelector('[aria-label=\"移除资源 3\"]').click()");
   check('增加行只改草稿，不登记资源 '+width,await evaluate(send,"document.querySelectorAll('.participation-row').length===2"));
-  await evaluate(send,SELECT('rounds',2));await set('trial-cap',2);
+  await set('trial-cap',2);
   await click('正式运行');await until("document.querySelector('.config-test-trigger[data-ready=true]:not(:disabled)')");
   check('已有共享资源可组成正式配置 '+width,true);await click('试跑');
   await until("document.querySelector('.config-test-trigger[data-ready=true]:not(:disabled)')");
@@ -58,7 +58,7 @@ try{
   await until("document.querySelector('.summary-start[data-ready=true]:not(:disabled)')");await click('创建并试跑');await until("location.hash.includes('/tasks/task-')");owned.taskId=await evaluate(send,"location.hash.split('/')[2]");save();
   let task;const end=Date.now()+(local?180000:1500000);
   while(Date.now()<end){task=await req('tasks/'+owned.taskId);assert.ok(!['paused','canceled'].includes(task.status),task.error);if(task.status==='completed')break;await sleep(local?300:3000)}
-  check('两组独立Agent完成两轮联邦与聚合',task.status==='completed'&&task.rounds.filter(r=>r.output).length===2&&new Set(task.members.map(m=>m.model)).size===2);
+  check('两组独立Agent完成三组对照与一次聚合',task.status==='completed'&&task.config.rounds===3&&task.rounds.filter(r=>r.output).length===1&&new Set(task.members.map(m=>m.model)).size===2);
   check('任务冻结对应组的Agent接口',task.members.some(m=>m.datasetId===mine.id&&m.model==='agent:'+mineAgent.id)&&task.members.some(m=>m.datasetId===peer.id&&m.model==='agent:'+peerAgent.id));
   const app=await req('apps','POST',{taskId:owned.taskId,builtAfterRound:2,name:'医疗协作成果验证（完成后清理）'});owned.appId=app.id;save();
   const exported=await fetch(new URL('v1/apps/'+app.id+'/export',base));check('联邦成果可发布与导出',exported.ok&&Boolean(await exported.text()));

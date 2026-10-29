@@ -1,0 +1,26 @@
+{
+  "backendTests": 151,
+  "frontendTests": 57,
+  "backup": "20261029T125104707707Z",
+  "formalSeconds": 531.89,
+  "connectionSeconds": 1.045,
+  "pairedCases": 2,
+  "answers": 6,
+  "accuracy": [
+    1,
+    1,
+    1
+  ],
+  "localCards": [
+    5,
+    4
+  ],
+  "federatedCards": 9,
+  "experienceHits": 0,
+  "demonstratedBenefit": false,
+  "cleanedTemporaryRecords": true,
+  "preservedOriginalTasks": 4,
+  "originalRowsPreserved": true,
+  "finalCalls": 5277,
+  "notes": "最小真实模型链路验证；没有检索命中，不能据此证明经验或联邦增益。"
+}

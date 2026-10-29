@@ -23,11 +23,9 @@ from fedagent_sdk import (
 )
 
 from .bridge import diagnose
-from .contracts import ClinicalDelta, validate_output
+from .contracts import validate_output
 from .medical import MedicalDiagnosis
-from .vendor.federated.aggregate import aggregate_site_deltas
 from .vendor.federated.types import FederatedSiteDelta
-from .vendor.learning.legacy_bank_export import build_legacy_bank_payload
 
 CARD_LABELS = {"test_card": "检查经验", "route_card": "科室路由", "clue_card": "会诊线索", "synthesis_card": "诊断综合", "error_card": "失败经验"}
 
@@ -40,14 +38,8 @@ class EvoMedClaw(Algorithm):
         validate_output(ctx, result)
 
     def agent_output_contract(self):
-        return {
-            "diagnose": {"predictions": "仅eval病例返回最终诊断；learn病例跳过，不上传完整轨迹",
-                         "reports": "experience: {version: 整数或null, retrieved: 命中卡ID数组}"},
-            "learn": {"channel": "clinical-cards", "payloadSchema": ClinicalDelta.model_json_schema(),
-                      "privacy": "本站保留轨迹与完整卡库，中心仅接收精简更新"},
-            "load_memory": {"keptKey": "memory_receipt", "valueSchema": "{version, round, sha256}",
-                            "reports": "memoryVersion必须等于输入经验版本"},
-        }
+        from .contracts import output_contract
+        return output_contract()
 
     def validate(self, spec: TaskSpec) -> list[Issue]:
         return ([Issue("participants", "医疗试跑每方至少取 2 条病例，保留经验生成与独立评测各一条")]
@@ -57,26 +49,37 @@ class EvoMedClaw(Algorithm):
         return {"max_tokens": 4096, "temperature": 0}
 
     def estimate(self, spec: TaskSpec) -> Estimate:
-        result = super().estimate(spec)
-        calls = int(spec.params.get("maxTurns", 12)) * 3 + 3
-        result.participant_calls *= calls
-        result.calls_are_upper_bound = True
-        result.participant_tokens = result.participant_calls * 1800
-        return result
+        # 生成一次学习病例，三组各评测同一批独立病例。按正常路径上限计。
+        evaluations = sum(site.sample_counts.get("独立评测", site.items) for site in spec.sites)
+        learning = sum(site.sample_counts.get("经验生成", site.items) for site in spec.sites)
+        calls = int(spec.params.get("maxTurns", 12)) * 2 + 32
+        diagnoses = learning + 3 * evaluations
+        return Estimate(participant_calls=diagnoses * calls + learning,
+                        participant_tokens=(diagnoses * calls + learning) * 1800,
+                        seconds=diagnoses * 100 // max(1, min(spec.workers, len(spec.sites))),
+                        exchanged=learning, calls_are_upper_bound=True)
 
     def manifest_for_version(self, version):
+        if version in ("1.1.0", "1.2.0"):
+            return load_manifest(Path(__file__).with_name("v1.2-manifest.yaml")).model_copy(update={"version": version})
         if version == "1.0.0":
             return load_manifest(Path(__file__).with_name("legacy-manifest.yaml"))
         return super().manifest_for_version(version)
 
     def plan(self, round, rounds):
-        # 第1轮为基线；最后一轮只加载与评测，不生成未经评测的最终成果。
-        return (["load_memory"] if round > 1 else []) + ["diagnose"] + (["learn", "aggregate"] if round < rounds else [])
+        # 内部编号只用于调度；用户看到的是三组固定对照，不进行多轮学习。
+        return {1: ["diagnose"], 2: ["learn", "load_local_memory", "diagnose", "aggregate"],
+                3: ["load_memory", "diagnose"]}[round]
 
     @step("load_memory")
     def load_memory(self, ctx):
         from .site import load_memory
         load_memory(ctx)
+
+    @step("load_local_memory")
+    def load_local_memory(self, ctx):
+        from .site import load_local_memory
+        load_local_memory(ctx)
 
     @step("diagnose")
     def diagnose_case(self, ctx):
@@ -100,15 +103,9 @@ class EvoMedClaw(Algorithm):
                 raise StepFailed("同一参与方重复提交经验更新", pause=True)
             seen.add(message.sender)
             deltas.append(FederatedSiteDelta.from_dict(data))
-        bank = aggregate_site_deltas(deltas)
-        memory = build_legacy_bank_payload(bank)
-        for entry in memory["entries"]:
-            entry.pop("heldout_success_rate", None)
-        cards = bank.to_dict()["cards"]
-        for card in cards:
-            for field in ("heldout_lift", "verifier_score", "false_trigger_rate", "source_cases"):
-                card.pop(field, None)
-        ctx.publish({"cards": cards, "memory": memory, "metadata": {"source_sites": len(seen), "round": ctx.round}})
+        from .memory import shared_content
+        content = shared_content([delta.to_dict() for delta in deltas])
+        ctx.publish({**content, "metadata": {"source_sites": len(seen), "round": ctx.round}})
 
     def apply(self, artifact: Artifact | None, request: ApplyRequest, model: Model) -> ApplyResult:
         if not isinstance(request.input, dict):

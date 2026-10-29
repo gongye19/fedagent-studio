@@ -66,17 +66,18 @@ def _work(settings: dict, path: Path, body: AgentRequest, model_ref: str) -> Non
         )
         events = ProgressStore(path)
         emit = None if body.task_id.startswith("check-") else lambda event: events.append(body.run_id, event)
+        from .store import AgentStore
+        store = AgentStore(path.parent)
+        body = body.model_copy(update={"state": store.state(body)})
         ctx = context_of(body, algorithm, model, progress=emit)
         algorithm.run_step(ctx)
         value = ctx.result
         if value.has_published:
             raise StepFailed("参与方 Agent 不能发布中心产出")
         result = AgentResult(kept=value.kept, sent=value.sent, reports=value.reports, predictions=value.predictions, logs=value.logs)
-        from .store import AgentStore
-
         public = result.model_copy(update={"kept": []}) if step and step.private_state else result
         algorithm.validate_participant_result(ctx, public.unit_result())
-        AgentStore(path.parent).record(body, result)
+        store.record(body, result)
         status = RunStatus(run_id=body.run_id, status="succeeded", result=public)
     except Exception as error:
         import logging
@@ -148,6 +149,7 @@ def create_agent_app(
     @app.get("/capabilities", response_model=Capabilities)
     def capabilities():
         return Capabilities(
+            check_state_cleanup=True,
             algorithms={
                 a.id: AlgorithmCapability(version=a.version, steps=[s.id for s in a.manifest.steps if s.at != "server"])
                 for a in platform.registry.algorithms.values()
@@ -229,5 +231,12 @@ def create_agent_app(
                 if process.is_alive():
                     return RunStatus(run_id=run_id, status="canceling")
             return _finish_cancel(path, run_id)
+
+    @app.delete("/checks/{check_id}/state")
+    def clear_check(check_id: str):
+        if not check_id.startswith("check-"):
+            raise HTTPException(422, "只能清理验证临时状态")
+        AgentStore(root).clear_check(check_id)
+        return {"cleared": True}
 
     return app

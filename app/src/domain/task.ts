@@ -121,3 +121,14 @@ export function stepState(task: Task, round: number, stage: StageId): StepState 
   const index = stages.findIndex((item) => item.id === stage);
   return index < current ? "done" : index === current ? "current" : "pending";
 }
+
+/** 使用任务冻结的名称，旧任务不跟随新插件改变含义。 */
+export function evaluationLabel(task: Task, round: number): string {
+  return task.evaluationLabels?.[round - 1] ?? `第 ${round} 轮`;
+}
+
+export function scoreDifference(task: Task, from: number, to: number, member?: Member): number | null {
+  const a = member ? accuracy(task, member, from) : averageAccuracy(task, from);
+  const b = member ? accuracy(task, member, to) : averageAccuracy(task, to);
+  return a === null || b === null ? null : b - a;
+}

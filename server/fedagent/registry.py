@@ -146,6 +146,7 @@ class Registry:
             "minRounds": manifest.rounds.min,
             "maxRounds": manifest.rounds.max,
             "defaultRounds": manifest.rounds.default,
+            "evaluationLabels": manifest.rounds.labels,
             "requirements": {
                 "agentRequired": manifest.agent_required,
                 "dataRequired": True,

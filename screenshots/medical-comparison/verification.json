@@ -1,0 +1,68 @@
+{
+  "reports": [
+    {
+      "group": 1,
+      "site": "p-a",
+      "case": "medqa-087",
+      "scope": "none",
+      "retrieved": 0,
+      "foreignOnly": 0
+    },
+    {
+      "group": 1,
+      "site": "p-b",
+      "case": "medqa-086",
+      "scope": "none",
+      "retrieved": 0,
+      "foreignOnly": 0
+    },
+    {
+      "group": 2,
+      "site": "p-a",
+      "case": "medqa-087",
+      "scope": "local",
+      "retrieved": 0,
+      "foreignOnly": 0
+    },
+    {
+      "group": 2,
+      "site": "p-b",
+      "case": "medqa-086",
+      "scope": "local",
+      "retrieved": 0,
+      "foreignOnly": 0
+    },
+    {
+      "group": 3,
+      "site": "p-a",
+      "case": "medqa-087",
+      "scope": "federated",
+      "retrieved": 0,
+      "foreignOnly": 0
+    },
+    {
+      "group": 3,
+      "site": "p-b",
+      "case": "medqa-086",
+      "scope": "federated",
+      "retrieved": 0,
+      "foreignOnly": 0
+    }
+  ],
+  "learningUnits": 2,
+  "artifactVersion": 1,
+  "artifactGroup": 2,
+  "cards": 9,
+  "localCards": {
+    "p-b": 5,
+    "p-a": 4
+  },
+  "privateRecords": {
+    "medical-a": 9,
+    "medical-b": 9
+  },
+  "admissionPrivateRecords": {
+    "medical-a": 0,
+    "medical-b": 0
+  }
+}

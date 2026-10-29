@@ -1,5 +1,15 @@
 # 自有 Agent 接入协议
 
+## T102 当前医疗接入：三组固定对照
+
+EvoMedClaw算法协议1.3.0，包0.3.0，SDK0.2.7。rounds固定为3，用户不填写。按下载契约plans执行：1 diagnose（none）；2 learn、load_local_memory、diagnose（local）、aggregate（中心）；3 load_memory、diagnose（federated）。三组用同一份本站eval病例，learn病例不参与评测，评测病例标注不交给Agent。
+
+learn只在第2组生成一次，私下保存local_card_bank和local_memory；后者使用单站点精简delta经过与中心相同的聚合／导出流程。load_local_memory只返回local_memory_receipt={sha256, entries}；本地评测必须使用对应固定库。load_memory确认中心第2组聚合的版本1；最终评测使用其内容。experience报告固定为{scope: none/local/federated, version: 整数或null, sha256: 摘要或null, retrieved: 卡ID数组}；none组摘要为null且命中为空，local版本为null，federated版本为1。中心校验范围、版本、摘要和卡ID，不证明任意用户服务真的依约执行模型。
+
+参考运行器从AgentStore恢复同任务／同站点的私有kept，按组及样本边界读取；不将私有轨迹或卡库回传。资源接入验证也需要临时读取本地经验，但不激活/diagnose默认经验。参考服务capabilities新增可选check_state_cleanup=true，支持DELETE /checks/{check_id}/state；平台在全部运行停止确认后调用，删除验证private_state／memories，保留脱去私有状态的幂等运行审计。第三方未声明该能力时不调用该路径，其本地保留政策需自行管理。普通任务数据不能通过此清理接口删除。
+
+新代码／协议使既有准入凭据失效，必须重新验证两个参考服务；不能伪造新凭据或复用旧成功报告。下文旧两轮及“不保存验证private_state”描述已被本节覆盖。
+
 ## T98：医疗独立评测模型（2026-10-28）
 
 EvoMedClaw协议1.2.0在医疗Agent＋同方病例之外，任务需主动选择一个已验证LLM作为独立评测模型；不是给每组数据再嵌套一个LLM，也不替用户选择。复用serverModel字段，registry.requirements.serverModelLabel为评测模型。资源接入步骤仍由用户自己的服务与模型执行，原四接口和数据格式保持；升级版本／代码会使旧资源凭据失效，须重新验证新版本。

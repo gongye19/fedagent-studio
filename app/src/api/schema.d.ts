@@ -645,6 +645,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/tasks/{task_id}/case-comparisons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Task Case Comparisons */
+        get: operations["task_case_comparisons_v1_tasks__task_id__case_comparisons_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/apps": {
         parameters: {
             query?: never;
@@ -944,6 +961,8 @@ export interface components {
             maxRounds: number;
             /** Defaultrounds */
             defaultRounds: number;
+            /** Evaluationlabels */
+            evaluationLabels?: string[];
             source: components["schemas"]["SourceOut"];
             requirements: components["schemas"]["ResourceRequirementsOut"];
         };
@@ -1114,6 +1133,31 @@ export interface components {
             algorithms: {
                 [key: string]: components["schemas"]["AlgorithmCapability"];
             };
+            /**
+             * Check State Cleanup
+             * @default false
+             */
+            check_state_cleanup: boolean;
+        };
+        /** CaseComparisonOut */
+        CaseComparisonOut: {
+            /** Key */
+            key: string;
+            /** Site */
+            site: string;
+            /** Itemid */
+            itemId: string;
+            /** Cases */
+            cases: components["schemas"]["CaseOut"][];
+        };
+        /** CaseComparisonPageOut */
+        CaseComparisonPageOut: {
+            /** Items */
+            items: components["schemas"]["CaseComparisonOut"][];
+            /** Total */
+            total: number;
+            /** Hasmore */
+            hasMore: boolean;
         };
         /** CaseOut */
         CaseOut: {
@@ -1534,6 +1578,12 @@ export interface components {
         EstimateOut: {
             /** Problems */
             problems: number;
+            /** Samplecounts */
+            sampleCounts?: {
+                [key: string]: {
+                    [key: string]: number;
+                };
+            };
             /**
              * Remoteexecution
              * @default false
@@ -1670,6 +1720,10 @@ export interface components {
             model: string;
             /** Agentname */
             agentName?: string | null;
+            /** Samplecounts */
+            sampleCounts?: {
+                [key: string]: number;
+            };
         };
         /** MessageOut */
         MessageOut: {
@@ -2193,6 +2247,8 @@ export interface components {
             plan?: {
                 [key: string]: string[];
             };
+            /** Evaluationlabels */
+            evaluationLabels?: string[];
         };
         /** TaskParticipantIn */
         TaskParticipantIn: {
@@ -3847,6 +3903,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CasePageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    task_case_comparisons_v1_tasks__task_id__case_comparisons_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseComparisonPageOut"];
                 };
             };
             /** @description Validation Error */

@@ -14,6 +14,7 @@ import { publishedOf, type State } from "../../state/store";
 import { GRADERS, TASK_TYPES } from "../../domain/catalog";
 import { InfoTip } from "../InfoTip";
 import { CaseResults } from "./CaseResults";
+import { EvaluationOverview } from "./EvaluationOverview";
 import { MetricComparison } from "./MetricComparison";
 import { EmptyState, Stat, Tag } from "../common";
 import { Panel } from "../console";
@@ -21,6 +22,11 @@ import { formatDelta, formatPercent } from "../format";
 import { algorithmOfTask, deltaClass, metricOf, roundHeader } from "../labels";
 
 export function OverviewTab({ task, state }: { task: Task; state: State }) {
+  if (task.evaluationLabels?.length) return <EvaluationOverview task={task} />;
+  return <IterativeOverview task={task} state={state} />;
+}
+
+function IterativeOverview({ task, state }: { task: Task; state: State }) {
   const rounds = scoredRounds(task);
   const metric = metricOf(task);
   const product = algorithmOfTask(task).output;

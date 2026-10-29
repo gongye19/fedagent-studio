@@ -31,7 +31,7 @@ export function CaseResults({ task }: { task: Task }) {
     </div>
     {query.isPending ? <div className="case-empty"><CheckStatus status="running" label="正在读取案例" /></div> : query.isError ? <div className="case-empty"><p role="alert">案例读取失败</p><button type="button" className="button button--secondary button--compact" onClick={() => void query.refetch()}>重试</button></div> : query.data.items.length ? <>
       <ul className="case-list">{query.data.items.map((item) => <CaseItem key={item.key} item={item} task={task} />)}</ul>
-      <div className="case-pagination"><span>共 {query.data.total} 条</span><button type="button" className="button button--ghost button--compact" disabled={!offset} onClick={() => setOffset(Math.max(0, offset - 20))}>上一页</button><button type="button" className="button button--ghost button--compact" disabled={!query.data.hasMore} onClick={() => setOffset(offset + 20)}>下一页</button></div>
+      <div className="case-pagination"><span>共 {query.data.total} 条</span>{query.data.total > 20 ? <><button type="button" className="button button--ghost button--compact" disabled={!offset} onClick={() => setOffset(Math.max(0, offset - 20))}>上一页</button><button type="button" className="button button--ghost button--compact" disabled={!query.data.hasMore} onClick={() => setOffset(offset + 20)}>下一页</button></> : null}</div>
     </> : <p className="case-empty muted">{isActive(task) ? "评测完成后展示案例" : "暂无此类案例"}</p>}
   </Panel>;
 }

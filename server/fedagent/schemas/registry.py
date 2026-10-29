@@ -124,6 +124,7 @@ class AlgorithmOut(Model):
     min_rounds: int
     max_rounds: int
     default_rounds: int
+    evaluation_labels: list[str] = Field(default_factory=list)
     source: SourceOut
     requirements: ResourceRequirementsOut
 

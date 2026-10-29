@@ -114,6 +114,10 @@ class TaskType:
             return value
         return bool(self.label_fields) and all(_present(get(name)) for name in self.label_fields)
 
+    def sample_purpose(self, item: Mapping[str, Any]) -> str:
+        """配置摘要中的样本用途；任务类型可声明学习／评测等标签。"""
+        return "评测"
+
     def is_evaluated(self, item: Mapping[str, Any]) -> bool:
         """任务评测分母；有独立学习集的任务类型可排除学习样本。"""
         return self.is_labeled(item)

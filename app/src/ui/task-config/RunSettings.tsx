@@ -71,7 +71,7 @@ export function RunSettings({
             }
           />
         </Field>
-        <Field
+        {algorithm?.minRounds !== algorithm?.maxRounds || !algorithm ? <Field
           label="轮次"
           error={roundsError}
           htmlFor={algorithm ? undefined : "rounds-pending"}
@@ -97,7 +97,7 @@ export function RunSettings({
               <option value="">请先选择算法</option>
             </SelectField>
           )}
-        </Field>
+        </Field> : null}
       </FieldGroup>
     </div>
   );

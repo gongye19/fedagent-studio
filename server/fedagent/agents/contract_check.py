@@ -36,11 +36,12 @@ def check_agent(platform, agent_id, algorithm, task_type, site, records, check_i
     evaluation = algorithm.manifest.evaluation
     predictions = 0
     uploads = 0
-    first = algorithm.plan(1, 2)
-    extra = [step.id for step in algorithm.manifest.steps if step.at != "server" and step.id not in first]
+    rounds = algorithm.manifest.rounds.default
     artifact = None
     sent = []
-    sequence = [(1, key) for key in first] + ([(2, key) for key in algorithm.plan(2, 2)] if extra else [])
+    # 按插件计划覆盖所有本方步骤，不把验证固定为两轮。
+    extra = any(step.at != "server" and step.id not in algorithm.plan(1, rounds) for step in algorithm.manifest.steps)
+    sequence = [(round, key) for round in range(1, rounds + 1 if extra else 2) for key in algorithm.plan(round, rounds)]
     for round, step_id in sequence:
         step = algorithm.manifest.step(step_id)
         assert step is not None
@@ -50,11 +51,11 @@ def check_agent(platform, agent_id, algorithm, task_type, site, records, check_i
             if step.model:
                 raise ValueError("接入验证需要未配置的中心模型")
             request = AgentRequest(run_id="pending", algorithm=algorithm.id, version=algorithm.version,
-                task_type=config.task_type, task_id=check_id, site_id="server", role="server", round=round, rounds=2,
+                task_type=config.task_type, task_id=check_id, site_id="server", role="server", round=round, rounds=rounds,
                 step=step.id, unit_key="_", params=algorithm.manifest.params_of(config.params),
                 inbox={channel: [m for m in sent if m.channel == channel] for channel in step.reads})
             ctx = StepContext(manifest=algorithm.manifest, step=step, site=SiteInfo("server", "server", "server"),
-                              round=round, rounds=2, params=request.params, io=PayloadIO(request))
+                              round=round, rounds=rounds, params=request.params, io=PayloadIO(request))
             algorithm.run_step(ctx)
             if ctx.result.has_published:
                 artifact = Artifact(1, round, algorithm.manifest.artifact.kind, ctx.result.published)
@@ -69,7 +70,7 @@ def check_agent(platform, agent_id, algorithm, task_type, site, records, check_i
             request = AgentRequest(
                 run_id="pending", algorithm=algorithm.id, version=algorithm.version,
                 task_type=config.task_type, task_id=check_id, site_id=site.participant.id,
-                role=step.at, round=round, rounds=2, step=step.id,
+                role=step.at, round=round, rounds=rounds, step=step.id,
                 unit_key=item.id if item else "_", params=algorithm.manifest.params_of(config.params),
                 items=[item] if item else items, state=state, artifact=artifact,
             )

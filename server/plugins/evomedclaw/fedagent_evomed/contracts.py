@@ -46,7 +46,7 @@ class ClinicalDelta(BaseModel):
 
 def validate_output(ctx: StepContext, result: UnitResult) -> None:
     try:
-        allowed_reports = {"diagnose": {"experience"}, "learn": {"localCards", "exportedCards"}, "load_memory": {"memoryVersion"}}
+        allowed_reports = {"diagnose": {"experience"}, "learn": {"localCards", "exportedCards"}, "load_memory": {"memoryVersion"}, "load_local_memory": set()}
         if set(result.reports) - allowed_reports.get(ctx.step.id, set()):
             raise ValueError("服务返回了契约未声明的报告字段")
         if ctx.step.id == "diagnose":
@@ -57,15 +57,7 @@ def validate_output(ctx: StepContext, result: UnitResult) -> None:
                 if (len(result.predictions) != 1 or result.predictions[0][0] != ctx.item.id
                         or not isinstance(result.predictions[0][1], str) or not result.predictions[0][1].strip()):
                     raise ValueError("评测必须返回当前病例的有效诊断预测")
-                report = result.reports.get("experience", {})
-                if not isinstance(report, dict) or set(report) != {"version", "retrieved"}:
-                    raise ValueError("经验回用报告结构无效")
-                artifact = ctx.artifact()
-                if report.get("version") != (artifact.version if artifact else None) or not isinstance(report.get("retrieved"), list):
-                    raise ValueError("评测缺少正确的经验版本及命中记录")
-                keys = {entry["entry_id"] for entry in (artifact.content.get("memory", {}).get("entries", []) if artifact else [])}
-                if any(not isinstance(key, str) or key not in keys for key in report["retrieved"]):
-                    raise ValueError("经验命中记录不属于指定版本")
+                validate_experience(ctx, result.reports.get("experience", {}))
             elif result.predictions:
                 raise ValueError("经验生成病例不能提交评测预测")
         elif ctx.step.id == "load_memory":
@@ -74,6 +66,14 @@ def validate_output(ctx: StepContext, result: UnitResult) -> None:
             saved = [value for key, item_id, value in result.kept if key == "memory_receipt" and item_id is None]
             if len(result.kept) != 1 or artifact is None or saved != [receipt(artifact)] or result.reports.get("memoryVersion") != artifact.version:
                 raise ValueError("服务未确认加载指定版本的共享记忆")
+        elif ctx.step.id == "load_local_memory":
+            from .memory import content_receipt
+            saved = [value for key, item_id, value in result.kept if key == "local_memory_receipt" and item_id is None]
+            if len(result.kept) != 1 or not saved or not valid_receipt(saved[0]):
+                raise ValueError("服务未确认本方固定经验版本")
+            memory = ctx.recall("local_memory", item_id="")
+            if memory is not None and saved[0] != content_receipt(memory):
+                raise ValueError("本地经验确认与实际内容不一致")
         elif ctx.step.id == "learn":
             if result.kept:
                 raise ValueError("本站轨迹及卡库不得回传中心")
@@ -86,3 +86,50 @@ def validate_output(ctx: StepContext, result: UnitResult) -> None:
     except ValidationError as error:
         detail = error.errors(include_url=False, include_input=False)[0]
         raise ValueError(f"医疗 Agent 输出不符合规范：{'.'.join(map(str, detail['loc']))}（{detail['type']}）") from error
+
+
+def valid_receipt(value):
+    import re
+    return (isinstance(value, dict) and set(value) == {"sha256", "entries"}
+            and isinstance(value["sha256"], str) and re.fullmatch(r"[0-9a-f]{64}", value["sha256"])
+            and isinstance(value["entries"], list) and all(isinstance(key, str) for key in value["entries"])
+            and len(set(value["entries"])) == len(value["entries"]))
+
+
+def validate_experience(ctx, report):
+    from .memory import content_receipt, scope
+    if not isinstance(report, dict) or set(report) != {"scope", "version", "sha256", "retrieved"}:
+        raise ValueError("经验回用报告结构无效")
+    artifact = ctx.artifact()
+    if ctx.round < 3 and artifact is not None:
+        raise ValueError("本组不允许加载共享经验")
+    if report["scope"] != scope(ctx.round) or report["version"] != (artifact.version if artifact else None):
+        raise ValueError("评测经验来源或版本不符合当前对照组")
+    if ctx.round == 1:
+        expected = {"sha256": None, "entries": []}
+    elif ctx.round == 2:
+        expected = ctx.recall("local_memory_receipt", item_id="")
+        if not valid_receipt(expected):
+            raise ValueError("本地经验尚未确认")
+    else:
+        if artifact is None:
+            raise ValueError("联邦评测缺少共享经验")
+        expected = content_receipt(artifact.content["memory"])
+    hits = report["retrieved"]
+    if report["sha256"] != expected["sha256"] or not isinstance(hits, list):
+        raise ValueError("评测经验摘要与指定版本不一致")
+    if any(not isinstance(key, str) or key not in expected["entries"] for key in hits) or len(set(hits)) != len(hits):
+        raise ValueError("经验命中记录不属于指定经验版本")
+
+
+def output_contract():
+    return {
+        "diagnose": {"predictions": "仅eval病例返回最终诊断；learn病例跳过，禁止回传完整轨迹",
+                     "reports": "experience: {scope: none/local/federated, version: 整数或null, sha256: 摘要或null, retrieved: 卡ID数组}"},
+        "learn": {"channel": "clinical-cards", "payloadSchema": ClinicalDelta.model_json_schema(),
+                  "privacy": "仅第2组生成一次本地经验；轨迹、原卡库及本地检索库留在本站；发送精简经验更新"},
+        "load_local_memory": {"keptKey": "local_memory_receipt", "valueSchema": "{sha256, entries: 本地卡ID数组}",
+                              "behavior": "确认本次任务本站生成的固定版本；只返回摘要与卡ID，不返回本地轨迹"},
+        "load_memory": {"keptKey": "memory_receipt", "valueSchema": "{version, round, sha256}",
+                        "reports": "memoryVersion必须等于输入经验版本"},
+    }

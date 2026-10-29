@@ -80,7 +80,7 @@ export default function TaskPage({ task, state, dispatch, tab }: Props) {
         status={<>{task.fake ? <Tag>假模型</Tag> : null}<TaskStatus task={task} /></>}
         meta={<Meta parts={[
           ...taskSummaryParts(task),
-          `${task.config.rounds} 轮`,
+          task.evaluationLabels?.length ? `${task.evaluationLabels.length} 组对照` : `${task.config.rounds} 轮`,
           task.startedAt ? `开始于 ${formatDate(task.startedAt)}` : "尚未开始",
           task.finishedAt && task.status === "completed" ? `完成于 ${formatDate(task.finishedAt)}` : null,
         ]} />}

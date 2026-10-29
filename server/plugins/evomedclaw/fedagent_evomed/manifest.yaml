@@ -1,14 +1,14 @@
 id: evomedclaw
-version: 1.2.0
+version: 1.3.0
 name: EvoMedClaw
 full_name: EvoMedClaw · 横向医疗记忆共享
-summary: 各方完成诊断并提炼过程经验，聚合后用于下一轮诊断
+summary: 对照无经验、本地经验与联邦经验，比较共享诊断经验的作用
 scenario: horizontal
 accepts: [medical-diagnosis]
 agent_required: true
 roles:
   participant: {label: 参与方, min: 2, evaluated: true}
-rounds: {min: 2, max: 6, default: 2}
+rounds: {min: 3, max: 3, default: 3, labels: [无经验, 本地经验, 联邦经验]}
 channels:
   clinical-cards:
     label: 医疗过程经验卡
@@ -21,6 +21,7 @@ artifact: {kind: clinical-memory, name: 医疗经验库, unit: 张过程卡, to:
 evaluation: {step: diagnose, baseline: round-1}
 steps:
   - {id: load_memory, label: 加载共享记忆, at: participant, per: site, retries: 0}
+  - {id: load_local_memory, label: 加载本地经验, at: participant, per: site, retries: 0}
   - {id: diagnose, label: 独立评测, at: participant, per: item, model: true, private_state: true, result: metric, estimate: {seconds: 100, tokens: 18000}, retries: 2}
   - {id: learn, label: 提炼并提交经验, at: participant, per: site, model: true, private_state: true, labels: true, sends: [clinical-cards], result: uploads, estimate: {seconds: 2}, retries: 1}
   - {id: aggregate, label: 聚合医疗经验库, at: server, reads: [clinical-cards], publishes: true, result: output, estimate: {seconds: 2}, retries: 0}

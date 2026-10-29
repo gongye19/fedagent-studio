@@ -9,7 +9,7 @@ from fedagent_sdk import Manifest
 from sqlalchemy import select
 
 from .. import models as m
-from ..schemas.cases import CaseOut, CasePageOut
+from ..schemas.cases import CaseComparisonOut, CaseComparisonPageOut, CaseOut, CasePageOut
 
 CASE_REPORT = "case_result"
 
@@ -42,13 +42,13 @@ def snapshot(task_type, record, item_id, prediction, labeled, correct) -> dict:
             "outcome": "unlabeled" if not labeled else "passed" if correct else "incorrect"}
 
 
-def page(platform, session, task, *, round=None, site=None, outcome=None, offset=0, limit=20) -> CasePageOut:
+def recorded_cases(platform, session, task, *, round=None, site=None) -> list[CaseOut]:
     algorithm = platform.registry.algorithms.get(task.algorithm)
     frozen = task.audit.get("manifest")
     manifest = Manifest.model_validate(frozen) if frozen else algorithm.manifest_for_version(task.plugin_version) if algorithm else None
     evaluation = manifest.evaluation if manifest else None
     if not evaluation:
-        return CasePageOut(items=[], total=0, counts={}, has_more=False)
+        return []
     query = select(m.Report).where(m.Report.task_id == task.id, m.Report.step == evaluation.step,
                                    m.Report.name.in_((CASE_REPORT, "correct", "labeled")))
     units_query = select(m.WorkUnit).where(m.WorkUnit.task_id == task.id)
@@ -76,6 +76,21 @@ def page(platform, session, task, *, round=None, site=None, outcome=None, offset
         cases.append(CaseOut(key=f"failed:{unit.id}", round=unit.round, site=unit.site_id, item_id=unit.unit_key,
                              step=unit.step, outcome="error", error=display_text((unit.error or "执行失败").splitlines()[0])[:500]))
     cases.sort(key=lambda c: (c.round, c.site, c.item_id, c.key))
+    return cases
+
+
+def page(platform, session, task, *, round=None, site=None, outcome=None, offset=0, limit=20) -> CasePageOut:
+    cases = recorded_cases(platform, session, task, round=round, site=site)
     counts = dict(Counter(case.outcome for case in cases))
     filtered = [case for case in cases if not outcome or case.outcome == outcome]
     return CasePageOut(items=filtered[offset:offset + limit], total=len(filtered), counts=counts, has_more=offset + limit < len(filtered))
+
+
+def comparisons(platform, session, task, *, offset=0, limit=20) -> CaseComparisonPageOut:
+    groups = defaultdict(list)
+    for case in recorded_cases(platform, session, task):
+        # 整批执行错误没有病例ID，按实际失败步骤单独呈现，不能冒充病例回答。
+        groups[(case.site, case.item_id, case.step if case.item_id == "_" else "")].append(case)
+    items = [CaseComparisonOut(key=json.dumps(key), site=key[0], item_id=key[1], cases=values)
+             for key, values in sorted(groups.items())]
+    return CaseComparisonPageOut(items=items[offset:offset + limit], total=len(items), has_more=offset + limit < len(items))

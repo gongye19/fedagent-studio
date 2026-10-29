@@ -84,7 +84,7 @@ export function TaskSummary({
             <dt>样本</dt>
             <dd>
               {result
-                ? `${formatNumber(result.problems)} 条${full ? "" : `（每份前 ${draft.trialCap} 条）`}`
+                ? `${formatNumber(result.problems)} 条${full ? "" : `（每份最多 ${draft.trialCap} 条）`}`
                 : "—"}
             </dd>
           </div>
@@ -92,7 +92,7 @@ export function TaskSummary({
             <dt>运行</dt>
             <dd>
               {full ? "正式运行" : "试跑"} ·{" "}
-              {algorithm ? `${draft.rounds} 轮` : "轮次待选"}
+              {algorithm?.evaluationLabels?.length ? `${algorithm.evaluationLabels.length} 组对照` : algorithm ? `${draft.rounds} 轮` : "轮次待选"}
             </dd>
           </div>
           <div>

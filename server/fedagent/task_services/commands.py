@@ -45,6 +45,7 @@ def create(platform: Platform, session: Session, body: TaskConfigIn) -> m.Task:
     audit = {
         "agents": {agent_id: {"name": row.name, "revision": row.revision}
                    for agent_id in agent_ids if agent_id and (row := session.get(m.AgentEndpoint, agent_id))},
+        "sample_counts": {site.participant.id: site.sample_counts for site in prepared.sites},
         "pluginVersion": algorithm.version,
         "manifest": algorithm.manifest.model_dump(mode="json", by_alias=True),
         "plan": {str(r): algorithm.plan(r, body.rounds) for r in range(1, body.rounds + 1)},

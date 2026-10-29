@@ -1,0 +1,26 @@
+[
+  {
+    "task": "check-28fac314",
+    "purpose": "agent-test",
+    "status": "ok",
+    "calls": 94,
+    "promptTokens": 84494,
+    "completionTokens": 18328
+  },
+  {
+    "task": "check-cd11f9e1",
+    "purpose": "agent-test",
+    "status": "ok",
+    "calls": 122,
+    "promptTokens": 150908,
+    "completionTokens": 42468
+  },
+  {
+    "task": "task-63ebb30d",
+    "purpose": "agent",
+    "status": "ok",
+    "calls": 193,
+    "promptTokens": 205070,
+    "completionTokens": 53173
+  }
+]

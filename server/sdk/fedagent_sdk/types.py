@@ -65,6 +65,7 @@ class SiteSpec:
     role: str
     items: int
     labeled: int
+    sample_counts: Mapping[str, int] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

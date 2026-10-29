@@ -43,15 +43,16 @@ def test_own_group_combines_with_shared_group_without_private_trajectories(platf
     task_id = made.json()["id"]
     assert run(platform, task_id) == "completed"
     view = client.get("/v1/tasks/"+task_id).json()
-    assert view["plan"] == {"1": ["diagnose", "learn", "aggregate"], "2": ["load_memory", "diagnose"]}
-    assert view["rounds"][0]["output"] and view["rounds"][1]["output"] is None
+    assert view["plan"] == {"1": ["diagnose"], "2": ["learn", "load_local_memory", "diagnose", "aggregate"], "3": ["load_memory", "diagnose"]}
+    assert view["rounds"][0]["output"] is None and view["rounds"][1]["output"] and view["rounds"][2]["output"] is None
     with platform.db.session() as db:
         from sqlalchemy import select
         state = list(db.scalars(select(m.SiteState).where(m.SiteState.task_id == task_id)))
-        assert state and all(row.key == "memory_receipt" for row in state)
+        assert state and all(row.key in ("memory_receipt", "local_memory_receipt") for row in state)
     used = [r for r in remote[1] if r.task_id == task_id]
     assert all(not r.state for r in used if r.step == "learn")
-    assert {r.artifact.version for r in used if r.round == 2} == {1}
+    assert all(r.artifact is None for r in used if r.round < 3)
+    assert {r.artifact.version for r in used if r.round == 3} == {1}
 
 
 def test_contract_is_specific_to_algorithm_and_has_no_registered_resources(client):
@@ -61,7 +62,7 @@ def test_contract_is_specific_to_algorithm_and_has_no_registered_resources(clien
     assert fot["manifest"]["params"][0]["default"] == "paper-auto"
     assert set(fot["dataContracts"]) == {"math-reasoning"}
     assert set(evo["dataContracts"]) == {"medical-diagnosis"}
-    assert set(evo["outputContract"]) == {"diagnose", "learn", "load_memory"}
+    assert set(evo["outputContract"]) == {"diagnose", "learn", "load_memory", "load_local_memory"}
     assert "单个用户" in evo["resourcesNote"]
     assert "base_url" not in json.dumps(evo) and "api_key_enc" not in json.dumps(evo)
     assert client.get("/v1/algorithms/missing/contract").status_code == 404
@@ -95,23 +96,24 @@ def test_provider_keeps_trajectories_local_and_requires_loaded_version(platform,
             _work(platform.settings.model_dump(), root / "runs.sqlite", body, "fake:fake")
             return api.get("/runs/"+body.run_id).json()
 
-        base = dict(algorithm="evomedclaw", version="1.2.0", task_type="medical-diagnosis", task_id="real-task",
-                    site_id="site", role="participant", rounds=2, params={"maxTurns": 4})
+        base = dict(algorithm="evomedclaw", version="1.3.0", task_type="medical-diagnosis", task_id="real-task",
+                    site_id="site", role="participant", rounds=3, params={"maxTurns": 4})
         item = to_item(task_type, cases()[1], labels=False)
         first = execute(AgentRequest(**base, run_id="baseline", round=1, step="diagnose", unit_key=item.id, items=[item]))
         assert first["status"] == "succeeded", first
         assert first["result"]["kept"] == [] and "dialogue_history" not in json.dumps(first)
         with AgentStore(root).connect() as db:
             assert "dialogue_history" in db.execute("SELECT output FROM private_state").fetchone()[0]
-        artifact = Artifact(1, 1, "clinical-memory", {"memory": {"entries": []}, "cards": []})
-        missing = execute(AgentRequest(**base, run_id="no-load", round=2, step="diagnose", unit_key=item.id, items=[item], artifact=artifact))
+        artifact = Artifact(1, 2, "clinical-memory", {"memory": {"entries": []}, "cards": []})
+        missing = execute(AgentRequest(**base, run_id="no-load", round=3, step="diagnose", unit_key=item.id, items=[item], artifact=artifact))
         assert missing["status"] == "failed"
-        loaded = execute(AgentRequest(**base, run_id="load", round=2, step="load_memory", unit_key="_", artifact=artifact))
+        loaded = execute(AgentRequest(**base, run_id="load", round=3, step="load_memory", unit_key="_", artifact=artifact))
         assert loaded["status"] == "succeeded", loaded
         from fedagent.agents.protocol import SavedValue
         key, item_id, value = loaded["result"]["kept"][0]
-        evaluated = execute(AgentRequest(**base, run_id="evaluated", round=2, step="diagnose", unit_key=item.id, items=[item], artifact=artifact,
-                                        state=[SavedValue(key=key, item_id=item_id, round=2, value=value)]))
+        evaluated = execute(AgentRequest(**base, run_id="evaluated", round=3, step="diagnose", unit_key=item.id, items=[item], artifact=artifact,
+                                        state=[SavedValue(key=key, item_id=item_id, round=3, value=value)]))
         assert evaluated["status"] == "succeeded", evaluated
-        assert evaluated["result"]["reports"]["experience"] == {"version": 1, "retrieved": []}
+        assert evaluated["result"]["reports"]["experience"]["scope"] == "federated"
+        assert evaluated["result"]["reports"]["experience"]["retrieved"] == []
         assert AgentStore(root).memory("real-task", "site").version == 1

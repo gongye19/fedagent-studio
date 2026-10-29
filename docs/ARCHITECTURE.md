@@ -800,3 +800,14 @@ MetricComparison管理图例，trend.ts保持既有宏平均／分母与null，T
 覆盖§40的进度条展示：ProgressTab用stagesOf(task, round)读取冻结各轮plan，用stepState读取cursor前后状态，原生ol按轮次／步骤纵向列出全部历史；不依据单元完成比估计耗时。参与方done计数只与该步骤期望工作单元数比较，用于整个步骤完成二态，不作为病例数或进度条。没有更细数据时，不猜测排队、内部动作和剩余时间。
 
 删除progressOf、未再使用的stageSeconds、ProgressBar及其CSS；任务列表与其他详情标签页同步不展示估算条。stepState在非completed且没有cursor时返回pending，避免排队空状态显示全绿。后台API、编排、算法与病例合同不变。
+
+## 42. 固定评测对照与医疗经验隔离（T102／D98）
+
+- SDK RoundsDef.labels是可选固定对照名称，要求min=max=default=名称数量且名称唯一非空；没有labels的FoT和旧任务继续迭代展示。Registry、TaskOut下发名称；TaskOut只读冻结manifest，不用当前算法推断历史含义。内部依旧复用round／plan、评估步骤和Reports，无主库迁移。医疗1.3.0固定三组；v1.2-manifest保留历史展示。
+- 医疗计划为1 diagnose；2 learn／load_local_memory／diagnose／aggregate；3 load_memory／diagnose。memory.py统一单方／多方签名聚合和导出，剔除未验证的评分字段。服务侧按任务／站点恢复私有状态，load_local_memory只公开固定库摘要与卡ID；无经验和本地组拒绝共享产出，最终加载必须是第2组版本1。每次diagnose独立构建上游会话。原vendor与评分不改。
+- StepContext输入经context_of核对组数及当前plan，拒绝任意阶段越序请求。contract_check不再硬编码2轮；需要后续参与方步骤时按算法完整默认计划检查，FoT仍只覆盖一次全部本方步骤。服务宣告check_state_cleanup时，结束并确认停止后清理验证私有状态，不激活验证记忆；普通任务状态及幂等审计保留。
+- TaskType.sample_purpose决定中文用途名；PreparedSite、EstimateOut、冻结audit和MemberOut记录所选数据的用途数量，前端不猜测80/20或用试跑总数冒充评测数。医疗预算按学习量＋三组评测量和正常路径调用上限估计，网关重试另计。
+- GET /tasks/{id}/case-comparisons复用recorded_cases，按site／item配对并按病例分页；整批错误按真实step单列，不虚构病例或推断内部错误因果。旧/cases、原始正确数和历史正文缺失语义不变。
+- EvaluationOverview只消费冻结labels；原迭代Overview继续用于FoT／旧任务。图表对照用既有ECharts BarChart懒加载，0与缺失分开；宏平均仍各方等权。案例三组正文按需展开，窄屏纵排，单页不显示无效翻页。
+
+T102线上检查补充：HTTP图文件与本地产物一致但浏览器iframe停留about:blank，未确认浏览器内部拦截原因。改为父页fetch生成文档后srcDoc嵌入，沙箱仍只有allow-scripts且CSP禁止网络；生成器嵌入时关闭原自动时钟，由controller统一控制。该修复同时用于两种图，不改变FoT图布局或算法。纯前端热更新不重启正在运行的后端。

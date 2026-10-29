@@ -25,3 +25,16 @@ class CasePageOut(Model):
     total: int
     counts: dict[str, int]
     has_more: bool
+
+
+class CaseComparisonOut(Model):
+    key: str
+    site: str
+    item_id: str
+    cases: list[CaseOut]
+
+
+class CaseComparisonPageOut(Model):
+    items: list[CaseComparisonOut]
+    total: int
+    has_more: bool

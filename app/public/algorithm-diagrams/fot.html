@@ -441,7 +441,7 @@ function boot(c){
   var fontsFor=function(){ if(!VIEWS.length||!document.fonts||!document.fonts.load) return Promise.resolve(); var f=TH.titleFont||TH.font;
     return Promise.all(['20px '+f,'700 20px '+f,'20px '+TH.font,'700 20px '+TH.font].map(function(q){return document.fonts.load(q).catch(function(){})})); };
   var go=function(){ try{ buildViews(); }catch(e){ fail(e); } window.__ready=true; window.seek(window.__pending==null?0:window.__pending);
-    if(!/[?&]manual/.test(location.search)){ var t0=performance.now(), D=cv.duration||30; (function loop(now){ window.seek(((now-t0)/1000)%D); requestAnimationFrame(loop); })(t0); } };
+    if(window.parent===window&&!/[?&]manual/.test(location.search)){ var t0=performance.now(), D=cv.duration||30; (function loop(now){ window.seek(((now-t0)/1000)%D); requestAnimationFrame(loop); })(t0); } };
   (document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(fontsFor).then(go);
 }
 loadConfig().then(boot).catch(fail);

@@ -8,7 +8,7 @@ from sqlalchemy import select
 from .. import models as m
 from .. import tasks
 from ..schemas import EstimateOut, EventOut, MessageOut, TaskConfigIn, TaskOut, ValidateOut
-from ..schemas.cases import CasePageOut
+from ..schemas.cases import CaseComparisonPageOut, CasePageOut
 from ..schemas.process import ProcessPageOut
 from ..task_services.cases import page as cases_page
 from ..task_services.process import page as process_page
@@ -111,3 +111,11 @@ def task_cases(task_id: str, platform: PlatformDep, session: SessionDep,
                outcome: Literal["passed", "incorrect", "unlabeled", "error"] | None = None,
                offset: Annotated[int, Query(ge=0)] = 0, limit: Annotated[int, Query(ge=1, le=100)] = 20) -> CasePageOut:
     return cases_page(platform, session, tasks.get_task(session, task_id), round=round, site=site, outcome=outcome, offset=offset, limit=limit)
+
+
+@router.get("/tasks/{task_id}/case-comparisons", response_model=CaseComparisonPageOut, tags=["tasks"])
+def task_case_comparisons(task_id: str, platform: PlatformDep, session: SessionDep,
+                          offset: Annotated[int, Query(ge=0)] = 0,
+                          limit: Annotated[int, Query(ge=1, le=100)] = 20) -> CaseComparisonPageOut:
+    from ..task_services.cases import comparisons
+    return comparisons(platform, session, tasks.get_task(session, task_id), offset=offset, limit=limit)

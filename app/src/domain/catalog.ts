@@ -93,6 +93,7 @@ export type Algorithm = {
   minRounds: number;
   maxRounds: number;
   defaultRounds: number;
+  evaluationLabels?: readonly string[];
   source: { paper: string; paperUrl: string; code: string; codeUrl: string };
   requirements: components["schemas"]["ResourceRequirementsOut"];
 };
@@ -170,6 +171,7 @@ export function installRegistry(registry: Registry): void {
       minRounds: item.minRounds,
       maxRounds: item.maxRounds,
       defaultRounds: item.defaultRounds,
+      evaluationLabels: item.evaluationLabels,
       source: {
         paper: item.source.paper ?? "",
         paperUrl: item.source.paperUrl ?? "",

@@ -37,6 +37,8 @@ class RoundsDef(_Model):
     min: int = 1
     max: int = 10
     default: int = 3
+    labels: list[str] = []
+    """固定对照组的展示名称；空数组表示通常的迭代轮次。"""
 
 
 class ChannelDef(_Model):
@@ -212,6 +214,10 @@ class Manifest(_Model):
                 raise ValueError(f"参数默认值不合法：{problem}")
         if not self.rounds.min <= self.rounds.default <= self.rounds.max:
             raise ValueError("轮次默认值不在范围内")
+        if self.rounds.labels and (not self.rounds.min == self.rounds.max == len(self.rounds.labels)
+                                  or any(not label.strip() for label in self.rounds.labels)
+                                  or len(set(self.rounds.labels)) != len(self.rounds.labels)):
+            raise ValueError("对照组名称必须非空、唯一，且数量与固定执行组数一致")
         return self
 
     def step(self, step_id: str) -> StepDef | None:

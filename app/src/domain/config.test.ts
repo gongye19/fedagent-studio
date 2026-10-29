@@ -53,7 +53,7 @@ it("requires a user Agent for medical and excludes incompatible interfaces from 
     shared: false,
     resourceSpace: "workspace",
     capabilities: {
-      protocol: "fedagent-agent/1",
+      protocol: "fedagent-agent/1", check_state_cleanup: false,
       algorithms: {
         evomedclaw: { version: medical.version, steps: medical.stages.filter((s) => s.side === "participant").map((s) => s.id) },
       },
@@ -70,7 +70,7 @@ it("requires a user Agent for medical and excludes incompatible interfaces from 
         {
           ...agent,
           capabilities: {
-            protocol: "fedagent-agent/1",
+            protocol: "fedagent-agent/1", check_state_cleanup: false,
             algorithms: {
               evomedclaw: { version: medical.version, steps: ["diagnose"] },
             },

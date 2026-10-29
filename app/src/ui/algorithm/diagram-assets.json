@@ -2,21 +2,21 @@
   "fot": {
     "width": 1040,
     "height": 520,
-    "sha256": "e010e4bd0d290de98ecd2d729b5c5be7bf9a06d5a93aad4e6acd0bcb8bdde086"
+    "sha256": "721f94f61815e47ed5eade1a980f916020f6f26b6fb9727a0ef09de0f897ceea"
   },
   "fot-mobile": {
     "width": 320,
     "height": 888,
-    "sha256": "4157b387638359cd7cf84c943c0fc70c3fe9daba5e1d0b4a1c1bed9ae30cea23"
+    "sha256": "dc5aef2fa5a1a8f2b424432cbf6c409e3c90fb7b7c458c28ade630810423ea77"
   },
   "evomedclaw": {
     "width": 1040,
-    "height": 520,
-    "sha256": "21e924004c745f697e1b315e1f87f7a1a0c5805696664b9ac2bfe156a57da575"
+    "height": 500,
+    "sha256": "4e81d1f2bc436f2f22fc90a7bfff00e647fb7cf4ac97a4818677688051a10796"
   },
   "evomedclaw-mobile": {
     "width": 320,
-    "height": 766,
-    "sha256": "0fc647845b45bfd589510e0713ab0f68ac301540ab150a666b0e7d501156a09d"
+    "height": 880,
+    "sha256": "9f1a25749f0161e2166a6742617394cc3581c58d7cce051e2af7de24cb960c78"
   }
 }

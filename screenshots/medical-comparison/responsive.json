@@ -1,0 +1,26 @@
+[
+  {
+    "groups": 6,
+    "pagination": false,
+    "scrollWidth": 320,
+    "width": 320
+  },
+  {
+    "groups": 6,
+    "pagination": false,
+    "scrollWidth": 390,
+    "width": 390
+  },
+  {
+    "groups": 6,
+    "pagination": false,
+    "scrollWidth": 768,
+    "width": 768
+  },
+  {
+    "groups": 6,
+    "pagination": false,
+    "scrollWidth": 1280,
+    "width": 1280
+  }
+]

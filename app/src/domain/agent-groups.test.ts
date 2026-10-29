@@ -20,7 +20,7 @@ it("共享保留原归属；Agent先选、只列同方且已共享的数据，�
     verifications: [{algorithm: "evomedclaw", taskType: "medical-diagnosis", datasetId: "verification-data", current: true,
       report: {id: "check-resource", status: "passed", results: [], createdAt: "2026-10-26T00:00:00Z", finishedAt: "2026-10-26T00:01:00Z"}}],
     capabilities: {
-      protocol: "fedagent-agent/1",
+      protocol: "fedagent-agent/1", check_state_cleanup: false,
       algorithms: {
         evomedclaw: { version: algorithmOf("evomedclaw").version, steps: algorithmOf("evomedclaw").stages.filter((s) => s.side === "participant").map((s) => s.id) },
       },

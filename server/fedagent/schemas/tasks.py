@@ -43,6 +43,7 @@ class IssueOut(Model):
 
 class EstimateOut(Model):
     problems: int
+    sample_counts: dict[str, dict[str, int]] = Field(default_factory=dict)
     remote_execution: bool = False
     participant_calls: int
     calls_are_upper_bound: bool = False
@@ -68,6 +69,7 @@ class MemberOut(Model):
     answered: int
     model: str
     agent_name: str | None = None
+    sample_counts: dict[str, int] = Field(default_factory=dict)
 
 
 class CursorOut(Model):
@@ -119,6 +121,7 @@ class TaskOut(Model):
     cost: float | None
     stages: list[StageOut] = Field(default_factory=list)
     plan: dict[str, list[str]] = Field(default_factory=dict)
+    evaluation_labels: list[str] = Field(default_factory=list)
 
 
 class MessageOut(Model):

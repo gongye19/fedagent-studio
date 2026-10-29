@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Algorithm } from "../../domain/catalog";
 import { Panel } from "../console";
 import { Facts } from "../common";
+import { loadDiagramSource } from "./source";
 import { ALGORITHM_GUIDES, type AlgorithmGuide } from "./guides";
 
 export function AlgorithmFlow({algorithm}: {algorithm: Algorithm}) {
@@ -16,9 +17,21 @@ function FlowPanel({algorithm, guide}: {algorithm: Algorithm; guide: AlgorithmGu
   const [playing, setPlaying] = useState(() => !matchMedia("(prefers-reduced-motion: reduce)").matches);
   const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
   const [attempt, setAttempt] = useState(0);
+  const [html, setHtml] = useState<string>();
   const [visible, setVisible] = useState(true);
   const stacked = useRef(mobile);
   const dimensions = mobile ? guide.mobile : guide.desktop;
+  const url = `/algorithm-diagrams/${algorithm.id}${mobile ? "-mobile" : ""}.html?v=${dimensions.sha256}&attempt=${attempt}`;
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setPhase("loading");
+    setHtml(undefined);
+    void loadDiagramSource(url, controller.signal).then((source) => {
+      if (!controller.signal.aborted) setHtml(source);
+    }).catch(() => { if (!controller.signal.aborted) setPhase("error"); });
+    return () => controller.abort();
+  }, [url]);
 
   useEffect(() => {
     const reduced = matchMedia("(prefers-reduced-motion: reduce)");
@@ -64,7 +77,7 @@ function FlowPanel({algorithm, guide}: {algorithm: Algorithm; guide: AlgorithmGu
       <div ref={wrapper} className={`algorithm-diagram${mobile ? " algorithm-diagram--stacked" : ""}`} aria-busy={phase === "loading"}
         style={{aspectRatio: `${dimensions.width} / ${dimensions.height}`}}>
         <iframe ref={frame} title={`${algorithm.name} 架构流程示意图`} sandbox="allow-scripts" tabIndex={-1}
-          src={`/algorithm-diagrams/${algorithm.id}${mobile ? "-mobile" : ""}.html?v=${dimensions.sha256}&manual=1&attempt=${attempt}`}
+          srcDoc={html}
           onError={() => setPhase("error")} />
         {phase === "loading" ? <div className="algorithm-diagram-state" role="status">正在加载流程图…</div> : null}
         {phase === "error" ? <div className="algorithm-diagram-state" role="alert">

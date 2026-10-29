@@ -32,7 +32,7 @@ export function ConfigTab({ task, state }: { task: Task; state: State }) {
           ["算法", `${algorithm.name}（${algorithm.fullName}）`],
           ["任务类型", TASK_TYPES[config.taskType].label],
           ["运行方式", config.mode === "trial" ? `试跑，每个数据集前 ${config.trialCap} 条` : "正式运行，全部样本"],
-          ["轮次", `${config.rounds} 轮`],
+          [task.evaluationLabels?.length ? "评测" : "轮次", task.evaluationLabels?.join(" / ") || `${config.rounds} 轮`],
           ["样本", `${formatNumber(totalProblems(task))} 条`],
           [config.execution === "agent" ? "执行 Agent" : "运行模型", model ? label(model) : "各来源不同，见下表"],
           ...(serverStageModel || grader?.requiresModel ? [[serverStageModel ? "服务端模型" : "评测模型", label(config.serverModel)] as const] : []),

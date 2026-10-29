@@ -23,6 +23,7 @@ class AlgorithmCapability(Wire):
 class Capabilities(Wire):
     protocol: Literal["fedagent-agent/1"] = PROTOCOL
     algorithms: dict[str, AlgorithmCapability]
+    check_state_cleanup: bool = False
 
 
 class SavedValue(Wire):
@@ -94,6 +95,7 @@ def document(registry) -> dict[str, Any]:
         "limits": {"requestBytes": MAX_BYTES, "responseBytes": MAX_BYTES, "messageBytes": 1_000_000},
         "endpoints": {
             "GET /capabilities": "返回能力声明，版本与全部参与方步骤须匹配。",
+            "DELETE /checks/{check_id}/state": "可选；check_state_cleanup=true时，验证结束且停止确认后清理本站验证临时状态。",
             "POST /runs": "幂等提交 AgentRequest，返回 RunStatus；完成时必须有 result。",
             "GET /runs/{run_id}/events?after=0": ("可选公开事件分页；仅events_available=true时读取。seq递增，每页最多100条，has_more继续拉取。"
                                                    "禁止包含评测标注、私有卡库、凭据、完整提示词或隐藏推理。"),

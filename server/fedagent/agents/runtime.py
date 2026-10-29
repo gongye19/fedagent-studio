@@ -27,6 +27,9 @@ def context_of(body: AgentRequest, algorithm, model=None, *, progress=None) -> S
     step = algorithm.manifest.step(body.step)
     if body.version != algorithm.version or step is None or step.at == "server" or step.at != body.role:
         raise ValueError("算法版本、执行角色或步骤不受支持")
+    if (not algorithm.manifest.rounds.min <= body.rounds <= algorithm.manifest.rounds.max
+            or not 1 <= body.round <= body.rounds or body.step not in algorithm.plan(body.round, body.rounds)):
+        raise ValueError("执行组数或步骤不符合算法计划")
     item = next((item for item in body.items if item.id == body.unit_key), None) if step.per == "item" else None
     if step.per == "item" and item is None:
         raise ValueError("缺少工作单元的样本")

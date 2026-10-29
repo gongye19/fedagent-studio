@@ -303,3 +303,5 @@ ProgressTab只组合已有Task.cursor／冻结plan和ProgressBar／CheckStatus�
 ### T101：阶段状态及纯前端发布
 
 不使用异构单元数或阶段权重推算任务百分比；ProgressBar／progressOf／stageSeconds已删除。stagesOf和stepState只决定阶段顺序与状态，成绩指标不受影响。纯前端更新可只备份旧dist，再上传除index外文件，最后以rsync临时文件重命名切换index，保留旧哈希资源；不用重启API／runner或中断任务。此类验证只读观察已有任务、配合状态回归，无模型或编排改动时不自动追加付费试跑。
+
+T102固定对照：新医疗三组无经验／本地经验／联邦经验，内部rounds=3但不显示用户轮次控件。按冻结labels展示，不写算法ID判断；FoT原多轮不变。修改私有状态时检查同任务／站点／样本／组边界、清理验证临时状态，不能把轨迹或原卡库加入公开结果。平台上传病例及同机模型账本的现有边界如实说明。新增测试test_medical_comparison.py覆盖只学习一次、三组配对、跨病例检索、摘要／来源拒绝及旧任务；EvaluationOverview.test.tsx覆盖增益和缺失组。浏览器使用cua_repl，历史tools/ui-check的CDP脚本不作为本次实际执行证明。修改插件后准入必须真实复验；最终状态见HANDOFF。

@@ -6,7 +6,7 @@ from pathlib import Path
 
 from fedagent_sdk import Artifact
 
-from .protocol import AgentRequest, AgentResult
+from .protocol import AgentRequest, AgentResult, SavedValue
 
 
 class AgentStore:
@@ -30,13 +30,11 @@ class AgentStore:
             db.close()
 
     def record(self, request: AgentRequest, result: AgentResult):
-        # 测试不启用经验，也不留下患者过程；幂等运行状态仍保存在 runs.sqlite。
-        if request.task_id.startswith("check-"):
-            return
+        # 接入验证临时保留本方状态供后续对照步骤读取，验证结束后清理。
         with self.connect() as db:
             db.execute("INSERT OR REPLACE INTO private_state VALUES(?,?,?,?,?,?)", (
                 request.task_id, request.site_id, request.round, request.step, request.unit_key, result.model_dump_json()))
-        if request.artifact and request.artifact.kind == "clinical-memory":
+        if not request.task_id.startswith("check-") and request.artifact and request.artifact.kind == "clinical-memory":
             self.save_memory(request.task_id, request.site_id, request.artifact)
 
     def save_memory(self, task: str, site: str, artifact: Artifact):
@@ -53,3 +51,23 @@ class AgentStore:
         with self.connect() as db:
             row = db.execute("SELECT version,round,content FROM memories WHERE task=? AND site=?", (task, site)).fetchone()
         return Artifact(row[0], row[1], "clinical-memory", json.loads(row[2])) if row else None
+
+    def state(self, request: AgentRequest) -> list[SavedValue]:
+        """只恢复同任务、同站点、已完成步骤的私有值；服务重启后也可继续。"""
+        values = {(entry.round, entry.key, entry.item_id): entry for entry in request.state}
+        with self.connect() as db:
+            rows = db.execute("SELECT round,output FROM private_state WHERE task=? AND site=? AND round<=? ORDER BY round,rowid",
+                              (request.task_id, request.site_id, request.round)).fetchall()
+        for round, raw in rows:
+            for key, item_id, value in AgentResult.model_validate_json(raw).kept:
+                if request.unit_key != "_" and item_id not in (None, request.unit_key):
+                    continue
+                values[(round, key, item_id)] = SavedValue(round=round, key=key, item_id=item_id, value=value)
+        return list(values.values())
+
+    def clear_check(self, task: str):
+        if not task.startswith("check-"):
+            raise ValueError("只能清理验证任务的临时状态")
+        with self.connect() as db:
+            db.execute("DELETE FROM private_state WHERE task=?", (task,))
+            db.execute("DELETE FROM memories WHERE task=?", (task,))

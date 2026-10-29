@@ -7,6 +7,8 @@ export function trendData(task: Task) {
   const rounds = Array.from({ length: task.config.rounds }, (_, i) => i + 1);
   return {
     rounds,
+    comparison: Boolean(task.evaluationLabels?.length),
+    labels: rounds.map((r) => task.evaluationLabels?.[r - 1] ?? `第${r}轮`),
     series: [
       { id: "average", name: "整体平均", color: "#182338", values: rounds.map((r) => averageAccuracy(task, r)), counts: rounds.map(() => "各方等权平均") },
       ...task.members.map((member, i) => ({

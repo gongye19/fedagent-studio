@@ -1,0 +1,53 @@
+{
+  "lost": [],
+  "changed": [
+    [
+      "fedagent.db",
+      "agent_endpoints",
+      "[\"agent-319cec16\"]"
+    ],
+    [
+      "fedagent.db",
+      "agent_endpoints",
+      "[\"agent-66584e68\"]"
+    ]
+  ],
+  "counts": {
+    "fedagent.db": {
+      "agent_endpoints": 2,
+      "agent_runs": 149,
+      "alembic_version": 1,
+      "apps": 0,
+      "artifacts": 7,
+      "calls": 5277,
+      "client_tokens": 0,
+      "datasets": 10,
+      "endpoints": 1,
+      "events": 595,
+      "messages": 561,
+      "participants": 8,
+      "reports": 177,
+      "site_state": 157,
+      "task_checks": 19,
+      "task_sites": 14,
+      "tasks": 4,
+      "work_units": 265
+    },
+    "medical-agents/medical-a/agent.sqlite": {
+      "memories": 9,
+      "private_state": 84
+    },
+    "medical-agents/medical-a/runs.sqlite": {
+      "progress": 616,
+      "runs": 184
+    },
+    "medical-agents/medical-b/agent.sqlite": {
+      "memories": 9,
+      "private_state": 84
+    },
+    "medical-agents/medical-b/runs.sqlite": {
+      "progress": 572,
+      "runs": 173
+    }
+  }
+}

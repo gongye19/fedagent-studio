@@ -1,6 +1,6 @@
 /** 展示文字：任务的状态色、当前步骤、摘要、指标名、轮次和产出版本的叫法，数据集的用途，以及列表排序。 */
 import { algorithmOf, scenarioOf, TASK_TYPES, type Algorithm, type ScenarioId, type TaskType } from "../domain/catalog";
-import { outputs, stagesOf, type OutputVersion, type Task } from "../domain/task";
+import { evaluationLabel, outputs, stagesOf, type OutputVersion, type Task } from "../domain/task";
 import type { Tone } from "./common";
 
 export function statusTone(task: Task): Tone {
@@ -29,7 +29,7 @@ export function stageText(task: Task): string | null {
   if (!task.cursor) return null;
   const cursor = task.cursor;
   const stage = algorithmOfTask(task).stages.find((item) => item.id === cursor.stage);
-  return `第 ${cursor.round} 轮 · ${stage?.label ?? ""}`;
+  return `${evaluationLabel(task, cursor.round)} · ${stage?.label ?? ""}`;
 }
 
 /**
@@ -71,5 +71,5 @@ export function usageText(scenario: ScenarioId, taskType: TaskType): string {
 
 export function versionLabel(task: Task, version: OutputVersion): string {
   const final = task.status === "completed" && version.builtAfterRound === outputs(task).at(-1)?.builtAfterRound;
-  return final ? `第 ${version.builtAfterRound} 轮后（最终）` : `第 ${version.builtAfterRound} 轮后`;
+  return task.evaluationLabels?.length ? `${algorithmOfTask(task).output.name}${final ? "（最终）" : ""}` : final ? `第 ${version.builtAfterRound} 轮后（最终）` : `第 ${version.builtAfterRound} 轮后`;
 }

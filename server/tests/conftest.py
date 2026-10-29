@@ -33,9 +33,12 @@ def client(platform: Platform) -> Iterator[TestClient]:
 def remote(platform, client, monkeypatch):
     # 专门测试通用 Agent 适配器：在本测试实例开放 FoT，生产清单仍拒绝新建外部 FoT 任务。
     monkeypatch.setattr(platform.registry.algorithm("fot").manifest, "agent_supported", True)
+    from fedagent.agents.store import AgentStore
+    store = AgentStore(platform.settings.data_dir / "remote")
     requests = []
     cache = {}
     caps = Capabilities(
+        check_state_cleanup=True,
         algorithms={
             a.id: AlgorithmCapability(version=a.version, steps=[s.id for s in a.manifest.steps if s.at != "server"])
             for a in platform.registry.algorithms.values()
@@ -45,6 +48,9 @@ def remote(platform, client, monkeypatch):
     def request(self, agent_id, method, path, body=None):
         if path == "/capabilities":
             return caps.model_dump(mode="json")
+        if method == "DELETE":
+            store.clear_check(path.split("/")[2])
+            return {"cleared": True}
         if method == "GET" or path.endswith("/cancel"):
             run_id = path.split("/")[2]
             if run_id not in cache:
@@ -63,8 +69,10 @@ def remote(platform, client, monkeypatch):
             if step.model
             else None
         )
+        req = req.model_copy(update={"state": store.state(req)})
         ctx = context_of(req, algorithm, model)
         algorithm.run_step(ctx)
+        store.record(req, AgentResult(kept=ctx.result.kept, sent=ctx.result.sent, reports=ctx.result.reports, predictions=ctx.result.predictions))
         result = AgentResult(kept=[] if step.private_state else ctx.result.kept, sent=ctx.result.sent,
                              reports=ctx.result.reports, predictions=ctx.result.predictions)
         cache[req.run_id] = {"run_id": req.run_id, "status": "succeeded", "result": result.model_dump(mode="json")}

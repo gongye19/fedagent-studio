@@ -32,7 +32,8 @@ export function toConfig(draft: Draft): TaskConfig | null {
             draft.participants.some((p) => p.participantId === id),
           ),
         ),
-    rounds: draft.rounds,
+    rounds: algorithmOf(draft.algorithm).minRounds === algorithmOf(draft.algorithm).maxRounds
+      ? algorithmOf(draft.algorithm).defaultRounds : draft.rounds,
     mode: draft.mode,
     trialCap: draft.trialCap,
     params: paramsOf(algorithmOf(draft.algorithm), draft.params),

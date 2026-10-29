@@ -89,7 +89,7 @@ export function OutputTab({ task, state }: { task: Task; state: State }) {
         >
           <div className="confirm-copy">
             <strong>发布为应用</strong>
-            <p className="publish-source"><Meta parts={[task.name, `第 ${current.builtAfterRound} 轮后`, `${output.name} ${formatNumber(current.items.length)} 条`]} /></p>
+            <p className="publish-source"><Meta parts={[task.name, task.evaluationLabels?.length ? "联邦经验" : `第 ${current.builtAfterRound} 轮后`, `${output.name} ${formatNumber(current.items.length)} 条`]} /></p>
             <label className="field-label" htmlFor="publish-name">应用名称</label>
             <input ref={nameInput} id="publish-name" name="publish-name" autoComplete="off" disabled={saving} value={naming} maxLength={60} onChange={(event) => setNaming(event.target.value)} />
           </div>

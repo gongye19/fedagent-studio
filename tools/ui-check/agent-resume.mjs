@@ -19,7 +19,7 @@ try{
  if(task.status==='paused')await click('继续');
  let current,last='';const deadline=Date.now()+25*60*1000;
  while(Date.now()<deadline){current=await request('tasks/'+task.id);assert.notEqual(current.status,'paused',current.error);if(current.status==='completed')break;if(current.cursor?.stage+current.cursor?.round!==last){last=current.cursor?.stage+current.cursor?.round;console.log('medical',last)}await sleep(2500)}
- check('医疗真实 Agent 从检查点完成两轮',current.status==='completed'&&current.rounds.filter(r=>r.output).length===2);
+ check('医疗真实 Agent 从检查点完成三组对照',current.status==='completed'&&current.config.rounds===3&&current.rounds.filter(r=>r.output).length===1);
  check('留出病例独立判分',current.members.every(m=>m.problems===2&&m.answered===1));
  await open(send,base+`#/tasks/${task.id}/output`,4000);await shot('medical-output');await click('发布为应用');
  await evaluate(send,"(()=>{const e=document.getElementById('publish-name');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(e,'医疗 Agent 联调成果（验证后清理）');e.dispatchEvent(new Event('input',{bubbles:true}));})()");await sleep(150);await click('发布');

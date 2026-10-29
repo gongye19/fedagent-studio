@@ -116,13 +116,15 @@ def test_independent_agents_persist_and_use_scoped_experience(platform, tmp_path
         assert restarted.post("/diagnose", json=body).json()["experience_version"] == 2
 
 
-def test_preflight_does_not_activate_or_store_patient_state(tmp_path):
+def test_preflight_private_state_is_temporary_and_never_activated(tmp_path):
     store = AgentStore(tmp_path)
     body = AgentRequest(run_id="r", algorithm="evomedclaw", version="1.0.0", task_type="medical-diagnosis",
                         task_id="check-one", site_id="site", role="participant", round=2, rounds=2, step="diagnose", unit_key="i",
                         artifact=Artifact(1, 1, "clinical-memory", {"memory": {"entries": []}}))
     store.record(body, AgentResult(kept=[("diagnostic_trajectory", "i", {"patient": "PRIVATE"})]))
     assert store.memory("check-one", "site") is None
+    assert store.state(body)[0].value == {"patient": "PRIVATE"}
+    store.clear_check("check-one")
     with store.connect() as db:
         assert db.execute("SELECT count(*) FROM private_state").fetchone()[0] == 0
 

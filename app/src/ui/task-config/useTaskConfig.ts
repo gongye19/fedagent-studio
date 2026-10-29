@@ -60,6 +60,8 @@ export function useTaskConfig(
   const algorithm = draft.algorithm ? algorithmOf(draft.algorithm) : null;
   useEffect(() => {
     if (!algorithm) return;
+    if (algorithm.minRounds === algorithm.maxRounds && draft.rounds !== algorithm.defaultRounds)
+      dispatch({ type: "updateDraft", patch: { rounds: algorithm.defaultRounds } });
     if (algorithm.requirements.agentRequired && draft.execution !== "agent")
       dispatch({
         type: "updateDraft",
@@ -83,6 +85,7 @@ export function useTaskConfig(
   }, [
     algorithm,
     draft.execution,
+    draft.rounds,
     draft.agentId,
     draft.agentOverrides,
     dispatch,

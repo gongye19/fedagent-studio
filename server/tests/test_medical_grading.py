@@ -66,7 +66,7 @@ def test_learning_marks_subtype_diagnosis_success_in_trajectory_and_cards(monkey
         {"speaker": "LocalDoctor", "text": prediction, "turn_index": 0}], "consultation_history": []}
     monkeypatch.setattr("fedagent_evomed.site.diagnose", lambda *args, **kw: (result.copy(), {}))
     request = AgentRequest(run_id="learning-test", algorithm="evomedclaw", version=algorithm.version,
-        task_type="medical-diagnosis", task_id="local-test", site_id="one", role="participant", round=1, rounds=2,
+        task_type="medical-diagnosis", task_id="local-test", site_id="one", role="participant", round=2, rounds=3,
         step="learn", unit_key="_", params={"maxTurns": 4}, items=[to_item(MedicalDiagnosis(), case, labels=True)])
     ctx = context_of(request, algorithm, Judge(error=AssertionError("fast match must not call model")))
     learn(ctx, algorithm.version)
