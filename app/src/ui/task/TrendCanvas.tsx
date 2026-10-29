@@ -8,7 +8,7 @@ import type { trendData } from "./trend";
 register([BarChart, LineChart, GridComponent, TooltipComponent, SVGRenderer]);
 type Data = ReturnType<typeof trendData>;
 
-export default function TrendCanvas({ data, selected }: { data: Data; selected: string[] }) {
+export default function TrendCanvas({ data }: { data: Data }) {
   const host = useRef<HTMLDivElement>(null);
   const instance = useRef<ReturnType<typeof init> | null>(null);
   useEffect(() => {
@@ -20,7 +20,7 @@ export default function TrendCanvas({ data, selected }: { data: Data; selected: 
     return () => { observer.disconnect(); chart.dispose(); instance.current = null; };
   }, []);
   useEffect(() => {
-    const visible = data.series.filter((s) => selected.includes(s.id));
+    const visible = data.series;
     const option: EChartsCoreOption = {
       animation: false,
       grid: { top: 20, left: 44, right: 22, bottom: 34 },
@@ -38,12 +38,12 @@ export default function TrendCanvas({ data, selected }: { data: Data; selected: 
       yAxis: { type: "value", min: 0, max: 100, interval: 25, axisLabel: { formatter: "{value}%", color: "#687386" }, splitLine: { lineStyle: { color: "#edf0f5" } } },
       series: visible.map((s) => ({
         id: s.id, name: s.name, type: data.comparison ? "bar" : "line", barMaxWidth: 48, smooth: false, connectNulls: false, showSymbol: true,
-        symbol: s.id === "average" ? "diamond" : "circle", symbolSize: s.id === "average" ? 9 : 7,
-        lineStyle: { width: s.id === "average" ? 3 : 2 }, itemStyle: { color: s.color },
+        symbol: "circle", symbolSize: 7,
+        lineStyle: { width: 2 }, itemStyle: { color: s.color },
         data: s.values.map((v) => v === null ? null : Number((v * 100).toFixed(3))),
       })),
     };
     instance.current?.setOption(option, { notMerge: true });
-  }, [data, selected]);
+  }, [data]);
   return <div className="trend-canvas" ref={host} aria-hidden="true" />;
 }

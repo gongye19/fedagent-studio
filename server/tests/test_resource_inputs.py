@@ -50,7 +50,7 @@ def test_shared_resources_support_formal_runs_and_active_resources_cannot_delete
     own = upload(client).json()
     mixed = [{'participantId': own['source']['id'], 'datasetId': own['dataset']['id']}, public[0]]
     assert not client.post('/v1/tasks/validate', json=config(mixed, mode='full')).json()['issues']
-    created = client.post('/v1/tasks', json=config(mixed))
+    created = client.post('/v1/tasks', json=config(mixed, trialCap=1))
     assert created.status_code == 201
     assert client.delete('/v1/resources/data/'+own['dataset']['id']).status_code == 409
 

@@ -139,13 +139,13 @@ export function TaskSummary({
             </div>
           ) : null}
         </dl>
-        {result ? (
-          <EstimateBlock
+        {joined.length ? <EstimateBlock
             result={result}
+            pending={!result || validationPending}
+            remoteExecution={draft.execution === "agent"}
             serverModelLabel={algorithm?.requirements.serverModelLabel}
             priceHref={hrefOf(endpointRoute(priceEndpoint))}
-          />
-        ) : null}
+          /> : null}
         <div className="summary-actions">
           <a
             className="button button--secondary button--block"

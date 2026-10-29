@@ -3,6 +3,7 @@ import type { Draft, TaskConfig } from "./types";
 
 export function toConfig(draft: Draft): TaskConfig | null {
   if (!draft.scenario || !draft.taskType || !draft.algorithm) return null;
+  if (draft.mode === "trial" && (draft.trialCap === "" || !Number.isSafeInteger(draft.trialCap) || draft.trialCap < 1)) return null;
   const agentRequired = algorithmOf(draft.algorithm).requirements.agentRequired;
   return {
     scenario: draft.scenario,
@@ -35,7 +36,7 @@ export function toConfig(draft: Draft): TaskConfig | null {
     rounds: algorithmOf(draft.algorithm).minRounds === algorithmOf(draft.algorithm).maxRounds
       ? algorithmOf(draft.algorithm).defaultRounds : draft.rounds,
     mode: draft.mode,
-    trialCap: draft.trialCap,
+    trialCap: draft.trialCap || 1,
     params: paramsOf(algorithmOf(draft.algorithm), draft.params),
     seed: draft.seed,
     workers: draft.workers,

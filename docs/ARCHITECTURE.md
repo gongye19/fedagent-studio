@@ -811,3 +811,10 @@ MetricComparison管理图例，trend.ts保持既有宏平均／分母与null，T
 - EvaluationOverview只消费冻结labels；原迭代Overview继续用于FoT／旧任务。图表对照用既有ECharts BarChart懒加载，0与缺失分开；宏平均仍各方等权。案例三组正文按需展开，窄屏纵排，单页不显示无效翻页。
 
 T102线上检查补充：HTTP图文件与本地产物一致但浏览器iframe停留about:blank，未确认浏览器内部拦截原因。改为父页fetch生成文档后srcDoc嵌入，沙箱仍只有allow-scripts且CSP禁止网络；生成器嵌入时关闭原自动时钟，由controller统一控制。该修复同时用于两种图，不改变FoT图布局或算法。纯前端热更新不重启正在运行的后端。
+
+
+### T103 样本输入和图表
+
+Draft.trialCap在编辑期允许空字符串，toConfig不提交无效试跑数；TaskConfig/API仍为整数。samples模块根据所选数据最小count与插件minSamples给出边界和字段错误。输入过程不做下限钳制，避免医疗最少2条时输入12被改成22；失焦才约束非空数字。preparation在validate/check/create公共边界拒绝超出任一数据集count的试跑，旧任务冻结配置和运行不重写。
+
+估算区持续挂载、资源分配行预留实际单行高度，摘要状态保留单行，消除异步估算造成的纵向布局变化。图表数据只包含全部参与方；移除chosen/selected状态、平均系列及可点击图例，ECharts仍按冻结清单选择柱图或折线，不补零、不平滑。

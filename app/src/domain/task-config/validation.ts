@@ -13,6 +13,7 @@ import {
 import type { Draft, Issue } from "./types";
 import { joinable } from "./selection";
 import { activeOverrides } from "./serialization";
+import { trialSampleIssue } from "./samples";
 
 /** 未知插件字段也要显示错误，不能靠类型断言把问题静默丢掉。 */
 export function configIssue(issue: { field: string; message: string }): Issue {
@@ -23,6 +24,7 @@ export function configIssue(issue: { field: string; message: string }): Issue {
     case "participants":
     case "models":
     case "rounds":
+    case "trialCap":
     case "params":
     case "check":
       return { field: issue.field, message: issue.message };
@@ -67,6 +69,8 @@ export function draftIssues(
     return issues;
   }
   const algorithm = algorithmOf(draft.algorithm);
+  const sampleIssue = trialSampleIssue(draft, datasets);
+  if (sampleIssue) issues.push({ field: "trialCap", message: sampleIssue });
   if (
     draft.execution === "agent" &&
     !algorithm.requirements.executionModes.includes("agent")

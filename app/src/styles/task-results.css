@@ -1,9 +1,7 @@
 .metric-trend { min-width: 0; }
-.trend-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.trend-legend button { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--border); background: var(--surface); border-radius: 6px; padding: 7px 10px; color: var(--muted); font: inherit; font-size: var(--text-xs); cursor: pointer; min-height: 36px; }
-.trend-legend button[aria-pressed="true"] { background: var(--surface-hover); color: var(--foreground); border-color: var(--muted); }
-.trend-legend button > span { width: 8px; height: 8px; border-radius: 50%; opacity: .3; flex-shrink: 0; }
-.trend-legend button[aria-pressed="true"] > span { opacity: 1; }
+.trend-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 20px; padding: 0; margin: 0; list-style: none; }
+.trend-legend li { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: var(--text-xs); }
+.trend-legend li > span { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .trend-canvas { width: 100%; height: 280px; margin-top: 12px; }
 .trend-caption { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; font-size: var(--text-xs); color: var(--muted); margin: 4px 0 0; }
 .case-filters { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-bottom: 12px; }
@@ -39,6 +37,8 @@
 @media (prefers-reduced-motion: reduce) { .case-result > summary > svg { transition: none; } }
 
 .stats--comparison { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.stats--comparison .stat, .stats--comparison .stat dd { min-width: 0; }
+.stats--comparison .delta { white-space: normal; overflow-wrap: anywhere; }
 .comparison-note { margin: 0; padding: 12px 20px; font-size: 12px; color: var(--muted); }
 .case-group-status { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-left: auto; }
 .case-group-status > span { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; white-space: nowrap; }
@@ -46,7 +46,7 @@
 .case-answers section { min-width: 0; padding-top: 12px; border-top: 1px solid var(--border); }
 .case-answers h3 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 13px; }
 .case-answers p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.65; }
-.resource-sample-counts { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 8px 0 0; color: var(--muted); font-size: 12px; }
+.resource-sample-counts { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 8px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; min-height: 1.5em; }
 @media (max-width: 640px) {
   .stats--comparison { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
   .stats--comparison .stat strong { font-size: 20px; }

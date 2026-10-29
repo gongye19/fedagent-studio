@@ -156,7 +156,7 @@ export function chooseAlgorithm(draft: Draft, algorithm: AlgorithmId | null): Dr
     agentId: null,
     agentOverrides: {},
     rounds: definition?.defaultRounds ?? DEFAULT_DRAFT.rounds,
-    trialCap: Math.max(draft.trialCap, definition?.minSamples ?? 1),
+    trialCap: Math.max(draft.trialCap || 0, definition?.minSamples ?? 1),
     params: definition ? defaultParams(definition) : {},
   };
 }

@@ -139,8 +139,8 @@ export function AgentParticipationRow({
               ))}
             </SelectField>
           </div>
-          {group.participantId && config.result?.sampleCounts?.[group.participantId] ? <p className="resource-sample-counts">
-            {Object.entries(config.result.sampleCounts[group.participantId]).map(([purpose, count]) => <span key={purpose}>{purpose} {count} 条</span>)}
+          {selectedData ? <p className="resource-sample-counts" aria-busy={!config.result}>
+            {Object.entries(config.result?.sampleCounts?.[group.participantId] ?? {}).map(([purpose, count]) => <span key={purpose}>{purpose} {count} 条</span>)}
           </p> : null}
           <InlineError id={`${prefix}-data-error`} message={dataError} />
         </div>

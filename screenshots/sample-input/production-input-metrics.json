@@ -1,0 +1,59 @@
+[
+  {
+    "focus": "trial-cap",
+    "height": 1313,
+    "phase": "empty",
+    "scroll": 413.5,
+    "settings": 453.8359375,
+    "value": "",
+    "width": 1280
+  },
+  {
+    "focus": "trial-cap",
+    "height": 1313,
+    "phase": "typing",
+    "scroll": 413.5,
+    "settings": 453.8359375,
+    "value": "12",
+    "width": 1280
+  },
+  {
+    "focus": "trial-cap",
+    "height": 1313,
+    "phase": "settled",
+    "scroll": 413.5,
+    "settings": 453.8359375,
+    "value": "12",
+    "width": 1280
+  },
+  {
+    "focus": "trial-cap",
+    "height": 2368,
+    "overflow": 390,
+    "phase": "mobile-empty",
+    "scroll": 1100,
+    "settings": 217.671875,
+    "value": "",
+    "width": 390
+  },
+  {
+    "focus": "trial-cap",
+    "height": 2369,
+    "overflow": 390,
+    "phase": "mobile-typing",
+    "scroll": 1100,
+    "settings": 217.671875,
+    "value": "10",
+    "width": 390
+  },
+  {
+    "focus": "trial-cap",
+    "height": 2368,
+    "overflow": 390,
+    "phase": "mobile-settled",
+    "scroll": 1100,
+    "settings": 217.671875,
+    "value": "10",
+    "width": 390
+  }
+]

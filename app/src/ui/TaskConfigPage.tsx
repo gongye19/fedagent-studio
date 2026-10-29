@@ -96,6 +96,8 @@ export default function TaskConfigPage({
               update={update}
               algorithm={algorithm}
               roundsError={fieldError("rounds")}
+              sampleBounds={config.sampleBounds}
+              sampleError={fieldError("trialCap")}
             />
           </Panel>
           <TaskCheckPanel config={config} />

@@ -15,6 +15,7 @@ import {
   defaultTaskName,
   draftIssues,
   joinable,
+  trialSampleBounds,
   type Draft,
   type Estimate,
   type Issue,
@@ -99,6 +100,7 @@ export function useTaskConfig(
     state.participants,
   );
   const joined = joinable(draft, state.datasets, state.participants);
+  const sampleBounds = trialSampleBounds(draft, state.datasets);
   const localIssues = draftIssues(
     draft,
     state.datasets,
@@ -320,6 +322,7 @@ export function useTaskConfig(
     candidates,
     joined,
     result,
+    sampleBounds,
     canCreate,
     canTest,
     preflight,

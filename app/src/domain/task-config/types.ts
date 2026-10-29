@@ -37,7 +37,9 @@ export type TaskConfig = {
 };
 
 /** 新建任务页的草稿：场景、任务类型和算法可以还没选。 */
-export type Draft = Omit<TaskConfig, "scenario" | "taskType" | "algorithm"> & {
+export type Draft = Omit<TaskConfig, "scenario" | "taskType" | "algorithm" | "trialCap"> & {
+  /** 编辑时允许清空；提交到 API 前必须是有效整数。 */
+  trialCap: number | "";
   /** null：还没改过名称，页面显示按打开时间生成的默认名称；空字符串：用户清空了，创建时仍用默认名称。 */
   name: string | null;
   agentGroups: AgentGroup[];
@@ -117,6 +119,7 @@ export type Issue = {
     | "participants"
     | "models"
     | "rounds"
+    | "trialCap"
     | "params"
     | "check";
   message: string;

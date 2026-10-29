@@ -33,3 +33,4 @@ export {
   draftIssues,
   taskModelSummary,
 } from "./task-config/validation";
+export { trialSampleBounds, trialSampleIssue } from "./task-config/samples";

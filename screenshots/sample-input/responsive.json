@@ -1,0 +1,38 @@
+[
+  {
+    "legend": [
+      "医疗 Agent A",
+      "医疗 Agent B"
+    ],
+    "scroll": 320,
+    "selectionButtons": 0,
+    "width": 320
+  },
+  {
+    "legend": [
+      "医疗 Agent A",
+      "医疗 Agent B"
+    ],
+    "scroll": 390,
+    "selectionButtons": 0,
+    "width": 390
+  },
+  {
+    "legend": [
+      "医疗 Agent A",
+      "医疗 Agent B"
+    ],
+    "scroll": 768,
+    "selectionButtons": 0,
+    "width": 768
+  },
+  {
+    "legend": [
+      "医疗 Agent A",
+      "医疗 Agent B"
+    ],
+    "scroll": 1280,
+    "selectionButtons": 0,
+    "width": 1280
+  }
+]

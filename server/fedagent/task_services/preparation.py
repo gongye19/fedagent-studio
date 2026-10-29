@@ -109,6 +109,8 @@ def validate(platform: Platform, session: Session, body: TaskConfigIn) -> tuple[
         if not dataset_ready(dataset):
             issue("participants", f"{dataset.name} 还没有样本（{'客户端连上后上报' if dataset.source == 'local' else '题目文件待导入'}）")
             continue
+        if cap is not None and cap > dataset.count:
+            issue("trialCap", f"{dataset.name} 只有 {dataset.count} 条样本，试跑样本数不能超过数据集条数")
         status = participant_status(platform, participant)
         if status != "online":
             issue("participants", f"{participant.name} {STATUS_LABELS.get(status, status)}，连上后才能加入任务")

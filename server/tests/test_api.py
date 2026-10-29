@@ -319,7 +319,7 @@ def test_active_resources_cannot_be_deleted(client: TestClient, platform: Platfo
         {"model": "model", "choices": [{"message": {"content": "OK"}, "finish_reason": "stop"}], "usage": {}})))
     assert client.post(f'/v1/endpoints/{endpoint}/test').json()['ok']
     task = client.post('/v1/tasks', json=config([{'participantId':'p-a','datasetId':'ds-aime24'},
-        {'participantId':participant,'datasetId':dataset}], serverModel=f'{endpoint}:model')).json()['id']
+        {'participantId':participant,'datasetId':dataset}], serverModel=f'{endpoint}:model', trialCap=1)).json()['id']
     for path in [f'/v1/participants/{participant}', f'/v1/datasets/{dataset}', f'/v1/endpoints/{endpoint}']:
         assert client.delete(path).status_code == 409
     client.post(f'/v1/tasks/{task}/cancel')

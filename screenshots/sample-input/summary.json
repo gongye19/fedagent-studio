@@ -1,0 +1,31 @@
+{
+  "allOriginalRowsAndFilesUnchanged": true,
+  "databaseCount": 5,
+  "mainCounts": {
+    "agent_endpoints": 2,
+    "agent_runs": 109,
+    "alembic_version": 1,
+    "apps": 0,
+    "artifacts": 4,
+    "calls": 5625,
+    "client_tokens": 0,
+    "datasets": 10,
+    "endpoints": 1,
+    "events": 750,
+    "messages": 555,
+    "participants": 8,
+    "reports": 159,
+    "site_state": 133,
+    "task_checks": 21,
+    "task_sites": 8,
+    "tasks": 2,
+    "work_units": 226
+  },
+  "backup": "20261029T132339586710Z",
+  "frontendBackup": "frontend-20261029T132811130572Z",
+  "frontendTests": 59,
+  "backendTests": 152,
+  "noNewModelCalls": true,
+  "apiPid": 1257416,
+  "runnerPid": 1257417
+}

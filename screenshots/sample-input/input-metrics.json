@@ -1,0 +1,71 @@
+[
+  {
+    "focus": "trial-cap",
+    "height": 1534,
+    "scroll": 819.5,
+    "settings": 216.9296875,
+    "value": ""
+  },
+  {
+    "focus": "trial-cap",
+    "height": 1534,
+    "scroll": 819.5,
+    "settings": 216.9296875,
+    "value": "10"
+  },
+  {
+    "focus": "trial-cap",
+    "height": 1534,
+    "scroll": 819.5,
+    "settings": 216.9296875,
+    "value": "10"
+  },
+  {
+    "focus": "trial-cap",
+    "height": 1261,
+    "kind": "medical",
+    "scroll": 563.5,
+    "settings": 251.8359375,
+    "value": ""
+  },
+  {
+    "focus": "trial-cap",
+    "height": 1261,
+    "kind": "medical",
+    "scroll": 563.5,
+    "settings": 251.8359375,
+    "value": "10"
+  },
+  {
+    "focus": "trial-cap",
+    "height": 1314,
+    "kind": "medical-settled",
+    "scroll": 590.5,
+    "settings": 278.0234375,
+    "value": "10"
+  },
+  {
+    "focus": "trial-cap",
+    "height": 1313,
+    "kind": "medical-fixed-empty",
+    "scroll": 615.5,
+    "settings": 251.8359375,
+    "value": ""
+  },
+  {
+    "focus": "trial-cap",
+    "height": 1313,
+    "kind": "medical-fixed-typing",
+    "scroll": 615.5,
+    "settings": 251.8359375,
+    "value": "12"
+  },
+  {
+    "focus": "trial-cap",
+    "height": 1313,
+    "kind": "medical-fixed-settled",
+    "scroll": 615.5,
+    "settings": 251.8359375,
+    "value": "12"
+  }
+]

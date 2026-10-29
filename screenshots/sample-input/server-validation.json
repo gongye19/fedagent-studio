@@ -1,0 +1,73 @@
+{
+  "valid": {
+    "issues": [],
+    "estimate": {
+      "problems": 22,
+      "sampleCounts": {
+        "p-a": {
+          "评测": 11
+        },
+        "p-f": {
+          "评测": 11
+        }
+      },
+      "remoteExecution": false,
+      "participantCalls": 132,
+      "callsAreUpperBound": false,
+      "serverCalls": 4,
+      "participantTokens": 572000,
+      "serverTokens": 51800,
+      "seconds": 802,
+      "cost": null
+    }
+  },
+  "tooMany": {
+    "issues": [
+      {
+        "field": "trialCap",
+        "message": "WLPMC 只有 11 条样本，试跑样本数不能超过数据集条数"
+      }
+    ],
+    "estimate": {
+      "problems": 23,
+      "sampleCounts": {
+        "p-a": {
+          "评测": 12
+        },
+        "p-f": {
+          "评测": 11
+        }
+      },
+      "remoteExecution": false,
+      "participantCalls": 138,
+      "callsAreUpperBound": false,
+      "serverCalls": 4,
+      "participantTokens": 598000,
+      "serverTokens": 52700,
+      "seconds": 802,
+      "cost": null
+    }
+  },
+  "full": {
+    "issues": [],
+    "estimate": {
+      "problems": 41,
+      "sampleCounts": {
+        "p-a": {
+          "评测": 30
+        },
+        "p-f": {
+          "评测": 11
+        }
+      },
+      "remoteExecution": false,
+      "participantCalls": 246,
+      "callsAreUpperBound": false,
+      "serverCalls": 4,
+      "participantTokens": 1066000,
+      "serverTokens": 68900,
+      "seconds": 1234,
+      "cost": null
+    }
+  }
+}

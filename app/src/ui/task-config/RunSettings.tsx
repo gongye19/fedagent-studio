@@ -2,7 +2,6 @@ import { SelectField } from "../SelectField";
 import type { Algorithm } from "../../domain/catalog";
 import type { Draft, RunMode } from "../../domain/config";
 import { Choices, Field, FieldGroup, UnitInput } from "../console";
-import { clampInt } from "../../domain/validate";
 
 const MODES: readonly { value: RunMode; label: string }[] = [
   { value: "trial", label: "试跑" },
@@ -14,7 +13,11 @@ export function RunSettings({
   update,
   algorithm,
   roundsError,
+  sampleBounds,
+  sampleError,
 }: {
+  sampleBounds: { min: number; max: number | null };
+  sampleError?: string;
   roundsError?: string;
   draft: Draft;
   update: (patch: Partial<Draft>) => void;
@@ -45,30 +48,34 @@ export function RunSettings({
         <Field
           label="试跑样本数"
           htmlFor="trial-cap"
-          info="每份数据集使用的样本上限，仅影响试跑。"
+          error={sampleError}
+          info={`每份数据集使用的样本数，仅影响试跑。至少 ${sampleBounds.min} 条${sampleBounds.max === null ? "，选择数据后确定上限" : `，最多 ${sampleBounds.max} 条` }。`}
         >
           <UnitInput
             id="trial-cap"
             unit="条 / 数据集"
             name="trial-cap"
-            type="number"
+            type="text"
             inputMode="numeric"
+            pattern="[0-9]*"
             autoComplete="off"
-            min={algorithm?.minSamples ?? 1}
-            max={50}
+            min={sampleBounds.min}
+            max={sampleBounds.max ?? undefined}
             value={draft.mode === "trial" ? draft.trialCap : ""}
             disabled={draft.mode !== "trial"}
-            placeholder="全部样本"
-            onChange={(event) =>
-              update({
-                trialCap: clampInt(
-                  event.target.value,
-                  algorithm?.minSamples ?? 1,
-                  50,
-                  draft.trialCap,
-                ),
-              })
-            }
+            placeholder={draft.mode !== "trial" ? "全部样本" : sampleBounds.max === null ? "填写样本数" : `${sampleBounds.min}–${sampleBounds.max}`}
+            aria-invalid={Boolean(sampleError)}
+            aria-describedby={sampleError ? "trial-cap-error" : undefined}
+            onChange={(event) => {
+              const value = event.target.value;
+              if (/^\d*$/.test(value) && (value === "" || Number.isSafeInteger(Number(value))))
+                update({ trialCap: value === "" ? "" : Number(value) });
+            }}
+            onBlur={() => {
+              if (draft.trialCap === "" || sampleBounds.max !== null && sampleBounds.max < sampleBounds.min) return;
+              const value = Math.max(sampleBounds.min, Math.min(draft.trialCap, sampleBounds.max ?? Infinity));
+              if (value !== draft.trialCap) update({ trialCap: value });
+            }}
           />
         </Field>
         {algorithm?.minRounds !== algorithm?.maxRounds || !algorithm ? <Field

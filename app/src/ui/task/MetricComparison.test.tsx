@@ -3,6 +3,7 @@ import { expect, it } from "vitest";
 import { completedTask } from "../../test/fixtures";
 import { TaskTable } from "../TaskTable";
 import { trendData } from "./trend";
+import { MetricComparison } from "./MetricComparison";
 
 it("preserves zero, missing rounds and actual denominators in unsmoothed round data", () => {
   const task = completedTask();
@@ -10,18 +11,23 @@ it("preserves zero, missing rounds and actual denominators in unsmoothed round d
   task.members = [member]; task.config.rounds = 3;
   task.rounds = [1, 2].map((round) => ({ ...task.rounds[0], round, correct: { [member.participantId]: 0 } }));
   const data = trendData(task);
-  expect(data.series[1].values).toEqual([0, 0, null]);
-  expect(data.series[1].counts).toEqual(["匹配 0/1", "匹配 0/1", "待评测"]);
+  expect(data.series[0].values).toEqual([0, 0, null]);
+  expect(data.series[0].counts).toEqual(["匹配 0/1", "匹配 0/1", "待评测"]);
   member.answered = 0;
-  expect(trendData(task).series[1].values).toEqual([null, null, null]);
-  expect(trendData(task).series[1].counts[0]).toBe("无评测标注");
+  expect(trendData(task).series[0].values).toEqual([null, null, null]);
+  expect(trendData(task).series[0].counts[0]).toBe("无评测标注");
 });
 
-it("retains equally weighted site average instead of pooling unequal sample counts", () => {
+it("shows every site's own result together without an average or selection controls", () => {
   const task = completedTask();
   task.members = [{ ...task.members[0], participantId: "a", answered: 1 }, { ...task.members[0], participantId: "b", answered: 4 }];
   task.rounds = [{ round: 1, correct: { a: 0, b: 4 } }];
-  expect(trendData(task).series[0].values[0]).toBe(.5);
+  const data = trendData(task);
+  expect(data.series.map((s) => [s.id, s.values[0]])).toEqual([["a", 0], ["b", 1]]);
+  const html = renderToStaticMarkup(<MetricComparison task={task} />);
+  expect(html).not.toContain("整体平均");
+  expect(html).not.toContain("aria-pressed");
+  expect(html).toContain("参与方图例");
 });
 
 it("shows actual start time separately and never substitutes creation time", () => {
