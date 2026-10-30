@@ -1,0 +1,150 @@
+[
+  {
+    "algorithm": "evomedclaw",
+    "agentSections": 1,
+    "downloads": 0,
+    "labelWidth": 120,
+    "overflow": false,
+    "schemas": [
+      {
+        "height": 288,
+        "valid": true
+      },
+      {
+        "height": 288,
+        "valid": true
+      },
+      {
+        "height": 288,
+        "valid": true
+      },
+      {
+        "height": 288,
+        "valid": true
+      }
+    ],
+    "sourceLinks": 0,
+    "width": 1280
+  },
+  {
+    "algorithm": "evomedclaw",
+    "agentSections": 1,
+    "downloads": 0,
+    "labelWidth": 120,
+    "overflow": false,
+    "schemas": [
+      {
+        "height": 288,
+        "valid": true
+      },
+      {
+        "height": 288,
+        "valid": true
+      },
+      {
+        "height": 288,
+        "valid": true
+      },
+      {
+        "height": 288,
+        "valid": true
+      }
+    ],
+    "sourceLinks": 0,
+    "width": 768
+  },
+  {
+    "algorithm": "evomedclaw",
+    "agentSections": 1,
+    "downloads": 0,
+    "labelWidth": 80,
+    "overflow": false,
+    "schemas": [
+      {
+        "height": 288,
+        "valid": true
+      },
+      {
+        "height": 288,
+        "valid": true
+      },
+      {
+        "height": 288,
+        "valid": true
+      },
+      {
+        "height": 288,
+        "valid": true
+      }
+    ],
+    "sourceLinks": 0,
+    "width": 390
+  },
+  {
+    "algorithm": "evomedclaw",
+    "agentSections": 1,
+    "downloads": 0,
+    "labelWidth": 80,
+    "overflow": false,
+    "schemas": [
+      {
+        "height": 288,
+        "valid": true
+      },
+      {
+        "height": 288,
+        "valid": true
+      },
+      {
+        "height": 288,
+        "valid": true
+      },
+      {
+        "height": 288,
+        "valid": true
+      }
+    ],
+    "sourceLinks": 0,
+    "width": 320
+  },
+  {
+    "algorithm": "fot",
+    "agentSections": 0,
+    "downloads": 0,
+    "labelWidth": 120,
+    "overflow": false,
+    "schemas": [],
+    "sourceLinks": 0,
+    "width": 1280
+  },
+  {
+    "algorithm": "fot",
+    "agentSections": 0,
+    "downloads": 0,
+    "labelWidth": 120,
+    "overflow": false,
+    "schemas": [],
+    "sourceLinks": 0,
+    "width": 768
+  },
+  {
+    "algorithm": "fot",
+    "agentSections": 0,
+    "downloads": 0,
+    "labelWidth": 80,
+    "overflow": false,
+    "schemas": [],
+    "sourceLinks": 0,
+    "width": 390
+  },
+  {
+    "algorithm": "fot",
+    "agentSections": 0,
+    "downloads": 0,
+    "labelWidth": 80,
+    "overflow": false,
+    "schemas": [],
+    "sourceLinks": 0,
+    "width": 320
+  }
+]

@@ -211,6 +211,8 @@ a.algo-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .code-title { font-size: var(--text-sm); font-weight: var(--weight-medium); }
 .code-actions { margin-left: auto; display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
 .code-block--wrap { white-space: pre-wrap; overflow-wrap: anywhere; }
+.code-block--scrollable { max-height: 18rem; overflow: auto; }
+.code-block--scrollable:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ——— 参与方与数据 ——— */
 .participant-identity { min-width: 0; display: grid; gap: 2px; }

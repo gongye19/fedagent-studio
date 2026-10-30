@@ -178,7 +178,6 @@ export const api = {
     post<S["DatasetOut"]>("/v1/datasets", form),
   deleteDataset: (id: string) => del(`/v1/datasets/${encodeURIComponent(id)}`),
 
-  downloadAlgorithmContract: (algorithm: string) => download(`/v1/algorithms/${encodeURIComponent(algorithm)}/contract`, `${algorithm}-contract.json`),
   downloadAgentProtocol: () =>
     download("/v1/agent-protocol", "fedagent-agent-v1.json"),
 

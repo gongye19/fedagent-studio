@@ -13,6 +13,7 @@ export function CodeBlock({
   actions,
   wrap = false,
   copyable = true,
+  scrollable = false,
 }: {
   code: string;
   copyText?: string;
@@ -21,6 +22,7 @@ export function CodeBlock({
   actions?: ReactNode;
   wrap?: boolean;
   copyable?: boolean;
+  scrollable?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
@@ -85,7 +87,8 @@ export function CodeBlock({
           </div>
         </div>
       ) : null}
-      <pre className={`code-block${wrap ? " code-block--wrap" : ""}`} translate="no">
+      <pre className={`code-block${wrap ? " code-block--wrap" : ""}${scrollable ? " code-block--scrollable" : ""}`}
+        translate="no" tabIndex={scrollable ? 0 : undefined} aria-label={scrollable ? title : undefined}>
         {code}
       </pre>
       {copyError ? (

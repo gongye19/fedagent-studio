@@ -1,5 +1,7 @@
 # 开发说明
 
+T105算法规范展示在ui/algorithm/AlgorithmContract与AgentContract；api/algorithmContracts统一读取已有GET /v1/algorithms/{id}/contract。不要另存写死的规范或恢复来源／下载入口。CodeBlock新增scrollable可选属性，默认false；开启时pre可键盘聚焦且最高18rem，完整JSON保持可解析。正文按backend dataContracts、manifest.steps与plans生成，来源元数据不渲染。仅前端改动使用静态资源热更新、先上传哈希文件再原子换index，保留旧文件且不重启任务；无需因文案与展示更改付费重跑算法。
+
 T104新增test_execution_resume／test_medical_parallel：用真实HTTP超时异常、运行恢复及Barrier检验并发重叠，不以耗时阈值写脆弱测试。覆盖已完成学习病例不重跑、坏输出局部作废、长ID分支、服务重启、活动事件／空闲预算、串并行编译一致、原专家提示与排序一致、接口槽位上限和乱序缓存重放。SDK ForkableModel可选，普通Model实现无须增加fork；新医疗协议1.4需重新验证资源，不能伪造准入。部署前确认用户任务结束，备份主库及两个Agent私库，安装SDK0.2.8／医疗包0.3.1并保留费用账本。
 
 T94覆盖T93预检：agents/contract_check与agents/verification负责资源接入的完整合同；checks/connectivity只查连通，无生成／Agent运行。resource_services/verification维护版本凭据；schema0008和生成契约同步。资源页的verifications报告是准入依据，不能在验收后当临时记录删掉；仅清理本轮任务和task-check连接报告。测试先通过intake_helpers走真实本地接入，再验证快速检查；不可用伪造状态绕过准入。前端CheckStatus／CheckRows统一反馈，异步接入完成须刷新共享queryKey候选。

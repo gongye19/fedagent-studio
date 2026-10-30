@@ -1475,3 +1475,11 @@ EvoMedClaw协议1.3.0已上线，固定无经验／本地经验／联邦经验�
 真实gpt-5.6-luna双Agent完整准入通过，当前凭据check-8d381900／check-d778d308必须保留。正式任务task-d8cbdf6c每方2学习＋1独立评测，三组6条回答／2病例配对，1300.5秒完成（开始至完成，含等待与一次人工暂停恢复）；实际学习病例同时活动峰值4，模型分支调用48条，compile未调用模型。单次聚合version1／组2、19张共享卡，实际暂停恢复保留43条成功调用及5个完成单元，成功调用无重复账本；私库与公开确认哈希／作用域逐项验证，发布／导出通过。本次准入＋正式验收共475条账本调用、642223 token，单价未配置，不推算金额。其中28条因medqa-003问诊达上限仍未形成诊断而按原规则作废，仅该病例重试；不是超时作废。三组均100%，不据此声称提升。单次已完成请求最长209.018秒。不同样本量不作固定倍数提速对比；本次只证明运行／并行／恢复约束，不证明准确率提升。
 
 本轮临时任务／应用／快速检查及两方相关private_state／memory／公开progress已清理；现行准入、模型账本及provider运行审计保留。原3个用户任务、原五库所有原行及原文件保留，仅2条Agent能力／验证元数据更新，身份／revision／地址／密文逐项不变。最终调用账本6815条，五库完整性／外键通过，清理后、重启后和Mac独立备份行／文件哈希相同。部署前完整备份20261029T151557311696Z、最终备份20261029T155151511982Z在服务器与Mac .backups。17份前端文件HTTP字节一致，入口index-CPC0hQft.js／index-ZBAkw4ge.css及TrendCanvas-BCgZPCZB.js不变；API1326785／runner1326786及双医疗服务正常，Tailscale／token关闭／手动启动方式不变。证据docs/execution-performance-check.json，临时诊断和日志/tmp/fedagent-t104。
+
+## T105：算法来源移除与接入规范直接展示（2026-10-30）
+
+算法详情已移除论文／源码来源及“参数与来源”；参数独立保留。接入规范改为常驻面板，数据格式、校验规则及可复制模板直接可见，不用展开或下载。FoT仅列数据与运行／汇总LLM，医疗另列服务路径、三组执行顺序、逐步骤输出／执行粒度及完整JSON Schema。数据来自既有contract接口，不在前端写死第二份规范；Schema保留完整内容，18rem内部滚动并支持键盘，手机标签栏80px。仓库许可／研究归属及服务端接口兼容保留，不变更算法、数据合同或准入。
+
+复用reference-first-ui既有参考、Panel／Facts／CodeBlock和TanStack Query；拆分api/algorithmContracts、AlgorithmContract和AgentContract，页面只组合。规范加载／错误与重新读取仅在对应面板；CodeBlock的scrollable默认false，其他页面行为不变。没有新依赖或框架迁移。前端59项、lint／类型／构建／结构门禁通过，无自有业务文件超400行或运行依赖环。本地及线上核对两算法，320／390／768／1280共8组合无页面横向溢出；无来源链接／下载控件，医疗4个完整Schema可解析，键盘聚焦与滚动有效。未为此次低影响展示改动增加机械测试；未改后端或付费重跑。
+
+仅热更新dist：先备份旧index、上传哈希资源再原子替换入口，保留旧文件；frontend-20261030T004645841855Z在服务器backups与Mac .backups，可回滚旧入口。17份发布文件HTTP字节一致：index-DZlzvb_o.js／index--cjUVeyD.css、TrendCanvas-dd7rJtsW.js。后端／runner未重启，不中断用户任务；没有创建任务、资源或发起模型调用，T104协议／准入／数据库备份仍有效。本地preview已停止，临时viewport已恢复；证据screenshots/algorithm-contract，日志/tmp/fedagent-t105。
