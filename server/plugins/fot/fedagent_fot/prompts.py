@@ -288,6 +288,17 @@ def trace_prompt(problem: str, solution: str, reflection: str, density: str = "n
     return prompt.replace(TRACE_DENSITY_MARKER, TRACE_DENSITY_CALIBRATION + TRACE_DENSITY_MARKER, 1)
 
 
+def bounded_trace_prompt(problem: str, solution: str, reflection: str, density: str, limit: int) -> str:
+    prompt = trace_prompt(problem, solution, reflection, density)
+    original = "Identify and extract all reusable reasoning traces, techniques, and methods used in the solution."
+    instruction = (
+        f"Return at most {limit} highest-value reusable reasoning traces from the solution. "
+        "Prioritize decisive methods, merge overlapping steps, omit routine calculations, "
+        "and preserve the conditions and checks that make the methods reusable."
+    )
+    return prompt.replace(original, instruction, 1)
+
+
 def profiling_prompt(trace_store: dict[str, str]) -> str:
     insights_text = "\n".join(f"- {name}: {desc}" for name, desc in trace_store.items())
     return PROFILING_TEMPLATE.format(count=len(trace_store), insights_text=insights_text)

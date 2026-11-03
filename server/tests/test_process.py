@@ -77,7 +77,7 @@ def test_provider_events_available_before_final_result(platform, tmp_path):
 
 def test_collector_optional_replay_cursor_and_item_boundary(platform, client):
     task = make_task(client)
-    request = AgentRequest(run_id="public-run", algorithm="fot", version="1.0.0", task_type="math-reasoning", task_id=task,
+    request = AgentRequest(run_id="public-run", algorithm="fot", version=platform.registry.algorithm("fot").version, task_type="math-reasoning", task_id=task,
                            site_id="p-a", role="participant", round=1, rounds=2, step="solve", unit_key="x")
     class Gateway:
         def request(self, *args):

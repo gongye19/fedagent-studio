@@ -89,7 +89,7 @@ def validate_profile_object(profile: dict[str, Any] | None, trace_store: dict[st
         if not isinstance(relationship, dict):
             return False, "profile contains a non-object relationship"
         trace_a, trace_b = relationship.get("trace_a"), relationship.get("trace_b")
-        if trace_a not in known or trace_b not in known:
+        if not isinstance(trace_a, str) or not isinstance(trace_b, str) or trace_a not in known or trace_b not in known:
             return False, "profile relationship references an unknown trace"
         if trace_a == trace_b:
             return False, "profile contains a self-relationship"

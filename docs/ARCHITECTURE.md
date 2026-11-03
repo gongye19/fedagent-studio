@@ -511,6 +511,8 @@ server/                        uv workspace，虚拟环境在 server/.venv
 
 ## 20. FoT 插件
 
+T106 起，FoT 归类使用局部补丁重试，不再重发完整归类提示；提取只上传符合上限的精选结果。原版提示词指纹仍供对照，运行时的提取额外要求保留最有价值的方法。
+
 FoT 是第一个算法插件（横向，任务类型：数学推理），以审计复现器为接入依据，拆成下列六个步骤。平台使用可选数据、SDK 模型网关、数据库检查点与任务编排；允许无标注数据，但这一方不计准确率。它是适配实现，不能概括为“原版完全未改”。
 
 T88 直接读取上游固定提交 `b02753c` 的 `experiment/client.py` 与 `experiment/server_text.py`，在不执行其网络层的情况下调用原提示词方法：无经验库解题、反思、原生提取、归类以及 `author-formula` 经验库生成，与平台相同输入的输出逐字一致。当前回归入口是 `server/tests/test_fot_prompts.py`；原历史复现器文件不在当前仓库，不能把它当作已运行的回归。源码与比对指纹见 [algorithm-source-audit.json](./algorithm-source-audit.json)。
@@ -561,7 +563,7 @@ steps:
 | 服务端模型 | `--server-model` | — | 需要长上下文 |
 | 经验库条数 | `--insight-target` | paper-auto | 另有 author-formula、11、37 |
 | 经验提取量 | `--trace-density-mode` | native | 另有 paper-gemini |
-| 每题最多 trace 数 | `--max-traces-per-item` | 不限 | |
+| 每题最多 trace 数 | `--max-traces-per-item` | 3 | 可选更低上限；空值按默认上限执行 |
 | 汇总重试上限 | `--aggregation-max-attempts` | 5 | 复现器默认 0（一直重试到合法），平台改为有限次，超过后暂停任务 |
 | 随机种子、并发数 | `--seed`、`--workers` | 0、8 | 复现器的并发是所有参与方共用的线程池；平台里是任务内同时执行的工作单元上限，同时受接口的并发上限约束 |
 

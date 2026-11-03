@@ -106,7 +106,7 @@ describe("params", () => {
     expect(defaultParams(fot)).toEqual({
       insightTarget: "paper-auto",
       traceDensity: "native",
-      maxTracesPerItem: null,
+      maxTracesPerItem: 3,
       aggregationRetries: 5,
     });
     const retries = fot.params.find((def) => def.key === "aggregationRetries")!;

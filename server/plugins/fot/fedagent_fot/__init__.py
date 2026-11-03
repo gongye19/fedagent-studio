@@ -41,6 +41,7 @@ from .parsing import (
     validate_library_object,
     validate_profile_object,
 )
+from .profile_repair import ProfileRepair
 
 GENERATION = {"temperature": 0.7, "top_p": 0.9}
 MAX_TOKENS = {"solve": 32768, "reflect": 16384, "extract": 8192, "profile": 32768, "library": 16384}
@@ -50,6 +51,11 @@ TRACE_ATTEMPTS = 2
 
 class FoT(Algorithm):
     manifest = load_manifest(Path(__file__).with_name("manifest.yaml"))
+
+    def manifest_for_version(self, version: str):
+        if version == "1.0.0":
+            return load_manifest(Path(__file__).with_name("v1.0-manifest.yaml"))
+        return super().manifest_for_version(version)
 
     def agent_output_contract(self) -> dict[str, Any]:
         return {
@@ -123,22 +129,22 @@ class FoT(Algorithm):
         if solution is None or reflection is None:
             raise StepFailed("找不到这道题本轮的解答或反思", pause=True)
         density = str(ctx.params.get("traceDensity", "native"))
-        prompt = prompts.trace_prompt(self._problem(ctx), solution, reflection, density)
+        configured = ctx.params.get("maxTracesPerItem")
+        cap = min(configured, 3) if isinstance(configured, int) else 3
+        cap = 1 if density == "paper-gemini" else cap
+        prompt = prompts.bounded_trace_prompt(self._problem(ctx), solution, reflection, density, cap)
         traces: dict[str, str] = {}
         for _ in range(TRACE_ATTEMPTS):
             reply = ctx.model.chat(prompt, max_tokens=MAX_TOKENS["extract"], **GENERATION)
             traces = valid_trace_dict(extract_trace_object(reply.text))
-            if traces and not (density == "paper-gemini" and len(traces) > 1):
+            if 0 < len(traces) <= cap:
                 break
+            prompt += f"\nThe response must contain at most {cap} distinct methods. Merge and prioritize before returning JSON."
+        if len(traces) > cap:
+            raise StepFailed(f"模型未能将本题解题经验限制为最多 {cap} 条", pause=True)
         if not traces:
             ctx.log("两次都没有取到合格的解题经验，这道题本轮不上传")
-        elif density == "paper-gemini" and len(traces) > 1:
-            ctx.log(f"校准要求每题至多 1 条，模型给了 {len(traces)} 条，按原样上传")
-        cap = ctx.params.get("maxTracesPerItem")
-        entries = list(traces.items())
-        if isinstance(cap, int):
-            entries = entries[:cap]
-        for name, description in entries:
+        for name, description in traces.items():
             ctx.send("trace", {"name": name, "description": description})
 
     # —— 服务端 ——
@@ -178,11 +184,35 @@ class FoT(Algorithm):
         store: dict[str, str] = ctx.recall("trace_store")
         origin: dict[str, str] = ctx.recall("trace_origin")
 
-        def check(profile: dict[str, Any] | None) -> tuple[dict[str, Any] | None, str]:
-            ok, reason = validate_profile_object(profile, store)
-            return (profile if ok else None), reason
-
-        profile = self._aggregate(ctx, prompts.profiling_prompt(store), "profile", check)
+        limit = int(ctx.params.get("aggregationRetries", 5))
+        reply = ctx.model.chat(prompts.profiling_prompt(store), max_tokens=MAX_TOKENS["profile"], **GENERATION)
+        profile = extract_json_object(reply.text)
+        ok, reason = validate_profile_object(profile, store)
+        if not ok:
+            ctx.log(f"归类需要修正：{reason}")
+            repair = ProfileRepair.from_profile(profile, store)
+            if repair is None:
+                raise StepFailed(f"无法局部修正归类：{reason}", pause=True)
+            ctx.log(repair.summary())
+            feedback = ""
+            for _ in range(limit - 1 if repair.pending else 1):
+                patch = None
+                if repair.pending:
+                    reply = ctx.model.chat(repair.prompt(store, feedback), max_tokens=MAX_TOKENS["profile"], **GENERATION)
+                    patch = extract_json_object(reply.text)
+                candidate = repair.apply(patch)
+                if candidate is None:
+                    feedback = "The patch must assign every requested ID exactly once to an allowed cluster index."
+                    continue
+                ok, reason = validate_profile_object(candidate, store)
+                if ok:
+                    profile = candidate
+                    break
+                # Membership has been repaired; do not repeat calls for unrelated structural errors.
+                break
+            if not ok:
+                raise StepFailed(f"归类局部修正未通过校验：{reason}", pause=True)
+        assert profile is not None
         normalized = normalize_profile_for_library(profile)
         ctx.keep("profile", normalized)
         groups = []

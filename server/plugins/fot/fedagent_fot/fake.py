@@ -32,7 +32,8 @@ def fake_reply(step_id: str | None, prompt: str, seed: str) -> str | None:
             f"trace_{first}{seed[:4]}": f"Core idea: use {first} to reduce the problem. When to use: the expression has a repeated structure.",
             f"trace_{second}Check{seed[4:8]}": f"Core idea: confirm the result with {second}. When to use: after finding a candidate answer.",
         }
-        return json.dumps(traces)
+        limit = re.search(r"Return at most (\d+) highest-value reusable", prompt)
+        return json.dumps(dict(list(traces.items())[:int(limit[1])]) if limit else traces)
     if step_id == "profile":
         names = re.findall(r"^- (insight_[\w]+):", prompt, flags=re.M)
         clusters = []

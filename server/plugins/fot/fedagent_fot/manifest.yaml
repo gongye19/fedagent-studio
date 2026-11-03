@@ -1,7 +1,7 @@
 # FoT（Federation over Text，arXiv:2604.16778）：横向联邦。
 # 各方解题、反思、提取解题经验上传；服务端把经验归类、汇总成经验库下发，下一轮各方带着经验库解题。
 id: fot
-version: 1.0.0
+version: 1.1.0
 name: FoT
 full_name: Federation over Text
 summary: 各方上传解题经验，服务端汇总成共享的经验库
@@ -42,22 +42,22 @@ params:
     default: paper-auto
   - key: traceDensity
     label: 经验提取量
-    help: 每条样本提取多少条经验上传。全部提取和上游代码一致；每条样本 1 条更接近论文里的通信量。
+    help: 默认优先提取最有价值的解题方法；也可按复现校准，每条样本最多提取 1 条。
     kind: select
     options:
-      - { value: native, label: 全部提取（默认） }
+      - { value: native, label: 精选方法（默认） }
       - { value: paper-gemini, label: 每条样本 1 条 }
     default: native
   - key: maxTracesPerItem
     label: 每条样本最多上传
-    help: 限制每条样本最多上传几条经验，用来控制通信量。
+    help: 每题至多提取 3 条最有价值的解题经验，也可选择更低上限。
     kind: select-number
     options:
-      - { value: null, label: 不限（默认） }
+      - { value: null, label: 沿用默认上限（3 条） }
       - { value: 1, label: 1 条 }
       - { value: 2, label: 2 条 }
       - { value: 3, label: 3 条 }
-    default: null
+    default: 3
   - key: aggregationRetries
     label: 汇总重试上限
     help: 服务端汇总的结果不合法时重试几次；超过上限后任务暂停，避免费用失控。
