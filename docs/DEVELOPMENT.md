@@ -138,23 +138,35 @@ app/src/
 5. 新场景的第一个算法：场景从"规划中"改为"可用"（`server/fedagent/registry.py` 的 `SCENARIOS`），再按 §6 做这个场景的配置页。
 6. 前端运行 `npm run api:types`（接口有变化时），验证桌面、768 和手机三种宽度，以及从创建到完成的全过程。
 
-## 部署到实验室服务器（Tailscale 内网）
+## GitHub 协作与部署到实验室服务器（T107）
 
-前端和后端都部署在实验室服务器上，只监听服务器的 Tailscale 地址，校园网和公网都访问不到；本机要先加入 Tailscale，并能用密钥登录服务器（不用密码）。
+私有仓库：[gongye19/fedagent-studio](https://github.com/gongye19/fedagent-studio)。`main` 是部署分支；开发使用功能分支和 Pull Request 合并到 main，保留已有提交历史，不强制推送。协作者在仓库 Settings → Collaborators 中邀请，获得权限后使用自己的 GitHub 认证克隆；服务器密钥不用于个人开发。
 
 ```bash
+git clone git@github.com:gongye19/fedagent-studio.git
+cd fedagent-studio
+git switch -c feat/your-change
+# 修改、检查、提交后推送功能分支，发起 PR 合并到 main
+
+git switch main
+git pull --ff-only origin main
 bash deploy/deploy.sh
 ```
 
-脚本依次：本地检查 → 停下旧进程 → 完整数据备份并下载到 Mac → 同步代码 → 安装依赖、迁移、启动和健康检查。备份失败会重启旧服务并中止部署。`SKIP_CHECKS=1` 跳过本地检查。打开 <http://100.111.198.54:8880/>。
+部署脚本要求干净的 main；默认执行前后端检查，然后推送 GitHub。服务器只获取 main 的相同完整提交号，拒绝部署过期提交；不会上传本机工作区的源码、构建产物或未提交文件。`SKIP_CHECKS=1` 仅用于同一提交已经完整检查的情况，不能跳过干净工作区、main 和远端提交校验。
 
-- 所有文件都在服务器的 `~/fedagent-studio` 里（目录布局见 [ARCHITECTURE.md](./ARCHITECTURE.md) §18）；数据在 `data/`，部署不覆盖；
-- 访问令牌是可选的，现在关闭：Tailscale 内网里能访问这个地址的人都能使用。要开启时运行 `bash ~/fedagent-studio/serve.sh token on`，令牌保存在服务器的 `~/fedagent-studio/data/admin-token`，浏览器第一次打开时要填；`token off` 关闭。部署不会改变开关；
-- 状态、停止、重启：`bash ~/fedagent-studio/serve.sh status | stop | start`；日志在 `~/fedagent-studio/logs/`；
-- 进程在退出 SSH 后继续运行，但服务器重启后要重新运行 `bash ~/fedagent-studio/serve.sh`；
-- 重启时运行中的任务会停下，重启后从检查点继续，已完成的模型调用不重复计费。
-- 部署中的 SSH 操作复用同一条已认证连接，结束后关闭，减少 Tailscale 中继下的握手开销；断连由保活检测中止。
-- 前端部署保留旧的带哈希资源，避免已打开页面懒加载图表时遇到 404；`index.html` 更新到新版本。旧资源不自动清理，需要维护时检查磁盘空间。
+服务器从 GitHub 导出该提交到独立构建目录，执行 `npm ci`／前端构建、锁定的 Python 运行依赖准备及客户端安装包构建；构建成功后再次确认没有运行或排队任务／连接检查，再停止服务、完整备份数据及旧程序、发布、启动和健康检查。阶段变更不重启用户正在运行的任务；暂停任务保持原状。构建失败时旧服务继续运行；发布失败且数据库版本未变化时恢复上一版程序。数据库版本已变化时保持停止，按备份恢复说明处理，不自动覆盖数据。
+
+- 实验室服务器：`100.111.198.54`，网页 <http://100.111.198.54:8880/>，SSH端口10022、用户poly-zhu，均需Tailscale内网及服务器访问权限。
+- 运行目录：`~/fedagent-studio/`。`repository.git/` 是GitHub只读镜像；`builds/<提交号>.*` 保存精确源码与产物；`run/deployed-revision` 是已通过健康检查的提交号。
+- GitHub部署凭据：`access/github_ed25519` 是服务器生成的专用只读密钥，私钥不离开服务器。GitHub主机公钥从官方meta API登记在`access/github_known_hosts`，使用SSH over 443；不关闭主机校验，不用个人GitHub令牌。
+- 首次配置：服务器生成上述专用密钥，将`.pub`登记为该仓库只读Deploy key；写入官方GitHub主机公钥，再以相同`GIT_SSH_COMMAND`将仓库`git clone --bare`到`repository.git`。本次已完成，不重复生成或覆盖凭据。
+- 运行数据、密文及解密密钥只留在`data/`；`access/`、数据、备份、缓存和构建目录不进入仓库。部署锁防止多人同时发布，部署不会更改访问令牌开关。
+- 数据备份及`runtime.tar.gz`（旧程序）保存到`backups/<UTC时间>/`；本机脚本部署成功后将备份下载到`.backups/`。若下载失败，服务器上的新版本和备份仍保留，需要补下载，不要重新覆盖数据。
+- 前端保留旧哈希资源，已打开页面可继续懒加载。`run/deployed-revision`只在新版本健康后更新；不自动清理旧构建和备份。
+- 状态、停止、启动：`bash ~/fedagent-studio/serve.sh status | stop | start`；日志在`logs/`。重启服务器后仍需手动运行serve.sh；没有新增自动开机或定时部署。
+
+源码必须经过GitHub；目前是手动运行部署命令，不是每次push就自动发布。GitHub权限与服务器权限分别管理，能提交PR不代表能操作生产服务器。
 
 ## 数据备份与恢复（T58）
 
@@ -306,7 +318,7 @@ ProgressTab只组合已有Task.cursor／冻结plan和ProgressBar／CheckStatus�
 
 ### T101：阶段状态及纯前端发布
 
-不使用异构单元数或阶段权重推算任务百分比；ProgressBar／progressOf／stageSeconds已删除。stagesOf和stepState只决定阶段顺序与状态，成绩指标不受影响。纯前端更新可只备份旧dist，再上传除index外文件，最后以rsync临时文件重命名切换index，保留旧哈希资源；不用重启API／runner或中断任务。此类验证只读观察已有任务、配合状态回归，无模型或编排改动时不自动追加付费试跑。
+不使用异构单元数或阶段权重推算任务百分比；ProgressBar／progressOf／stageSeconds已删除。stagesOf和stepState只决定阶段顺序与状态，成绩指标不受影响。T107起纯前端修改也必须先推送GitHub，再按统一部署流程更新，不能再从本机直接上传dist；保留旧哈希资源。此类验证只读观察已有任务、配合状态回归，无模型或编排改动时不自动追加付费试跑。
 
 T102固定对照：新医疗三组无经验／本地经验／联邦经验，内部rounds=3但不显示用户轮次控件。按冻结labels展示，不写算法ID判断；FoT原多轮不变。修改私有状态时检查同任务／站点／样本／组边界、清理验证临时状态，不能把轨迹或原卡库加入公开结果。平台上传病例及同机模型账本的现有边界如实说明。新增测试test_medical_comparison.py覆盖只学习一次、三组配对、跨病例检索、摘要／来源拒绝及旧任务；EvaluationOverview.test.tsx覆盖增益和缺失组。浏览器使用cua_repl，历史tools/ui-check的CDP脚本不作为本次实际执行证明。修改插件后准入必须真实复验；最终状态见HANDOFF。
 

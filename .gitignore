@@ -2,6 +2,20 @@
 .idea/
 .vscode/
 .backups/
+# 服务器运行状态和部署凭据不进入 GitHub
+/data/
+/access/
+/backups/
+/builds/
+/repository.git/
+/logs/
+/run/
+/client/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
 # Mobbin 研究原图和 ZIP 留在本机；来源清单及研究结论保存在 docs/
 .references/
 __pycache__/

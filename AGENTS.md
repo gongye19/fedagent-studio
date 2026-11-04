@@ -1,5 +1,7 @@
 # 给接手开发的 AI 的说明
 
+T107／D103：GitHub私有仓库 https://github.com/gongye19/fedagent-studio，main为部署分支；旧feat/dimension-layering历史保留。deploy.sh检查干净main并推送，然后服务器只读deploy key获取同一提交，服务器构建成功／空闲／完整备份后才覆盖程序并重启。运行数据和部署密钥不得入Git；旧手工rsync发布流程被替代。
+
 T106／D102：FoT1.1默认每题最多3条精选经验，paper-auto不变；归类补丁只改错号、重复和遗漏，保留正确归属，严格复验。1.0历史清单仅用于展示。
 
 T105／D101：算法介绍不再展示论文／源码来源或“参数与来源”。接入规范为常驻面板，直接读取当前算法contract接口，展示资源、数据格式／模板／校验；支持Agent的算法另列接口、执行顺序、逐步骤输出及完整Schema，不用下载作为阅读入口。长Schema用CodeBlock的scrollable选项限定18rem并支持键盘滚动，其他代码块默认不变。规范加载／重试原位处理，不加新参考或依赖；保留服务端契约接口与仓库归属／许可资料，不改算法或资源验证。
@@ -17,7 +19,7 @@ FedAgent Studio 是通用的联邦 Agent 平台：多个参与方按算法契约
 - 界面有较大改动时，先截图给用户看、讨论没问题再接着做后端。
 - 选主流、成熟的做法；能复用现成方案就不自己造。
 - 每次改动同步文档：`docs/HISTORY.md` 记一条任务（T 编号接着往下），有取舍时在 `docs/DECISIONS.md` 记一条决策（D 编号），`docs/PROGRESS.md` 写现状；相关时改 ARCHITECTURE、DEVELOPMENT、FLOW、GOAL。
-- git 只在本地提交（仓库没有远端），Conventional Commit，不改已有的历史。
+- GitHub 私有仓库 gongye19/fedagent-studio 是协作来源；使用 Conventional Commit，不改已有历史。功能分支经审查合并 main；部署必须先提交、通过检查并推送 GitHub，再由服务器读取同一 main 提交构建。禁止直接同步未提交工作区覆盖服务器。
 - Python 虚拟环境用 uv 建在项目目录里（`server/.venv`），不要全局安装任何东西。
 
 ## 安全红线
