@@ -1,0 +1,30 @@
+{
+  "revision": "9ab5a867a66d2f2c792ae1318e8b22ad98229924",
+  "repository": "https://github.com/gongye19/fedagent-studio",
+  "private": true,
+  "frontendFiles": 17,
+  "tasks": {
+    "task-e46fa44c": "completed",
+    "task-3e59829a": "paused",
+    "task-6fe1fb3f": "completed",
+    "task-9aec2ca6": "completed"
+  },
+  "backup": "20261104T050011953058Z",
+  "tests": {
+    "frontend": 59,
+    "backend": 175
+  },
+  "dataPreserved": {
+    "databases": 5,
+    "files": 50,
+    "allRowsEqual": true
+  },
+  "deployKeyReadOnly": true,
+  "deployLockReleased": true,
+  "services": [
+    "api",
+    "runner",
+    "medical-a",
+    "medical-b"
+  ]
+}

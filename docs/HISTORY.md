@@ -1501,3 +1501,5 @@ GitHub私有仓库为 https://github.com/gongye19/fedagent-studio；main由原�
 初次推送前扫描全部3207个历史blob的常见私钥／令牌格式无命中，确认数据及备份不受Git跟踪；增加运行目录与凭据的忽略规则。部署测试覆盖执行中任务／连接检查拒绝、暂停任务保留、脏工作区拒绝和服务器构建失败不改运行程序。README与开发／AI规则切换到功能分支→PR→main→GitHub→服务器流程；不邀请未提供用户名的协作者。
 
 本地前端59项、后端175项（新增7项部署门禁测试）、lint／类型／构建／结构检查通过；已确认服务器可使用现有Node20.20.2构建且只读Deploy key能访问私有仓库。
+
+实机部署已通过：服务器从GitHub提交9ab5a867a66d2f2c792ae1318e8b22ad98229924导出源码并构建，17份HTTP文件与本机构建逐字节一致；API／runner／双医疗服务正常、部署锁释放。五个数据库全部行及50个数据文件与部署前只读审计完全一致；八方task-e46fa44c保持completed，旧task-3e59829a保持paused，未新增模型调用或任务。完整数据＋旧程序备份20261104T050011953058Z在服务器backups及Mac .backups，run/deployed-revision记录上述运行代码提交；验证证据github-deployment-check.json。本次后续文档提交不变更运行代码。
