@@ -22,7 +22,7 @@ export UV_PYTHON_PREFERENCE=only-managed
 export UV_NO_PROGRESS=1
 uv="$ROOT/bin/uv"
 [ -x "$uv" ] || { echo '缺少已有运行环境 bin/uv，请先初始化服务器' >&2; exit 1; }
-node -e 'const [a,b]=process.versions.node.split(".").map(Number); if(!((a===20&&b>=19)||a>=22)) process.exit(1)' || { echo 'Node 版本不满足前端构建要求' >&2; exit 1; }
+node -e 'const [a,b]=process.versions.node.split(".").map(Number); if(!((a===20&&b>=19)||(a===22&&b>=12)||a>22)) process.exit(1)' || { echo 'Node 版本不满足前端构建要求' >&2; exit 1; }
 (cd "$stage/app" && npm ci --no-audit --no-fund && npm run build)
 # 先下载并验证运行依赖，减少停机时间；不更改当前运行中的虚拟环境。
 (cd "$stage/server" && "$uv" sync --frozen --no-dev --python 3.12)
