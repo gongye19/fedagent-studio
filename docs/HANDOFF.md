@@ -441,7 +441,6 @@ tail -f ~/fedagent-studio/logs/api.log         # 每个任务的日志在 data/r
 
 | 文档 | 内容 |
 |---|---|
-| [AGENTS.md](../AGENTS.md) | 协作规则、安全红线、产品规则、常用命令 |
 | [GOAL.md](./GOAL.md) | 产品目标和验收标准 |
 | [FLOW.md](./FLOW.md) | 用户怎么用，每个页面做什么 |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | 后端设计和实现：插件体系、编排、模型网关、API、存储、部署 |
