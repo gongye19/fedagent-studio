@@ -12,7 +12,7 @@ cd fedagent-studio
 git switch -c feat/your-change
 ```
 
-使用功能分支提交修改并通过 Pull Request 合并到 `main`。接手开发先读 [AGENTS.md](./AGENTS.md) 和 [交接说明](./docs/HANDOFF.md)。
+使用功能分支提交修改并通过 Pull Request 合并到 `main`。接手开发先读 [交接说明](./docs/HANDOFF.md)。
 
 ## 当前能力
 

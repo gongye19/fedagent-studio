@@ -26,6 +26,15 @@ app/coverage/
 app/*.log
 app/*.local
 
-# 设计检测的审查快照和缓存留在本地；检测器的例外配置要提交，门禁在别处也按同样的规则跑
-.impeccable/*
-!.impeccable/config.json
+# AI 助手说明、编辑器代理配置及设计检查设置只保存在本机
+.impeccable/
+.agents/
+.claude/
+.codex/
+.cursor/
+.windsurf/
+AGENTS.md
+AGENTS.override.md
+CLAUDE.md
+CLAUDE.local.md
+GEMINI.md

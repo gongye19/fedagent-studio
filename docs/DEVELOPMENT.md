@@ -142,6 +142,8 @@ app/src/
 
 私有仓库：[gongye19/fedagent-studio](https://github.com/gongye19/fedagent-studio)。`main` 是部署分支；开发使用功能分支和 Pull Request 合并到 main，保留已有提交历史，不强制推送。协作者在仓库 Settings → Collaborators 中邀请，获得权限后使用自己的 GitHub 认证克隆；服务器密钥不用于个人开发。
 
+提交项目源码、测试、部署脚本及开发文档。个人 AI 助手说明、编辑器代理设置、设计检查缓存和例外只保存在本机，由 `.gitignore` 排除；提交前用 `git diff --cached --name-only` 检查暂存范围。
+
 ```bash
 git clone git@github.com:gongye19/fedagent-studio.git
 cd fedagent-studio

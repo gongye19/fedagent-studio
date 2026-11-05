@@ -1503,3 +1503,7 @@ GitHub私有仓库为 https://github.com/gongye19/fedagent-studio；main由原�
 本地前端59项、后端175项（新增7项部署门禁测试）、lint／类型／构建／结构检查通过；已确认服务器可使用现有Node20.20.2构建且只读Deploy key能访问私有仓库。
 
 实机部署已通过：服务器从GitHub提交9ab5a867a66d2f2c792ae1318e8b22ad98229924导出源码并构建，17份HTTP文件与本机构建逐字节一致；API／runner／双医疗服务正常、部署锁释放。五个数据库全部行及50个数据文件与部署前只读审计完全一致；八方task-e46fa44c保持completed，旧task-3e59829a保持paused，未新增模型调用或任务。完整数据＋旧程序备份20261104T050011953058Z在服务器backups及Mac .backups，run/deployed-revision记录上述运行代码提交；验证证据github-deployment-check.json。本次后续文档提交不变更运行代码。
+
+## T108：清理仓库中的本地工具配置（2026-11-05）
+
+T108（2026-11-05）：AI 协作说明和设计检查设置仅保留在本机。GitHub 的当前分支停止跟踪 `AGENTS.md`、`CLAUDE.md` 和 `.impeccable/`，并忽略同类本地配置。项目开发、接口、测试和部署文档继续共享；历史提交保留，无需部署。
