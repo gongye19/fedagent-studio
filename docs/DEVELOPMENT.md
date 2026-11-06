@@ -166,7 +166,7 @@ bash deploy/deploy.sh
 - 运行数据、密文及解密密钥只留在`data/`；`access/`、数据、备份、缓存和构建目录不进入仓库。部署锁防止多人同时发布，部署不会更改访问令牌开关。
 - 数据备份及`runtime.tar.gz`（旧程序）保存到`backups/<UTC时间>/`；本机脚本部署成功后将备份下载到`.backups/`。若下载失败，服务器上的新版本和备份仍保留，需要补下载，不要重新覆盖数据。
 - 前端保留旧哈希资源，已打开页面可继续懒加载。`run/deployed-revision`只在新版本健康后更新；不自动清理旧构建和备份。
-- 状态、停止、启动：`bash ~/fedagent-studio/serve.sh status | stop | start`；日志在`logs/`。重启服务器后仍需手动运行serve.sh；没有新增自动开机或定时部署。
+- 状态、停止、启动：`bash ~/fedagent-studio/serve.sh status | stop | start`；日志在`logs/`。重启服务器后仍需手动运行serve.sh；没有新增自动开机或定时部署。 如果已打开的页面提示流程图无法加载，先检查 `/healthz` 和 `serve.sh status`；若确认是重启后服务未运行，用 `bash ~/fedagent-studio/serve.sh start` 恢复，再刷新算法页。
 
 源码必须经过GitHub；目前是手动运行部署命令，不是每次push就自动发布。GitHub权限与服务器权限分别管理，能提交PR不代表能操作生产服务器。
 
