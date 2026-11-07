@@ -10,7 +10,6 @@ import { Choices, Field } from "../console";
 
 /** 任务类型：列出已选算法支持的类型，由用户选；指标跟着任务类型走。最后留一个"待接入"的空位。 */
 export function TaskTypeChoice({
-  algorithm,
   value,
   onChange,
   error,
@@ -20,24 +19,24 @@ export function TaskTypeChoice({
   value: TaskType | null;
   onChange: (type: TaskType | null) => void;
 }) {
-  const types = algorithm ? algorithm.accepts : Object.keys(TASK_TYPES);
+  const types = Object.keys(TASK_TYPES).filter(type => TASK_TYPES[type].recordBased);
   return (
     <Field
-      label="任务类型"
+      label="应用"
       labelId="task-type-label"
       wide
       error={error}
-      info="只列出已选算法支持的任务；任务类型决定数据模板、评估指标与可用数据。"
+      info="选择要增强的应用，再选择提取和聚合经验的算法。"
     >
-      {!algorithm ? <p className="field-static">请先选择算法</p> : null}
+
       {types.length ? (
         <Choices
           name="task-type"
           error={error}
           labelledBy="task-type-label"
           value={value}
-          options={types.map((type) => ({ value: type, label: TASK_TYPES[type].label, disabled: !algorithm }))}
-          placeholder="更多类型"
+          options={types.map((type) => ({ value: type, label: TASK_TYPES[type].label }))}
+          placeholder="更多应用"
           onChange={onChange}
           onClear={() => onChange(null)}
         />
@@ -53,16 +52,19 @@ export function AlgorithmField({
   value,
   onChange,
   error,
+  taskType,
 }: {
+  taskType?: string | null;
   error?: string;
   value: Draft["algorithm"];
   onChange: (id: Algorithm["id"] | null) => void;
 }) {
-  const algorithms = ALGORITHMS;
+  const algorithms = ALGORITHMS.filter(a => a.accepts.some(type => TASK_TYPES[type]?.recordBased) && (!taskType || a.accepts.includes(taskType)));
   return (
     <Field label="算法" labelId="algorithm-label" wide error={error}>
+      {!taskType ? <span id="algorithm-prerequisite" className="visually-hidden">先选择应用</span> : null}
       {algorithms.length ? (
-        <AlgorithmTable error={error} algorithms={algorithms} value={value} onChange={onChange} disabled={false} />
+        <AlgorithmTable error={error} algorithms={algorithms} value={value} onChange={onChange} disabled={!taskType} />
       ) : (
         <p className="field-static">还没有可用算法。</p>
       )}

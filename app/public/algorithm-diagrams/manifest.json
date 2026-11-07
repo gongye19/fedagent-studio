@@ -1,4 +1,24 @@
 {
+  "fot-records": {
+    "width": 1040,
+    "height": 490,
+    "sha256": "5a527e372ff312b82842cdd2fd2dcb82294659f78ef1739d9af5d07e2c968521"
+  },
+  "fot-records-mobile": {
+    "width": 320,
+    "height": 740,
+    "sha256": "1f083c5ac72c534771fc68e897026043dc59e298663c91e6d5e9ae234fa92c73"
+  },
+  "evomedclaw-records": {
+    "width": 1040,
+    "height": 490,
+    "sha256": "a20182c54161c1ba74d2ac005f92a1f0f3d39804161e2596e1cea4b8408d77c7"
+  },
+  "evomedclaw-records-mobile": {
+    "width": 320,
+    "height": 740,
+    "sha256": "2d73f47b19b74859b1362ec26b39195f3afe1ca993d1bf62a4b28ea2a3ae82ff"
+  },
   "fot": {
     "width": 1040,
     "height": 520,

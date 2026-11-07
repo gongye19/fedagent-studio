@@ -78,7 +78,7 @@ export function RunSettings({
             }}
           />
         </Field>
-        {algorithm?.minRounds !== algorithm?.maxRounds || !algorithm ? <Field
+        {algorithm && algorithm.minRounds !== algorithm.maxRounds ? <Field
           label="轮次"
           error={roundsError}
           htmlFor={algorithm ? undefined : "rounds-pending"}

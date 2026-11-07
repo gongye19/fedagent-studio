@@ -852,6 +852,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/record-generation/chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate
+         * @description 由本地工具主动调用；不创建题库或任务，也不返回模型凭据。
+         */
+        post: operations["generate_v1_record_generation_chat_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1631,6 +1651,23 @@ export interface components {
              */
             pause: boolean;
         };
+        /** GenerationMessage */
+        GenerationMessage: {
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "system" | "user" | "assistant";
+            /** Content */
+            content: string;
+        };
+        /** GenerationRequest */
+        GenerationRequest: {
+            /** Model */
+            model: string;
+            /** Messages */
+            messages: components["schemas"]["GenerationMessage"][];
+        };
         /** GradedIn */
         GradedIn: {
             /** Itemid */
@@ -2259,6 +2296,11 @@ export interface components {
         };
         /** TaskTypeOut */
         TaskTypeOut: {
+            /**
+             * Recordbased
+             * @default false
+             */
+            recordBased: boolean;
             /** Id */
             id: string;
             /** Label */
@@ -4422,6 +4464,43 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_v1_record_generation_chat_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
             };
             /** @description Validation Error */
             422: {

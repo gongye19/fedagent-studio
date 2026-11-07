@@ -10,8 +10,8 @@ describe("draft", () => {
     const stored = withDefaults({ name: "未完成任务", scenario: "horizontal", touched: true, clientModel: "default", serverModel: "default" });
     const migrated = decodeDraft(JSON.stringify(stored));
     expect([migrated.name, migrated.scenario, migrated.clientModel, migrated.serverModel]).toEqual(["未完成任务", "horizontal", "", ""]);
-    expect(decodeDraft(JSON.stringify({ ...stored, selectionVersion: 1 }))).toEqual(stored);
-    expect(decodeDraft(JSON.stringify({ ...migrated, selectionVersion: 1 }))).toEqual(migrated);
+    expect(decodeDraft(JSON.stringify({ ...stored, selectionVersion: 2 }))).toEqual(stored);
+    expect(decodeDraft(JSON.stringify({ ...migrated, selectionVersion: 2 }))).toEqual(migrated);
   });
 
   it("counts only the user's own changes as touching the draft", () => {
@@ -52,6 +52,8 @@ describe("route", () => {
       { page: "task", id: "task-1" },
       { page: "task", id: "task-1", tab: "output" },
       { page: "apps" },
+      { page: "application", taskType: "medical-records" },
+      { page: "newTask", application: "medical-records" },
       { page: "app", id: "lib-1", tab: "try" },
       { page: "participants" },
       { page: "participants", id: "p-c" },

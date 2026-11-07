@@ -21,17 +21,10 @@ export function TaskBasicsPanel({ dispatch, config }: { dispatch: Dispatch<Actio
               onChange={(event) => update({ name: event.target.value })}
             />
           </Field>
-          <AlgorithmField
-            error={fieldError("algorithm")}
-            value={draft.algorithm}
-            onChange={(id) => dispatch({ type: "chooseAlgorithm", algorithm: id })}
-          />
-          <TaskTypeChoice
-            error={fieldError("taskType")}
-            algorithm={algorithm}
-            value={draft.taskType}
-            onChange={(taskType) => dispatch({ type: "chooseTaskType", taskType })}
-          />
+          <TaskTypeChoice error={fieldError("taskType")} algorithm={algorithm} value={draft.taskType}
+            onChange={(taskType) => dispatch({ type: "chooseTaskType", taskType })} />
+          <AlgorithmField error={fieldError("algorithm")} value={draft.algorithm} taskType={draft.taskType}
+            onChange={(id) => dispatch({ type: "chooseAlgorithm", algorithm: id })} />
         </FieldGroup>
       </div>
     </Panel>

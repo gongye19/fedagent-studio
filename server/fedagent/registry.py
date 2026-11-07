@@ -117,6 +117,8 @@ class Registry:
     def requires_server_model(self, algorithm: Algorithm, task_type: str | None = None, grader: str | None = None) -> bool:
         if any(step.at == SERVER and step.model for step in algorithm.manifest.steps):
             return True
+        if algorithm.manifest.evaluation is None:
+            return False
         if grader:
             return bool((chosen := self.graders.get(grader)) and chosen.requires_model)
         types = [task_type] if task_type in self.task_types else algorithm.manifest.accepts
@@ -179,6 +181,7 @@ class Registry:
             "unlabeledNote": task_type.unlabeled_note,
             "placeholder": task_type.placeholder,
             "schemaVersion": task_type.schema_version,
+            "recordBased": task_type.record_based,
             "structuredInput": task_type.structured_input,
             "inputLabel": task_type.input_label,
             "answerLabel": task_type.answer_label,

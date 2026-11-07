@@ -77,5 +77,5 @@ export function toDraft(config: TaskConfig, name: string | null = null): Draft {
 
 /** 默认名只说明任务用途；实际开始时间由独立字段展示。 */
 export function defaultTaskName(draft: Pick<Draft, "taskType">): string {
-  return draft.taskType ? `${TASK_TYPES[draft.taskType].label}任务` : "联邦任务";
+  return draft.taskType ? `${TASK_TYPES[draft.taskType].label}${TASK_TYPES[draft.taskType].recordBased ? "经验生成" : "任务"}` : "联邦任务";
 }

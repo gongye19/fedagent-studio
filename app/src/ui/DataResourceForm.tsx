@@ -24,7 +24,7 @@ export function DataResourceForm({
   const [form, setForm] = useState<DatasetForm>({ ...EMPTY_DATASET_FORM, ...category });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const missing = datasetMissing(form, hosting).filter((label) => label !== "场景");
+  const missing = datasetMissing(form, hosting).filter((label) => label !== "场景").map(label => label === "任务类型" ? "应用" : label);
   async function save() {
     if (missing.length || saving) return;
     const data = new FormData();

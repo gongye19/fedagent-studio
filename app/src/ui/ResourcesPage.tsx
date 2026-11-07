@@ -35,7 +35,7 @@ export default function ResourcesPage({
         back={selectedId ? {label: "数据资源", route: route()} : undefined}
         meta={
           own
-            ? "接入一次，后续任务可直接选择使用。"
+            ? "上传已完成的问诊或解题过程，校验后用于生成经验。"
             : "用户共享及平台提供的可复用数据。"
         }
         actions={

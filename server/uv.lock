@@ -9,6 +9,7 @@ members = [
     "fedagent-evomedclaw",
     "fedagent-fot",
     "fedagent-math-reasoning",
+    "fedagent-records",
     "fedagent-sdk",
 ]
 
@@ -260,6 +261,7 @@ dependencies = [
     { name = "fedagent-evomedclaw" },
     { name = "fedagent-fot" },
     { name = "fedagent-math-reasoning" },
+    { name = "fedagent-records" },
     { name = "fedagent-sdk" },
     { name = "httpx" },
     { name = "pydantic" },
@@ -286,6 +288,7 @@ requires-dist = [
     { name = "fedagent-evomedclaw", editable = "plugins/evomedclaw" },
     { name = "fedagent-fot", editable = "plugins/fot" },
     { name = "fedagent-math-reasoning", editable = "plugins/math_reasoning" },
+    { name = "fedagent-records", editable = "plugins/records" },
     { name = "fedagent-sdk", editable = "sdk" },
     { name = "httpx", specifier = ">=0.27" },
     { name = "pydantic", specifier = ">=2.7" },
@@ -357,8 +360,27 @@ dependencies = [
 requires-dist = [{ name = "fedagent-sdk", editable = "sdk" }]
 
 [[package]]
+name = "fedagent-records"
+version = "0.1.0"
+source = { editable = "plugins/records" }
+dependencies = [
+    { name = "fedagent-evomedclaw" },
+    { name = "fedagent-fot" },
+    { name = "fedagent-math-reasoning" },
+    { name = "fedagent-sdk" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fedagent-evomedclaw", editable = "plugins/evomedclaw" },
+    { name = "fedagent-fot", editable = "plugins/fot" },
+    { name = "fedagent-math-reasoning", editable = "plugins/math_reasoning" },
+    { name = "fedagent-sdk", editable = "sdk" },
+]
+
+[[package]]
 name = "fedagent-sdk"
-version = "0.2.8"
+version = "0.2.9"
 source = { editable = "sdk" }
 dependencies = [
     { name = "pydantic" },

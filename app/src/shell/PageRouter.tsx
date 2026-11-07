@@ -4,6 +4,7 @@ import { taskOf, type Action, type State } from "../state/store";
 import { ALGORITHMS, scenarioOf, type ScenarioId } from "../domain/catalog";
 import AlgorithmPage from "../ui/AlgorithmPage";
 import AlgorithmsPage from "../ui/AlgorithmsPage";
+import ApplicationPage from "../ui/ApplicationPage";
 import AppPage from "../ui/AppPage";
 import AppsPage from "../ui/AppsPage";
 import { EmptyState, NotFound, PageHead } from "../ui/common";
@@ -26,7 +27,7 @@ export function PageRouter({ state, dispatch, route }: { state: State; dispatch:
     case "newTask":
       // 已支持场景复用注册表驱动的配置页；未接入算法的场景显示规划状态。
       return !route.scenario || scenarioOf(route.scenario).status === "available" ? (
-        <TaskConfigPage state={state} dispatch={dispatch} initialScenario={route.scenario} />
+        <TaskConfigPage key={route.application} state={state} dispatch={dispatch} initialScenario={route.scenario} application={route.application} />
       ) : (
         <PlannedTaskConfig scenario={route.scenario} />
       );
@@ -42,6 +43,8 @@ export function PageRouter({ state, dispatch, route }: { state: State; dispatch:
     }
     case "apps":
       return <AppsPage state={state} />;
+    case "application":
+      return <ApplicationPage state={state} taskType={route.taskType} />;
     case "app": {
       const item = state.published.find((entry) => entry.id === route.id);
       return item ? (

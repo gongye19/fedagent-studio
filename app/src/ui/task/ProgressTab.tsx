@@ -1,5 +1,5 @@
 import { evaluationLabel, stagesOf, stepState, type StepState, type Task } from "../../domain/task";
-import type { Stage } from "../../domain/catalog";
+import { TASK_TYPES, type Stage } from "../../domain/catalog";
 import { CheckStatus } from "../CheckStatus";
 import { Panel } from "../console";
 import { Icon } from "../icons";
@@ -9,7 +9,7 @@ export function ProgressTab({ task }: { task: Task }) {
   return <Panel title="运行过程">
     <ol className="execution-rounds" aria-label="各轮执行过程">
       {Array.from({ length: task.config.rounds }, (_, i) => i + 1).map((round) => <li key={round}>
-        <h3>{evaluationLabel(task, round)}</h3>
+        <h3>{TASK_TYPES[task.config.taskType]?.recordBased ? "经验生成" : evaluationLabel(task, round)}</h3>
         <ol className="execution-timeline" aria-label={`${evaluationLabel(task, round)}步骤`}>
           {stagesOf(task, round).map((stage) => <StageItem key={stage.id} task={task} stage={stage} round={round} />)}
         </ol>

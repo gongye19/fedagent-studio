@@ -30,7 +30,7 @@ export function DatasetFields({ form, hosting, onChange, resourceIntake = false,
     pending.current?.abort();
     return () => { selection.current += 1; pending.current?.abort(); };
   }, [hosting, form.scenario, form.taskType]);
-  const types = resourceIntake ? Object.keys(TASK_TYPES) : form.scenario ? taskTypesFor(form.scenario) : [];
+  const types = resourceIntake ? Object.keys(TASK_TYPES).filter(type => TASK_TYPES[type].recordBased) : form.scenario ? taskTypesFor(form.scenario) : [];
   const type = form.taskType ? TASK_TYPES[form.taskType] : null;
   const file = form.file;
   const failed = file && !file.checking && !file.check?.ok;
@@ -90,7 +90,7 @@ export function DatasetFields({ form, hosting, onChange, resourceIntake = false,
         />
       </Field> : null}
       {!categoryLocked && (form.scenario || resourceIntake) ? (
-        <Field label="任务类型" labelId={ids.type} wide>
+        <Field label={resourceIntake ? "应用" : "任务类型"} labelId={ids.type} wide>
           {types.length ? (
             <Choices labelledBy={ids.type} value={form.taskType} options={types.map((item) => ({ value: item, label: TASK_TYPES[item].label }))} placeholder="更多类型" onChange={(taskType) => onChange((current) => current.taskType === taskType ? current : {
               ...current, taskType, file: null, scenario: resourceIntake ? ALGORITHMS.find(a => a.accepts.includes(taskType))?.scenario ?? null : current.scenario,
@@ -102,12 +102,12 @@ export function DatasetFields({ form, hosting, onChange, resourceIntake = false,
       ) : null}
 
       {(type || resourceIntake) && hosting === "platform" ? (
-        <Field label="数据文件" labelId={ids.file} info={type ? <>每行一条 <code>{type.format}</code>。{type.unlabeledNote}。文件不超过 20 MB。</> : undefined} wide>
+        <Field label={type?.recordBased ? "过程记录" : "数据文件"} labelId={ids.file} info={type ? <>每行一条 <code>{type.format}</code>。{type.unlabeledNote}。文件不超过 20 MB。</> : undefined} wide>
           <label className="upload-zone">
             <input ref={input} name="dataset-file" type="file" disabled={!type || disabled} accept=".jsonl,.json,application/json" aria-labelledby={ids.file} aria-describedby={ids.format} onChange={(event) => pick(event.target.files?.[0])} />
             <Icon name="upload" />
             <strong>{file ? file.name : "选择 JSONL 文件"}</strong>
-            <span id={ids.format}>{type ? `JSONL · ${type.label} · 最多 20 MB` : "先选择任务类型"}</span>
+            <span id={ids.format}>{type ? `JSONL · ${type.label} · 最多 20 MB` : "先选择应用"}</span>
           </label>
           <button type="button" className="text-link" disabled={!type || downloading} onClick={() => void downloadTemplate()}>{downloading ? "正在下载…" : "下载数据模板"}</button>
           {templateError ? <p className="field-error" role="alert">{templateError}</p> : null}

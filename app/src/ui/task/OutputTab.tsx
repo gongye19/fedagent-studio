@@ -12,7 +12,7 @@ import { formatNumber } from "../format";
 import { OutputGroups } from "../OutputGroups";
 import { algorithmOfTask, versionLabel } from "../labels";
 
-/** 任务的产出：由算法决定（FoT 产出经验库）。每轮一版，任意一版都可以发布为应用。 */
+/** 任务的产出：由算法决定（FoT 产出经验库）。每轮一版，任意一版都可以发布经验库。 */
 export function OutputTab({ task, state }: { task: Task; state: State }) {
   const output = algorithmOfTask(task).output;
   const versions = outputs(task);
@@ -45,7 +45,7 @@ export function OutputTab({ task, state }: { task: Task; state: State }) {
     try {
       const app = await publishApp(task.id, current.builtAfterRound, title);
       setNaming(null);
-      showFlash({ page: "task", id: task.id }, `已发布为应用“${app.name}”。`, { label: "立即试用", route: { page: "app", id: app.id } });
+      showFlash({ page: "task", id: task.id }, `已发布经验库“${app.name}”。`, { label: "立即试用", route: { page: "app", id: app.id } });
     } catch (error) {
       setProblem(error instanceof ApiError ? error.message : "发布失败，稍后再试");
     } finally {
@@ -67,10 +67,10 @@ export function OutputTab({ task, state }: { task: Task; state: State }) {
           {published ? (
             <>
               <Tag>已发布</Tag>
-              <a className="button button--secondary button--compact" href={hrefOf({ page: "app", id: published.id })}>试用应用</a>
+              <a className="button button--secondary button--compact" href={hrefOf({ page: "app", id: published.id })}>使用经验库</a>
             </>
           ) : naming === null ? (
-            <button type="button" className="button button--primary button--compact" onClick={() => { setChosen(current.builtAfterRound); setNaming(suggested); }}>发布为应用</button>
+            <button type="button" className="button button--primary button--compact" onClick={() => { setChosen(current.builtAfterRound); setNaming(suggested); }}>发布经验库</button>
           ) : null}
         </>
       )}
@@ -78,7 +78,7 @@ export function OutputTab({ task, state }: { task: Task; state: State }) {
       {naming !== null && !published ? (
         <form
           className="confirm publish-form"
-          aria-label="发布为应用"
+          aria-label="发布经验库"
           onSubmit={(event) => {
             event.preventDefault();
             void publish(naming);
@@ -88,9 +88,9 @@ export function OutputTab({ task, state }: { task: Task; state: State }) {
           }}
         >
           <div className="confirm-copy">
-            <strong>发布为应用</strong>
+            <strong>发布经验库</strong>
             <p className="publish-source"><Meta parts={[task.name, task.evaluationLabels?.length ? "联邦经验" : `第 ${current.builtAfterRound} 轮后`, `${output.name} ${formatNumber(current.items.length)} 条`]} /></p>
-            <label className="field-label" htmlFor="publish-name">应用名称</label>
+            <label className="field-label" htmlFor="publish-name">经验库名称</label>
             <input ref={nameInput} id="publish-name" name="publish-name" autoComplete="off" disabled={saving} value={naming} maxLength={60} onChange={(event) => setNaming(event.target.value)} />
           </div>
           <div className="confirm-actions">

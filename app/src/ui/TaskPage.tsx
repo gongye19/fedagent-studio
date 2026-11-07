@@ -1,6 +1,7 @@
 import { useState, type Dispatch } from "react";
 import { ApiError } from "../api/client";
-import { toDraft } from "../domain/config";
+import { TASK_TYPES } from "../domain/catalog";
+import { DEFAULT_DRAFT, toDraft } from "../domain/config";
 import { canDeleteTask, scoredRounds, type Task } from "../domain/task";
 import { controlTask } from "../state/actions";
 import { navigate, type TaskTab } from "../state/route";
@@ -26,7 +27,7 @@ export default function TaskPage({ task, state, dispatch, tab }: Props) {
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   // 有结果就先看概览；还没有结果时看进度。
-  const active: TaskTab = tab ?? (scoredRounds(task).length ? "overview" : "progress");
+  const active: TaskTab = tab ?? ((scoredRounds(task).length || (TASK_TYPES[task.config.taskType]?.recordBased && task.status === "completed")) ? "overview" : "progress");
   const panelMotion = useContentMotion(active, true);
   const tabs: { id: TaskTab; label: string }[] = [
     { id: "overview", label: "概览" },
@@ -36,8 +37,8 @@ export default function TaskPage({ task, state, dispatch, tab }: Props) {
   ];
 
   function copy() {
-    dispatch({ type: "resetDraft", draft: toDraft(task.config, `${task.name}（副本）`) });
-    navigate({ page: "newTask", scenario: task.config.scenario });
+    dispatch({ type: "resetDraft", draft: TASK_TYPES[task.config.taskType]?.recordBased ? toDraft(task.config, `${task.name}（副本）`) : { ...DEFAULT_DRAFT, name: `${task.name}（副本）`, touched: true } });
+    navigate({ page: "newTask" });
   }
 
   async function control(action: "pause" | "resume" | "cancel") {
@@ -80,7 +81,7 @@ export default function TaskPage({ task, state, dispatch, tab }: Props) {
         status={<>{task.fake ? <Tag>假模型</Tag> : null}<TaskStatus task={task} /></>}
         meta={<Meta parts={[
           ...taskSummaryParts(task),
-          task.evaluationLabels?.length ? `${task.evaluationLabels.length} 组对照` : `${task.config.rounds} 轮`,
+          TASK_TYPES[task.config.taskType]?.recordBased ? "过程记录生成经验" : task.evaluationLabels?.length ? `${task.evaluationLabels.length} 组对照` : `${task.config.rounds} 轮`,
           task.startedAt ? `开始于 ${formatDate(task.startedAt)}` : "尚未开始",
           task.finishedAt && task.status === "completed" ? `完成于 ${formatDate(task.finishedAt)}` : null,
         ]} />}

@@ -38,10 +38,11 @@ export type From = "newTask";
 export type Route =
   | { page: "home" }
   | { page: "tasks" }
-  | { page: "newTask"; scenario?: ScenarioId }
+  | { page: "newTask"; scenario?: ScenarioId; application?: string }
   | { page: "resources"; space?: ResourceSpace; kind?: ResourceKind; id?: string }
   | { page: "task"; id: string; tab?: TaskTab }
   | { page: "apps" }
+  | { page: "application"; taskType: string }
   | { page: "app"; id: string; tab?: AppTab }
   | { page: "participants"; scenario?: ScenarioId; id?: string }
   | { page: "newParticipant"; from?: From }
@@ -69,9 +70,12 @@ export function parseHash(hash: string): Route {
         // 通用入口在配置页选择场景；首页场景入口可带入用户刚选的场景。
         const scenario = oneOf(SCENARIO_IDS, third);
         if (third && !scenario) return {page:"tasks"};
-        return scenario ? { page: "newTask", scenario } : { page: "newTask" };
+        const application = search.get("application") ?? undefined;
+        return {...(scenario ? { page: "newTask" as const, scenario } : { page: "newTask" as const }), ...(application ? { application } : {})};
       }
       return { page: "task", id: second, tab: oneOf(TASK_TABS, third) };
+    case "applications":
+      return second ? {page:"application", taskType:second} : {page:"apps"};
     case "apps":
     case "libraries": // 旧地址
       return second ? { page: "app", id: second, tab: oneOf(APP_TABS, third) } : { page: "apps" };
@@ -112,13 +116,15 @@ export function hrefOf(route: Route): string {
     case "tasks":
       return "#/tasks";
     case "newTask":
-      return `#/tasks/new${route.scenario ? `/${route.scenario}` : ""}`;
+      return `#/tasks/new${route.scenario ? `/${route.scenario}` : ""}${query({application: route.application})}`;
     case "resources":
       return `#/resources/${route.space === "public" ? "public" : "mine"}/${route.kind ?? "data"}${route.id ? `/${part(route.id)}` : ""}`;
     case "task":
       return `#/tasks/${part(route.id)}${route.tab ? `/${route.tab}` : ""}`;
     case "apps":
       return "#/apps";
+    case "application":
+      return `#/applications/${part(route.taskType)}`;
     case "app":
       return `#/apps/${part(route.id)}${route.tab ? `/${route.tab}` : ""}`;
     case "participants":

@@ -42,7 +42,6 @@ const NAV: readonly NavItem[] = [
   { key: "apps", label: "应用", icon: "apps", route: { page: "apps" } },
   { key: "resources", label: "数据资源", icon: "resources", route: { page: "resources", space: "workspace" } },
   { key: "models", label: "LLM 接口", icon: "model", route: { page: "models" } },
-  { key: "agents", label: "Agent 接口", icon: "participants", route: { page: "agents" } },
   { key: "algorithms", label: "算法", icon: "algorithm", route: { page: "algorithms" } },
 ];
 

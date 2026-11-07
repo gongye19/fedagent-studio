@@ -2,13 +2,16 @@
 import { DEFAULT_DRAFT, withDefaults, type Draft } from "../domain/config";
 
 const KEY = "fedagent-studio:draft";
-const SELECTION_VERSION = 1;
+const SELECTION_VERSION = 2;
 
 /** 旧草稿无法区分模型默认值与主动选择；升级时仅要求重新选择模型。 */
 export function decodeDraft(raw: string): Draft {
   const stored = JSON.parse(raw) as Partial<Draft> & { selectionVersion?: number };
   if (!stored || typeof stored !== "object" || Array.isArray(stored)) return DEFAULT_DRAFT;
   const { selectionVersion, ...draft } = stored;
+  // 新流程不恢复旧版算法／Agent 配置；复制历史任务仍由显式操作处理。
+  if (selectionVersion !== SELECTION_VERSION && draft.taskType)
+    return withDefaults({ name: draft.name, touched: false });
   return withDefaults(selectionVersion === SELECTION_VERSION ? draft : {
     ...draft, clientModel: "", serverModel: "", clientOverrides: {},
   });

@@ -3904,6 +3904,68 @@
      }
     }
    }
+  },
+  "/v1/record-generation/chat": {
+   "post": {
+    "tags": [
+     "records"
+    ],
+    "summary": "Generate",
+    "description": "由本地工具主动调用；不创建题库或任务，也不返回模型凭据。",
+    "operationId": "generate_v1_record_generation_chat_post",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/GenerationRequest"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Generate V1 Record Generation Chat Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
   }
  },
  "components": {
@@ -5864,6 +5926,56 @@
     ],
     "title": "FailIn"
    },
+   "GenerationMessage": {
+    "properties": {
+     "role": {
+      "type": "string",
+      "enum": [
+       "system",
+       "user",
+       "assistant"
+      ],
+      "title": "Role"
+     },
+     "content": {
+      "type": "string",
+      "maxLength": 30000,
+      "minLength": 1,
+      "title": "Content"
+     }
+    },
+    "type": "object",
+    "required": [
+     "role",
+     "content"
+    ],
+    "title": "GenerationMessage"
+   },
+   "GenerationRequest": {
+    "properties": {
+     "model": {
+      "type": "string",
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Model"
+     },
+     "messages": {
+      "items": {
+       "$ref": "#/components/schemas/GenerationMessage"
+      },
+      "type": "array",
+      "maxItems": 30,
+      "minItems": 1,
+      "title": "Messages"
+     }
+    },
+    "type": "object",
+    "required": [
+     "model",
+     "messages"
+    ],
+    "title": "GenerationRequest"
+   },
    "GradedIn": {
     "properties": {
      "itemId": {
@@ -7588,6 +7700,11 @@
    },
    "TaskTypeOut": {
     "properties": {
+     "recordBased": {
+      "type": "boolean",
+      "title": "Recordbased",
+      "default": false
+     },
      "id": {
       "type": "string",
       "title": "Id"

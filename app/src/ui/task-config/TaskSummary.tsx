@@ -67,7 +67,7 @@ export function TaskSummary({
             <dd>{algorithm ? algorithm.name : "—"}</dd>
           </div>
           <div>
-            <dt>任务类型</dt>
+            <dt>应用</dt>
             <dd>{draft.taskType ? TASK_TYPES[draft.taskType].label : "—"}</dd>
           </div>
           <div>
@@ -92,7 +92,7 @@ export function TaskSummary({
             <dt>运行</dt>
             <dd>
               {full ? "正式运行" : "试跑"} ·{" "}
-              {algorithm?.evaluationLabels?.length ? `${algorithm.evaluationLabels.length} 组对照` : algorithm ? `${draft.rounds} 轮` : "轮次待选"}
+              {TASK_TYPES[draft.taskType ?? ""]?.recordBased ? "提取并聚合经验" : algorithm?.evaluationLabels?.length ? `${algorithm.evaluationLabels.length} 组对照` : algorithm ? `${draft.rounds} 轮` : "—"}
             </dd>
           </div>
           <div>

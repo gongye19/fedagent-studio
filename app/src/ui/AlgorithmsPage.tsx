@@ -23,8 +23,8 @@ export default function AlgorithmsPage() {
       <div className="algo-board-shell">
         <div className="algo-board">
           {SCENARIOS.map((scenario) => {
-            const all = algorithmsFor(scenario.id);
-            const algorithms = taskType === "all" ? all : algorithmsFor(scenario.id, taskType);
+            const all = algorithmsFor(scenario.id).filter(a => a.accepts.some(type => TASK_TYPES[type]?.recordBased));
+            const algorithms = taskType === "all" ? all : all.filter(a => a.accepts.includes(taskType));
             return (
               <section key={scenario.id} className="algo-column" aria-labelledby={`algo-${scenario.id}`}>
                 <header className="algo-column-head">

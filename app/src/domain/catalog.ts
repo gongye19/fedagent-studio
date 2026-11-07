@@ -27,6 +27,7 @@ export type Scenario = {
 };
 
 export type TaskTypeDef = {
+  recordBased?: boolean;
   label: string;
   metric: string;
   grader: GraderId;
@@ -129,6 +130,7 @@ export function installRegistry(registry: Registry): void {
   for (const item of registry.taskTypes) {
     TASK_TYPES[item.id] = {
       label: item.label,
+      recordBased: item.recordBased,
       metric: item.metric,
       grader: item.grader ?? "",
       format: item.format,

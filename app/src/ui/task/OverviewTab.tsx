@@ -22,6 +22,15 @@ import { formatDelta, formatPercent } from "../format";
 import { algorithmOfTask, deltaClass, metricOf, roundHeader } from "../labels";
 
 export function OverviewTab({ task, state }: { task: Task; state: State }) {
+  if (TASK_TYPES[task.config.taskType]?.recordBased) {
+    const output=outputs(task).at(-1);
+    return <Panel title="经验生成"><dl className="stats">
+      <Stat label="数据来源" value={String(task.members.length)} />
+      <Stat label="过程记录" value={String(task.members.reduce((n,m)=>n+m.problems,0))} />
+      <Stat label="经验条目" value={output ? String(output.items.length) : "—"}
+        href={output ? hrefOf({page:"task",id:task.id,tab:"output"}) : undefined} />
+    </dl><p>过程记录用于生成经验。请在应用中使用未参与学习的新输入检验效果。</p></Panel>;
+  }
   if (task.evaluationLabels?.length) return <EvaluationOverview task={task} />;
   return <IterativeOverview task={task} state={state} />;
 }

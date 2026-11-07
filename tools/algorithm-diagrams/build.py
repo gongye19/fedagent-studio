@@ -11,6 +11,7 @@ HERE = Path(__file__).resolve().parent
 TARGET = ROOT / "app/public/algorithm-diagrams"
 COLORS = {"blue": "#2563eb", "green": "#15803d", "purple": "#7c3aed", "ink": "#25262b", "muted": "#646b77"}
 ALGORITHMS = {
+    "fot-records": {}, "evomedclaw-records": {},
     "fot": {"name": "FoT", "inputs": "本方题库 + 所选 LLM", "actors": "平台提供解题工作流", "local": ["解题", "反思", "提取经验"],
             "server": ["汇总经验", "归类关系", "生成经验库"], "upload": "解题经验", "artifact": "共享经验库", "return": "下一轮解题时使用"},
     "evomedclaw": {"name": "EvoMedClaw", "inputs": "本站病例 + 医疗 Agent 服务", "actors": "原版诊断流程 / 本站轨迹", "local": ["独立评测 / 本站学习", "提炼并提交经验卡"],
@@ -19,6 +20,9 @@ ALGORITHMS = {
 
 
 def diagram(key: str, mobile: bool = False) -> dict:
+    if key.endswith("-records"):
+        from record_flow import diagram as record_diagram
+        return record_diagram(key, mobile)
     if key == "evomedclaw":
         from medical_flow import diagram as medical_diagram
         return medical_diagram(mobile)

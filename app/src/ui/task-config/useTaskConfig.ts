@@ -7,7 +7,7 @@ import {
   type MouseEvent,
 } from "react";
 import { api, ApiError } from "../../api/client";
-import { algorithmOf, type ScenarioId } from "../../domain/catalog";
+import { algorithmOf, TASK_TYPES, type ScenarioId } from "../../domain/catalog";
 import {
   activeOverrides,
   availableDataSources,
@@ -34,6 +34,7 @@ export function useTaskConfig(
   state: State,
   dispatch: Dispatch<Action>,
   initialScenario?: ScenarioId,
+  application?: string,
 ) {
   const draft = state.draft;
   // 没动过的草稿不保留：每次打开都按当前的参与方和数据重新选，默认名称按当前任务类型生成。
@@ -55,6 +56,11 @@ export function useTaskConfig(
         auto: true,
       });
   }, [dispatch, initialScenario]);
+
+  useEffect(() => {
+    if (application && TASK_TYPES[application]?.recordBased)
+      dispatch({type:"chooseTaskType",taskType:application});
+  }, [application,dispatch]);
 
   const update = (patch: Partial<Draft>) =>
     dispatch({ type: "updateDraft", patch });

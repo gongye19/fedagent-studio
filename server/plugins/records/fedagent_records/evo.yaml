@@ -1,0 +1,67 @@
+id: evomedclaw-records
+version: 1.0.0
+name: EvoMedClaw
+full_name: EvoMedClaw · 问诊过程经验聚合
+summary: 平台校验已上传的问诊过程，编译和聚合医疗经验卡供应用使用
+scenario: horizontal
+accepts:
+- medical-records
+agent_required: false
+roles:
+  participant:
+    label: 参与方
+    min: 2
+    evaluated: false
+rounds:
+  min: 1
+  max: 1
+  default: 1
+channels:
+  clinical-cards:
+    label: 医疗过程经验卡
+    from: participant
+    to: server
+    kind: json
+    per_item: 1
+    tokens: 250
+artifact:
+  kind: clinical-memory
+  name: 医疗经验库
+  unit: 张过程卡
+  to:
+  - participant
+evaluation: null
+steps:
+- id: extract
+  label: 校验问诊过程
+  at: participant
+  per: item
+  model: true
+  labels: true
+  retries: 1
+  estimate:
+    seconds: 10
+    tokens: 2000
+- id: compile
+  label: 提取医疗经验卡
+  at: participant
+  sends:
+  - clinical-cards
+  result: uploads
+  retries: 0
+- id: aggregate
+  label: 聚合医疗经验库
+  at: server
+  reads:
+  - clinical-cards
+  publishes: true
+  result: output
+  estimate:
+    seconds: 2
+  retries: 0
+params: []
+source:
+  code: github.com/xschen-beb/EvoMedClaw
+  code_url: https://github.com/xschen-beb/EvoMedClaw
+  commit: ae333ec635fac5900d2b9f4455080444d28c0392
+agent_supported: false

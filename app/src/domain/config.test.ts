@@ -181,11 +181,11 @@ describe("draft", () => {
       draftIssues(empty, DATASETS, PARTICIPANTS, ENDPOINTS).map(
         (issue) => issue.field,
       ),
-    ).toEqual(["algorithm"]);
+    ).toEqual(["taskType"]);
     const planned = withDefaults({ scenario: "vertical" });
     expect(
       draftIssues(planned, DATASETS, PARTICIPANTS, ENDPOINTS)[0].message,
-    ).toBe("选择算法");
+    ).toBe("选择应用");
     const one = draft({
       participants: [BOTH[0]],
       serverModel: "missing:model",
@@ -209,7 +209,7 @@ describe("draft", () => {
     expect([horizontal.taskType, horizontal.algorithm]).toEqual([null, null]);
     expect(
       draftIssues(horizontal, DATASETS, PARTICIPANTS, ENDPOINTS)[0].field,
-    ).toBe("algorithm");
+    ).toBe("taskType");
     expect(chooseTaskType(horizontal, "math-reasoning")).toBe(horizontal);
     const chosen = chooseAlgorithm(horizontal, "fot");
     expect(chosen.taskType).toBeNull();

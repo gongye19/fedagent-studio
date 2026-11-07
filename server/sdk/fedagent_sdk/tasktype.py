@@ -63,6 +63,7 @@ class CheckReport:
 
 
 class TaskType:
+    record_based: ClassVar[bool] = False
     id: ClassVar[str]
     label: ClassVar[str]
     metric: ClassVar[str]

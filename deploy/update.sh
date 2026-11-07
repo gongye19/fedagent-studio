@@ -27,7 +27,7 @@ node -e 'const [a,b]=process.versions.node.split(".").map(Number); if(!((a===20&
 # 先下载并验证运行依赖，减少停机时间；不更改当前运行中的虚拟环境。
 (cd "$stage/server" && "$uv" sync --frozen --no-dev --python 3.12)
 mkdir -p "$stage/wheels"
-for package in fedagent-sdk fedagent-client fedagent-fot fedagent-math-reasoning fedagent-evomedclaw; do
+for package in fedagent-sdk fedagent-client fedagent-fot fedagent-math-reasoning fedagent-evomedclaw fedagent-records; do
   (cd "$stage/server" && "$uv" build --package "$package" --wheel --out-dir "$stage/wheels" -q)
 done
 rm -f "$stage/wheels/.gitignore"

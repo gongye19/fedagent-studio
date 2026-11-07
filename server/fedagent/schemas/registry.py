@@ -31,6 +31,7 @@ class InputFieldOut(Model):
 
 
 class TaskTypeOut(Model):
+    record_based: bool = False
     id: str
     label: str
     metric: str

@@ -1,6 +1,7 @@
 import {
   algorithmOf,
   defaultParams,
+  TASK_TYPES,
   type AlgorithmId,
   type ScenarioId,
   type TaskType,
@@ -114,6 +115,12 @@ export function chooseScenario(draft: Draft, scenario: ScenarioId | null): Draft
 
 /** 任务类型只改变数据和评分，不重置已经选好的算法与算法参数。 */
 export function chooseTaskType(draft: Draft, taskType: TaskType | null): Draft {
+  if (TASK_TYPES[taskType ?? ""]?.recordBased || TASK_TYPES[draft.taskType ?? ""]?.recordBased) {
+    if (draft.taskType === taskType) return draft;
+    const compatible = taskType && draft.algorithm && algorithmOf(draft.algorithm).accepts.includes(taskType);
+    const base = chooseAlgorithm(draft, compatible ? draft.algorithm : null);
+    return { ...base, taskType, participants: [], agentGroups: [], clientModel: "", serverModel: "", clientOverrides: {}, agentOverrides: {}, agentId: null };
+  }
   if (
     !draft.algorithm ||
     (taskType !== null && !algorithmOf(draft.algorithm).accepts.includes(taskType)) ||
@@ -144,7 +151,7 @@ export function chooseAlgorithm(draft: Draft, algorithm: AlgorithmId | null): Dr
     ...draft,
     algorithm,
     scenario: definition?.scenario ?? null,
-    taskType: null,
+    taskType: draft.taskType && TASK_TYPES[draft.taskType]?.recordBased && (!definition || definition.accepts.includes(draft.taskType)) ? draft.taskType : null,
     participants: [],
     agentGroups: definition?.requirements.agentRequired
       ? emptyAgentGroups(definition.minParticipants)

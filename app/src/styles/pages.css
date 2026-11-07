@@ -281,3 +281,6 @@ a.algo-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 
 
 /* 只在参与方执行的收尾评测，不显示空的服务端分组。 */
+
+.application-cards { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,280px),1fr)); gap: 20px; max-width: 960px; }
+.application-cards .panel p { margin-bottom: 20px; color: var(--muted); }

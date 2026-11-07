@@ -8,6 +8,7 @@ dependencies = [
   "fedagent-fot",
   "fedagent-math-reasoning",
   "fedagent-evomedclaw",
+  "fedagent-records",
   "fastapi>=0.142.2",
   "uvicorn>=0.30",
   "sqlalchemy>=2.0.30",
@@ -32,7 +33,7 @@ dev = [
 ]
 
 [tool.uv.workspace]
-members = ["sdk", "plugins/fot", "plugins/math_reasoning", "plugins/evomedclaw", "client"]
+members = ["sdk", "plugins/fot", "plugins/math_reasoning", "plugins/evomedclaw", "plugins/records", "client"]
 
 [tool.uv.sources]
 fedagent-sdk = { workspace = true }
@@ -40,6 +41,7 @@ fedagent-fot = { workspace = true }
 fedagent-math-reasoning = { workspace = true }
 fedagent-client = { workspace = true }
 fedagent-evomedclaw = { workspace = true }
+fedagent-records = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

@@ -28,7 +28,7 @@ export default function AlgorithmPage({ algorithm }: { algorithm: Algorithm }) {
                 ["通信内容", algorithm.exchange],
                 ["产出", algorithm.output.name],
                 ["参与方数量", `合计至少 ${algorithm.minParticipants} 方`],
-                [algorithm.evaluationLabels?.length ? "评测" : "轮次", <Meta key="rounds" parts={algorithm.evaluationLabels?.length ? [...algorithm.evaluationLabels] : [`${algorithm.minRounds}–${algorithm.maxRounds} 轮`,"第 1 轮为本地基线"]} />],
+                [algorithm.evaluationLabels?.length ? "评测" : "轮次", <Meta key="rounds" parts={algorithm.evaluationLabels?.length ? [...algorithm.evaluationLabels] : algorithm.accepts.some(type => TASK_TYPES[type]?.recordBased) ? ["每份过程记录提取一次，汇总为经验库"] : [`${algorithm.minRounds}–${algorithm.maxRounds} 轮`, "第 1 轮为本地基线"]} />],
               ]} />
             </Panel>
 

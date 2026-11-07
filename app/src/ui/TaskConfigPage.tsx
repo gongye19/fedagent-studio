@@ -16,12 +16,14 @@ export default function TaskConfigPage({
   state,
   dispatch,
   initialScenario,
+  application,
 }: {
   state: State;
   dispatch: Dispatch<Action>;
   initialScenario?: ScenarioId;
+  application?: string;
 }) {
-  const config = useTaskConfig(state, dispatch, initialScenario);
+  const config = useTaskConfig(state, dispatch, initialScenario, application);
   const {
     draft,
     algorithm,
@@ -79,7 +81,7 @@ export default function TaskConfigPage({
   return (
     <>
       <PageHead
-        title="新建联邦任务"
+        title="生成应用经验库"
         back={{ label: "联邦任务", route: { page: "tasks" } }}
       />
       <div className="order-layout task-config" ref={formRef}>

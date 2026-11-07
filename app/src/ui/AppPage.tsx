@@ -53,7 +53,7 @@ export default function AppPage({ item, task, state, tab }: Props) {
     <>
       <button type="button" className="button button--secondary" disabled={managing} onClick={() => void run(() => api.exportApp(item.id))}><Icon name="download" />导出 JSON</button>
       <button type="button" className="button button--secondary" disabled={managing} onClick={() => setEditing("rename")}>重命名</button>
-      <button type="button" className="button button--secondary button--danger" disabled={managing} onClick={() => { setProblem(null); setEditing("unpublish"); }}>撤下应用</button>
+      <button type="button" className="button button--secondary button--danger" disabled={managing} onClick={() => { setProblem(null); setEditing("unpublish"); }}>撤下经验库</button>
     </>
   );
   const editor = editing === "rename" ? (
@@ -71,7 +71,7 @@ export default function AppPage({ item, task, state, tab }: Props) {
   return (
     <>
       <PageHead
-        back={{ label: "应用", route: { page: "apps" } }}
+        back={TASK_TYPES[item.taskType]?.recordBased ? { label: TASK_TYPES[item.taskType].label, route: { page: "application", taskType: item.taskType } } : { label: "应用", route: { page: "apps" } }}
         title={item.name}
         meta={<Meta parts={[
           scenarioOf(item.scenario).short,
@@ -128,7 +128,7 @@ function RenameForm({ name, saving, onSave, onCancel }: { name: string; saving: 
       }}
     >
       <div className="confirm-copy">
-        <label className="field-label" htmlFor="app-name">应用名称</label>
+        <label className="field-label" htmlFor="app-name">经验库名称</label>
         <input ref={input} id="app-name" name="app-name" autoComplete="off" disabled={saving} value={value} maxLength={60} onChange={(event) => setValue(event.target.value)} />
       </div>
       <div className="confirm-actions">
@@ -235,7 +235,7 @@ function TryPanel({ item, state }: { item: Published; state: State }) {
             {result.answer ? <p>{type?.answerLabel ?? "标准答案"}：{result.answer}</p> : null}
           </details>
           <div className="compare-grid">
-            {([["不带应用", result.comparison.without], ["带应用", result.comparison.with]] as const).map(([title, side]) => (
+            {([["不使用经验", result.comparison.without], ["使用经验库", result.comparison.with]] as const).map(([title, side]) => (
               <div key={title} className="compare-item">
                 <div className="compare-head">
                   <h3>{title}</h3>
