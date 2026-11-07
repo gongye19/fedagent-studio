@@ -10,8 +10,22 @@ export type WindowSettings = { id: number; packageId: string; model: string };
 type Message = ChatMessage & { department?: ChatReply["department"]; experienceEntries?: number };
 
 const OPENING_SUGGESTIONS = [
-  "这三天晚上容易咳嗽，白天好一些。",
-  "这两天嗓子干，吞咽时有点痛。",
+  {
+    label: "戴隐形眼镜后眼痛",
+    text: "我45岁，平时戴隐形眼镜（contact lenses）。右眼从昨天开始越来越痛，看东西模糊（blurred vision），左眼正常。应该先排查什么？",
+  },
+  {
+    label: "上坡时小腿抽痛",
+    text: "我55岁，跑步机上坡时右小腿就抽痛，停下来休息几分钟就完全缓解。右脚抬高时脚底刺痛。我有糖尿病，也长期吸烟。需要先查什么？",
+  },
+  {
+    label: "固体食物吞咽困难",
+    text: "我61岁，近一个月觉得累，吞固体食物困难，喝水没问题，过去几个月还无意中瘦了几斤。问诊时哪些线索最重要？",
+  },
+  {
+    label: "老人举止与记忆变化",
+    text: "我父亲65岁，几个月来举止明显改变，在公共场合会说不合时宜的话、突然抓别人的手。最近记忆也变差，常想不起词，照顾自己开始有困难。主要表现是行为失去分寸和说话不合时宜（disinhibited behavior, unfitting comments）。问诊时最该补充哪些信息？",
+  },
 ];
 
 function ConversationMessage({ role, content, department, experienceEntries }: Message) {
@@ -58,7 +72,10 @@ export function ConsultationWindow({
   const canSend = Boolean(
     selectedModel && (!window.packageId || selected) && input.trim() && !pending && !limitReached,
   );
-  const suggestions = lastReply ? lastReply.suggestions : OPENING_SUGGESTIONS;
+  const suggestions = lastReply
+    ? Array.from(new Set(lastReply.suggestions), (text) => ({ label: text, text }))
+    : OPENING_SUGGESTIONS;
+  const suggestionLabel = lastReply ? "示例回答" : "推荐问题";
 
   useEffect(() => () => request.current?.abort(), []);
   useLayoutEffect(() => {
@@ -140,14 +157,14 @@ export function ConsultationWindow({
           {limitReached ? <p className="consultation-note">本窗口已达 20 轮，可以新建会话。</p> : null}
           {!models.length ? <a className="consultation-note" href={hrefOf({ page: "models" })}>配置模型接口</a> : null}
           {!pending && !limitReached && suggestions.length > 0 ? (
-            <div className="consultation-examples" role="group" aria-label={`${title}示例`}>
-              <span>{lastReply ? "示例回答" : "示例提问"}</span>
+            <div className="consultation-examples" role="group" aria-label={`${title}${suggestionLabel}`}>
+              <span>{suggestionLabel}</span>
               <div>
-                {[...new Set(suggestions)].map((text) => (
+                {suggestions.map(({ label, text }) => (
                   <button key={text} className="consultation-example" type="button" onClick={() => {
                     setInput(text);
                     inputRef.current?.focus({ preventScroll: true });
-                  }}>{text}</button>
+                  }}>{label}</button>
                 ))}
               </div>
             </div>
