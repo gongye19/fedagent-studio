@@ -27,12 +27,15 @@
   text-decoration: none;
   transition: background-color .15s ease, color .15s ease;
 }
+.nav-toggle { width: 100%; border: 0; background: none; text-align: start; }
 .nav-link:hover { color: var(--foreground); background: var(--surface-hover); }
 .nav-link--active { color: var(--accent-strong); background: var(--accent-soft); font-weight: var(--weight-semibold); }
 .nav-label { display: inline-flex; gap: 10px; align-items: center; min-width: 0; white-space: nowrap; }
 .nav-label .icon { width: 16px; height: 16px; flex: none; color: var(--muted); }
 .nav-link--active .nav-label .icon { color: var(--accent-strong); }
-/* 基础管理：和首页、联邦任务、应用同一级、同一个样式，右边的箭头表示可以展开 */
+.nav-toggle > .icon { flex: none; color: var(--muted); }
+.nav-toggle[aria-expanded="true"] > .icon { transform: rotate(90deg); }
+.nav-children { list-style: none; margin: 2px 0 0 22px; padding: 0 0 0 6px; border-inline-start: 1px solid var(--border); }
 .nav-count { min-width: 20px; padding: 0 6px; color: var(--accent-strong); background: var(--accent-soft); border-radius: 999px; font-size: var(--text-xs); font-weight: var(--weight-medium); text-align: center; line-height: 18px; }
 .link-button { padding: 4px; margin: -4px; color: var(--muted); background: none; border: 0; font-size: var(--text-xs); text-decoration: underline; text-underline-offset: 3px; }
 .link-button:hover { color: var(--foreground); }

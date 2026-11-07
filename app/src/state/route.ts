@@ -20,6 +20,7 @@
  */
 import { useEffect, useState } from "react";
 import type { ScenarioId } from "../domain/catalog";
+import { MEDICAL_RECORDS } from "../domain/consultation";
 import type { ResourceSpace } from "../domain/resources";
 
 export type ResourceKind = "data" | "models" | "agents";
@@ -54,6 +55,10 @@ export type Route =
   | { page: "agents"; space?: ResourceSpace }
   | { page: "newEndpoint"; from?: From }
   | { page: "editEndpoint"; id: string; from?: From };
+
+export function applicationRoute(taskType: string): Route {
+  return taskType === MEDICAL_RECORDS ? { page: "consultation" } : { page: "application", taskType };
+}
 
 function oneOf<T extends string>(values: readonly T[], value: string | undefined): T | undefined {
   return values.find((item) => item === value);

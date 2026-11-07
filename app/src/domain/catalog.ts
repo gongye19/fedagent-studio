@@ -109,10 +109,14 @@ export function visibleTaskType(type: TaskType): boolean {
   return type !== "math-reasoning" && type !== "math-records";
 }
 
+export function visibleApplicationType(type: TaskType): boolean {
+  return visibleTaskType(type) && TASK_TYPES[type]?.recordBased === true;
+}
+
 export function recordTaskTypesFor(scenario: ScenarioId | null): TaskType[] {
   if (!scenario) return [];
   return [...new Set(algorithmsFor(scenario).flatMap((item) => item.accepts))]
-    .filter((type) => visibleTaskType(type) && TASK_TYPES[type]?.recordBased);
+    .filter(visibleApplicationType);
 }
 
 type Registry = components["schemas"]["RegistryOut"];

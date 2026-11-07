@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { algorithmsFor, SCENARIOS, TASK_TYPES, visibleTaskType } from "../domain/catalog";
+import { algorithmsFor, recordTaskTypesFor, SCENARIOS, TASK_TYPES, visibleApplicationType } from "../domain/catalog";
 import { hrefOf } from "../state/route";
 import { PageHead, Tag } from "./common";
 import { TaskTypeSelect, type TaskTypeFilter } from "./filters";
@@ -12,18 +12,19 @@ import { Icon } from "./icons";
  */
 export default function AlgorithmsPage() {
   const [taskType, setTaskType] = useState<TaskTypeFilter>("all");
+  const taskTypes = [...new Set(SCENARIOS.flatMap((scenario) => recordTaskTypesFor(scenario.id)))];
   return (
     <>
       <PageHead title="算法" meta="点开算法，查看架构流程、所需资源、参数与接入范围。" />
-      <div className="list-toolbar">
-        <TaskTypeSelect value={taskType} onChange={setTaskType} />
+      {taskTypes.length > 1 ? <div className="list-toolbar">
+        <TaskTypeSelect types={taskTypes} value={taskType} onChange={setTaskType} />
         {taskType !== "all" ? <button type="button" className="button button--ghost button--compact" onClick={() => setTaskType("all")}>清除筛选</button> : null}
-      </div>
+      </div> : null}
       {/* 放得下时三栏并排，窄屏上下排，见 styles.css */}
       <div className="algo-board-shell">
         <div className="algo-board">
           {SCENARIOS.map((scenario) => {
-            const all = algorithmsFor(scenario.id).filter((a) => a.accepts.some(visibleTaskType));
+            const all = algorithmsFor(scenario.id).filter((a) => a.accepts.some(visibleApplicationType));
             const algorithms = taskType === "all" ? all : all.filter(a => a.accepts.includes(taskType));
             return (
               <section key={scenario.id} className="algo-column" aria-labelledby={`algo-${scenario.id}`}>
@@ -42,7 +43,7 @@ export default function AlgorithmsPage() {
                         <span className="algo-card-full" translate="no">{algorithm.fullName}</span>
                         <span className="algo-card-text">{algorithm.summary}</span>
                         <span className="algo-card-facts">
-                          <span><span className="algo-card-label">任务类型</span>{algorithm.accepts.filter(visibleTaskType).map((type) => TASK_TYPES[type].label).join("、")}</span>
+                          <span><span className="algo-card-label">任务类型</span>{algorithm.accepts.filter(visibleApplicationType).map((type) => TASK_TYPES[type].label).join("、")}</span>
                           <span><span className="algo-card-label">产出</span>{algorithm.output.name}</span>
                         </span>
                       </a>

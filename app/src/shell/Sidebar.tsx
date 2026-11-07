@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { visibleTaskType } from "../domain/catalog";
-import { hrefOf, type Route } from "../state/route";
+import { TASK_TYPES, visibleApplicationType, visibleTaskType } from "../domain/catalog";
+import { MEDICAL_RECORDS } from "../domain/consultation";
+import { applicationRoute, hrefOf, type Route } from "../state/route";
 import { type State } from "../state/store";
 import { Icon, type IconName } from "../ui/icons";
 
@@ -38,7 +39,7 @@ function navKeyOf(route: Route): NavKey {
 
 type NavItem = { key: NavKey; label: string; icon: IconName; route: Route };
 
-/** 所有入口同级展示；手机只折叠整个导航，不再隐藏资源目录。 */
+/** 应用为可展开目录，其他入口直接打开页面。 */
 const NAV: readonly NavItem[] = [
   { key: "home", label: "工作台", icon: "home", route: { page: "home" } },
   { key: "tasks", label: "联邦任务", icon: "tasks", route: { page: "tasks" } },
@@ -52,6 +53,12 @@ export function Sidebar({ route, state }: { route: Route; state: State | null })
   const active = navKeyOf(route);
   const running = state?.tasks.filter((task) => visibleTaskType(task.config.taskType) && (task.status === "running" || task.status === "queued")).length ?? 0;
   const [open, setOpen] = useState(false);
+  const [appsToggle, setAppsToggle] = useState<{ inApps: boolean; expanded: boolean }>();
+  const inApps = active === "apps";
+  const appsExpanded = appsToggle?.inApps === inApps ? appsToggle.expanded : inApps || appsToggle?.expanded === true;
+  const currentApplication = route.page === "consultation" ? MEDICAL_RECORDS
+    : route.page === "application" ? route.taskType
+    : route.page === "app" ? state?.published.find((item) => item.id === route.id)?.taskType : undefined;
   const close = () => setOpen(false);
 
   const link = (item: NavItem) => (
@@ -106,7 +113,27 @@ export function Sidebar({ route, state }: { route: Route; state: State | null })
         </button>
       </div>
       <nav className="side-nav" id="main-nav" aria-label="主导航">
-        {NAV.map(link)}
+        {NAV.map((item) => item.key === "apps" ? (
+          <div key={item.key} className="nav-group">
+            <button type="button" className={`nav-link nav-toggle${inApps && !appsExpanded ? " nav-link--active" : ""}`}
+              aria-expanded={appsExpanded} aria-controls="app-nav"
+              onClick={() => setAppsToggle({ inApps, expanded: !appsExpanded })}>
+              <span className="nav-label"><Icon name={item.icon} />{item.label}</span>
+              <Icon name="chevron" />
+            </button>
+            <ul id="app-nav" className="nav-children" hidden={!appsExpanded}>
+              {Object.keys(TASK_TYPES).filter(visibleApplicationType).map((type) => (
+                <li key={type}>
+                  <a className={`nav-link${currentApplication === type ? " nav-link--active" : ""}`}
+                    aria-current={currentApplication === type ? "page" : undefined}
+                    href={hrefOf(applicationRoute(type))} onClick={close}>
+                    {TASK_TYPES[type].label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : link(item))}
       </nav>
     </aside>
   );
