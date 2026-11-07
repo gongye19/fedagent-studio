@@ -42,8 +42,8 @@ export default function AppPage({ item, task, state, tab }: Props) {
 
   const unpublish = async () => {
     await withdrawApp(item.id);
-    showFlash({ page: "apps" }, `已撤下“${item.name}”。${task ? "产出还在任务里，可以重新发布。" : "来源任务已删除。"}`);
-    navigate({ page: "apps" });
+    showFlash({ page: "results" }, `已撤下“${item.name}”。${task ? "产出还在任务里，可以重新发布。" : "来源任务已删除。"}`);
+    navigate({ page: "results" });
   };
 
   const manage = (
@@ -68,7 +68,7 @@ export default function AppPage({ item, task, state, tab }: Props) {
   return (
     <>
       <PageHead
-        back={TASK_TYPES[item.taskType]?.recordBased ? { label: TASK_TYPES[item.taskType].label, route: { page: "application", taskType: item.taskType } } : { label: "应用", route: { page: "apps" } }}
+        back={{ label: "联邦成果", route: { page: "results" } }}
         title={item.name}
         meta={<Meta parts={[
           scenarioOf(item.scenario).short,
@@ -83,7 +83,7 @@ export default function AppPage({ item, task, state, tab }: Props) {
       {editor}
       {problem ? <Notice tone="warning" onDismiss={() => setProblem(null)}>{problem}</Notice> : null}
       <TabLinks
-        label="应用"
+        label="成果详情"
         tabs={[
           { id: "try", label: "试用" },
           { id: "content", label: "内容" },

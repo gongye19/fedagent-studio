@@ -5,7 +5,7 @@ import { applicationRoute, hrefOf, type Route } from "../state/route";
 import { type State } from "../state/store";
 import { Icon, type IconName } from "../ui/icons";
 
-type NavKey = "home" | "tasks" | "apps" | "algorithms" | "models" | "resources" | "agents";
+type NavKey = "tasks" | "results" | "apps" | "algorithms" | "models" | "resources" | "agents";
 
 function navKeyOf(route: Route): NavKey {
   switch (route.page) {
@@ -17,11 +17,14 @@ function navKeyOf(route: Route): NavKey {
     case "newTask":
     case "task":
       return "tasks";
+    case "results":
+      return "results";
     case "consultation":
     case "apps":
     case "application":
-    case "app":
       return "apps";
+    case "app":
+      return route.tab === "content" || route.tab === "integrate" ? "results" : "apps";
     case "participants":
     case "newParticipant":
     case "newDataset":
@@ -33,7 +36,7 @@ function navKeyOf(route: Route): NavKey {
     case "editEndpoint":
       return "models";
     default:
-      return "home";
+      return "resources";
   }
 }
 
@@ -41,10 +44,10 @@ type NavItem = { key: NavKey; label: string; icon: IconName; route: Route };
 
 /** 应用为可展开目录，其他入口直接打开页面。 */
 const NAV: readonly NavItem[] = [
-  { key: "home", label: "工作台", icon: "home", route: { page: "home" } },
+  { key: "resources", label: "联邦数据", icon: "resources", route: { page: "resources", space: "workspace" } },
   { key: "tasks", label: "联邦任务", icon: "tasks", route: { page: "tasks" } },
+  { key: "results", label: "联邦成果", icon: "award", route: { page: "results" } },
   { key: "apps", label: "应用", icon: "apps", route: { page: "apps" } },
-  { key: "resources", label: "数据资源", icon: "resources", route: { page: "resources", space: "workspace" } },
   { key: "models", label: "大模型接口", icon: "model", route: { page: "models" } },
   { key: "algorithms", label: "算法", icon: "algorithm", route: { page: "algorithms" } },
 ];

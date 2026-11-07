@@ -51,6 +51,7 @@ describe("route", () => {
       { page: "newTask", scenario: "vertical" },
       { page: "task", id: "task-1" },
       { page: "task", id: "task-1", tab: "output" },
+      { page: "results" },
       { page: "apps" },
       { page: "consultation", packageId: "app-1" },
       { page: "application", taskType: "medical-records" },

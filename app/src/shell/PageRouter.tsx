@@ -11,7 +11,7 @@ import AppPage from "../ui/AppPage";
 import AppsPage from "../ui/AppsPage";
 import { NotFound } from "../ui/common";
 import EndpointPage from "../ui/EndpointPage";
-import HomePage from "../ui/HomePage";
+import FederationResultsPage from "../ui/FederationResultsPage";
 import AgentsPage from "../ui/AgentsPage";
 import ModelsPage from "../ui/ModelsPage";
 import NewDatasetPage from "../ui/NewDatasetPage";
@@ -26,6 +26,8 @@ export function PageRouter({ state, dispatch, route }: { state: State; dispatch:
   switch (route.page) {
     case "tasks":
       return <TasksPage state={state} />;
+    case "results":
+      return <FederationResultsPage state={state} />;
     case "newTask":
       return <TaskConfigPage state={state} dispatch={dispatch} initialScenario={route.scenario}
         application={route.application ?? (route.dataset ? MEDICAL_RECORDS : undefined)} datasetId={route.dataset} />;
@@ -53,7 +55,7 @@ export function PageRouter({ state, dispatch, route }: { state: State; dispatch:
       return item ? (
         <AppPage key={item.id} item={item} task={taskOf(state, item.taskId)} state={state} tab={route.tab} />
       ) : (
-        <NotFound kind="应用" back={{ page: "apps" }} backLabel="应用" />
+        <NotFound kind="成果" back={{ page: "results" }} backLabel="联邦成果" />
       );
     }
     case "participants":
@@ -88,6 +90,6 @@ export function PageRouter({ state, dispatch, route }: { state: State; dispatch:
     case "editEndpoint":
       return <EndpointPage state={state} id={route.id} from={route.from} />;
     default:
-      return <HomePage state={state} />;
+      return <ResourcesPage state={state} />;
   }
 }

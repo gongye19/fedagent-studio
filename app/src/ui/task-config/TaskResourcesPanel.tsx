@@ -39,7 +39,7 @@ export function TaskResourcesPanel({
         <>
           所需资源
           <InfoTip label="资源选择">
-            这里只选择已登记并通过基础检查的可用资源。新增或修改资源请使用左侧的数据资源或大模型接口页面。
+            这里只选择已登记并通过基础检查的可用资源。新增或修改资源请使用左侧的联邦数据或大模型接口页面。
             {agentRequired
               ? `每组选择一个 Agent 服务和同方病例。任务合计至少 ${algorithm.minParticipants} 方；可选择自己和其他方已共享的资源，不要求一个用户提供多组。`
               : "每个来源选择一份数据，可结合自己与其他方共享的数据。最少来源数是任务整体要求。"}
@@ -69,9 +69,9 @@ export function TaskResourcesPanel({
             />
           ) : (
             <PanelEmpty>
-              暂无匹配的可用数据。请先在左侧“数据资源”中上传并完成校验。
+              暂无匹配的可用数据。请先在左侧“联邦数据”中上传并完成校验。
               <a className="text-link" href={hrefOf({ page: "resources" })}>
-                查看数据资源
+                查看联邦数据
               </a>
             </PanelEmpty>
           )}

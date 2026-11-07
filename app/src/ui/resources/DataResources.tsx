@@ -16,7 +16,7 @@ export function DataResources({state, datasets, own, selectedId, onSelect}: {
   onSelect: (id?: string) => void;
 }) {
   return (
-    <ResourceTable label="数据资源列表" className="table--resources" columns={[
+    <ResourceTable label="联邦数据列表" className="table--resources" columns={[
       {label: "数据名称"}, {label: "任务类型"}, {label: "所属方"},
       {label: "样本数", className: "numeric"},
     ]} empty={!datasets.length} emptyContent={own

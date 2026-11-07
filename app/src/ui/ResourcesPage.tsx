@@ -41,12 +41,12 @@ export default function ResourcesPage({
   return (
     <>
       <PageHead
-        title="数据资源"
-        back={selectedId ? {label: "数据资源", route: route()} : undefined}
+        title="联邦数据"
+        back={selectedId ? {label: "联邦数据", route: route()} : undefined}
         meta={
           own
             ? "上传已完成的问诊过程，校验后用于生成经验。"
-            : "用户共享及平台提供的可复用数据。"
+            : "已共享的数据和平台提供的公开基准数据。"
         }
         actions={
           own ? (

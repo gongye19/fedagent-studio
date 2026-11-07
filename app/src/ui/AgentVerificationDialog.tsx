@@ -65,7 +65,7 @@ export function AgentVerificationDialog({ agent, onClose }: { agent: AgentEndpoi
       {selected?.params.length ? <details><summary>验证参数</summary><div inert={running}><FieldGroup>{selected.params.map((def) =>
         <ParamField key={def.key} def={def} params={params} onChange={(value) => setParams((old) => ({...old, [def.key]: value}))} />
        )}</FieldGroup></div></details> : null}
-      {selected && !datasets.length ? <p className="field-error">请先在数据资源页上传兼容数据。</p> : null}
+      {selected && !datasets.length ? <p className="field-error">请先在联邦数据页上传兼容数据。</p> : null}
       <CheckRows items={!outdated && report.data?.results.length ? report.data.results : [{ resource: "接口与输出规范", status: running ? "running" : "pending" }]} />
       {outdated ? <p className="field-error">接口已变更，请重新验证。</p> : null}
       {error || report.error ? <p className="field-error" role="alert">{error ?? "无法读取验证进度，请重试"}</p> : null}

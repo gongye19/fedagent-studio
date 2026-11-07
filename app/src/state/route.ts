@@ -1,10 +1,11 @@
 /**
  * 基于 hash 的页面路由。用 hash 是为了让静态部署和本地预览都不需要服务端路由配置。
  *
- * #/                          首页
+ * #/                          联邦数据
  * #/tasks                     联邦任务
  * #/tasks/new[/场景]           新建联邦任务，可带入场景选择
  * #/tasks/:id[/标签]           任务详情
+ * #/results                   联邦成果
  * #/apps                      应用目录
  * #/apps/consultation         医疗问诊
  * #/apps/:id[/标签]            应用详情
@@ -43,6 +44,7 @@ export type Route =
   | { page: "newTask"; scenario?: ScenarioId; application?: string; dataset?: string }
   | { page: "resources"; space?: ResourceSpace; kind?: ResourceKind; id?: string; upload?: boolean }
   | { page: "task"; id: string; tab?: TaskTab }
+  | { page: "results" }
   | { page: "consultation"; packageId?: string }
   | { page: "apps" }
   | { page: "application"; taskType: string }
@@ -74,7 +76,7 @@ export function parseHash(hash: string): Route {
     case "tasks":
       if (!second) return { page: "tasks" };
       if (second === "new") {
-        // 通用入口在配置页选择场景；首页场景入口可带入用户刚选的场景。
+        // 通用入口在配置页选择场景；旧场景直达链接仍可带入场景。
         const scenario = oneOf(SCENARIO_IDS, third);
         if (third && !scenario) return {page:"tasks"};
         const application = search.get("application") ?? undefined;
@@ -82,6 +84,8 @@ export function parseHash(hash: string): Route {
         return {...(scenario ? { page: "newTask" as const, scenario } : { page: "newTask" as const }), ...(application ? { application } : {}), ...(dataset ? { dataset } : {})};
       }
       return { page: "task", id: second, tab: oneOf(TASK_TABS, third) };
+    case "results":
+      return { page: "results" };
     case "consultation":
       return consultationRoute(search);
     case "applications":
@@ -132,6 +136,8 @@ export function hrefOf(route: Route): string {
       return `#/resources/${route.space === "public" ? "public" : "mine"}/${route.kind ?? "data"}${route.id ? `/${part(route.id)}` : ""}${query({ upload: route.upload ? "1" : undefined })}`;
     case "task":
       return `#/tasks/${part(route.id)}${route.tab ? `/${route.tab}` : ""}`;
+    case "results":
+      return "#/results";
     case "consultation":
       return `#/apps/consultation${query({ package: route.packageId })}`;
     case "apps":
