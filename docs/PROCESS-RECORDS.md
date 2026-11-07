@@ -44,6 +44,12 @@ uv run python ../tools/process-records/generate.py \
 
 将输出的 source JSONL 经数据资源上传／校验，再主动选择应用、算法、数据与模型，快速连接检查后生成经验库，发布后用 manifest 的 heldout 输入验证。小样本验收只证明链路，不证明泛化提升。
 
-## 真实验收
+## T117 模拟问诊数据
 
-数学 FoT、医疗 FoT、医疗 EvoMedClaw 三条链路均已在实验室服务器通过；保留四份带公开来源标记的生成记录与三个经验库。任务及应用标识、独立新输入测试、条件检索结果、用量与备份见 [验收记录](./process-records-check.json)。
+站点 A 的 54 条沿用 MedQA 分组 1，站点 B 沿用 MedQA 分组 2 的 53 条，补入 `medqa_extended_v1.jsonl` 第 108 行。两份文件对应同一 [MedAgentSim 固定提交](https://huggingface.co/ItsMaxNorm/MedAgentSim-datasets/tree/ad770a78ed4902f672548faf1a87abbbc18484bb)。逐条记录公开文件名、哈希、原始行号和模型。
+
+每个病例由 gpt-5.6-luna 一次生成结构化角色模拟，包含问答、检查、按需会诊及模拟诊断。参考诊断独立保存于 `answer`。两组共 108 条互异病例，均通过平台上传校验与 EvoMedClaw 轨迹规范化。问诊过程的检查覆盖来源、结构和字段，临床诊断准确性由后续评测衡量。
+
+## T110 真实验收
+
+当时，数学 FoT、医疗 FoT、医疗 EvoMedClaw 三条链路均已在实验室服务器通过；保留四份带公开来源标记的生成记录与三个经验库。任务及应用标识、独立新输入测试、条件检索结果、用量与备份见 [验收记录](./process-records-check.json)。
