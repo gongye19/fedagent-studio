@@ -1,7 +1,9 @@
 /** 统一线宽的小图标，替代 ✓ ✕ ! 这类字符。 */
-export type IconName = "check" | "x" | "alert" | "chevron" | "plus" | "minus" | "arrow" | "back" | "download" | "pause" | "play" | "stop" | "copy" | "upload" | "home" | "tasks" | "apps" | "manage" | "participants" | "algorithm" | "model" | "search" | "info" | "resources";
+export type IconName = "check" | "x" | "alert" | "chevron" | "plus" | "minus" | "arrow" | "back" | "download" | "pause" | "play" | "stop" | "copy" | "upload" | "home" | "tasks" | "apps" | "manage" | "participants" | "algorithm" | "model" | "search" | "info" | "resources" | "consultation" | "send";
 
 const PATHS: Record<IconName, string> = {
+  consultation: "M3 2.5H13A1 1 0 0 1 14 3.5V10A1 1 0 0 1 13 11H7L3 14V11A1 1 0 0 1 2 10V3.5A1 1 0 0 1 3 2.5ZM8 4.5V9M5.75 6.75H10.25",
+  send: "M8 12.5V3.5M4.5 7 8 3.5 11.5 7",
   resources: "M2.5 4.5V3H6L7.5 4.5H13.5V13H2.5Z",
   check: "M3.5 8.5 6.5 11.5 12.5 4.5",
   x: "M4.5 4.5 11.5 11.5M11.5 4.5 4.5 11.5",

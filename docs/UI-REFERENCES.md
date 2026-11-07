@@ -340,3 +340,7 @@ T92根据用户四项明确反馈继续沿用控制台风格：返回在标题�
 ### T102：医疗三组对照与算法图
 
 沿用已确认的reference-first-ui控制台规范，没有新增主参考、Mobbin检索或第三方依赖。Panel／Stat／InfoTip／CheckStatus、原生details与既有ECharts实现三组成绩、对照柱状图及配对案例；医疗流程图沿用用户指定live-panel-skill渲染器，新增独立medical_flow布局，FoT图布局与算法流程不变。桌面预览已展示给用户；五项设计交付物见FLOW T102，实际浏览器证据screenshots/medical-comparison。
+
+## T114：医疗问诊聊天界面
+
+用户确认以 [Claude 开场与追问流程](https://mobbin.com/flows/4c9e9350-306e-4afd-b016-b5ba7b1101d0) 为输入区参考，以 [ChatGPT 对话界面](https://mobbin.com/screens/f9fa472b-1f11-45f1-9132-019c2501f56d) 为消息排版参考。借鉴居中开场、输入区内的模型入口、底部追问、限宽正文和右侧用户气泡。复用 PageHead、SelectField、Icon 和既有会话请求。
