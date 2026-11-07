@@ -2089,6 +2089,336 @@
     }
    }
   },
+  "/v1/apps/{app_id}/chat": {
+   "post": {
+    "tags": [
+     "apps"
+    ],
+    "summary": "Chat",
+    "operationId": "chat_v1_apps__app_id__chat_post",
+    "parameters": [
+     {
+      "name": "app_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "App Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ChatIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ChatOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/consultation/chat": {
+   "post": {
+    "tags": [
+     "apps"
+    ],
+    "summary": "Routed Chat",
+    "operationId": "routed_chat_v1_consultation_chat_post",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ConsultationIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ConsultationOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/tasks/{task_id}/experience-evaluation": {
+   "get": {
+    "tags": [
+     "tasks"
+    ],
+    "summary": "Get Evaluation",
+    "operationId": "get_evaluation_v1_tasks__task_id__experience_evaluation_get",
+    "parameters": [
+     {
+      "name": "task_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Task Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "anyOf": [
+          {
+           "$ref": "#/components/schemas/EvaluationOut"
+          },
+          {
+           "type": "null"
+          }
+         ],
+         "title": "Response Get Evaluation V1 Tasks  Task Id  Experience Evaluation Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "tasks"
+    ],
+    "summary": "Start Evaluation",
+    "operationId": "start_evaluation_v1_tasks__task_id__experience_evaluation_post",
+    "parameters": [
+     {
+      "name": "task_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Task Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/EvaluationIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/EvaluationOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/tasks/{task_id}/experience-evaluation/{action}": {
+   "post": {
+    "tags": [
+     "tasks"
+    ],
+    "summary": "Control Evaluation",
+    "operationId": "control_evaluation_v1_tasks__task_id__experience_evaluation__action__post",
+    "parameters": [
+     {
+      "name": "task_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Task Id"
+      }
+     },
+     {
+      "name": "action",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "enum": [
+        "resume",
+        "cancel"
+       ],
+       "type": "string",
+       "title": "Action"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/EvaluationOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/v1/tasks/validate": {
    "post": {
     "tags": [
@@ -3966,277 +4296,6 @@
      }
     }
    }
-  },
-  "/v1/apps/{app_id}/chat": {
-   "post": {
-    "tags": [
-     "apps"
-    ],
-    "summary": "Chat",
-    "operationId": "chat_v1_apps__app_id__chat_post",
-    "parameters": [
-     {
-      "name": "app_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "App Id"
-      }
-     },
-     {
-      "name": "authorization",
-      "in": "header",
-      "required": false,
-      "schema": {
-       "anyOf": [
-        {
-         "type": "string"
-        },
-        {
-         "type": "null"
-        }
-       ],
-       "title": "Authorization"
-      }
-     }
-    ],
-    "requestBody": {
-     "required": true,
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/ChatIn"
-       }
-      }
-     }
-    },
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ChatOut"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/v1/tasks/{task_id}/experience-evaluation": {
-   "get": {
-    "tags": [
-     "tasks"
-    ],
-    "summary": "Get Evaluation",
-    "operationId": "get_evaluation_v1_tasks__task_id__experience_evaluation_get",
-    "parameters": [
-     {
-      "name": "task_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Task Id"
-      }
-     },
-     {
-      "name": "authorization",
-      "in": "header",
-      "required": false,
-      "schema": {
-       "anyOf": [
-        {
-         "type": "string"
-        },
-        {
-         "type": "null"
-        }
-       ],
-       "title": "Authorization"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "anyOf": [
-          {
-           "$ref": "#/components/schemas/EvaluationOut"
-          },
-          {
-           "type": "null"
-          }
-         ],
-         "title": "Response Get Evaluation V1 Tasks  Task Id  Experience Evaluation Get"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   },
-   "post": {
-    "tags": [
-     "tasks"
-    ],
-    "summary": "Start Evaluation",
-    "operationId": "start_evaluation_v1_tasks__task_id__experience_evaluation_post",
-    "parameters": [
-     {
-      "name": "task_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Task Id"
-      }
-     },
-     {
-      "name": "authorization",
-      "in": "header",
-      "required": false,
-      "schema": {
-       "anyOf": [
-        {
-         "type": "string"
-        },
-        {
-         "type": "null"
-        }
-       ],
-       "title": "Authorization"
-      }
-     }
-    ],
-    "requestBody": {
-     "required": true,
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/EvaluationIn"
-       }
-      }
-     }
-    },
-    "responses": {
-     "201": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/EvaluationOut"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/v1/tasks/{task_id}/experience-evaluation/{action}": {
-   "post": {
-    "tags": [
-     "tasks"
-    ],
-    "summary": "Control Evaluation",
-    "operationId": "control_evaluation_v1_tasks__task_id__experience_evaluation__action__post",
-    "parameters": [
-     {
-      "name": "task_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Task Id"
-      }
-     },
-     {
-      "name": "action",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "enum": [
-        "resume",
-        "cancel"
-       ],
-       "type": "string",
-       "title": "Action"
-      }
-     },
-     {
-      "name": "authorization",
-      "in": "header",
-      "required": false,
-      "schema": {
-       "anyOf": [
-        {
-         "type": "string"
-        },
-        {
-         "type": "null"
-        }
-       ],
-       "title": "Authorization"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/EvaluationOut"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
   }
  },
  "components": {
@@ -5649,6 +5708,96 @@
     },
     "type": "object",
     "title": "CompleteIn"
+   },
+   "ConsultationIn": {
+    "properties": {
+     "model": {
+      "type": "string",
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Model"
+     },
+     "messages": {
+      "items": {
+       "$ref": "#/components/schemas/ChatMessage"
+      },
+      "type": "array",
+      "maxItems": 39,
+      "minItems": 1,
+      "title": "Messages"
+     },
+     "packageId": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 64,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Packageid"
+     }
+    },
+    "type": "object",
+    "required": [
+     "model",
+     "messages"
+    ],
+    "title": "ConsultationIn"
+   },
+   "ConsultationOut": {
+    "properties": {
+     "output": {
+      "type": "string",
+      "maxLength": 6000,
+      "minLength": 1,
+      "title": "Output"
+     },
+     "department": {
+      "type": "string",
+      "enum": [
+       "全科",
+       "呼吸内科",
+       "消化内科",
+       "心内科",
+       "神经内科",
+       "内分泌科",
+       "感染科",
+       "儿科",
+       "妇产科",
+       "皮肤科",
+       "骨科",
+       "耳鼻喉科",
+       "泌尿科",
+       "急诊科"
+      ],
+      "title": "Department"
+     },
+     "suggestions": {
+      "items": {
+       "type": "string",
+       "maxLength": 100,
+       "minLength": 1
+      },
+      "type": "array",
+      "maxItems": 3,
+      "title": "Suggestions"
+     },
+     "experienceEntries": {
+      "type": "integer",
+      "title": "Experienceentries"
+     }
+    },
+    "type": "object",
+    "required": [
+     "output",
+     "department",
+     "suggestions",
+     "experienceEntries"
+    ],
+    "title": "ConsultationOut"
    },
    "CursorOut": {
     "properties": {

@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from .. import apps, tasks
 from ..errors import ServiceError
 from ..experience import consultation, evaluation
-from ..schemas.experience import ChatIn, ChatOut, EvaluationIn, EvaluationOut
+from ..schemas.experience import ChatIn, ChatOut, ConsultationIn, ConsultationOut, EvaluationIn, EvaluationOut
 from .dependencies import PlatformDep, SessionDep, admin_router
 
 router = admin_router()
@@ -18,6 +18,16 @@ def chat(app_id: str, body: ChatIn, platform: PlatformDep, session: SessionDep) 
     session.expunge(app)
     session.rollback()
     return consultation.chat(platform, app, model, body)
+
+
+@router.post("/consultation/chat", response_model=ConsultationOut, tags=["apps"])
+def routed_chat(body: ConsultationIn, platform: PlatformDep, session: SessionDep) -> ConsultationOut:
+    app = apps.get_app(session, body.package_id) if body.package_id else None
+    model = consultation.verified_model(platform, session, body.model)
+    if app is not None:
+        session.expunge(app)
+    session.rollback()
+    return consultation.routed_chat(platform, app, model, body)
 
 
 @router.get("/tasks/{task_id}/experience-evaluation", response_model=EvaluationOut | None, tags=["tasks"])

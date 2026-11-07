@@ -7,6 +7,10 @@ from .base import Model
 Arm = Literal["none", "local", "federated"]
 Change = Literal["improved", "worsened", "unchanged", "incomplete"]
 Status = Literal["queued", "running", "paused", "canceled", "completed"]
+Department = Literal[
+    "全科", "呼吸内科", "消化内科", "心内科", "神经内科", "内分泌科", "感染科",
+    "儿科", "妇产科", "皮肤科", "骨科", "耳鼻喉科", "泌尿科", "急诊科",
+]
 
 
 class ChatMessage(Model):
@@ -31,6 +35,22 @@ class ChatIn(Model):
 
 class ChatOut(Model):
     output: str
+    experience_entries: int
+
+
+class ConsultationIn(ChatIn):
+    package_id: str | None = Field(default=None, min_length=1, max_length=64)
+
+
+class ConsultationTurn(Model):
+    output: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=6000)]
+    department: Department
+    suggestions: list[Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]] = Field(
+        max_length=3,
+    )
+
+
+class ConsultationOut(ConsultationTurn):
     experience_entries: int
 
 

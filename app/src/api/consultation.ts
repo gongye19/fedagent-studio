@@ -3,10 +3,10 @@ import { request } from "./client";
 
 type Schemas = components["schemas"];
 export type ChatMessage = Schemas["ChatMessage"];
-export type ChatReply = Schemas["ChatOut"];
+export type ChatReply = Schemas["ConsultationOut"];
 
-export function consult(id: string, model: string, messages: ChatMessage[], signal: AbortSignal) {
-  return request<ChatReply>("POST", `/v1/apps/${encodeURIComponent(id)}/chat`, { model, messages }, signal);
+export function consult(packageId: string | null, model: string, messages: ChatMessage[], signal: AbortSignal) {
+  return request<ChatReply>("POST", "/v1/consultation/chat", { packageId, model, messages }, signal);
 }
 
 export type EvaluationSource = Schemas["EvaluationSource"];

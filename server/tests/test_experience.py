@@ -128,3 +128,38 @@ def test_consultation_uses_history_and_fixed_package(platform, client, monkeypat
     assert response.json()["output"] == "Follow-up response"
     body["messages"].pop()
     assert client.post(url, json=body).status_code == 422
+
+
+def test_consultation_routes_baseline_and_package_with_same_prompt(platform, client, monkeypatch):
+    task, _ = completed(platform, client, "fot-records")
+    published = client.post("/v1/apps", json={"taskId": task, "builtAfterRound": 1, "name": "medical"})
+    assert published.status_code == 201, published.text
+    package_id = published.json()["id"]
+    calls = []
+
+    def reply(self, messages, **kwargs):
+        payload = json.loads(messages[-1]["content"])
+        calls.append((messages[0], payload))
+        if payload["dialogue"][-1]["content"] == "bad response":
+            return ChatResult('{"department":"invented department","output":"text","suggestions":[]}', model=self.name)
+        return ChatResult(json.dumps({
+            "department": "呼吸内科", "output": "咳嗽多久了？", "suggestions": ["三天。", "一周。"],
+        }), model=self.name)
+
+    monkeypatch.setattr(GatewayModel, "chat", reply)
+    url = "/v1/consultation/chat"
+    body = {"model": "fake:fake", "messages": [{"role": "user", "content": "晚上咳嗽"}]}
+    baseline = client.post(url, json=body)
+    augmented = client.post(url, json={**body, "packageId": package_id})
+    assert baseline.status_code == augmented.status_code == 200
+    assert baseline.json() == {"department": "呼吸内科", "output": "咳嗽多久了？",
+                               "suggestions": ["三天。", "一周。"], "experienceEntries": 0}
+    assert augmented.json()["experienceEntries"] > 0
+    assert calls[0][0] == calls[1][0]
+    assert calls[0][1]["dialogue"] == calls[1][1]["dialogue"] == body["messages"]
+    assert not calls[0][1]["experience"] and calls[1][1]["experience"]
+    assert client.post(url, json={**body, "packageId": "missing"}).status_code == 404
+    assert client.post(url, json={**body, "model": "missing:missing"}).status_code == 422
+    assert len(calls) == 2
+    body["messages"][0]["content"] = "bad response"
+    assert client.post(url, json=body).status_code == 502
