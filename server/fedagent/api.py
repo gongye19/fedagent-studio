@@ -11,7 +11,7 @@ from starlette.types import Scope
 
 from . import __version__
 from .errors import ServiceError
-from .http import agents, apps, checks, client, endpoints, record_generation, resources, sharing, system, tasks
+from .http import agents, apps, checks, client, endpoints, experience, record_generation, resources, sharing, system, tasks
 from .platform import Platform
 
 
@@ -50,7 +50,7 @@ def create_app(platform: Platform) -> FastAPI:
         return response
 
     routers = (system.public, system.router, resources.router, sharing.router, endpoints.router,
-               agents.router, checks.router, tasks.router, apps.router, client.router, record_generation.router)
+               agents.router, checks.router, experience.router, tasks.router, apps.router, client.router, record_generation.router)
     for router in routers:
         app.include_router(router)
 

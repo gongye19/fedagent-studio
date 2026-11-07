@@ -1,5 +1,5 @@
 import { type Dispatch } from "react";
-import { TASK_TYPES, type ScenarioId } from "../domain/catalog";
+import { type ScenarioId } from "../domain/catalog";
 import { type Action, type State } from "../state/store";
 import { Confirm, Meta, PageHead } from "./common";
 import { Panel } from "./console";
@@ -17,13 +17,15 @@ export default function TaskConfigPage({
   dispatch,
   initialScenario,
   application,
+  datasetId,
 }: {
   state: State;
   dispatch: Dispatch<Action>;
   initialScenario?: ScenarioId;
   application?: string;
+  datasetId?: string;
 }) {
-  const config = useTaskConfig(state, dispatch, initialScenario, application);
+  const config = useTaskConfig(state, dispatch, initialScenario, application, datasetId);
   const {
     draft,
     algorithm,
@@ -81,14 +83,12 @@ export default function TaskConfigPage({
   return (
     <>
       <PageHead
-        title="生成应用经验库"
-        back={application && TASK_TYPES[application]?.recordBased
-          ? { label: TASK_TYPES[application].label, route: { page: "application", taskType: application } }
-          : { label: "联邦任务", route: { page: "tasks" } }}
+        title="生成问诊经验包"
+        back={{ label: "经验任务", route: { page: "tasks" } }}
       />
       <div className="order-layout task-config" ref={formRef}>
         <div className="order-main">
-          <TaskBasicsPanel dispatch={dispatch} config={config} />
+          <TaskBasicsPanel config={config} />
           <TaskResourcesPanel
             state={state}
             dispatch={dispatch}

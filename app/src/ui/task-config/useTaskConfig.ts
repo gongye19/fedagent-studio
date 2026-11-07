@@ -35,6 +35,7 @@ export function useTaskConfig(
   dispatch: Dispatch<Action>,
   initialScenario?: ScenarioId,
   application?: string,
+  datasetId?: string,
 ) {
   const draft = state.draft;
   // 没动过的草稿不保留：每次打开都按当前的参与方和数据重新选，默认名称按当前任务类型生成。
@@ -62,10 +63,16 @@ export function useTaskConfig(
       dispatch({type:"chooseTaskType",taskType:application});
   }, [application,dispatch]);
 
-  function selectApplication(taskType: Draft["taskType"]) {
-    dispatch({ type: "chooseTaskType", taskType });
-    if (application && taskType !== application)
-      navigate({ page: "newTask" }, { keepScroll: true });
+  const incoming = state.datasets.find((dataset) => dataset.id === datasetId && dataset.taskType === application && dataset.ready);
+  const sourceId = incoming?.participantId;
+  const incomingId = incoming?.id;
+  useEffect(() => {
+    if (sourceId && incomingId) dispatch({ type: "pickDataset", participantId: sourceId, datasetId: incomingId });
+  }, [dispatch, sourceId, incomingId]);
+
+  function selectAlgorithm(id: Draft["algorithm"]) {
+    dispatch({ type: "chooseAlgorithm", algorithm: id });
+    if (id && incoming) dispatch({ type: "pickDataset", participantId: incoming.participantId, datasetId: incoming.id });
   }
 
   const update = (patch: Partial<Draft>) =>
@@ -237,7 +244,7 @@ export function useTaskConfig(
           ? `已创建“${task.name}”，开始正式运行。`
           : `已创建“${task.name}”，开始试跑。`,
       );
-      navigate({ page: "task", id: task.id, tab: "progress" });
+      navigate({ page: "task", id: task.id });
     } catch (error) {
       setCreateError(
         error instanceof ApiError ? error.message : "创建失败，稍后再试",
@@ -248,7 +255,7 @@ export function useTaskConfig(
   }
 
   function restart() {
-    dispatch({ type: "resetDraft" });
+    dispatch({ type: "resetDraft", draft: { taskType: application ?? null } });
     setPending(null);
     setAttempted(false);
     setCreateError(null);
@@ -327,7 +334,7 @@ export function useTaskConfig(
     pending,
     setPending,
     formRef,
-    selectApplication,
+    selectAlgorithm,
     update,
     algorithm,
     scenarioId,

@@ -6,7 +6,9 @@ import logging
 import os
 import sys
 
+from . import models as m
 from .engine import TaskEngine
+from .experience import evaluation
 from .platform import Platform
 
 
@@ -16,7 +18,9 @@ def main() -> None:
     status = "error"
     try:
         platform = Platform.create(migrate=False)
-        status = TaskEngine(platform, task_id).run()
+        with platform.db.session() as session:
+            job = session.get(m.Task, task_id)
+        status = evaluation.run(platform, job) if job and job.source_task_id else TaskEngine(platform, task_id).run()
         logging.getLogger("fedagent.taskproc").info("task %s finished with status %s", task_id, status)
     except Exception:
         logging.getLogger("fedagent.taskproc").exception("task %s crashed", task_id)

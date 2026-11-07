@@ -1,3 +1,5 @@
+import { MEDICAL_RECORDS } from "../domain/consultation";
+import { ConsultationPage } from "../ui/application/ConsultationPage";
 import { type Dispatch } from "react";
 import { type Route } from "../state/route";
 import { taskOf, type Action, type State } from "../state/store";
@@ -6,7 +8,6 @@ import AlgorithmPage from "../ui/AlgorithmPage";
 import AlgorithmsPage from "../ui/AlgorithmsPage";
 import ApplicationPage from "../ui/ApplicationPage";
 import AppPage from "../ui/AppPage";
-import AppsPage from "../ui/AppsPage";
 import { EmptyState, NotFound, PageHead } from "../ui/common";
 import EndpointPage from "../ui/EndpointPage";
 import HomePage from "../ui/HomePage";
@@ -27,12 +28,12 @@ export function PageRouter({ state, dispatch, route }: { state: State; dispatch:
     case "newTask":
       // 已支持场景复用注册表驱动的配置页；未接入算法的场景显示规划状态。
       return !route.scenario || scenarioOf(route.scenario).status === "available" ? (
-        <TaskConfigPage state={state} dispatch={dispatch} initialScenario={route.scenario} application={route.application} />
+        <TaskConfigPage state={state} dispatch={dispatch} initialScenario={route.scenario} application={MEDICAL_RECORDS} datasetId={route.dataset} />
       ) : (
         <PlannedTaskConfig scenario={route.scenario} />
       );
     case "resources":
-      return route.kind === "models" ? <ModelsPage state={state} space={route.space} /> : route.kind === "agents" ? <AgentsPage space={route.space} /> : <ResourcesPage state={state} space={route.space} selectedId={route.id} />;
+      return route.kind === "models" ? <ModelsPage state={state} space={route.space} /> : route.kind === "agents" ? <AgentsPage space={route.space} /> : <ResourcesPage state={state} space={route.space} selectedId={route.id} upload={route.upload} />;
     case "task": {
       const task = taskOf(state, route.id);
       return task ? (
@@ -41,12 +42,17 @@ export function PageRouter({ state, dispatch, route }: { state: State; dispatch:
         <NotFound kind="任务" back={{ page: "tasks" }} backLabel="联邦任务" />
       );
     }
+    case "consultation":
+      return <ConsultationPage key={route.packageId ?? ""} state={state} packageId={route.packageId} />;
     case "apps":
-      return <AppsPage state={state} />;
+      return <ConsultationPage state={state} />;
     case "application":
-      return <ApplicationPage state={state} taskType={route.taskType} />;
+      return route.taskType === MEDICAL_RECORDS ? <ConsultationPage state={state} /> : <ApplicationPage state={state} taskType={route.taskType} />;
     case "app": {
       const item = state.published.find((entry) => entry.id === route.id);
+      if (item?.taskType === MEDICAL_RECORDS && (!route.tab || route.tab === "try")) {
+        return <ConsultationPage key={item.id} state={state} packageId={item.id} />;
+      }
       return item ? (
         <AppPage key={item.id} item={item} task={taskOf(state, item.taskId)} state={state} tab={route.tab} />
       ) : (
@@ -85,7 +91,7 @@ export function PageRouter({ state, dispatch, route }: { state: State; dispatch:
     case "editEndpoint":
       return <EndpointPage state={state} id={route.id} from={route.from} />;
     default:
-      return <HomePage />;
+      return <HomePage state={state} />;
   }
 }
 

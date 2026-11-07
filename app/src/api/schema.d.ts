@@ -872,6 +872,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/apps/{app_id}/chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Chat */
+        post: operations["chat_v1_apps__app_id__chat_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tasks/{task_id}/experience-evaluation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Evaluation */
+        get: operations["get_evaluation_v1_tasks__task_id__experience_evaluation_get"];
+        put?: never;
+        /** Start Evaluation */
+        post: operations["start_evaluation_v1_tasks__task_id__experience_evaluation_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tasks/{task_id}/experience-evaluation/{action}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Control Evaluation */
+        post: operations["control_evaluation_v1_tasks__task_id__experience_evaluation__action__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1222,6 +1274,30 @@ export interface components {
             };
             /** Hasmore */
             hasMore: boolean;
+        };
+        /** ChatIn */
+        ChatIn: {
+            /** Model */
+            model: string;
+            /** Messages */
+            messages: components["schemas"]["ChatMessage"][];
+        };
+        /** ChatMessage */
+        ChatMessage: {
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "user" | "assistant";
+            /** Content */
+            content: string;
+        };
+        /** ChatOut */
+        ChatOut: {
+            /** Output */
+            output: string;
+            /** Experienceentries */
+            experienceEntries: number;
         };
         /** CheckProblem */
         CheckProblem: {
@@ -1626,6 +1702,173 @@ export interface components {
             seconds: number;
             /** Cost */
             cost: number | null;
+        };
+        /** EvaluationArm */
+        EvaluationArm: {
+            /** Output */
+            output?: string | null;
+            /** Correct */
+            correct?: boolean | null;
+            /** Error */
+            error?: string | null;
+            /** Experiencekeys */
+            experienceKeys?: string[];
+        };
+        /** EvaluationCase */
+        EvaluationCase: {
+            /** Siteid */
+            siteId: string;
+            /** Caseid */
+            caseId: string;
+            /** Reference */
+            reference: string;
+            /** Arms */
+            arms: {
+                [key: string]: components["schemas"]["EvaluationArm"];
+            };
+            /**
+             * Change
+             * @enum {string}
+             */
+            change: "improved" | "worsened" | "unchanged" | "incomplete";
+        };
+        /** EvaluationIn */
+        EvaluationIn: {
+            /** Model */
+            model: string;
+            /** Sources */
+            sources: components["schemas"]["EvaluationSource"][];
+        };
+        /** EvaluationOut */
+        EvaluationOut: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "paused" | "canceled" | "completed";
+            /** Error */
+            error: string | null;
+            /** Model */
+            model: string;
+            score: components["schemas"]["EvaluationScore"];
+            /** Sites */
+            sites: components["schemas"]["EvaluationSite"][];
+            /** Cases */
+            cases: components["schemas"]["EvaluationCase"][];
+        };
+        /** EvaluationScore */
+        EvaluationScore: {
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+            /**
+             * Paired
+             * @default 0
+             */
+            paired: number;
+            /**
+             * Attempted
+             * @default 0
+             */
+            attempted: number;
+            /**
+             * None
+             * @default 0
+             */
+            none: number;
+            /**
+             * Local
+             * @default 0
+             */
+            local: number;
+            /**
+             * Federated
+             * @default 0
+             */
+            federated: number;
+            /**
+             * Improved
+             * @default 0
+             */
+            improved: number;
+            /**
+             * Worsened
+             * @default 0
+             */
+            worsened: number;
+            /**
+             * Unchanged
+             * @default 0
+             */
+            unchanged: number;
+        };
+        /** EvaluationSite */
+        EvaluationSite: {
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+            /**
+             * Paired
+             * @default 0
+             */
+            paired: number;
+            /**
+             * Attempted
+             * @default 0
+             */
+            attempted: number;
+            /**
+             * None
+             * @default 0
+             */
+            none: number;
+            /**
+             * Local
+             * @default 0
+             */
+            local: number;
+            /**
+             * Federated
+             * @default 0
+             */
+            federated: number;
+            /**
+             * Improved
+             * @default 0
+             */
+            improved: number;
+            /**
+             * Worsened
+             * @default 0
+             */
+            worsened: number;
+            /**
+             * Unchanged
+             * @default 0
+             */
+            unchanged: number;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /** EvaluationSource */
+        EvaluationSource: {
+            /** Siteid */
+            siteId: string;
+            /** Datasetid */
+            datasetId?: string | null;
+            /** Jsonl */
+            jsonl?: string | null;
+            /**
+             * Limit
+             * @default 5
+             */
+            limit: number;
         };
         /** EventOut */
         EventOut: {
@@ -4500,6 +4743,147 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    chat_v1_apps__app_id__chat_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_evaluation_v1_tasks__task_id__experience_evaluation_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationOut"] | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_evaluation_v1_tasks__task_id__experience_evaluation_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvaluationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    control_evaluation_v1_tasks__task_id__experience_evaluation__action__post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                task_id: string;
+                action: "resume" | "cancel";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationOut"];
                 };
             };
             /** @description Validation Error */

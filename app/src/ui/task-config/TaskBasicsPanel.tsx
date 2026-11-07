@@ -1,10 +1,8 @@
-import { type Dispatch } from "react";
-import { type Action } from "../../state/store";
 import { Field, FieldGroup, Panel } from "../console";
-import { TaskTypeChoice, AlgorithmField } from "../task-config/TaskBasics";
+import { AlgorithmField } from "../task-config/TaskBasics";
 import type { TaskConfigController } from "./useTaskConfig";
 
-export function TaskBasicsPanel({ dispatch, config }: { dispatch: Dispatch<Action>; config: TaskConfigController }) {
+export function TaskBasicsPanel({ config }: { config: TaskConfigController }) {
   const { draft, update, fieldError, autoName } = config;
   return (
     <Panel title="任务配置" id="scenario" step={1}>
@@ -21,10 +19,9 @@ export function TaskBasicsPanel({ dispatch, config }: { dispatch: Dispatch<Actio
               onChange={(event) => update({ name: event.target.value })}
             />
           </Field>
-          <TaskTypeChoice error={fieldError("taskType")} value={draft.taskType}
-            onChange={config.selectApplication} />
+          <Field label="协作场景" wide><p className="field-static">横向联邦 · 不同来源的问诊记录</p></Field>
           <AlgorithmField error={fieldError("algorithm")} value={draft.algorithm} taskType={draft.taskType}
-            onChange={(id) => dispatch({ type: "chooseAlgorithm", algorithm: id })} />
+            onChange={(id) => config.selectAlgorithm(id)} />
         </FieldGroup>
       </div>
     </Panel>

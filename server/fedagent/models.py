@@ -96,8 +96,11 @@ class Endpoint(Base):
 
 class Task(Base):
     __tablename__ = "tasks"
+    __table_args__ = (Index("ix_tasks_evaluation_source", "source_task_id", unique=True),)
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    source_task_id: Mapped[str | None] = mapped_column(ForeignKey("tasks.id", ondelete="CASCADE"))
+    """有值时为完成页创建的独立评测作业，使用同一 runner。"""
     name: Mapped[str] = mapped_column(String(120))
     scenario: Mapped[str] = mapped_column(String(32))
     task_type: Mapped[str] = mapped_column(String(64))

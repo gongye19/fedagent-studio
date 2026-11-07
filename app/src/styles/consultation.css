@@ -1,0 +1,36 @@
+.medical-next { max-width: 680px; }
+.medical-next p { margin: 0 0 var(--space-4); }
+.medical-data-next { margin-bottom: var(--space-3); }
+.consultation { max-width: 900px; margin-inline: auto; }
+.consultation-controls { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-3); }
+.consultation-field { display: grid; flex: 1 1 180px; gap: 5px; min-width: 0; }
+.consultation-field > span { color: var(--muted); font-size: var(--text-sm); }
+.consultation-history { min-height: min(34vh, 300px); max-height: 58vh; overflow: auto; padding: var(--space-4) 2px; display: flex; flex-direction: column; gap: var(--space-4); }
+.consultation-empty { margin: auto; text-align: center; color: var(--muted); padding: var(--space-4); }
+.consultation-empty p { margin: var(--space-2) 0 0; }
+.consultation-empty .button { display: flex; margin: var(--space-3) auto 0; width: fit-content; }
+.consultation-message { max-width: min(90%, 680px); padding: var(--space-3) var(--space-4); border: 1px solid var(--border); border-radius: var(--radius); overflow-wrap: anywhere; }
+.consultation-message--user { align-self: flex-end; background: var(--surface); }
+.consultation-message p { white-space: pre-wrap; margin: var(--space-2) 0 0; }
+.consultation-message small { display: block; color: var(--muted); margin-top: var(--space-2); }
+.consultation-compose { display: grid; gap: var(--space-2); }
+.consultation-compose textarea { width: 100%; resize: vertical; }
+.consultation-send { display: flex; justify-content: flex-end; }
+
+.evaluation-form, .evaluation-results, .evaluation-cases { display: grid; gap: var(--space-4); }
+.evaluation-source { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-3); min-width: 0; }
+.evaluation-source legend { padding: 0 var(--space-2); font-weight: 600; }
+.evaluation-file, .evaluation-limit { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); }
+.evaluation-file { flex-wrap: wrap; }
+.evaluation-file input { max-width: min(100%, 240px); }
+.evaluation-limit input { width: 70px; }
+.evaluation-filters { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.evaluation-filters [aria-pressed="true"] { border-color: var(--accent); }
+.evaluation-case { border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-3); }
+.evaluation-case > summary { cursor: pointer; overflow-wrap: anywhere; }
+.evaluation-case > summary strong { margin-inline-start: var(--space-3); }
+.evaluation-case p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.evaluation-answers { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr)); gap: var(--space-3); }
+.evaluation-answers article { min-width: 0; padding: var(--space-3); background: var(--surface); border-radius: var(--radius); overflow-wrap: anywhere; }
+.evaluation-improved { color: var(--success); }
+.evaluation-worsened { color: var(--danger); }

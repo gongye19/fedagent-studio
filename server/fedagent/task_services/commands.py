@@ -140,12 +140,12 @@ def control(session: Session, task_id: str, action: str) -> m.Task:
 
 def get_task(session: Session, task_id: str) -> m.Task:
     task = session.get(m.Task, task_id)
-    if task is None:
+    if task is None or task.source_task_id is not None:
         raise not_found("任务")
     return task
 
 
-def delete_task(session: Session, task_id: str) -> None:
+def delete_task(session: Session, task_id: str) -> str | None:
     """只删除终态任务；关联结果由外键清理，应用和费用账本独立保留。"""
     from ..runner import leftover_process
 
@@ -157,11 +157,18 @@ def delete_task(session: Session, task_id: str) -> None:
         raise ServiceError(409, "部分 Agent 尚未确认停止，请在 Agent 接口检查能力以同步停止状态")
     if leftover_process(task.pid, task_id):
         raise ServiceError(409, "任务进程正在退出，请稍后再删除")
+    evaluation = session.scalar(select(m.Task).where(m.Task.source_task_id == task_id))
+    if evaluation and (evaluation.status in ("queued", "running") or leftover_process(evaluation.pid, evaluation.id)):
+        raise ServiceError(409, "请先停止经验评测，等它退出后再删除任务")
+    if evaluation:
+        session.execute(sql_delete(m.Event).where(m.Event.task_id == evaluation.id))
     # 事件为独立日志表，没有任务外键，需在同一事务里显式清理。
     session.execute(sql_delete(m.Event).where(m.Event.task_id == task_id))
-    result = session.execute(sql_delete(m.Task).where(m.Task.id == task_id, m.Task.status.in_(("completed", "canceled"))))
+    active_evaluation = select(m.Task.id).where(m.Task.source_task_id == task_id, m.Task.status.in_(("queued", "running"))).exists()
+    result = session.execute(sql_delete(m.Task).where(m.Task.id == task_id, m.Task.status.in_(("completed", "canceled")), ~active_evaluation))
     if result.rowcount != 1:  # type: ignore[attr-defined]
         raise ServiceError(409, "任务状态已变化，请刷新后再试")
+    return evaluation.id if evaluation else None
 
 
 def remove_run_directory(platform: Platform, task_id: str) -> None:

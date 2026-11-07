@@ -47,7 +47,7 @@ def list_tasks(
     task_type: Annotated[str | None, Query(alias="taskType")] = None,
     status: str | None = None,
 ) -> list[TaskOut]:
-    query = select(m.Task).order_by(m.Task.created_at.desc())
+    query = select(m.Task).where(m.Task.source_task_id.is_(None)).order_by(m.Task.created_at.desc())
     if scenario:
         query = query.where(m.Task.scenario == scenario)
     if task_type:
@@ -64,8 +64,10 @@ def get_task(task_id: str, platform: PlatformDep, session: SessionDep) -> TaskOu
 
 @router.delete("/tasks/{task_id}", status_code=204, tags=["tasks"])
 def delete_task(task_id: str, background: BackgroundTasks, platform: PlatformDep, session: SessionDep) -> Response:
-    tasks.delete_task(session, task_id)
+    evaluation_id = tasks.delete_task(session, task_id)
     background.add_task(tasks.remove_run_directory, platform, task_id)
+    if evaluation_id:
+        background.add_task(tasks.remove_run_directory, platform, evaluation_id)
     return Response(status_code=204)
 
 
@@ -73,6 +75,7 @@ def delete_task(task_id: str, background: BackgroundTasks, platform: PlatformDep
 def control_task(task_id: str, action: str, platform: PlatformDep, session: SessionDep) -> TaskOut:
     if action not in ("pause", "resume", "cancel"):
         raise HTTPException(404, "未知操作")
+    tasks.get_task(session, task_id)
     task = tasks.control(session, task_id, action)
     session.flush()
     return tasks.task_out(platform, session, task)

@@ -38,9 +38,10 @@ export type From = "newTask";
 export type Route =
   | { page: "home" }
   | { page: "tasks" }
-  | { page: "newTask"; scenario?: ScenarioId; application?: string }
-  | { page: "resources"; space?: ResourceSpace; kind?: ResourceKind; id?: string }
+  | { page: "newTask"; scenario?: ScenarioId; application?: string; dataset?: string }
+  | { page: "resources"; space?: ResourceSpace; kind?: ResourceKind; id?: string; upload?: boolean }
   | { page: "task"; id: string; tab?: TaskTab }
+  | { page: "consultation"; packageId?: string }
   | { page: "apps" }
   | { page: "application"; taskType: string }
   | { page: "app"; id: string; tab?: AppTab }
@@ -71,9 +72,14 @@ export function parseHash(hash: string): Route {
         const scenario = oneOf(SCENARIO_IDS, third);
         if (third && !scenario) return {page:"tasks"};
         const application = search.get("application") ?? undefined;
-        return {...(scenario ? { page: "newTask" as const, scenario } : { page: "newTask" as const }), ...(application ? { application } : {})};
+        const dataset = search.get("dataset") ?? undefined;
+        return {...(scenario ? { page: "newTask" as const, scenario } : { page: "newTask" as const }), ...(application ? { application } : {}), ...(dataset ? { dataset } : {})};
       }
       return { page: "task", id: second, tab: oneOf(TASK_TABS, third) };
+    case "consultation": {
+      const packageId = search.get("package") ?? undefined;
+      return packageId ? { page: "consultation", packageId } : { page: "consultation" };
+    }
     case "applications":
       return second ? {page:"application", taskType:second} : {page:"apps"};
     case "apps":
@@ -89,7 +95,7 @@ export function parseHash(hash: string): Route {
     case "resources": {
       const parts = path.split("/").filter(Boolean).map(decodeURIComponent);
       return {page:"resources",space:second === "public" ? "public" : "workspace",
-        kind:oneOf(["data","models","agents"] as const,third) ?? "data",id:parts[3]};
+        kind:oneOf(["data","models","agents"] as const,third) ?? "data",id:parts[3], ...(search.get("upload") === "1" ? { upload: true } : {})};
     }
     case "datasets": {
       // 数据集已并入"参与方与数据"，旧的列表地址回到那里
@@ -116,11 +122,13 @@ export function hrefOf(route: Route): string {
     case "tasks":
       return "#/tasks";
     case "newTask":
-      return `#/tasks/new${route.scenario ? `/${route.scenario}` : ""}${query({application: route.application})}`;
+      return `#/tasks/new${route.scenario ? `/${route.scenario}` : ""}${query({application: route.application, dataset: route.dataset})}`;
     case "resources":
-      return `#/resources/${route.space === "public" ? "public" : "mine"}/${route.kind ?? "data"}${route.id ? `/${part(route.id)}` : ""}`;
+      return `#/resources/${route.space === "public" ? "public" : "mine"}/${route.kind ?? "data"}${route.id ? `/${part(route.id)}` : ""}${query({ upload: route.upload ? "1" : undefined })}`;
     case "task":
       return `#/tasks/${part(route.id)}${route.tab ? `/${route.tab}` : ""}`;
+    case "consultation":
+      return `#/consultation${query({ package: route.packageId })}`;
     case "apps":
       return "#/apps";
     case "application":

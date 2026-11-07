@@ -1,3 +1,4 @@
+import { MEDICAL_RECORDS } from "../../domain/consultation";
 import { SelectField } from "../SelectField";
 import { useEffect, useRef, useState } from "react";
 import { ApiError } from "../../api/client";
@@ -14,6 +15,8 @@ import { algorithmOfTask, versionLabel } from "../labels";
 
 /** 任务的产出：由算法决定（FoT 产出经验库）。每轮一版，任意一版都可以发布经验库。 */
 export function OutputTab({ task, state }: { task: Task; state: State }) {
+  const medical = task.config.taskType === MEDICAL_RECORDS;
+  const packageRoute = (id: string) => medical ? { page: "consultation" as const, packageId: id } : { page: "app" as const, id };
   const output = algorithmOfTask(task).output;
   const versions = outputs(task);
   const [chosen, setChosen] = useState<number | null>(null);
@@ -45,7 +48,7 @@ export function OutputTab({ task, state }: { task: Task; state: State }) {
     try {
       const app = await publishApp(task.id, current.builtAfterRound, title);
       setNaming(null);
-      showFlash({ page: "task", id: task.id }, `已发布经验库“${app.name}”。`, { label: "立即试用", route: { page: "app", id: app.id } });
+      showFlash({ page: "task", id: task.id }, `已发布经验库“${app.name}”。`, { label: "立即试用", route: packageRoute(app.id) });
     } catch (error) {
       setProblem(error instanceof ApiError ? error.message : "发布失败，稍后再试");
     } finally {
@@ -67,10 +70,10 @@ export function OutputTab({ task, state }: { task: Task; state: State }) {
           {published ? (
             <>
               <Tag>已发布</Tag>
-              <a className="button button--secondary button--compact" href={hrefOf({ page: "app", id: published.id })}>使用经验库</a>
+              <a className="button button--secondary button--compact" href={hrefOf(packageRoute(published.id))}>{medical ? "用这个经验包问诊" : "使用经验库"}</a>
             </>
           ) : naming === null ? (
-            <button type="button" className="button button--primary button--compact" onClick={() => { setChosen(current.builtAfterRound); setNaming(suggested); }}>发布经验库</button>
+            <button type="button" className="button button--primary button--compact" onClick={() => { setChosen(current.builtAfterRound); setNaming(suggested); }}>{medical ? "发布经验包" : "发布经验库"}</button>
           ) : null}
         </>
       )}

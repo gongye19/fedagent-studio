@@ -1,3 +1,5 @@
+import { MEDICAL_RECORDS } from "../domain/consultation";
+import { hrefOf } from "../state/route";
 import { useState } from "react";
 import { inResourceScope, type ResourceSpace } from "../domain/resources";
 import { navigate, type Route } from "../state/route";
@@ -13,10 +15,12 @@ export default function ResourcesPage({
   state,
   space = "workspace",
   selectedId,
+  upload,
 }: {
   state: State;
   space?: ResourceSpace;
   selectedId?: string;
+  upload?: boolean;
 }) {
   const [adding, setAdding] = useState(false);
   const panelMotion = useContentMotion(space, true);
@@ -27,7 +31,12 @@ export default function ResourcesPage({
     kind: "data",
     id,
   });
-  const data = state.datasets.filter((d) => inResourceScope(d, space));
+  const data = state.datasets.filter((d) => d.taskType.startsWith("medical-") && inResourceScope(d, space));
+  const selected = data.find((item) => item.id === selectedId && item.taskType === MEDICAL_RECORDS && item.ready);
+  function closeUpload() {
+    setAdding(false);
+    if (upload) navigate(route(), { keepScroll: true });
+  }
   return (
     <>
       <PageHead
@@ -35,7 +44,7 @@ export default function ResourcesPage({
         back={selectedId ? {label: "数据资源", route: route()} : undefined}
         meta={
           own
-            ? "上传已完成的问诊或解题过程，校验后用于生成经验。"
+            ? "上传已完成的问诊过程，校验后用于生成经验。"
             : "用户共享及平台提供的可复用数据。"
         }
         actions={
@@ -51,6 +60,9 @@ export default function ResourcesPage({
           ) : undefined
         }
       />
+      {selected ? <div className="detail-actions medical-data-next">
+        <a className="button button--secondary" href={hrefOf({ page: "newTask", dataset: selected.id })}>用这份记录生成经验包</a>
+      </div> : null}
       <ResourceScope
         space={space}
         routeOf={(value) => ({ page: "resources", space: value })}
@@ -66,9 +78,10 @@ export default function ResourcesPage({
       </div>
       <ResourceIntakeDialog
         state={state}
-        kind={adding ? "data" : null}
-        title="上传我的数据"
-        onClose={() => setAdding(false)}
+        kind={own && (adding || upload) ? "data" : null}
+        category={{ scenario: "horizontal", taskType: MEDICAL_RECORDS }}
+        title="上传问诊记录"
+        onClose={closeUpload}
         onSaved={(saved) => {
           setAdding(false);
           if (saved.kind === "data") navigate(route(saved.value.dataset.id));

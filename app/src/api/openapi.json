@@ -3966,6 +3966,277 @@
      }
     }
    }
+  },
+  "/v1/apps/{app_id}/chat": {
+   "post": {
+    "tags": [
+     "apps"
+    ],
+    "summary": "Chat",
+    "operationId": "chat_v1_apps__app_id__chat_post",
+    "parameters": [
+     {
+      "name": "app_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "App Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ChatIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ChatOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/tasks/{task_id}/experience-evaluation": {
+   "get": {
+    "tags": [
+     "tasks"
+    ],
+    "summary": "Get Evaluation",
+    "operationId": "get_evaluation_v1_tasks__task_id__experience_evaluation_get",
+    "parameters": [
+     {
+      "name": "task_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Task Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "anyOf": [
+          {
+           "$ref": "#/components/schemas/EvaluationOut"
+          },
+          {
+           "type": "null"
+          }
+         ],
+         "title": "Response Get Evaluation V1 Tasks  Task Id  Experience Evaluation Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "tasks"
+    ],
+    "summary": "Start Evaluation",
+    "operationId": "start_evaluation_v1_tasks__task_id__experience_evaluation_post",
+    "parameters": [
+     {
+      "name": "task_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Task Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/EvaluationIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/EvaluationOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/tasks/{task_id}/experience-evaluation/{action}": {
+   "post": {
+    "tags": [
+     "tasks"
+    ],
+    "summary": "Control Evaluation",
+    "operationId": "control_evaluation_v1_tasks__task_id__experience_evaluation__action__post",
+    "parameters": [
+     {
+      "name": "task_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Task Id"
+      }
+     },
+     {
+      "name": "action",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "enum": [
+        "resume",
+        "cancel"
+       ],
+       "type": "string",
+       "title": "Action"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/EvaluationOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
   }
  },
  "components": {
@@ -4897,6 +5168,73 @@
      "hasMore"
     ],
     "title": "CasePageOut"
+   },
+   "ChatIn": {
+    "properties": {
+     "model": {
+      "type": "string",
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Model"
+     },
+     "messages": {
+      "items": {
+       "$ref": "#/components/schemas/ChatMessage"
+      },
+      "type": "array",
+      "maxItems": 39,
+      "minItems": 1,
+      "title": "Messages"
+     }
+    },
+    "type": "object",
+    "required": [
+     "model",
+     "messages"
+    ],
+    "title": "ChatIn"
+   },
+   "ChatMessage": {
+    "properties": {
+     "role": {
+      "type": "string",
+      "enum": [
+       "user",
+       "assistant"
+      ],
+      "title": "Role"
+     },
+     "content": {
+      "type": "string",
+      "maxLength": 6000,
+      "minLength": 1,
+      "title": "Content"
+     }
+    },
+    "type": "object",
+    "required": [
+     "role",
+     "content"
+    ],
+    "title": "ChatMessage"
+   },
+   "ChatOut": {
+    "properties": {
+     "output": {
+      "type": "string",
+      "title": "Output"
+     },
+     "experienceEntries": {
+      "type": "integer",
+      "title": "Experienceentries"
+     }
+    },
+    "type": "object",
+    "required": [
+     "output",
+     "experienceEntries"
+    ],
+    "title": "ChatOut"
    },
    "CheckProblem": {
     "properties": {
@@ -5877,6 +6215,343 @@
      "cost"
     ],
     "title": "EstimateOut"
+   },
+   "EvaluationArm": {
+    "properties": {
+     "output": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Output"
+     },
+     "correct": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Correct"
+     },
+     "error": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Error"
+     },
+     "experienceKeys": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Experiencekeys"
+     }
+    },
+    "type": "object",
+    "title": "EvaluationArm"
+   },
+   "EvaluationCase": {
+    "properties": {
+     "siteId": {
+      "type": "string",
+      "title": "Siteid"
+     },
+     "caseId": {
+      "type": "string",
+      "title": "Caseid"
+     },
+     "reference": {
+      "type": "string",
+      "title": "Reference"
+     },
+     "arms": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/EvaluationArm"
+      },
+      "propertyNames": {
+       "enum": [
+        "none",
+        "local",
+        "federated"
+       ]
+      },
+      "type": "object",
+      "title": "Arms"
+     },
+     "change": {
+      "type": "string",
+      "enum": [
+       "improved",
+       "worsened",
+       "unchanged",
+       "incomplete"
+      ],
+      "title": "Change"
+     }
+    },
+    "type": "object",
+    "required": [
+     "siteId",
+     "caseId",
+     "reference",
+     "arms",
+     "change"
+    ],
+    "title": "EvaluationCase"
+   },
+   "EvaluationIn": {
+    "properties": {
+     "model": {
+      "type": "string",
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Model"
+     },
+     "sources": {
+      "items": {
+       "$ref": "#/components/schemas/EvaluationSource"
+      },
+      "type": "array",
+      "maxItems": 32,
+      "minItems": 2,
+      "title": "Sources"
+     }
+    },
+    "type": "object",
+    "required": [
+     "model",
+     "sources"
+    ],
+    "title": "EvaluationIn"
+   },
+   "EvaluationOut": {
+    "properties": {
+     "status": {
+      "type": "string",
+      "enum": [
+       "queued",
+       "running",
+       "paused",
+       "canceled",
+       "completed"
+      ],
+      "title": "Status"
+     },
+     "error": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Error"
+     },
+     "model": {
+      "type": "string",
+      "title": "Model"
+     },
+     "score": {
+      "$ref": "#/components/schemas/EvaluationScore"
+     },
+     "sites": {
+      "items": {
+       "$ref": "#/components/schemas/EvaluationSite"
+      },
+      "type": "array",
+      "title": "Sites"
+     },
+     "cases": {
+      "items": {
+       "$ref": "#/components/schemas/EvaluationCase"
+      },
+      "type": "array",
+      "title": "Cases"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status",
+     "error",
+     "model",
+     "score",
+     "sites",
+     "cases"
+    ],
+    "title": "EvaluationOut"
+   },
+   "EvaluationScore": {
+    "properties": {
+     "total": {
+      "type": "integer",
+      "title": "Total",
+      "default": 0
+     },
+     "paired": {
+      "type": "integer",
+      "title": "Paired",
+      "default": 0
+     },
+     "attempted": {
+      "type": "integer",
+      "title": "Attempted",
+      "default": 0
+     },
+     "none": {
+      "type": "integer",
+      "title": "None",
+      "default": 0
+     },
+     "local": {
+      "type": "integer",
+      "title": "Local",
+      "default": 0
+     },
+     "federated": {
+      "type": "integer",
+      "title": "Federated",
+      "default": 0
+     },
+     "improved": {
+      "type": "integer",
+      "title": "Improved",
+      "default": 0
+     },
+     "worsened": {
+      "type": "integer",
+      "title": "Worsened",
+      "default": 0
+     },
+     "unchanged": {
+      "type": "integer",
+      "title": "Unchanged",
+      "default": 0
+     }
+    },
+    "type": "object",
+    "title": "EvaluationScore"
+   },
+   "EvaluationSite": {
+    "properties": {
+     "total": {
+      "type": "integer",
+      "title": "Total",
+      "default": 0
+     },
+     "paired": {
+      "type": "integer",
+      "title": "Paired",
+      "default": 0
+     },
+     "attempted": {
+      "type": "integer",
+      "title": "Attempted",
+      "default": 0
+     },
+     "none": {
+      "type": "integer",
+      "title": "None",
+      "default": 0
+     },
+     "local": {
+      "type": "integer",
+      "title": "Local",
+      "default": 0
+     },
+     "federated": {
+      "type": "integer",
+      "title": "Federated",
+      "default": 0
+     },
+     "improved": {
+      "type": "integer",
+      "title": "Improved",
+      "default": 0
+     },
+     "worsened": {
+      "type": "integer",
+      "title": "Worsened",
+      "default": 0
+     },
+     "unchanged": {
+      "type": "integer",
+      "title": "Unchanged",
+      "default": 0
+     },
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name"
+    ],
+    "title": "EvaluationSite"
+   },
+   "EvaluationSource": {
+    "properties": {
+     "siteId": {
+      "type": "string",
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Siteid"
+     },
+     "datasetId": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 64
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Datasetid"
+     },
+     "jsonl": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 1000000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Jsonl"
+     },
+     "limit": {
+      "type": "integer",
+      "maximum": 50.0,
+      "minimum": 1.0,
+      "title": "Limit",
+      "default": 5
+     }
+    },
+    "type": "object",
+    "required": [
+     "siteId"
+    ],
+    "title": "EvaluationSource"
    },
    "EventOut": {
     "properties": {
