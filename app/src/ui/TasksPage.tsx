@@ -34,7 +34,7 @@ export default function TasksPage({ state }: { state: State }) {
         <a className="button button--primary" href={hrefOf({ page: "newTask" })}><Icon name="plus" />生成经验包</a>
       } />
       {deleting ? <DeleteTaskConfirm task={deleting} onCancel={() => setDeleting(null)} onDeleted={() => { showFlash({ page: "tasks" }, `已删除任务“${deleting.name}”。`); setDeleting(null); }} /> : null}
-      <div className="list-toolbar" role="search" aria-label="筛选联邦任务">
+      <div className="list-toolbar" role="search" aria-label="筛选经验任务">
         <SearchInput
           name="task-search"
           aria-label="搜索任务名称"
