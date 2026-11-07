@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { algorithmsFor, SCENARIOS, TASK_TYPES } from "../domain/catalog";
+import { algorithmsFor, SCENARIOS, TASK_TYPES, visibleTaskType } from "../domain/catalog";
 import { hrefOf } from "../state/route";
 import { PageHead, Tag } from "./common";
 import { TaskTypeSelect, type TaskTypeFilter } from "./filters";
@@ -23,7 +23,7 @@ export default function AlgorithmsPage() {
       <div className="algo-board-shell">
         <div className="algo-board">
           {SCENARIOS.map((scenario) => {
-            const all = algorithmsFor(scenario.id).filter(a => a.accepts.some(type => TASK_TYPES[type]?.recordBased));
+            const all = algorithmsFor(scenario.id).filter((a) => a.accepts.some(visibleTaskType));
             const algorithms = taskType === "all" ? all : all.filter(a => a.accepts.includes(taskType));
             return (
               <section key={scenario.id} className="algo-column" aria-labelledby={`algo-${scenario.id}`}>
@@ -42,7 +42,7 @@ export default function AlgorithmsPage() {
                         <span className="algo-card-full" translate="no">{algorithm.fullName}</span>
                         <span className="algo-card-text">{algorithm.summary}</span>
                         <span className="algo-card-facts">
-                          <span><span className="algo-card-label">任务类型</span>{algorithm.accepts.map((type) => TASK_TYPES[type].label).join("、")}</span>
+                          <span><span className="algo-card-label">任务类型</span>{algorithm.accepts.filter(visibleTaskType).map((type) => TASK_TYPES[type].label).join("、")}</span>
                           <span><span className="algo-card-label">产出</span>{algorithm.output.name}</span>
                         </span>
                       </a>

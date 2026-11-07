@@ -1,31 +1,35 @@
 import { InfoTip } from "../InfoTip";
 import {
-  ALGORITHMS,
+  algorithmsFor,
+  recordTaskTypesFor,
   TASK_TYPES,
   type Algorithm,
+  type ScenarioId,
   type TaskType,
 } from "../../domain/catalog";
 import { type Draft } from "../../domain/config";
 import { Choices, Field } from "../console";
 
-/** 先选择应用；后续算法和数据由注册表匹配。 */
+/** 后续任务类型和算法按场景匹配。 */
 export function TaskTypeChoice({
+  scenario,
   value,
   onChange,
   error,
 }: {
+  scenario: ScenarioId | null;
   error?: string;
   value: TaskType | null;
   onChange: (type: TaskType | null) => void;
 }) {
-  const types = Object.keys(TASK_TYPES).filter(type => TASK_TYPES[type].recordBased);
+  const types = recordTaskTypesFor(scenario);
   return (
     <Field
-      label="应用"
+      label="任务类型"
       labelId="task-type-label"
       wide
       error={error}
-      info="选择要增强的应用，再选择提取和聚合经验的算法。"
+      info="任务类型决定所需数据的格式和可用算法。"
     >
 
       {types.length ? (
@@ -35,12 +39,11 @@ export function TaskTypeChoice({
           labelledBy="task-type-label"
           value={value}
           options={types.map((type) => ({ value: type, label: TASK_TYPES[type].label }))}
-          placeholder="更多应用"
           onChange={onChange}
           onClear={() => onChange(null)}
         />
       ) : (
-        <p className="field-static">暂无可用应用。</p>
+        <p className="field-static">{scenario ? "暂无可用任务类型" : "请先选择联邦场景"}</p>
       )}
     </Field>
   );
@@ -48,24 +51,25 @@ export function TaskTypeChoice({
 
 /** 算法按注册表列出；短名称供选择，说明、交换内容与产出通过 ⓘ 查看。 */
 export function AlgorithmField({
+  scenario,
   value,
   onChange,
   error,
   taskType,
 }: {
+  scenario: ScenarioId | null;
   taskType?: string | null;
   error?: string;
   value: Draft["algorithm"];
   onChange: (id: Algorithm["id"] | null) => void;
 }) {
-  const algorithms = ALGORITHMS.filter(a => a.accepts.some(type => TASK_TYPES[type]?.recordBased) && (!taskType || a.accepts.includes(taskType)));
+  const algorithms = scenario && taskType ? algorithmsFor(scenario).filter((a) => a.accepts.includes(taskType)) : [];
   return (
     <Field label="算法" labelId="algorithm-label" wide error={error}>
-      {!taskType ? <span id="algorithm-prerequisite" className="visually-hidden">先选择应用</span> : null}
       {algorithms.length ? (
-        <AlgorithmTable error={error} algorithms={algorithms} value={value} onChange={onChange} disabled={!taskType} />
+        <AlgorithmTable error={error} algorithms={algorithms} value={value} onChange={onChange} />
       ) : (
-        <p className="field-static">还没有可用算法。</p>
+        <p className="field-static">{taskType ? "暂无可用算法" : "请先选择任务类型"}</p>
       )}
     </Field>
   );
@@ -76,14 +80,12 @@ function AlgorithmTable({
   algorithms,
   value,
   onChange,
-  disabled,
   error,
 }: {
   error?: string;
   algorithms: readonly Algorithm[];
   value: Draft["algorithm"];
   onChange: (id: Algorithm["id"] | null) => void;
-  disabled: boolean;
 }) {
   return (
     <div
@@ -96,7 +98,7 @@ function AlgorithmTable({
       {algorithms.map((item) => (
         <div
           key={item.id}
-          className={`algorithm-choice${value === item.id ? " algorithm-choice--checked" : ""}${disabled ? " algorithm-choice--disabled" : ""}`}
+          className={`algorithm-choice${value === item.id ? " algorithm-choice--checked" : ""}`}
         >
           <label className="algorithm-choice-main" htmlFor={`algorithm-${item.id}`}>
             <input
@@ -104,9 +106,7 @@ function AlgorithmTable({
               type="radio"
               name="algorithm"
               checked={value === item.id}
-              disabled={disabled}
               aria-label={item.name}
-              aria-describedby={disabled ? "algorithm-prerequisite" : undefined}
               onChange={() => onChange(item.id)}
               onKeyDown={(event) => {
                 if (event.key === " " && value === item.id) {

@@ -1,6 +1,6 @@
 import { useState, type Dispatch } from "react";
 import { ApiError } from "../api/client";
-import { TASK_TYPES } from "../domain/catalog";
+import { TASK_TYPES, visibleTaskType } from "../domain/catalog";
 import { DEFAULT_DRAFT, toDraft } from "../domain/config";
 import { canDeleteTask, scoredRounds, type Task } from "../domain/task";
 import { controlTask } from "../state/actions";
@@ -37,7 +37,9 @@ export default function TaskPage({ task, state, dispatch, tab }: Props) {
   ];
 
   function copy() {
-    dispatch({ type: "resetDraft", draft: TASK_TYPES[task.config.taskType]?.recordBased ? toDraft(task.config, `${task.name}（副本）`) : { ...DEFAULT_DRAFT, name: `${task.name}（副本）`, touched: true } });
+    const name = `${task.name}（副本）`;
+    const canCopyConfig = visibleTaskType(task.config.taskType) && TASK_TYPES[task.config.taskType]?.recordBased;
+    dispatch({ type: "resetDraft", draft: canCopyConfig ? toDraft(task.config, name) : { ...DEFAULT_DRAFT, name, touched: true } });
     navigate({ page: "newTask" });
   }
 
@@ -76,7 +78,7 @@ export default function TaskPage({ task, state, dispatch, tab }: Props) {
   return (
     <>
       <PageHead
-        back={{ label: "经验任务", route: { page: "tasks" } }}
+        back={{ label: "联邦任务", route: { page: "tasks" } }}
         title={task.name}
         status={<>{task.fake ? <Tag>假模型</Tag> : null}<TaskStatus task={task} /></>}
         meta={<Meta parts={[

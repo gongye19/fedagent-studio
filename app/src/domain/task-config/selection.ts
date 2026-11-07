@@ -150,7 +150,7 @@ export function chooseAlgorithm(draft: Draft, algorithm: AlgorithmId | null): Dr
   return {
     ...draft,
     algorithm,
-    scenario: definition?.scenario ?? null,
+    scenario: definition?.scenario ?? draft.scenario,
     taskType: draft.taskType && TASK_TYPES[draft.taskType]?.recordBased && (!definition || definition.accepts.includes(draft.taskType)) ? draft.taskType : null,
     participants: [],
     agentGroups: definition?.requirements.agentRequired

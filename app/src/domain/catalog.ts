@@ -104,6 +104,17 @@ export const TASK_TYPES: Record<TaskType, TaskTypeDef> = {};
 export const GRADERS: Record<GraderId, { label: string; detail: string; requiresModel: boolean }> = {};
 export const ALGORITHMS: Algorithm[] = [];
 
+/** 数学推理暂时退出日常界面，保留已有任务和直达链接。 */
+export function visibleTaskType(type: TaskType): boolean {
+  return type !== "math-reasoning" && type !== "math-records";
+}
+
+export function recordTaskTypesFor(scenario: ScenarioId | null): TaskType[] {
+  if (!scenario) return [];
+  return [...new Set(algorithmsFor(scenario).flatMap((item) => item.accepts))]
+    .filter((type) => visibleTaskType(type) && TASK_TYPES[type]?.recordBased);
+}
+
 type Registry = components["schemas"]["RegistryOut"];
 
 function toParam(param: components["schemas"]["ParamOut"]): ParamDef {

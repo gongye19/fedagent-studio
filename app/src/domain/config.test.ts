@@ -181,11 +181,11 @@ describe("draft", () => {
       draftIssues(empty, DATASETS, PARTICIPANTS, ENDPOINTS).map(
         (issue) => issue.field,
       ),
-    ).toEqual(["taskType"]);
+    ).toEqual(["scenario"]);
     const planned = withDefaults({ scenario: "vertical" });
     expect(
       draftIssues(planned, DATASETS, PARTICIPANTS, ENDPOINTS)[0].message,
-    ).toBe("选择应用");
+    ).toBe("这个场景的算法待接入");
     const one = draft({
       participants: [BOTH[0]],
       serverModel: "missing:model",
@@ -204,7 +204,7 @@ describe("draft", () => {
     const direct = chooseAlgorithm(DEFAULT_DRAFT, "fot");
     expect(direct.scenario).toBe("horizontal");
     expect(direct.taskType).toBeNull();
-    expect(chooseAlgorithm(direct, null).scenario).toBeNull();
+    expect(chooseAlgorithm(direct, null).scenario).toBe("horizontal");
     const horizontal = chooseScenario(DEFAULT_DRAFT, "horizontal");
     expect([horizontal.taskType, horizontal.algorithm]).toEqual([null, null]);
     expect(

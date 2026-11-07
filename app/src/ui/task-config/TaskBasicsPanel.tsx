@@ -1,5 +1,6 @@
-import { Field, FieldGroup, Panel } from "../console";
-import { AlgorithmField } from "../task-config/TaskBasics";
+import { SCENARIOS } from "../../domain/catalog";
+import { Choices, Field, FieldGroup, Panel } from "../console";
+import { AlgorithmField, TaskTypeChoice } from "./TaskBasics";
 import type { TaskConfigController } from "./useTaskConfig";
 
 export function TaskBasicsPanel({ config }: { config: TaskConfigController }) {
@@ -19,8 +20,15 @@ export function TaskBasicsPanel({ config }: { config: TaskConfigController }) {
               onChange={(event) => update({ name: event.target.value })}
             />
           </Field>
-          <Field label="协作场景" wide><p className="field-static">横向联邦 · 不同来源的问诊记录</p></Field>
-          <AlgorithmField error={fieldError("algorithm")} value={draft.algorithm} taskType={draft.taskType}
+          <Field label="联邦场景" labelId="scenario-label" wide error={fieldError("scenario")}
+            info={SCENARIOS.map((scenario) => <p key={scenario.id}><strong>{scenario.short}：</strong>{scenario.summary}</p>)}>
+            <Choices name="scenario" labelledBy="scenario-label" value={draft.scenario} error={fieldError("scenario")}
+              options={SCENARIOS.map((item) => ({ value: item.id, label: item.short, badge: item.status === "planned" ? "待接入" : undefined }))}
+              onChange={config.selectScenario} onClear={() => config.selectScenario(null)} />
+            {config.scenarioPlanned ? <p className="field-static" role="status">该场景的算法待接入，接入后可在这里配置并运行任务。</p> : null}
+          </Field>
+          <TaskTypeChoice scenario={draft.scenario} value={draft.taskType} error={fieldError("taskType")} onChange={config.selectTaskType} />
+          <AlgorithmField scenario={draft.scenario} error={fieldError("algorithm")} value={draft.algorithm} taskType={draft.taskType}
             onChange={(id) => config.selectAlgorithm(id)} />
         </FieldGroup>
       </div>

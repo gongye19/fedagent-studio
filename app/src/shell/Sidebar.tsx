@@ -1,5 +1,5 @@
-import { MEDICAL_RECORDS } from "../domain/consultation";
 import { useEffect, useState } from "react";
+import { visibleTaskType } from "../domain/catalog";
 import { hrefOf, type Route } from "../state/route";
 import { type State } from "../state/store";
 import { Icon, type IconName } from "../ui/icons";
@@ -41,14 +41,16 @@ type NavItem = { key: NavKey; label: string; icon: IconName; route: Route };
 /** 所有入口同级展示；手机只折叠整个导航，不再隐藏资源目录。 */
 const NAV: readonly NavItem[] = [
   { key: "home", label: "工作台", icon: "home", route: { page: "home" } },
+  { key: "tasks", label: "联邦任务", icon: "tasks", route: { page: "tasks" } },
+  { key: "apps", label: "应用", icon: "apps", route: { page: "apps" } },
   { key: "resources", label: "数据资源", icon: "resources", route: { page: "resources", space: "workspace" } },
-  { key: "tasks", label: "经验任务", icon: "tasks", route: { page: "tasks" } },
-  { key: "apps", label: "医疗问诊", icon: "apps", route: { page: "consultation" } },
+  { key: "models", label: "大模型接口", icon: "model", route: { page: "models" } },
+  { key: "algorithms", label: "算法", icon: "algorithm", route: { page: "algorithms" } },
 ];
 
 export function Sidebar({ route, state }: { route: Route; state: State | null }) {
   const active = navKeyOf(route);
-  const running = state?.tasks.filter((task) => task.config.taskType === MEDICAL_RECORDS && (task.status === "running" || task.status === "queued")).length ?? 0;
+  const running = state?.tasks.filter((task) => visibleTaskType(task.config.taskType) && (task.status === "running" || task.status === "queued")).length ?? 0;
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
 

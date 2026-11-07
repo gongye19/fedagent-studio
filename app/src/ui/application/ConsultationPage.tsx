@@ -59,7 +59,7 @@ export function ConsultationPage({ state, packageId }: { state: State; packageId
 
   return (
     <>
-      <PageHead title="医疗问诊" meta="选择问诊经验包，描述情况并继续追问。" />
+      <PageHead title="医疗问诊" back={{ label: "应用", route: { page: "apps" } }} meta="选择问诊经验包，描述情况并继续追问。" />
       <Panel className="consultation">
         <div className="consultation-controls">
           <label className="consultation-field">
@@ -87,7 +87,7 @@ export function ConsultationPage({ state, packageId }: { state: State; packageId
             <div className="consultation-empty">
               <strong>{packages.length ? "描述想咨询的情况" : "先准备一个问诊经验包"}</strong>
               {packages.length ? <p>可以从主要症状和持续时间说起。</p> :
-                <a className="button button--secondary" href={hrefOf({ page: "tasks" })}>查看经验任务</a>}
+                <a className="button button--secondary" href={hrefOf({ page: "tasks" })}>查看联邦任务</a>}
             </div>
           ) : null}
           {messages.map((message, index) => (

@@ -7,7 +7,7 @@ import {
   type MouseEvent,
 } from "react";
 import { api, ApiError } from "../../api/client";
-import { algorithmOf, TASK_TYPES, type ScenarioId } from "../../domain/catalog";
+import { algorithmOf, recordTaskTypesFor, scenarioOf, type ScenarioId } from "../../domain/catalog";
 import {
   activeOverrides,
   availableDataSources,
@@ -20,7 +20,7 @@ import {
   type Estimate,
   type Issue,
 } from "../../domain/config";
-import { DEFAULT_ENDPOINT_ID, endpointOf } from "../../domain/resources";
+import { availableResource, DEFAULT_ENDPOINT_ID, endpointOf, fits } from "../../domain/resources";
 import { createTask, taskRequest } from "../../state/actions";
 import { showFlash } from "../../state/flash";
 import { navigate } from "../../state/route";
@@ -49,30 +49,31 @@ export function useTaskConfig(
     dispatch({ type: "resetDraft" });
   }, [dispatch]);
 
+  const incoming = state.datasets.find((dataset) => dataset.id === datasetId && dataset.ready && availableResource(dataset));
+  const entryScenario = initialScenario ?? incoming?.scenario;
   useEffect(() => {
-    if (initialScenario)
-      dispatch({
-        type: "chooseScenario",
-        scenario: initialScenario,
-        auto: true,
-      });
-  }, [dispatch, initialScenario]);
+    if (!entryScenario) return;
+    dispatch({ type: "chooseScenario", scenario: entryScenario, auto: true });
+    if (application && recordTaskTypesFor(entryScenario).includes(application))
+      dispatch({ type: "chooseTaskType", taskType: application });
+  }, [dispatch, entryScenario, application]);
 
-  useEffect(() => {
-    if (application && TASK_TYPES[application]?.recordBased)
-      dispatch({type:"chooseTaskType",taskType:application});
-  }, [application,dispatch]);
+  function selectScenario(id: Draft["scenario"]) {
+    dispatch({ type: "chooseScenario", scenario: id });
+    if (application && recordTaskTypesFor(id).includes(application))
+      dispatch({ type: "chooseTaskType", taskType: application });
+    if (entryScenario && id !== entryScenario) navigate({ page: "newTask" }, { keepScroll: true });
+  }
 
-  const incoming = state.datasets.find((dataset) => dataset.id === datasetId && dataset.taskType === application && dataset.ready);
-  const sourceId = incoming?.participantId;
-  const incomingId = incoming?.id;
-  useEffect(() => {
-    if (sourceId && incomingId) dispatch({ type: "pickDataset", participantId: sourceId, datasetId: incomingId });
-  }, [dispatch, sourceId, incomingId]);
+  function selectTaskType(taskType: Draft["taskType"]) {
+    dispatch({ type: "chooseTaskType", taskType });
+  }
 
   function selectAlgorithm(id: Draft["algorithm"]) {
     dispatch({ type: "chooseAlgorithm", algorithm: id });
-    if (id && incoming) dispatch({ type: "pickDataset", participantId: incoming.participantId, datasetId: incoming.id });
+    if (id && incoming && draft.scenario && draft.taskType && fits(incoming, draft.scenario, draft.taskType)) {
+      dispatch({ type: "pickDataset", participantId: incoming.participantId, datasetId: incoming.id });
+    }
   }
 
   const update = (patch: Partial<Draft>) =>
@@ -112,6 +113,7 @@ export function useTaskConfig(
   ]);
   // 能参加的参与方：名下有登记在这个场景、这种任务类型下的数据集。
   const scenarioId = draft.scenario;
+  const scenarioPlanned = scenarioId !== null && scenarioOf(scenarioId).status === "planned";
   const taskType = draft.taskType;
   const candidates = availableDataSources(
     draft,
@@ -255,7 +257,7 @@ export function useTaskConfig(
   }
 
   function restart() {
-    dispatch({ type: "resetDraft", draft: { taskType: application ?? null } });
+    dispatch({ type: "resetDraft" });
     setPending(null);
     setAttempted(false);
     setCreateError(null);
@@ -264,7 +266,7 @@ export function useTaskConfig(
 
   /** 缺项在尝试开始时原位提示；最终创建仍以服务端校验为准。 */
   function start(event: MouseEvent<HTMLButtonElement>) {
-    if (creating || validationPending) return;
+    if (scenarioPlanned || creating || validationPending) return;
     if (!canCreate) {
       setAttempted(true);
       const reduced = window.matchMedia(
@@ -334,10 +336,13 @@ export function useTaskConfig(
     pending,
     setPending,
     formRef,
+    selectScenario,
+    selectTaskType,
     selectAlgorithm,
     update,
     algorithm,
     scenarioId,
+    scenarioPlanned,
     taskType,
     candidates,
     joined,

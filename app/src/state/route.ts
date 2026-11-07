@@ -3,9 +3,10 @@
  *
  * #/                          首页
  * #/tasks                     联邦任务
- * #/tasks/new/场景             新建这个场景的联邦任务（每个场景有自己的配置页，目前只有横向联邦）
+ * #/tasks/new[/场景]           新建联邦任务，可带入场景选择
  * #/tasks/:id[/标签]           任务详情
- * #/apps                      应用（任务产出发布后的成果）
+ * #/apps                      应用目录
+ * #/apps/consultation         医疗问诊
  * #/apps/:id[/标签]            应用详情
  * #/participants[/场景[/:id]] 参与方与数据：按场景分块；带 id 时展开那一行（数据集 id，或参与方 id）
  * #/participants/new          新增参与方
@@ -76,14 +77,13 @@ export function parseHash(hash: string): Route {
         return {...(scenario ? { page: "newTask" as const, scenario } : { page: "newTask" as const }), ...(application ? { application } : {}), ...(dataset ? { dataset } : {})};
       }
       return { page: "task", id: second, tab: oneOf(TASK_TABS, third) };
-    case "consultation": {
-      const packageId = search.get("package") ?? undefined;
-      return packageId ? { page: "consultation", packageId } : { page: "consultation" };
-    }
+    case "consultation":
+      return consultationRoute(search);
     case "applications":
       return second ? {page:"application", taskType:second} : {page:"apps"};
     case "apps":
     case "libraries": // 旧地址
+      if (first === "apps" && second === "consultation") return consultationRoute(search);
       return second ? { page: "app", id: second, tab: oneOf(APP_TABS, third) } : { page: "apps" };
     case "participants": {
       if (second === "new") return withFrom({ page: "newParticipant" as const });
@@ -128,7 +128,7 @@ export function hrefOf(route: Route): string {
     case "task":
       return `#/tasks/${part(route.id)}${route.tab ? `/${route.tab}` : ""}`;
     case "consultation":
-      return `#/consultation${query({ package: route.packageId })}`;
+      return `#/apps/consultation${query({ package: route.packageId })}`;
     case "apps":
       return "#/apps";
     case "application":
@@ -154,6 +154,11 @@ export function hrefOf(route: Route): string {
     default:
       return "#/";
   }
+}
+
+function consultationRoute(search: URLSearchParams): Route {
+  const packageId = search.get("package");
+  return packageId ? { page: "consultation", packageId } : { page: "consultation" };
 }
 
 function fromValue(from: From | undefined): string | undefined {

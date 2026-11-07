@@ -47,8 +47,8 @@ export default function ModelsPage({
   return (
     <>
       <PageHead
-        title="LLM 接口"
-        meta="提供模型推理能力，供平台内置流程与汇总步骤使用。"
+        title="大模型接口"
+        meta="配置和验证联邦任务、评测与应用使用的大模型。"
         actions={space === "workspace" ? (
           <a
             className="button button--primary"
@@ -63,7 +63,7 @@ export default function ModelsPage({
         space={space}
         routeOf={(value) => ({ page: "models", space: value })}
       />
-      <ResourceTable label="LLM 接口列表" columns={[
+      <ResourceTable label="大模型接口列表" columns={[
         {label: "接口名称", width: "30%"}, {label: "模型", width: "20%"},
         {label: "并发上限", className: "numeric", width: "10%"},
         {label: "单价（元 / 百万 token）", className: "numeric", width: "18%"},

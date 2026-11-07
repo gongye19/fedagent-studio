@@ -83,8 +83,8 @@ export default function TaskConfigPage({
   return (
     <>
       <PageHead
-        title="生成问诊经验包"
-        back={{ label: "经验任务", route: { page: "tasks" } }}
+        title="新建联邦任务"
+        back={{ label: "联邦任务", route: { page: "tasks" } }}
       />
       <div className="order-layout task-config" ref={formRef}>
         <div className="order-main">

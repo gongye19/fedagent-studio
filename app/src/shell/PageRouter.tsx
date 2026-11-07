@@ -3,12 +3,13 @@ import { ConsultationPage } from "../ui/application/ConsultationPage";
 import { type Dispatch } from "react";
 import { type Route } from "../state/route";
 import { taskOf, type Action, type State } from "../state/store";
-import { ALGORITHMS, scenarioOf, type ScenarioId } from "../domain/catalog";
+import { ALGORITHMS } from "../domain/catalog";
 import AlgorithmPage from "../ui/AlgorithmPage";
 import AlgorithmsPage from "../ui/AlgorithmsPage";
 import ApplicationPage from "../ui/ApplicationPage";
 import AppPage from "../ui/AppPage";
-import { EmptyState, NotFound, PageHead } from "../ui/common";
+import AppsPage from "../ui/AppsPage";
+import { NotFound } from "../ui/common";
 import EndpointPage from "../ui/EndpointPage";
 import HomePage from "../ui/HomePage";
 import AgentsPage from "../ui/AgentsPage";
@@ -26,12 +27,8 @@ export function PageRouter({ state, dispatch, route }: { state: State; dispatch:
     case "tasks":
       return <TasksPage state={state} />;
     case "newTask":
-      // 已支持场景复用注册表驱动的配置页；未接入算法的场景显示规划状态。
-      return !route.scenario || scenarioOf(route.scenario).status === "available" ? (
-        <TaskConfigPage state={state} dispatch={dispatch} initialScenario={route.scenario} application={MEDICAL_RECORDS} datasetId={route.dataset} />
-      ) : (
-        <PlannedTaskConfig scenario={route.scenario} />
-      );
+      return <TaskConfigPage state={state} dispatch={dispatch} initialScenario={route.scenario}
+        application={route.application ?? (route.dataset ? MEDICAL_RECORDS : undefined)} datasetId={route.dataset} />;
     case "resources":
       return route.kind === "models" ? <ModelsPage state={state} space={route.space} /> : route.kind === "agents" ? <AgentsPage space={route.space} /> : <ResourcesPage state={state} space={route.space} selectedId={route.id} upload={route.upload} />;
     case "task": {
@@ -45,7 +42,7 @@ export function PageRouter({ state, dispatch, route }: { state: State; dispatch:
     case "consultation":
       return <ConsultationPage key={route.packageId ?? ""} state={state} packageId={route.packageId} />;
     case "apps":
-      return <ConsultationPage state={state} />;
+      return <AppsPage />;
     case "application":
       return route.taskType === MEDICAL_RECORDS ? <ConsultationPage state={state} /> : <ApplicationPage state={state} taskType={route.taskType} />;
     case "app": {
@@ -93,17 +90,4 @@ export function PageRouter({ state, dispatch, route }: { state: State; dispatch:
     default:
       return <HomePage state={state} />;
   }
-}
-
-/** 还没有配置页的场景（算法规划中）：说明原因，回到任务列表。 */
-function PlannedTaskConfig({ scenario }: { scenario: ScenarioId }) {
-  const item = scenarioOf(scenario);
-  return (
-    <>
-      <PageHead title={`新建${item.short}任务`} back={{ label: "联邦任务", route: { page: "tasks" } }} />
-      <EmptyState title="暂时不能新建">
-        <p>{item.short}的算法还在规划中，接入后在这里配置这个场景的任务。</p>
-      </EmptyState>
-    </>
-  );
 }

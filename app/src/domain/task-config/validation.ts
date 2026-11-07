@@ -56,16 +56,16 @@ export function draftIssues(
   agents?: readonly AgentEndpoint[],
 ): Issue[] {
   const issues: Issue[] = [];
+  if (!draft.scenario) return [{ field: "scenario", message: "选择联邦场景" }];
+  if (scenarioOf(draft.scenario).status !== "available") {
+    return [{ field: "scenario", message: "这个场景的算法待接入" }];
+  }
   if (!draft.taskType) {
-    issues.push({ field: "taskType", message: "选择应用" });
+    issues.push({ field: "taskType", message: "选择任务类型" });
     return issues;
   }
   if (!draft.algorithm) {
     issues.push({ field: "algorithm", message: "选择算法" });
-    return issues;
-  }
-  if (!draft.scenario || scenarioOf(draft.scenario).status !== "available") {
-    issues.push({ field: "algorithm", message: "这个算法所属场景尚未可用，请重新选择算法" });
     return issues;
   }
   const algorithm = algorithmOf(draft.algorithm);

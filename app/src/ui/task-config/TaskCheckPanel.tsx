@@ -17,7 +17,7 @@ export function TaskCheckPanel({ config }: { config: TaskConfigController }) {
           className="button button--secondary button--compact config-test-trigger"
           data-ready={config.canTest}
           aria-label={preflight.running ? "正在检查连接" : preflight.valid ? "重新检查" : "检查连接"}
-          disabled={creating || preflight.running || config.validationPending}
+          disabled={config.scenarioPlanned || creating || preflight.running || config.validationPending}
           onClick={config.testConfiguration}
         >
           {preflight.running ? <><CheckStatus status="running" />检查中</> : preflight.valid ? <><CheckStatus status="passed" />重新检查</> : "检查连接"}

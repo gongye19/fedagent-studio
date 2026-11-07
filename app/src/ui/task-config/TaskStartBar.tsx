@@ -38,7 +38,7 @@ export function TaskStartBar({ config }: { config: TaskConfigController }) {
         <button
           type="button"
           className="button button--primary"
-          disabled={creating || validationPending || config.preflight.running}
+          disabled={config.scenarioPlanned || creating || validationPending || config.preflight.running}
           data-ready={canCreate}
           aria-describedby="task-action-status"
           onClick={start}

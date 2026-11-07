@@ -1,5 +1,3 @@
-.medical-next { max-width: 680px; }
-.medical-next p { margin: 0 0 var(--space-4); }
 .medical-data-next { margin-bottom: var(--space-3); }
 .consultation { max-width: 900px; margin-inline: auto; }
 .consultation-controls { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-3); }

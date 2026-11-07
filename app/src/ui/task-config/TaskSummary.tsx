@@ -60,15 +60,15 @@ export function TaskSummary({
         <dl className="summary-list">
           <div>
             <dt>场景</dt>
-            <dd>{algorithm ? <ScenarioTag scenario={algorithm.scenario} /> : "—"}</dd>
+            <dd>{draft.scenario ? <ScenarioTag scenario={draft.scenario} /> : "—"}</dd>
+          </div>
+          <div>
+            <dt>任务类型</dt>
+            <dd>{draft.taskType ? TASK_TYPES[draft.taskType].label : "—"}</dd>
           </div>
           <div>
             <dt>算法</dt>
             <dd>{algorithm ? algorithm.name : "—"}</dd>
-          </div>
-          <div>
-            <dt>应用</dt>
-            <dd>{draft.taskType ? TASK_TYPES[draft.taskType].label : "—"}</dd>
           </div>
           <div>
             <dt>
@@ -166,7 +166,7 @@ export function TaskSummary({
           <button
             type="button"
             className="button button--primary button--block summary-start"
-            disabled={creating || validationPending || config.preflight.running}
+            disabled={config.scenarioPlanned || creating || validationPending || config.preflight.running}
             data-ready={canCreate}
             aria-describedby="task-action-status"
             onClick={start}

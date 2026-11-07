@@ -1,4 +1,5 @@
 import { MEDICAL_RECORDS } from "../domain/consultation";
+import { visibleTaskType } from "../domain/catalog";
 import { hrefOf } from "../state/route";
 import { useState } from "react";
 import { inResourceScope, type ResourceSpace } from "../domain/resources";
@@ -31,7 +32,7 @@ export default function ResourcesPage({
     kind: "data",
     id,
   });
-  const data = state.datasets.filter((d) => d.taskType.startsWith("medical-") && inResourceScope(d, space));
+  const data = state.datasets.filter((d) => visibleTaskType(d.taskType) && inResourceScope(d, space));
   const selected = data.find((item) => item.id === selectedId && item.taskType === MEDICAL_RECORDS && item.ready);
   function closeUpload() {
     setAdding(false);
