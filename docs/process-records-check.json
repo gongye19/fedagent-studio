@@ -1,0 +1,157 @@
+{
+  "revision": "23d2a2644fb5566a219060c06777e5447d80ce61",
+  "model": "gpt-5.6-luna",
+  "generatedDatasets": [
+    {
+      "id": "ds-7b9af9c4",
+      "name": "AIME24 · 生成过程记录",
+      "count": 1
+    },
+    {
+      "id": "ds-0d124341",
+      "name": "AIME25 · 生成过程记录",
+      "count": 1
+    },
+    {
+      "id": "ds-8f80c774",
+      "name": "MedQA 002 · 生成过程记录",
+      "count": 1
+    },
+    {
+      "id": "ds-d7927c97",
+      "name": "MedQA 001 · 生成过程记录",
+      "count": 1
+    }
+  ],
+  "medicalProcessEvents": [
+    23,
+    23
+  ],
+  "runs": [
+    {
+      "algorithm": "fot-records",
+      "task": "task-ceaab2fe",
+      "app": "app-2ada9395",
+      "status": "completed",
+      "items": 9,
+      "records": 2,
+      "taskTokens": 27582,
+      "comparison": {
+        "without": {
+          "correct": true,
+          "tokens": 3011,
+          "details": {
+            "experienceEntries": 0
+          }
+        },
+        "with": {
+          "correct": true,
+          "tokens": 4329,
+          "details": {
+            "experienceEntries": 9
+          }
+        }
+      }
+    },
+    {
+      "algorithm": "fot-records",
+      "task": "task-50a94baf",
+      "app": "app-a02dea66",
+      "status": "completed",
+      "items": 9,
+      "records": 2,
+      "taskTokens": 37872,
+      "comparison": {
+        "without": {
+          "correct": true,
+          "tokens": 873,
+          "details": {
+            "experienceEntries": 0
+          }
+        },
+        "with": {
+          "correct": true,
+          "tokens": 1830,
+          "details": {
+            "experienceEntries": 9
+          }
+        }
+      }
+    },
+    {
+      "algorithm": "evomedclaw-records",
+      "task": "task-93aa8941",
+      "app": "app-67127d37",
+      "status": "completed",
+      "items": 8,
+      "records": 2,
+      "taskTokens": null,
+      "comparison": {
+        "without": {
+          "correct": true,
+          "tokens": 842,
+          "details": {
+            "experienceEntries": 0
+          }
+        },
+        "with": {
+          "correct": true,
+          "tokens": 804,
+          "details": {
+            "experienceEntries": 0
+          }
+        }
+      }
+    }
+  ],
+  "independentRetrieval": {
+    "case": "medqa-008",
+    "tokens": 1280,
+    "details": {
+      "experienceEntries": 4
+    }
+  },
+  "modelCalls": [
+    {
+      "purpose": "apply",
+      "status": "ok",
+      "count": 7,
+      "tokens": 12969
+    },
+    {
+      "purpose": "record-generation",
+      "status": "ok",
+      "count": 57,
+      "tokens": 84576
+    },
+    {
+      "purpose": "task",
+      "status": "ok",
+      "count": 12,
+      "tokens": 65454
+    }
+  ],
+  "totalCalls": 76,
+  "totalTokens": 162999,
+  "unitPriceConfigured": false,
+  "frontendTests": 61,
+  "backendTests": 184,
+  "artifactFilesMatched": 21,
+  "historicalTasksUnchanged": 4,
+  "initialDeploymentPreservedAllRowsAndFiles": true,
+  "mainDatabaseIntegrity": {
+    "ok": true,
+    "foreignKeys": true
+  },
+  "backupDatabaseIntegrity": {
+    "fedagent.db": true,
+    "medical-agents/medical-a/agent.sqlite": true,
+    "medical-agents/medical-a/runs.sqlite": true,
+    "medical-agents/medical-b/agent.sqlite": true,
+    "medical-agents/medical-b/runs.sqlite": true
+  },
+  "backups": [
+    "20261107T025006017752Z",
+    "20261107T030244741143Z"
+  ]
+}

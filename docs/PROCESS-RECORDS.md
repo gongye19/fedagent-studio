@@ -43,3 +43,7 @@ uv run python ../tools/process-records/generate.py \
 医疗用 `--application medical --source <公开病例JSONL> --source-url https://huggingface.co/ItsMaxNorm/MedAgentSim-datasets`；本地复用现有原版问诊桥生成实际对话／检查／会诊，不用参考诊断提示医生。成功调用按请求哈希缓存，完整记录按来源／模型校验后恢复；默认每份仅一条，另留下一条作为独立输入。缓存、过程正文和输入清单不进入 Git。医疗原版流程耗时较长；没有形成最终诊断时如实失败，不编造过程或完成状态。
 
 将输出的 source JSONL 经数据资源上传／校验，再主动选择应用、算法、数据与模型，快速连接检查后生成经验库，发布后用 manifest 的 heldout 输入验证。小样本验收只证明链路，不证明泛化提升。
+
+## 真实验收
+
+数学 FoT、医疗 FoT、医疗 EvoMedClaw 三条链路均已在实验室服务器通过；保留四份带公开来源标记的生成记录与三个经验库。任务及应用标识、独立新输入测试、条件检索结果、用量与备份见 [验收记录](./process-records-check.json)。
