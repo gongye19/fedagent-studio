@@ -1,5 +1,5 @@
 import { type Dispatch } from "react";
-import { type ScenarioId } from "../domain/catalog";
+import { TASK_TYPES, type ScenarioId } from "../domain/catalog";
 import { type Action, type State } from "../state/store";
 import { Confirm, Meta, PageHead } from "./common";
 import { Panel } from "./console";
@@ -82,7 +82,9 @@ export default function TaskConfigPage({
     <>
       <PageHead
         title="生成应用经验库"
-        back={{ label: "联邦任务", route: { page: "tasks" } }}
+        back={application && TASK_TYPES[application]?.recordBased
+          ? { label: TASK_TYPES[application].label, route: { page: "application", taskType: application } }
+          : { label: "联邦任务", route: { page: "tasks" } }}
       />
       <div className="order-layout task-config" ref={formRef}>
         <div className="order-main">

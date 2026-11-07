@@ -8,14 +8,13 @@ import {
 import { type Draft } from "../../domain/config";
 import { Choices, Field } from "../console";
 
-/** 任务类型：列出已选算法支持的类型，由用户选；指标跟着任务类型走。最后留一个"待接入"的空位。 */
+/** 先选择应用；后续算法和数据由注册表匹配。 */
 export function TaskTypeChoice({
   value,
   onChange,
   error,
 }: {
   error?: string;
-  algorithm: Algorithm | null;
   value: TaskType | null;
   onChange: (type: TaskType | null) => void;
 }) {
@@ -41,7 +40,7 @@ export function TaskTypeChoice({
           onClear={() => onChange(null)}
         />
       ) : (
-        <p className="field-static">这个算法还没有可用的任务类型。</p>
+        <p className="field-static">暂无可用应用。</p>
       )}
     </Field>
   );

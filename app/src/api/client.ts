@@ -224,6 +224,8 @@ export const api = {
   renameApp: (id: string, name: string) =>
     patch<S["AppOut"]>(`/v1/apps/${encodeURIComponent(id)}`, { name }),
   withdrawApp: (id: string) => del(`/v1/apps/${encodeURIComponent(id)}`),
+  invokeApp: (id: string, body: S["ApplyIn"]) =>
+    post<S["ApplySide"]>(`/v1/apps/${encodeURIComponent(id)}/invoke`, body),
   applyApp: (id: string, body: S["ApplyIn"]) =>
     post<S["ApplyOut"]>(`/v1/apps/${encodeURIComponent(id)}/apply`, body),
 

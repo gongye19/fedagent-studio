@@ -62,6 +62,12 @@ export function useTaskConfig(
       dispatch({type:"chooseTaskType",taskType:application});
   }, [application,dispatch]);
 
+  function selectApplication(taskType: Draft["taskType"]) {
+    dispatch({ type: "chooseTaskType", taskType });
+    if (application && taskType !== application)
+      navigate({ page: "newTask" }, { keepScroll: true });
+  }
+
   const update = (patch: Partial<Draft>) =>
     dispatch({ type: "updateDraft", patch });
   const algorithm = draft.algorithm ? algorithmOf(draft.algorithm) : null;
@@ -321,6 +327,7 @@ export function useTaskConfig(
     pending,
     setPending,
     formRef,
+    selectApplication,
     update,
     algorithm,
     scenarioId,

@@ -16,6 +16,7 @@ function navKeyOf(route: Route): NavKey {
     case "task":
       return "tasks";
     case "apps":
+    case "application":
     case "app":
       return "apps";
     case "participants":

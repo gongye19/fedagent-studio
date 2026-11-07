@@ -27,7 +27,7 @@ export function PageRouter({ state, dispatch, route }: { state: State; dispatch:
     case "newTask":
       // 已支持场景复用注册表驱动的配置页；未接入算法的场景显示规划状态。
       return !route.scenario || scenarioOf(route.scenario).status === "available" ? (
-        <TaskConfigPage key={route.application} state={state} dispatch={dispatch} initialScenario={route.scenario} application={route.application} />
+        <TaskConfigPage state={state} dispatch={dispatch} initialScenario={route.scenario} application={route.application} />
       ) : (
         <PlannedTaskConfig scenario={route.scenario} />
       );

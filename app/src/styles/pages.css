@@ -1,51 +1,3 @@
-/* 首页：轻量背景与原创关系图，场景入口保持唯一任务。 */
-.home { position: relative; isolation: isolate; min-height: calc(100dvh - var(--space-6) - 80px); display: grid; align-content: center; gap: var(--space-8); padding: var(--space-8) 0 var(--space-10); }
-.home::before { content: ""; position: absolute; z-index: -1; inset: 5% -12px 8%; pointer-events: none; background: radial-gradient(ellipse at 15% 50%, rgb(96 165 250 / 9%), transparent 55%), radial-gradient(ellipse at 85% 55%, rgb(167 139 250 / 8%), transparent 55%); }
-.home::after { content: ""; position: absolute; z-index: -1; inset: 15% 0 12%; pointer-events: none; background-image: radial-gradient(#aebbcf 0.65px, transparent 0.65px); background-size: 20px 20px; opacity: .3; mask-image: radial-gradient(ellipse, #000, transparent 72%); }
-.page-head--center { justify-content: center; text-align: center; }
-.page-head--center .page-title { justify-items: center; }
-.page-head--center .page-title-content { justify-items: center; }
-.page-head--center .page-title-row h1 { font-size: var(--text-2xl); letter-spacing: -.025em; }
-.scenario-picker { container-type: inline-size; width: min(100%, 1040px); margin-inline: auto; }
-.scenario-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
-@container (min-width: 800px) { .scenario-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-5); } }
-.scenario-card { --art-strong: #3b73cf; --art-light: #80b1f4; --art-tint: #eaf2ff; height: 100%; display: grid; grid-template-rows: auto 1fr; overflow: hidden; color: var(--foreground); background: var(--background); border: 1px solid #dce3ec; border-radius: 16px; box-shadow: 0 4px 16px rgb(40 60 90 / 4%); text-decoration: none; }
-.scenario-card--vertical { --art-strong: #408987; --art-light: #85bbb6; --art-tint: #eaf5f2; }
-.scenario-card--transfer { --art-strong: #8572bb; --art-light: #b9a8df; --art-tint: #f1eef8; }
-.scenario-art { min-height: 222px; padding: 16px 12px 18px; display: grid; place-items: center; align-content: center; gap: 4px; background: radial-gradient(ellipse at 50% 45%, var(--art-tint), #fbfcfe 85%); border-bottom: 1px solid #e9edf3; }
-.scenario-art-caption { color: var(--secondary); font-size: var(--text-xs); }
-.scenario-visual { display: block; width: min(100%, 320px); transition: transform .22s ease; }
-.scenario-art svg { display: block; width: 100%; height: auto; overflow: visible; }
-.art-plane { fill: #fff; stroke: var(--art-light); stroke-width: 1.2; }
-.art-plane-edge { fill: var(--art-light); opacity: .45; }
-.art-column, .art-node, .art-spark { fill: var(--art-strong); }
-.art-row { fill: var(--art-light); }
-.art-guide { fill: none; stroke: var(--art-light); stroke-width: 1.3; stroke-dasharray: 3 5; opacity: .65; }
-.art-route, .art-route-arrow { fill: none; stroke: var(--art-strong); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; opacity: .65; }
-.art-hub { fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; }
-.scenario-card-body { padding: var(--space-5); display: grid; gap: var(--space-3); align-content: start; }
-.scenario-card-head { display: flex; gap: var(--space-2); align-items: center; justify-content: space-between; }
-.scenario-card-head strong { font-size: var(--text-lg); font-weight: var(--weight-semibold); line-height: 1.4; }
-.scenario-card-text { color: var(--secondary); font-size: var(--text-sm); }
-.scenario-card-go { margin-top: var(--space-2); display: inline-flex; gap: 6px; align-items: center; color: var(--accent-strong); font-size: var(--text-sm); font-weight: var(--weight-medium); }
-.scenario-card-go .icon { transition: transform .2s ease; }
-a.scenario-card { transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease; }
-a.scenario-card:is(:hover, :focus-visible) { border-color: var(--art-light); box-shadow: 0 10px 28px rgb(37 99 235 / 10%); transform: translateY(-3px); }
-a.scenario-card:is(:hover, :focus-visible) .scenario-visual { transform: translateY(-2px) scale(1.025); }
-a.scenario-card:is(:hover, :focus-visible) .scenario-card-go .icon { transform: translateX(3px); }
-a.scenario-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-@container (min-width: 520px) and (max-width: 799px) {
-  .scenario-card { grid-template-rows: none; grid-template-columns: 230px minmax(0, 1fr); }
-  .scenario-art { min-height: 190px; border-bottom: 0; border-right: 1px solid #e9edf3; }
-}
-@container (max-width: 519px) {
-  .scenario-art { min-height: 198px; }
-  .scenario-visual { width: min(100%, 280px); }
-}
-@media (prefers-reduced-motion: reduce) {
-  a.scenario-card, .scenario-visual, .scenario-card-go .icon { transition: none; }
-  a.scenario-card:is(:hover, :focus-visible), a.scenario-card:is(:hover, :focus-visible) .scenario-visual, a.scenario-card:is(:hover, :focus-visible) .scenario-card-go .icon { transform: none; }
-}
 /* 算法：按场景分三栏，每栏是这个场景下的算法卡片，最后一个虚线框是"待接入"的空位 */
 .algo-board-shell { container-type: inline-size; }
 .algo-board { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
@@ -280,7 +232,6 @@ a.algo-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 }
 
 
-/* 只在参与方执行的收尾评测，不显示空的服务端分组。 */
-
+/* 应用目录：按容器宽度折行。 */
 .application-cards { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,280px),1fr)); gap: 20px; max-width: 960px; }
 .application-cards .panel p { margin-bottom: 20px; color: var(--muted); }
