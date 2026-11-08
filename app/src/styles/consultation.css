@@ -174,3 +174,32 @@
 
 .evaluation-setup { max-width: 600px; }
 .evaluation-setup .field-grid { grid-template-columns: 1fr; }
+
+.evaluation-chart-group { padding-block: var(--space-3); }
+.evaluation-chart-group + .evaluation-chart-group { border-top: 1px solid var(--border); }
+.evaluation-chart-heading { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-2); }
+.evaluation-chart-heading h3 { font-size: var(--text-md); overflow-wrap: anywhere; }
+.evaluation-chart-heading p { margin: 2px 0 0; color: var(--muted); font-size: var(--text-xs); }
+.evaluation-chart-heading > strong { white-space: nowrap; }
+.evaluation-chart-row { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr) 4.5rem; align-items: center; gap: var(--space-2); min-height: 38px; font-size: var(--text-sm); }
+.evaluation-chart-track {
+  height: 14px;
+  border-radius: 3px;
+  background: var(--surface-hover);
+  background-image: linear-gradient(to right, transparent calc(50% - .5px), var(--border-strong) 50%, transparent calc(50% + .5px));
+}
+.evaluation-chart-bar { display: block; height: 100%; border-radius: inherit; }
+.evaluation-chart-bar--none { background: var(--muted); }
+.evaluation-chart-bar--federated { background: var(--accent); }
+.evaluation-chart-value { text-align: right; font-variant-numeric: tabular-nums; line-height: 1.25; }
+.evaluation-chart-value small { display: block; color: var(--muted); font-size: var(--text-xs); }
+.evaluation-chart-axis { min-height: auto; color: var(--muted); font-size: var(--text-xs); }
+.evaluation-chart-axis > div { grid-column: 2; display: flex; justify-content: space-between; }
+.evaluation-change-summary { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); padding: 0; margin: var(--space-2) 0 var(--space-3); list-style: none; }
+.evaluation-change-summary li { display: flex; align-items: baseline; gap: var(--space-1); color: var(--secondary); font-size: var(--text-sm); }
+.evaluation-change-summary strong { font-size: var(--text-lg); font-variant-numeric: tabular-nums; }
+.evaluation-change-summary .evaluation-improved { color: var(--success-text); }
+.evaluation-change-summary .evaluation-worsened { color: var(--danger-text); }
+.evaluation-disclosure > summary { cursor: pointer; width: fit-content; font-weight: 600; }
+.evaluation-disclosure[open] > .evaluation-results { margin-top: var(--space-3); }
+.evaluation-disclosure .case-pagination { margin-top: 0; }
