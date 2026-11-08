@@ -4,8 +4,10 @@ from sqlalchemy.exc import IntegrityError
 
 from .. import apps, tasks
 from ..errors import ServiceError
-from ..experience import consultation, evaluation, package_evaluation
+from ..experience import consultation, consultation_comparison, evaluation, package_evaluation
+from ..experience.comparison_case import available_cases
 from ..experience.consultation_samples import DEMO_CASES
+from ..schemas.consultation_comparison import ComparisonCase, ComparisonIn, ComparisonOut
 from ..schemas.experience import (
     ChatIn,
     ChatOut,
@@ -100,3 +102,37 @@ def control_package_evaluation(job_id: str, action: Literal["resume", "cancel"],
     tasks.control(session, job.id, action)
     session.flush()
     return package_evaluation.present(session, job)
+
+
+
+@router.get("/consultation/comparison-cases", response_model=list[ComparisonCase], tags=["apps"])
+def comparison_cases(platform: PlatformDep) -> list[ComparisonCase]:
+    return available_cases(platform)
+
+
+@router.get("/consultation/comparisons/active", response_model=ComparisonOut | None,
+            response_model_exclude_none=True, tags=["apps"])
+def active_comparison(session: SessionDep) -> ComparisonOut | None:
+    job = consultation_comparison.active(session)
+    return consultation_comparison.present(session, job) if job else None
+
+
+@router.post("/consultation/comparisons", response_model=ComparisonOut, status_code=201,
+             response_model_exclude_none=True, tags=["apps"])
+def start_comparison(body: ComparisonIn, platform: PlatformDep, session: SessionDep) -> ComparisonOut:
+    return consultation_comparison.present(session, consultation_comparison.start(platform, session, body))
+
+
+@router.get("/consultation/comparisons/{job_id}", response_model=ComparisonOut,
+            response_model_exclude_none=True, tags=["apps"])
+def get_comparison(job_id: str, session: SessionDep) -> ComparisonOut:
+    return consultation_comparison.present(session, consultation_comparison.get(session, job_id))
+
+
+@router.post("/consultation/comparisons/{job_id}/{action}", response_model=ComparisonOut,
+             response_model_exclude_none=True, tags=["apps"])
+def control_comparison(job_id: str, action: Literal["resume", "cancel"], session: SessionDep) -> ComparisonOut:
+    consultation_comparison.get(session, job_id)
+    job = tasks.control(session, job_id, action)
+    session.flush()
+    return consultation_comparison.present(session, job)

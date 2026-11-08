@@ -628,6 +628,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/consultation/comparison-cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Comparison Cases */
+        get: operations["comparison_cases_v1_consultation_comparison_cases_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/consultation/comparisons/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Active Comparison */
+        get: operations["active_comparison_v1_consultation_comparisons_active_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/consultation/comparisons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Comparison */
+        post: operations["start_comparison_v1_consultation_comparisons_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/consultation/comparisons/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Comparison */
+        get: operations["get_comparison_v1_consultation_comparisons__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/consultation/comparisons/{job_id}/{action}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Control Comparison */
+        post: operations["control_comparison_v1_consultation_comparisons__job_id___action__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/tasks/validate": {
         parameters: {
             query?: never;
@@ -1548,6 +1633,80 @@ export interface components {
              * Format: date-time
              */
             leaseUntil: string;
+        };
+        /** ComparisonArm */
+        ComparisonArm: {
+            /**
+             * Arm
+             * @enum {string}
+             */
+            arm: "baseline" | "experience";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "waiting" | "running" | "diagnosed" | "limit" | "failed" | "canceled";
+            /** Steps */
+            steps: components["schemas"]["ComparisonStep"][];
+            /** Diagnosis */
+            diagnosis?: string | null;
+            /** Matched */
+            matched?: boolean | null;
+        };
+        /** ComparisonCase */
+        ComparisonCase: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Opening */
+            opening: string;
+        };
+        /** ComparisonIn */
+        ComparisonIn: {
+            /** Caseid */
+            caseId: string;
+            /** Packageid */
+            packageId: string;
+            /** Model */
+            model: string;
+        };
+        /** ComparisonOut */
+        ComparisonOut: {
+            /** Id */
+            id: string;
+            case: components["schemas"]["ComparisonCase"];
+            /** Packagename */
+            packageName: string;
+            /** Model */
+            model: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "paused" | "canceled" | "completed";
+            /** Maxsteps */
+            maxSteps: number;
+            /** Arms */
+            arms: components["schemas"]["ComparisonArm"][];
+            /** Reference */
+            reference?: string | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ComparisonStep */
+        ComparisonStep: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "ask" | "exam" | "test" | "diagnosis";
+            /** Label */
+            label: string;
+            /** Text */
+            text: string;
+            /** Result */
+            result?: string | null;
         };
         /** CompleteIn */
         CompleteIn: {
@@ -4427,6 +4586,170 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PackageEvaluationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    comparison_cases_v1_consultation_comparison_cases_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComparisonCase"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    active_comparison_v1_consultation_comparisons_active_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComparisonOut"] | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_comparison_v1_consultation_comparisons_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComparisonIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComparisonOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_comparison_v1_consultation_comparisons__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComparisonOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    control_comparison_v1_consultation_comparisons__job_id___action__post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                job_id: string;
+                action: "resume" | "cancel";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComparisonOut"];
                 };
             };
             /** @description Validation Error */

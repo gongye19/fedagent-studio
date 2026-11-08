@@ -49,7 +49,7 @@ export type Route =
   | { page: "evaluations" }
   | { page: "newEvaluation" }
   | { page: "evaluation"; id: string }
-  | { page: "consultation"; packageId?: string }
+  | { page: "consultation"; packageId?: string; comparison?: string }
   | { page: "apps" }
   | { page: "application"; taskType: string }
   | { page: "app"; id: string; tab?: AppTab }
@@ -157,7 +157,7 @@ export function hrefOf(route: Route): string {
     case "evaluation":
       return "#/evaluations/" + part(route.id);
     case "consultation":
-      return `#/apps/consultation${query({ package: route.packageId })}`;
+      return `#/apps/consultation${query({ package: route.packageId, compare: route.comparison })}`;
     case "apps":
       return "#/apps";
     case "application":
@@ -187,7 +187,8 @@ export function hrefOf(route: Route): string {
 
 function consultationRoute(search: URLSearchParams): Route {
   const packageId = search.get("package");
-  return packageId ? { page: "consultation", packageId } : { page: "consultation" };
+  const comparison = search.get("compare");
+  return { page: "consultation", ...(packageId ? { packageId } : {}), ...(comparison ? { comparison } : {}) };
 }
 
 function fromValue(from: From | undefined): string | undefined {
@@ -211,6 +212,8 @@ export function pageKeyOf(route: Route): string {
     case "app":
     case "editEndpoint":
       return `${route.page}:${route.id}`;
+    case "consultation":
+      return route.comparison ? `consultation:${route.comparison}` : route.page;
     case "algorithms":
       return route.id ? `algorithm:${route.id}` : route.page;
     default:

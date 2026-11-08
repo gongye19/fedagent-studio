@@ -8,7 +8,7 @@ import sys
 
 from . import models as m
 from .engine import TaskEngine
-from .experience import evaluation, package_evaluation
+from .experience import consultation_comparison, evaluation, package_evaluation
 from .platform import Platform
 
 
@@ -20,7 +20,9 @@ def main() -> None:
         platform = Platform.create(migrate=False)
         with platform.db.session() as session:
             job = session.get(m.Task, task_id)
-        if job and job.evaluation_package_id:
+        if job and job.task_type == m.CONSULTATION_COMPARISON:
+            status = consultation_comparison.run(platform, job)
+        elif job and job.evaluation_package_id:
             status = package_evaluation.run(platform, job)
         elif job and job.source_task_id:
             status = evaluation.run(platform, job)

@@ -37,8 +37,8 @@ def get(session: Session, job_id: str) -> m.Task:
     return job
 
 
-def start(platform: Platform, session: Session, body: PackageEvaluationIn) -> m.Task:
-    app = get_app(session, body.package_id)
+def verified_package(platform: Platform, session: Session, package_id: str) -> tuple[m.App, m.Task, m.Artifact]:
+    app = get_app(session, package_id)
     if app.task_type != MEDICAL_RECORDS or app.scenario != "horizontal" or app.algorithm not in RECORD_ALGORITHMS:
         raise ServiceError(422, "请选择已发布的横向问诊经验包")
     source = session.get(m.Task, app.task_id)
@@ -50,6 +50,11 @@ def start(platform: Platform, session: Session, body: PackageEvaluationIn) -> m.
             or artifact.plugin_version != app.plugin_version or algorithm.version != source.plugin_version
             or algorithm.code_hash() != source.plugin_hash or digest(artifact.content) != digest(app.content)):
         raise ServiceError(409, "发布包与来源版本不一致，无法评测")
+    return app, source, artifact
+
+
+def start(platform: Platform, session: Session, body: PackageEvaluationIn) -> m.Task:
+    app, source, artifact = verified_package(platform, session, body.package_id)
     active = select(m.Task.id).where(m.Task.evaluation_package_id == app.id,
                                     m.Task.status.in_(("queued", "running", "paused")))
     if session.scalar(active) is not None:

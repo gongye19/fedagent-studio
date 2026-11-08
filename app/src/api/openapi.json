@@ -2711,6 +2711,304 @@
     }
    }
   },
+  "/v1/consultation/comparison-cases": {
+   "get": {
+    "tags": [
+     "apps"
+    ],
+    "summary": "Comparison Cases",
+    "operationId": "comparison_cases_v1_consultation_comparison_cases_get",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/ComparisonCase"
+         },
+         "title": "Response Comparison Cases V1 Consultation Comparison Cases Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/consultation/comparisons/active": {
+   "get": {
+    "tags": [
+     "apps"
+    ],
+    "summary": "Active Comparison",
+    "operationId": "active_comparison_v1_consultation_comparisons_active_get",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "anyOf": [
+          {
+           "$ref": "#/components/schemas/ComparisonOut"
+          },
+          {
+           "type": "null"
+          }
+         ],
+         "title": "Response Active Comparison V1 Consultation Comparisons Active Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/consultation/comparisons": {
+   "post": {
+    "tags": [
+     "apps"
+    ],
+    "summary": "Start Comparison",
+    "operationId": "start_comparison_v1_consultation_comparisons_post",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ComparisonIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ComparisonOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/consultation/comparisons/{job_id}": {
+   "get": {
+    "tags": [
+     "apps"
+    ],
+    "summary": "Get Comparison",
+    "operationId": "get_comparison_v1_consultation_comparisons__job_id__get",
+    "parameters": [
+     {
+      "name": "job_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Job Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ComparisonOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/consultation/comparisons/{job_id}/{action}": {
+   "post": {
+    "tags": [
+     "apps"
+    ],
+    "summary": "Control Comparison",
+    "operationId": "control_comparison_v1_consultation_comparisons__job_id___action__post",
+    "parameters": [
+     {
+      "name": "job_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Job Id"
+      }
+     },
+     {
+      "name": "action",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "enum": [
+        "resume",
+        "cancel"
+       ],
+       "type": "string",
+       "title": "Action"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ComparisonOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/v1/tasks/validate": {
    "post": {
     "tags": [
@@ -5972,6 +6270,232 @@
      "leaseUntil"
     ],
     "title": "ClientUnitOut"
+   },
+   "ComparisonArm": {
+    "properties": {
+     "arm": {
+      "type": "string",
+      "enum": [
+       "baseline",
+       "experience"
+      ],
+      "title": "Arm"
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "waiting",
+       "running",
+       "diagnosed",
+       "limit",
+       "failed",
+       "canceled"
+      ],
+      "title": "Status"
+     },
+     "steps": {
+      "items": {
+       "$ref": "#/components/schemas/ComparisonStep"
+      },
+      "type": "array",
+      "title": "Steps"
+     },
+     "diagnosis": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Diagnosis"
+     },
+     "matched": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Matched"
+     }
+    },
+    "type": "object",
+    "required": [
+     "arm",
+     "status",
+     "steps"
+    ],
+    "title": "ComparisonArm"
+   },
+   "ComparisonCase": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "title": {
+      "type": "string",
+      "title": "Title"
+     },
+     "opening": {
+      "type": "string",
+      "title": "Opening"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "title",
+     "opening"
+    ],
+    "title": "ComparisonCase"
+   },
+   "ComparisonIn": {
+    "properties": {
+     "caseId": {
+      "type": "string",
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Caseid"
+     },
+     "packageId": {
+      "type": "string",
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Packageid"
+     },
+     "model": {
+      "type": "string",
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Model"
+     }
+    },
+    "type": "object",
+    "required": [
+     "caseId",
+     "packageId",
+     "model"
+    ],
+    "title": "ComparisonIn"
+   },
+   "ComparisonOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "case": {
+      "$ref": "#/components/schemas/ComparisonCase"
+     },
+     "packageName": {
+      "type": "string",
+      "title": "Packagename"
+     },
+     "model": {
+      "type": "string",
+      "title": "Model"
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "queued",
+       "running",
+       "paused",
+       "canceled",
+       "completed"
+      ],
+      "title": "Status"
+     },
+     "maxSteps": {
+      "type": "integer",
+      "title": "Maxsteps"
+     },
+     "arms": {
+      "items": {
+       "$ref": "#/components/schemas/ComparisonArm"
+      },
+      "type": "array",
+      "title": "Arms"
+     },
+     "reference": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reference"
+     },
+     "error": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Error"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "case",
+     "packageName",
+     "model",
+     "status",
+     "maxSteps",
+     "arms"
+    ],
+    "title": "ComparisonOut"
+   },
+   "ComparisonStep": {
+    "properties": {
+     "action": {
+      "type": "string",
+      "enum": [
+       "ask",
+       "exam",
+       "test",
+       "diagnosis"
+      ],
+      "title": "Action"
+     },
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text"
+     },
+     "result": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Result"
+     }
+    },
+    "type": "object",
+    "required": [
+     "action",
+     "label",
+     "text"
+    ],
+    "title": "ComparisonStep"
    },
    "CompleteIn": {
     "properties": {

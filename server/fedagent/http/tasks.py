@@ -48,7 +48,7 @@ def list_tasks(
     task_type: Annotated[str | None, Query(alias="taskType")] = None,
     status: str | None = None,
 ) -> list[TaskOut]:
-    query = select(m.Task).where(m.Task.source_task_id.is_(None)).order_by(m.Task.created_at.desc())
+    query = select(m.Task).where(m.Task.source_task_id.is_(None), m.Task.task_type != m.CONSULTATION_COMPARISON).order_by(m.Task.created_at.desc())
     if scenario:
         query = query.where(m.Task.scenario == scenario)
     if task_type:

@@ -1,4 +1,5 @@
 import { MEDICAL_RECORDS } from "../domain/consultation";
+import { ConsultationComparisonPage } from "../ui/application/ConsultationComparisonPage";
 import { ConsultationPage } from "../ui/application/ConsultationPage";
 import { type Dispatch } from "react";
 import { type Route } from "../state/route";
@@ -51,6 +52,7 @@ export function PageRouter({ state, dispatch, route }: { state: State; dispatch:
       );
     }
     case "consultation":
+      if (route.comparison) return <ConsultationComparisonPage key={route.comparison} id={route.comparison} state={state} packageId={route.packageId} />;
       return <ConsultationPage key={route.packageId ?? ""} state={state} packageId={route.packageId} />;
     case "apps":
       return <AppsPage />;

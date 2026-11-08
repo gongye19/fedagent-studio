@@ -4,6 +4,7 @@ import { consultationSamples } from "../../api/consultation";
 import { ALGORITHMS } from "../../domain/catalog";
 import { isConsultationPackage } from "../../domain/consultation";
 import { usableModelOptions } from "../../domain/resources";
+import { hrefOf } from "../../state/route";
 import type { State } from "../../state/store";
 import { PageHead } from "../common";
 import { formatNumber } from "../format";
@@ -81,6 +82,7 @@ export function ConsultationPage({ state, packageId }: { state: State; packageId
         meta={samples.isError ? <>演示病例暂未加载。<button className="text-link" type="button"
           disabled={samples.isFetching} onClick={() => void samples.refetch()}>重试</button></> : undefined}
         actions={<>
+          <a className="button button--ghost" href={hrefOf({ page: "consultation", comparison: "new", packageId })}>实时对比</a>
           <button ref={addButton} className="button button--ghost" type="button" onClick={addWindow}
             aria-disabled={addDisabled}
             title={locked ? "当前会话已开始，新建会话后可调整窗口" : addDisabled ? "最多 3 个窗口" : undefined}>

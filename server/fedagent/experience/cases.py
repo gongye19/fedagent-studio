@@ -27,7 +27,7 @@ def _normalized(value: Any):
     return value
 
 
-def _fingerprint(case: dict) -> str:
+def case_fingerprint(case: dict) -> str:
     clean = CASE_TYPE.strip_labels(case)
     return digest(_normalized({key: clean.get(key, {}) for key in ("patient", "examination", "tests")}))
 
@@ -38,9 +38,8 @@ def source_sites(session: Session, task_id: str) -> list[m.TaskSite]:
     ).order_by(m.TaskSite.ordinal)))
 
 
-def _training_cases(platform: Platform, sites: list[m.TaskSite]) -> tuple[set[str], set[str]]:
-    ids: set[str] = set()
-    fingerprints: set[str] = set()
+def training_records(platform: Platform, sites: list[m.TaskSite]) -> list[dict]:
+    result = []
     for site in sites:
         if site.executor != "platform" or not site.dataset_id or not site.dataset_hash:
             raise ServiceError(409, "缺少已冻结的问诊记录，无法验证评测病例独立性")
@@ -50,12 +49,19 @@ def _training_cases(platform: Platform, sites: list[m.TaskSite]) -> tuple[set[st
             records = [row for row in rows if row["id"] in items]
             if len(records) != len(items):
                 raise ValueError("冻结记录缺失")
-            for record in records:
-                ids.add(str(record["id"]).strip().casefold())
-                fingerprints.add(_fingerprint(record["input"]))
+            result.extend(records)
         except (OSError, ValueError, KeyError, TypeError) as error:
             raise ServiceError(409, "冻结的训练记录无法读取，不能确认病例独立性") from error
-    return ids, fingerprints
+    return result
+
+
+def _training_cases(platform: Platform, sites: list[m.TaskSite]) -> tuple[set[str], set[str]]:
+    try:
+        records = training_records(platform, sites)
+        return ({str(record["id"]).strip().casefold() for record in records},
+                {case_fingerprint(record["input"]) for record in records})
+    except (KeyError, TypeError) as error:
+        raise ServiceError(409, "冻结的训练记录无法读取，不能确认病例独立性") from error
 
 
 def _source_cases(platform: Platform, session: Session, source: EvaluationSource) -> list[dict]:
@@ -100,7 +106,7 @@ def freeze_cases(platform: Platform, session: Session, task_id: str, sources: li
         site_ids: set[str] = set()
         for index, row in enumerate(rows, 1):
             case_id = str(row["id"])
-            fingerprint = _fingerprint(row)
+            fingerprint = case_fingerprint(row)
             normalized_id = case_id.strip().casefold()
             if normalized_id in train_ids or fingerprint in train_fingerprints:
                 raise ServiceError(422, f"第 {index} 条病例与生成经验用的记录重合，请换用留出病例")
@@ -119,12 +125,11 @@ def freeze_cases(platform: Platform, session: Session, task_id: str, sources: li
     return result
 
 
-
-def _redact_reference(value: Any, pattern: re.Pattern[str]) -> Any:
+def redact_reference(value: Any, pattern: re.Pattern[str]) -> Any:
     if isinstance(value, dict):
-        return {key: _redact_reference(child, pattern) for key, child in value.items()}
+        return {key: redact_reference(child, pattern) for key, child in value.items()}
     if isinstance(value, list):
-        return [_redact_reference(child, pattern) for child in value]
+        return [redact_reference(child, pattern) for child in value]
     return pattern.sub("[redacted]", value) if isinstance(value, str) else value
 
 
@@ -161,7 +166,7 @@ def freeze_package_cases(platform: Platform, session: Session, task_id: str,
             reference, evidence, identifier = row.get("answer"), row.get("input"), row.get("id")
             if not identifier or not isinstance(reference, str) or not reference.strip() or not isinstance(evidence, dict):
                 raise ServiceError(422, f"「{dataset.name}」第 {ordinal} 例缺少有效病例或参考诊断")
-            fingerprint = _fingerprint(evidence)
+            fingerprint = case_fingerprint(evidence)
             if fingerprint in seen:
                 raise ServiceError(422, f"「{dataset.name}」第 {ordinal} 例与已选病例重复")
             seen.add(fingerprint)
@@ -175,5 +180,5 @@ def freeze_package_cases(platform: Platform, session: Session, task_id: str,
             pattern = re.compile(rf"(?<!\w){phrase}(?!\w)", re.IGNORECASE)
             result.append({"site_id": dataset.id, "site_name": dataset.name, "ordinal": ordinal,
                            "usage": "backtest" if reused else "heldout", "data_hash": frozen_hash or dataset.content_hash,
-                           "input": _redact_reference(clean, pattern), "reference": reference})
+                           "input": redact_reference(clean, pattern), "reference": reference})
     return result

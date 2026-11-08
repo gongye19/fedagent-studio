@@ -207,3 +207,46 @@
 .evaluation-disclosure > summary { cursor: pointer; width: fit-content; font-weight: 600; }
 .evaluation-disclosure[open] > .evaluation-results { margin-top: var(--space-3); }
 .evaluation-disclosure .case-pagination { margin-top: 0; }
+
+.consultation-compare-setup { max-width: 760px; }
+.consultation-comparison { display: grid; gap: var(--space-4); }
+.comparison-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--space-4);
+}
+.comparison-case, .comparison-model { margin: 0; }
+.comparison-model { margin-top: var(--space-2); }
+.comparison-reference {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.comparison-reference strong { margin-inline-start: var(--space-2); }
+.comparison-verdict {
+  padding: var(--space-3);
+  background: var(--surface);
+  border-radius: var(--radius);
+  margin-bottom: var(--space-4);
+  overflow-wrap: anywhere;
+}
+.comparison-verdict > strong { margin-inline-start: var(--space-2); }
+.comparison-verdict p { margin: var(--space-2) 0 0; }
+.comparison-verdict ul { margin: var(--space-2) 0 0; padding-inline-start: var(--space-4); }
+.comparison-turns {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-wrap: anywhere;
+}
+.comparison-turns > li + li { border-top: 1px solid var(--border); padding-top: var(--space-3); }
+.comparison-question { display: flex; align-items: baseline; gap: var(--space-2); font-weight: 600; }
+.comparison-question .tag { flex: none; }
+.comparison-observation { margin: var(--space-2) 0 0; padding: var(--space-3); border-radius: var(--radius); background: var(--surface); }
+@media (max-width: 720px) {
+  .comparison-columns { grid-template-columns: minmax(0, 1fr); }
+}

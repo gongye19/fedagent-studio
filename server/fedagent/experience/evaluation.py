@@ -215,7 +215,7 @@ def run(platform: Platform, job: m.Task) -> str:
     return finish(platform, job, failed=bool(failed))
 
 
-def finish(platform: Platform, job: m.Task, *, failed: bool) -> str:
+def finish(platform: Platform, job: m.Task, *, failed: bool, completed_message: str = "横向评测已完成") -> str:
     status = "paused" if failed else "completed"
     with platform.db.session() as session:
         updated = session.execute(update(m.Task).where(m.Task.id == job.id, m.Task.command.is_(None)).values(
@@ -223,6 +223,6 @@ def finish(platform: Platform, job: m.Task, *, failed: bool) -> str:
             finished_at=m.now() if not failed else None,
         ))
         if updated.rowcount:  # type: ignore[attr-defined]
-            add_event(session, job.id, status, "横向评测已完成" if not failed else "横向评测部分失败")
+            add_event(session, job.id, status, completed_message if not failed else "横向评测部分失败")
             return status
     return stop_requested(platform, job) or status

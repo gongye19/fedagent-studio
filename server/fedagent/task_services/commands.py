@@ -140,7 +140,7 @@ def control(session: Session, task_id: str, action: str) -> m.Task:
 
 def get_task(session: Session, task_id: str) -> m.Task:
     task = session.get(m.Task, task_id)
-    if task is None or task.source_task_id is not None:
+    if task is None or task.source_task_id is not None or task.task_type == m.CONSULTATION_COMPARISON:
         raise not_found("任务")
     return task
 

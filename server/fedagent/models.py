@@ -94,6 +94,9 @@ class Endpoint(Base):
     created_at: Mapped[datetime] = mapped_column(default=now)
 
 
+CONSULTATION_COMPARISON = "consultation-comparison"
+
+
 class Task(Base):
     __tablename__ = "tasks"
     __table_args__ = (
