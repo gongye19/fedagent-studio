@@ -19,9 +19,20 @@ describe("问诊样例资料", () => {
     expect(sampleProgress([...afterLabs, ...turn(ultrasound.text)])).toEqual({ sent: 3, total: 3, next: undefined });
   });
 
-  it("其他病例或自行改写的对话不带入早产儿资料", () => {
+  it("多尿样例在补充病史和电解质后才完成", () => {
+    const history = turn(SAMPLE_QUESTIONS[1].text);
+    const exam = sampleProgress(history)!.next!;
+    expect(exam.label).toBe("补充病史和体检");
+
+    const afterExam = [...history, ...turn(exam.text)];
+    const labs = sampleProgress(afterExam)!.next!;
+    expect(labs.label).toBe("补充电解质结果");
+    expect(sampleProgress([...afterExam, ...turn(labs.text)])).toEqual({ sent: 3, total: 3, next: undefined });
+    expect(sampleProgress([...history, ...turn(labs.text)])).toBeUndefined();
+  });
+
+  it("自行改写的对话不带入预设资料", () => {
     expect(sampleProgress([])).toBeUndefined();
-    expect(sampleProgress(turn(SAMPLE_QUESTIONS[1].text))).toEqual({ sent: 1, total: 1, next: undefined });
     expect(sampleProgress(turn(`${SAMPLE_QUESTIONS[0].text} 另一位患者。`))).toBeUndefined();
     expect(sampleProgress([...turn(SAMPLE_QUESTIONS[0].text), ...turn("还有什么需要注意？")])).toBeUndefined();
   });

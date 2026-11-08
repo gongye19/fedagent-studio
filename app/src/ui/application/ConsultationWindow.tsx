@@ -165,7 +165,7 @@ export function ConsultationWindow({
             </div>
           ) : null}
           {showDemo && sample && !sample.next ? (
-            <p className="consultation-note" role="status">演示资料已发完，可对照分诊、优先判断和下一步检查。</p>
+            <p className="consultation-note" role="status">预设病例资料已发完，可继续追问。</p>
           ) : null}
         </div>
         <form className="consultation-compose" onSubmit={(event) => void send(event)}>
