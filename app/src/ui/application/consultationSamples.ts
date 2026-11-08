@@ -20,11 +20,17 @@ const BARTTER_SAMPLE = {
   text: "医生，我儿子 9 岁，近几个月总觉得没力气，喝水和小便都比以前多，还特别爱吃咸的。他从小容易便秘，身高体重也比同龄孩子低。想问应该挂什么科，先考虑什么原因？",
 };
 
-export const SAMPLE_QUESTIONS = [PRETERM_SAMPLE[0], BARTTER_SAMPLE];
+const SAMPLE_CASES = [
+  { turns: PRETERM_SAMPLE, packageName: "EvoMedClaw" },
+  { turns: [BARTTER_SAMPLE], packageName: "FoT" },
+];
 
-export function nextSampleDetail(messages: readonly ChatMessage[]) {
+export const SAMPLE_QUESTIONS = SAMPLE_CASES.map(({ turns, packageName }) => ({ ...turns[0], packageName }));
+
+export function sampleProgress(messages: readonly ChatMessage[]) {
   const userTurns = messages.filter(({ role }) => role === "user");
-  const next = PRETERM_SAMPLE[userTurns.length];
-  if (!userTurns.length || !next) return undefined;
-  return userTurns.every(({ content }, index) => content === PRETERM_SAMPLE[index].text) ? next : undefined;
+  if (!userTurns.length) return undefined;
+  const sample = SAMPLE_CASES.find(({ turns }) => userTurns.every(({ content }, index) => content === turns[index]?.text));
+  if (!sample) return undefined;
+  return { sent: userTurns.length, total: sample.turns.length, next: sample.turns.at(userTurns.length) };
 }

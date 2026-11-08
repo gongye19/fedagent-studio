@@ -96,7 +96,9 @@
 .consultation-examples > span { padding-block-start: 6px; white-space: nowrap; }
 .consultation-examples > div { display: flex; flex-wrap: wrap; gap: 5px; }
 .consultation-example { max-width: 100%; padding: 4px 7px; border: 1px solid var(--border); border-radius: 7px; color: var(--accent-strong); background: var(--background); text-align: start; overflow-wrap: anywhere; }
-.consultation-example:hover { border-color: var(--accent-border); background: var(--accent-soft); }
+.consultation-example:is(:hover, [aria-pressed="true"]) { border-color: var(--accent-border); background: var(--accent-soft); }
+.consultation-example small { display: block; color: var(--secondary); font-size: inherit; }
+.consultation-demo-hint { grid-column: 2; }
 .consultation-compose { min-width: 0; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--background); }
 .consultation-compose:focus-within { border-color: var(--accent-border); }
 .consultation-compose textarea {
@@ -133,7 +135,7 @@
   .consultation-close.button, .consultation-send.button { width: 44px; min-height: 44px; }
   .consultation-package.select-trigger, .consultation-pick.select-trigger { min-height: 44px; }
   .consultation-pick.select-trigger { max-width: calc(100% - 52px); }
-  .consultation-example { min-height: 34px; }
+  .consultation-example { min-height: 44px; }
   .consultation-examples > span { padding-block-start: 8px; }
 }
 .consultation-window-nav { gap: 6px; padding: 0 9px 8px; }

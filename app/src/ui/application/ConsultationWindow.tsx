@@ -5,7 +5,7 @@ import type { usableModelOptions } from "../../domain/resources";
 import { hrefOf } from "../../state/route";
 import { Icon } from "../icons";
 import { SelectField } from "../SelectField";
-import { SAMPLE_QUESTIONS, nextSampleDetail } from "./consultationSamples";
+import { SAMPLE_QUESTIONS, sampleProgress } from "./consultationSamples";
 
 export type WindowSettings = { id: number; packageId: string; model: string };
 type Message = ChatMessage & { department?: ChatReply["department"]; experienceEntries?: number };
@@ -54,13 +54,14 @@ export function ConsultationWindow({
   const canSend = Boolean(
     selectedModel && (!window.packageId || selected) && input.trim() && !pending && !limitReached,
   );
-  const sampleDetail = nextSampleDetail(messages);
-  const suggestions = sampleDetail
-    ? [sampleDetail]
-    : lastReply
-      ? Array.from(new Set(lastReply.suggestions), (text) => ({ label: text, text }))
-      : SAMPLE_QUESTIONS;
-  const suggestionLabel = sampleDetail ? "样例资料" : lastReply ? "示例回答" : "样例问题";
+  const sample = sampleProgress(messages);
+  const nextSample = sample?.next;
+  const showDemo = !pending && !limitReached;
+
+  function fill(text: string) {
+    setInput(text);
+    inputRef.current?.focus({ preventScroll: true });
+  }
 
   useEffect(() => () => request.current?.abort(), []);
   useLayoutEffect(() => {
@@ -141,18 +142,30 @@ export function ConsultationWindow({
           {problem ? <p className="consultation-error" role="alert"><Icon name="alert" />{problem}</p> : null}
           {limitReached ? <p className="consultation-note">本窗口已达 20 轮，可以新建会话。</p> : null}
           {!models.length ? <a className="consultation-note" href={hrefOf({ page: "models" })}>配置模型接口</a> : null}
-          {!pending && !limitReached && suggestions.length > 0 ? (
-            <div className="consultation-examples" role="group" aria-label={`${title}${suggestionLabel}`}>
-              <span>{suggestionLabel}</span>
+          {showDemo && !messages.length ? (
+            <div className="consultation-examples" role="group" aria-label={`${title}演示病例`}>
+              <span>演示病例</span>
               <div>
-                {suggestions.map(({ label, text }) => (
-                  <button key={text} className="consultation-example" type="button" onClick={() => {
-                    setInput(text);
-                    inputRef.current?.focus({ preventScroll: true });
-                  }}>{label}</button>
+                {SAMPLE_QUESTIONS.map(({ label, text, packageName }) => (
+                  <button key={text} className="consultation-example" type="button"
+                    aria-pressed={input === text} onClick={() => fill(text)}>
+                    {label}<small>对照 {packageName}</small>
+                  </button>
                 ))}
               </div>
+              <p className="consultation-note consultation-demo-hint">两栏选同一病例和模型，一栏不加载经验。</p>
             </div>
+          ) : null}
+          {showDemo && sample && nextSample ? (
+            <div className="consultation-examples" role="group" aria-label={`${title}下一条演示资料`}>
+              <span>第 {sample.sent + 1}/{sample.total} 步</span>
+              <div><button className="consultation-example" type="button" onClick={() => fill(nextSample.text)}>
+                {nextSample.label}
+              </button></div>
+            </div>
+          ) : null}
+          {showDemo && sample && !sample.next ? (
+            <p className="consultation-note" role="status">演示资料已发完，可对照分诊、优先判断和下一步检查。</p>
           ) : null}
         </div>
         <form className="consultation-compose" onSubmit={(event) => void send(event)}>
