@@ -2419,6 +2419,245 @@
     }
    }
   },
+  "/v1/evaluations": {
+   "get": {
+    "tags": [
+     "evaluations"
+    ],
+    "summary": "List Package Evaluations",
+    "operationId": "list_package_evaluations_v1_evaluations_get",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/PackageEvaluationSummary"
+         },
+         "title": "Response List Package Evaluations V1 Evaluations Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "evaluations"
+    ],
+    "summary": "Start Package Evaluation",
+    "operationId": "start_package_evaluation_v1_evaluations_post",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PackageEvaluationIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PackageEvaluationOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/evaluations/{job_id}": {
+   "get": {
+    "tags": [
+     "evaluations"
+    ],
+    "summary": "Get Package Evaluation",
+    "operationId": "get_package_evaluation_v1_evaluations__job_id__get",
+    "parameters": [
+     {
+      "name": "job_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Job Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PackageEvaluationOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/evaluations/{job_id}/{action}": {
+   "post": {
+    "tags": [
+     "evaluations"
+    ],
+    "summary": "Control Package Evaluation",
+    "operationId": "control_package_evaluation_v1_evaluations__job_id___action__post",
+    "parameters": [
+     {
+      "name": "job_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Job Id"
+      }
+     },
+     {
+      "name": "action",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "enum": [
+        "resume",
+        "cancel"
+       ],
+       "type": "string",
+       "title": "Action"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PackageEvaluationOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/v1/tasks/validate": {
    "post": {
     "tags": [
@@ -7283,6 +7522,335 @@
      "uploadCount"
     ],
     "title": "OutputVersionOut"
+   },
+   "PackageEvaluationCase": {
+    "properties": {
+     "siteId": {
+      "type": "string",
+      "title": "Siteid"
+     },
+     "caseId": {
+      "type": "string",
+      "title": "Caseid"
+     },
+     "arms": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/PackageEvaluationResultArm"
+      },
+      "propertyNames": {
+       "enum": [
+        "none",
+        "local",
+        "federated"
+       ]
+      },
+      "type": "object",
+      "title": "Arms"
+     },
+     "change": {
+      "type": "string",
+      "enum": [
+       "improved",
+       "worsened",
+       "unchanged",
+       "incomplete"
+      ],
+      "title": "Change"
+     }
+    },
+    "type": "object",
+    "required": [
+     "siteId",
+     "caseId",
+     "arms",
+     "change"
+    ],
+    "title": "PackageEvaluationCase"
+   },
+   "PackageEvaluationIn": {
+    "properties": {
+     "packageId": {
+      "type": "string",
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Packageid"
+     },
+     "model": {
+      "type": "string",
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Model"
+     },
+     "datasetIds": {
+      "items": {
+       "type": "string",
+       "maxLength": 64,
+       "minLength": 1
+      },
+      "type": "array",
+      "maxItems": 2,
+      "minItems": 2,
+      "title": "Datasetids"
+     },
+     "limit": {
+      "type": "integer",
+      "maximum": 100.0,
+      "minimum": 1.0,
+      "title": "Limit",
+      "default": 100
+     }
+    },
+    "type": "object",
+    "required": [
+     "packageId",
+     "model",
+     "datasetIds"
+    ],
+    "title": "PackageEvaluationIn"
+   },
+   "PackageEvaluationOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "packageName": {
+      "type": "string",
+      "title": "Packagename"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "usage": {
+      "type": "string",
+      "enum": [
+       "backtest",
+       "heldout",
+       "mixed"
+      ],
+      "title": "Usage"
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "queued",
+       "running",
+       "paused",
+       "canceled",
+       "completed"
+      ],
+      "title": "Status"
+     },
+     "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Createdat"
+     },
+     "model": {
+      "type": "string",
+      "title": "Model"
+     },
+     "error": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Error"
+     },
+     "paired": {
+      "type": "integer",
+      "title": "Paired"
+     },
+     "sites": {
+      "items": {
+       "$ref": "#/components/schemas/PackageEvaluationSite"
+      },
+      "type": "array",
+      "title": "Sites"
+     },
+     "cases": {
+      "items": {
+       "$ref": "#/components/schemas/PackageEvaluationCase"
+      },
+      "type": "array",
+      "title": "Cases"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "packageName",
+     "total",
+     "usage",
+     "status",
+     "createdAt",
+     "model",
+     "error",
+     "paired",
+     "sites",
+     "cases"
+    ],
+    "title": "PackageEvaluationOut"
+   },
+   "PackageEvaluationResultArm": {
+    "properties": {
+     "correct": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Correct"
+     },
+     "error": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Error"
+     }
+    },
+    "type": "object",
+    "required": [
+     "correct",
+     "error"
+    ],
+    "title": "PackageEvaluationResultArm"
+   },
+   "PackageEvaluationSite": {
+    "properties": {
+     "total": {
+      "type": "integer",
+      "title": "Total",
+      "default": 0
+     },
+     "paired": {
+      "type": "integer",
+      "title": "Paired",
+      "default": 0
+     },
+     "attempted": {
+      "type": "integer",
+      "title": "Attempted",
+      "default": 0
+     },
+     "none": {
+      "type": "integer",
+      "title": "None",
+      "default": 0
+     },
+     "local": {
+      "type": "integer",
+      "title": "Local",
+      "default": 0
+     },
+     "federated": {
+      "type": "integer",
+      "title": "Federated",
+      "default": 0
+     },
+     "improved": {
+      "type": "integer",
+      "title": "Improved",
+      "default": 0
+     },
+     "worsened": {
+      "type": "integer",
+      "title": "Worsened",
+      "default": 0
+     },
+     "unchanged": {
+      "type": "integer",
+      "title": "Unchanged",
+      "default": 0
+     },
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "usage": {
+      "type": "string",
+      "enum": [
+       "backtest",
+       "heldout"
+      ],
+      "title": "Usage"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "usage"
+    ],
+    "title": "PackageEvaluationSite"
+   },
+   "PackageEvaluationSummary": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "packageName": {
+      "type": "string",
+      "title": "Packagename"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "usage": {
+      "type": "string",
+      "enum": [
+       "backtest",
+       "heldout",
+       "mixed"
+      ],
+      "title": "Usage"
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "queued",
+       "running",
+       "paused",
+       "canceled",
+       "completed"
+      ],
+      "title": "Status"
+     },
+     "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Createdat"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "packageName",
+     "total",
+     "usage",
+     "status",
+     "createdAt"
+    ],
+    "title": "PackageEvaluationSummary"
    },
    "ParamOptionOut": {
     "properties": {

@@ -5,7 +5,7 @@ import { applicationRoute, hrefOf, type Route } from "../state/route";
 import { type State } from "../state/store";
 import { Icon, type IconName } from "../ui/icons";
 
-type NavKey = "tasks" | "results" | "apps" | "algorithms" | "models" | "resources" | "agents";
+type NavKey = "tasks" | "results" | "evaluations" | "apps" | "algorithms" | "models" | "resources" | "agents";
 
 function navKeyOf(route: Route): NavKey {
   switch (route.page) {
@@ -19,6 +19,10 @@ function navKeyOf(route: Route): NavKey {
       return "tasks";
     case "results":
       return "results";
+    case "evaluations":
+    case "newEvaluation":
+    case "evaluation":
+      return "evaluations";
     case "consultation":
     case "apps":
     case "application":
@@ -47,6 +51,7 @@ const NAV: readonly NavItem[] = [
   { key: "resources", label: "联邦数据", icon: "resources", route: { page: "resources", space: "workspace" } },
   { key: "tasks", label: "联邦任务", icon: "tasks", route: { page: "tasks" } },
   { key: "results", label: "联邦成果", icon: "award", route: { page: "results" } },
+  { key: "evaluations", label: "联邦评测", icon: "evaluation", route: { page: "evaluations" } },
   { key: "apps", label: "应用", icon: "apps", route: { page: "apps" } },
   { key: "models", label: "大模型接口", icon: "model", route: { page: "models" } },
   { key: "algorithms", label: "算法", icon: "algorithm", route: { page: "algorithms" } },

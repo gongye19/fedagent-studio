@@ -1,5 +1,5 @@
 /** 统一线宽的小图标，替代 ✓ ✕ ! 这类字符。 */
-export type IconName = "check" | "x" | "alert" | "chevron" | "plus" | "minus" | "arrow" | "back" | "download" | "pause" | "play" | "stop" | "copy" | "upload" | "award" | "tasks" | "apps" | "manage" | "participants" | "algorithm" | "model" | "search" | "info" | "resources" | "consultation" | "send";
+export type IconName = "check" | "x" | "alert" | "chevron" | "plus" | "minus" | "arrow" | "back" | "download" | "pause" | "play" | "stop" | "copy" | "upload" | "award" | "evaluation" | "tasks" | "apps" | "manage" | "participants" | "algorithm" | "model" | "search" | "info" | "resources" | "consultation" | "send";
 
 const PATHS: Record<IconName, string> = {
   consultation: "M3 2.5H13A1 1 0 0 1 14 3.5V10A1 1 0 0 1 13 11H7L3 14V11A1 1 0 0 1 2 10V3.5A1 1 0 0 1 3 2.5ZM8 4.5V9M5.75 6.75H10.25",
@@ -20,6 +20,7 @@ const PATHS: Record<IconName, string> = {
   copy: "M5.5 5.5H12.5V12.5H5.5ZM3.5 10.5V3.5H10.5",
   upload: "M8 10.5V3M4.75 6.25 8 3 11.25 6.25M3 13H13",
   award: "M8 2.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7ZM5.5 8.5 4 13.5l4-1.5 4 1.5-1.5-5",
+  evaluation: "M2.5 3V13.5H13.5M5.5 10.5V8M8.75 10.5V5.5M12 10.5V3.5",
   tasks: "M6.5 4H13M6.5 8H13M6.5 12H13M2.5 4H3M2.5 8H3M2.5 12H3",
   apps: "M2.5 2.5H6.5V6.5H2.5ZM9.5 2.5H13.5V6.5H9.5ZM2.5 9.5H6.5V13.5H2.5ZM9.5 9.5H13.5V13.5H9.5Z",
   manage: "M3 4H13M3 8H13M3 12H13M6 2.5V5.5M10 6.5V9.5M6 10.5V13.5",

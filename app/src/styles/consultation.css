@@ -171,3 +171,6 @@
 .evaluation-answers article { min-width: 0; padding: var(--space-3); background: var(--surface); border-radius: var(--radius); overflow-wrap: anywhere; }
 .evaluation-improved { color: var(--success); }
 .evaluation-worsened { color: var(--danger); }
+
+.evaluation-setup { max-width: 600px; }
+.evaluation-setup .field-grid { grid-template-columns: 1fr; }

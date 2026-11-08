@@ -4,8 +4,18 @@ from sqlalchemy.exc import IntegrityError
 
 from .. import apps, tasks
 from ..errors import ServiceError
-from ..experience import consultation, evaluation
-from ..schemas.experience import ChatIn, ChatOut, ConsultationIn, ConsultationOut, EvaluationIn, EvaluationOut
+from ..experience import consultation, evaluation, package_evaluation
+from ..schemas.experience import (
+    ChatIn,
+    ChatOut,
+    ConsultationIn,
+    ConsultationOut,
+    EvaluationIn,
+    EvaluationOut,
+    PackageEvaluationIn,
+    PackageEvaluationOut,
+    PackageEvaluationSummary,
+)
 from .dependencies import PlatformDep, SessionDep, admin_router
 
 router = admin_router()
@@ -56,3 +66,30 @@ def control_evaluation(task_id: str, action: Literal["resume", "cancel"], sessio
     tasks.control(session, job.id, action)
     session.flush()
     return evaluation.present(session, job)
+
+
+@router.get("/evaluations", response_model=list[PackageEvaluationSummary], tags=["evaluations"])
+def list_package_evaluations(session: SessionDep) -> list[PackageEvaluationSummary]:
+    return package_evaluation.list_jobs(session)
+
+
+@router.post("/evaluations", response_model=PackageEvaluationOut, status_code=201, tags=["evaluations"])
+def start_package_evaluation(body: PackageEvaluationIn, platform: PlatformDep, session: SessionDep) -> PackageEvaluationOut:
+    try:
+        job = package_evaluation.start(platform, session, body)
+    except IntegrityError as error:
+        raise ServiceError(409, "评测已创建或来源已变化，请刷新后查看") from error
+    return package_evaluation.present(session, job)
+
+
+@router.get("/evaluations/{job_id}", response_model=PackageEvaluationOut, tags=["evaluations"])
+def get_package_evaluation(job_id: str, session: SessionDep) -> PackageEvaluationOut:
+    return package_evaluation.present(session, package_evaluation.get(session, job_id))
+
+
+@router.post("/evaluations/{job_id}/{action}", response_model=PackageEvaluationOut, tags=["evaluations"])
+def control_package_evaluation(job_id: str, action: Literal["resume", "cancel"], session: SessionDep) -> PackageEvaluationOut:
+    job = package_evaluation.get(session, job_id)
+    tasks.control(session, job.id, action)
+    session.flush()
+    return package_evaluation.present(session, job)

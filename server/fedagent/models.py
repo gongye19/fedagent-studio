@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any, ClassVar
 
-from sqlalchemy import JSON, DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import JSON, DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -96,11 +96,21 @@ class Endpoint(Base):
 
 class Task(Base):
     __tablename__ = "tasks"
-    __table_args__ = (Index("ix_tasks_evaluation_source", "source_task_id", unique=True),)
+    __table_args__ = (
+        Index("ix_tasks_evaluation_source", "source_task_id"),
+        Index("ix_tasks_legacy_evaluation", "source_task_id", unique=True,
+              sqlite_where=text("evaluation_package_id IS NULL"),
+              postgresql_where=text("evaluation_package_id IS NULL")),
+        Index("ix_tasks_active_package_evaluation", "evaluation_package_id", unique=True,
+              sqlite_where=text("status IN ('queued', 'running', 'paused')"),
+              postgresql_where=text("status IN ('queued', 'running', 'paused')")),
+    )
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     source_task_id: Mapped[str | None] = mapped_column(ForeignKey("tasks.id", ondelete="CASCADE"))
-    """有值时为完成页创建的独立评测作业，使用同一 runner。"""
+    """评测使用同一 runner，源任务删除时清理评测。"""
+    evaluation_package_id: Mapped[str | None] = mapped_column(String(64))
+    """已发布包的历史标识，撤下发布不影响已冻结的评测。"""
     name: Mapped[str] = mapped_column(String(120))
     scenario: Mapped[str] = mapped_column(String(32))
     task_type: Mapped[str] = mapped_column(String(64))

@@ -559,6 +559,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/evaluations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Package Evaluations */
+        get: operations["list_package_evaluations_v1_evaluations_get"];
+        put?: never;
+        /** Start Package Evaluation */
+        post: operations["start_package_evaluation_v1_evaluations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/evaluations/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Package Evaluation */
+        get: operations["get_package_evaluation_v1_evaluations__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/evaluations/{job_id}/{action}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Control Package Evaluation */
+        post: operations["control_package_evaluation_v1_evaluations__job_id___action__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/tasks/validate": {
         parameters: {
             query?: never;
@@ -2130,6 +2182,158 @@ export interface components {
             items: components["schemas"]["OutputItem"][];
             /** Uploadcount */
             uploadCount: number;
+        };
+        /** PackageEvaluationCase */
+        PackageEvaluationCase: {
+            /** Siteid */
+            siteId: string;
+            /** Caseid */
+            caseId: string;
+            /** Arms */
+            arms: {
+                [key: string]: components["schemas"]["PackageEvaluationResultArm"];
+            };
+            /**
+             * Change
+             * @enum {string}
+             */
+            change: "improved" | "worsened" | "unchanged" | "incomplete";
+        };
+        /** PackageEvaluationIn */
+        PackageEvaluationIn: {
+            /** Packageid */
+            packageId: string;
+            /** Model */
+            model: string;
+            /** Datasetids */
+            datasetIds: string[];
+            /**
+             * Limit
+             * @default 100
+             */
+            limit: number;
+        };
+        /** PackageEvaluationOut */
+        PackageEvaluationOut: {
+            /** Id */
+            id: string;
+            /** Packagename */
+            packageName: string;
+            /** Total */
+            total: number;
+            /**
+             * Usage
+             * @enum {string}
+             */
+            usage: "backtest" | "heldout" | "mixed";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "paused" | "canceled" | "completed";
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Model */
+            model: string;
+            /** Error */
+            error: string | null;
+            /** Paired */
+            paired: number;
+            /** Sites */
+            sites: components["schemas"]["PackageEvaluationSite"][];
+            /** Cases */
+            cases: components["schemas"]["PackageEvaluationCase"][];
+        };
+        /** PackageEvaluationResultArm */
+        PackageEvaluationResultArm: {
+            /** Correct */
+            correct: boolean | null;
+            /** Error */
+            error: string | null;
+        };
+        /** PackageEvaluationSite */
+        PackageEvaluationSite: {
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+            /**
+             * Paired
+             * @default 0
+             */
+            paired: number;
+            /**
+             * Attempted
+             * @default 0
+             */
+            attempted: number;
+            /**
+             * None
+             * @default 0
+             */
+            none: number;
+            /**
+             * Local
+             * @default 0
+             */
+            local: number;
+            /**
+             * Federated
+             * @default 0
+             */
+            federated: number;
+            /**
+             * Improved
+             * @default 0
+             */
+            improved: number;
+            /**
+             * Worsened
+             * @default 0
+             */
+            worsened: number;
+            /**
+             * Unchanged
+             * @default 0
+             */
+            unchanged: number;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Usage
+             * @enum {string}
+             */
+            usage: "backtest" | "heldout";
+        };
+        /** PackageEvaluationSummary */
+        PackageEvaluationSummary: {
+            /** Id */
+            id: string;
+            /** Packagename */
+            packageName: string;
+            /** Total */
+            total: number;
+            /**
+             * Usage
+             * @enum {string}
+             */
+            usage: "backtest" | "heldout" | "mixed";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "paused" | "canceled" | "completed";
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
         };
         /** ParamOptionOut */
         ParamOptionOut: {
@@ -4019,6 +4223,139 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EvaluationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_package_evaluations_v1_evaluations_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PackageEvaluationSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_package_evaluation_v1_evaluations_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PackageEvaluationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PackageEvaluationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_package_evaluation_v1_evaluations__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PackageEvaluationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    control_package_evaluation_v1_evaluations__job_id___action__post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                job_id: string;
+                action: "resume" | "cancel";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PackageEvaluationOut"];
                 };
             };
             /** @description Validation Error */

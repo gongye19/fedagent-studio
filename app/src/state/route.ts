@@ -6,6 +6,7 @@
  * #/tasks/new[/场景]           新建联邦任务，可带入场景选择
  * #/tasks/:id[/标签]           任务详情
  * #/results                   联邦成果
+ * #/evaluations[/new|/:id]      联邦评测、新建与结果
  * #/apps                      应用目录
  * #/apps/consultation         医疗问诊
  * #/apps/:id[/标签]            应用详情
@@ -45,6 +46,9 @@ export type Route =
   | { page: "resources"; space?: ResourceSpace; kind?: ResourceKind; id?: string; upload?: boolean }
   | { page: "task"; id: string; tab?: TaskTab }
   | { page: "results" }
+  | { page: "evaluations" }
+  | { page: "newEvaluation" }
+  | { page: "evaluation"; id: string }
   | { page: "consultation"; packageId?: string }
   | { page: "apps" }
   | { page: "application"; taskType: string }
@@ -85,6 +89,9 @@ export function parseHash(hash: string): Route {
       return { page: "task", id: second, tab: oneOf(TASK_TABS, third) };
     case "results":
       return { page: "results" };
+    case "evaluations":
+      if (second === "new") return { page: "newEvaluation" };
+      return second ? { page: "evaluation", id: second } : { page: "evaluations" };
     case "consultation":
       return consultationRoute(search);
     case "applications":
@@ -143,6 +150,12 @@ export function hrefOf(route: Route): string {
       return `#/tasks/${part(route.id)}${route.tab ? `/${route.tab}` : ""}`;
     case "results":
       return "#/results";
+    case "evaluations":
+      return "#/evaluations";
+    case "newEvaluation":
+      return "#/evaluations/new";
+    case "evaluation":
+      return "#/evaluations/" + part(route.id);
     case "consultation":
       return `#/apps/consultation${query({ package: route.packageId })}`;
     case "apps":
@@ -194,6 +207,7 @@ function query(values: Record<string, string | undefined>): string {
 export function pageKeyOf(route: Route): string {
   switch (route.page) {
     case "task":
+    case "evaluation":
     case "app":
     case "editEndpoint":
       return `${route.page}:${route.id}`;

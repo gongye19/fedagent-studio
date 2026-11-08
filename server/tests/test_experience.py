@@ -179,3 +179,111 @@ def test_consultation_routes_baseline_and_package_with_same_prompt(platform, cli
         assert client.post(url, json=unrelated).json()["experienceEntries"] == 0
     body["messages"][0]["content"] = "bad response"
     assert client.post(url, json=body).status_code == 502
+
+
+def test_published_package_evaluation_keeps_pairs_separate_and_legacy_intact(platform, client, monkeypatch):
+    from fedagent.experience import package_evaluation
+
+    source, sites = completed(platform, client, "fot-records")
+    published = client.post("/v1/apps", json={"taskId": source, "builtAfterRound": 1, "name": "FoT"})
+    app = published.json()["id"]
+    legacy = f"/v1/tasks/{source}/experience-evaluation"
+    assert client.post(legacy, json=evaluation_body(sites)).status_code == 201
+    dataset_ids = []
+    for name in ("a", "b"):
+        rows = []
+        for i in range(54):
+            value = record(True)
+            value["id"] = f"training-{name}" if i == 0 else f"eval-{name}-{i}"
+            value["input"]["patient"] += f" {name}" if i == 0 else f" {name} unique {i} Pneumonia"
+            rows.append(json.dumps(value))
+        created = client.post("/v1/resources/data", data={
+            "name": f"eval-{name}", "sourceName": name, "hosting": "platform", "taskType": "medical-records",
+        }, files={"file": ("records.jsonl", "\n".join(rows))})
+        assert created.status_code == 201, created.text
+        dataset_ids.append(created.json()["dataset"]["id"])
+
+    with platform.db.session() as session:
+        first_path = session.get(m.Dataset, dataset_ids[0]).content_path
+    load = platform.files.load
+
+    def with_unlabeled(path):
+        rows = load(path)
+        if path != first_path:
+            return rows
+        # 兼容历史上少量未标注的记录，同时保留结果对应的原始行号。
+        return [{"id": "unlabeled", "input": {}}, *rows]
+
+    monkeypatch.setattr(platform.files, "load", with_unlabeled)
+    url = "/v1/evaluations"
+    payload = {"packageId": app, "model": "fake:fake", "datasetIds": dataset_ids}
+    assert client.post(url, json={**payload, "datasetIds": dataset_ids[:1] * 2}).status_code == 422
+    started = client.post(url, json=payload)
+    assert started.status_code == 201, started.text
+    job_id = started.json()["id"]
+    assert started.json()["total"] == 108 and started.json()["usage"] == "mixed"
+    assert client.post(url, json=payload).status_code == 409
+    assert client.get(legacy).json()["score"]["total"] == 2
+    assert client.get(f"/v1/tasks/{job_id}").status_code == 404
+    assert client.post(f"/v1/tasks/{job_id}/cancel").status_code == 404
+    assert client.get(f"/v1/tasks/{job_id}/messages").status_code == 404
+    assert client.delete(f"/v1/tasks/{source}").status_code == 409
+
+    algorithm = platform.registry.algorithm("fot-records")
+    grader = platform.registry.grader("diagnosis-clinical")
+    inputs = []
+    fail = True
+
+    def reply(artifact, request, model):
+        evidence = request.input
+        assert set(evidence) <= {"patient", "objective", "examination", "tests"}
+        assert "Pneumonia" not in json.dumps(evidence)
+        inputs.append((artifact is not None, evidence["patient"]))
+        if artifact is not None and evidence["patient"].endswith(" a") and fail:
+            raise ModelError("temporary test failure")
+        if evidence["patient"].endswith(" b"):
+            return ApplyResult("wrong" if artifact is not None else "correct")
+        return ApplyResult("correct" if artifact is not None else "wrong")
+
+    monkeypatch.setattr(algorithm, "apply", reply)
+    monkeypatch.setattr(grader, "evaluate", lambda prediction, item, model: prediction == "correct")
+
+    def run_job():
+        with platform.db.session() as session:
+            job = package_evaluation.get(session, job_id)
+            job.status = "running"
+        return package_evaluation.run(platform, job)
+
+    assert client.delete(f"/v1/apps/{app}").status_code == 204
+    assert run_job() == "paused"
+    partial = client.get(f"{url}/{job_id}").json()
+    assert partial["paired"] == 107
+    assert partial["cases"][0]["change"] == "incomplete"
+    assert client.post(f"{url}/{job_id}/resume").status_code == 200
+    fail = False
+    assert run_job() == "completed"
+    result = client.get(f"{url}/{job_id}").json()
+    assert result["paired"] == 108 and len(inputs) == 217
+    assert [(item["usage"], item["paired"], item["improved"], item["worsened"]) for item in result["sites"]] == [
+        ("backtest", 1, 1, 0), ("heldout", 53, 53, 0), ("backtest", 1, 0, 1), ("heldout", 53, 53, 0),
+    ]
+    assert result["cases"][0]["caseId"] == "病例 2"
+    assert result["cases"][54]["caseId"] == "病例 1"
+    assert result["cases"][0]["change"] == "improved"
+    assert result["cases"][54]["change"] == "worsened"
+    assert not any(value in json.dumps(result) for value in ("Pneumonia", "training-a", "reference", "unique 1"))
+    assert client.get(url).json()[0]["id"] == job_id
+
+    second_app = client.post("/v1/apps", json={"taskId": source, "builtAfterRound": 1, "name": "FoT"}).json()["id"]
+    second = client.post(url, json={**payload, "packageId": second_app, "limit": 1}).json()["id"]
+    assert client.post(f"{url}/{second}/cancel").status_code == 200
+    with platform.db.session() as session:
+        legacy_id = evaluation.find_job(session, source).id
+    assert client.post(f"{legacy}/cancel").status_code == 200
+    for id_ in (legacy_id, job_id, second):
+        (platform.settings.runs_dir / id_).mkdir(exist_ok=True, parents=True)
+    assert client.delete(f"/v1/tasks/{source}").status_code == 204
+    assert client.get(url).json() == []
+    with platform.db.session() as session:
+        assert not session.scalars(select(m.Event).where(m.Event.task_id.in_([legacy_id, job_id, second]))).all()
+    assert all(not (platform.settings.runs_dir / id_).exists() for id_ in (legacy_id, job_id, second))

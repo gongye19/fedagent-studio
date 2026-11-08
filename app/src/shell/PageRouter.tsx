@@ -11,6 +11,9 @@ import AppPage from "../ui/AppPage";
 import AppsPage from "../ui/AppsPage";
 import { NotFound } from "../ui/common";
 import EndpointPage from "../ui/EndpointPage";
+import { EvaluationPage } from "../ui/evaluation/EvaluationPage";
+import { EvaluationsPage } from "../ui/evaluation/EvaluationsPage";
+import { NewEvaluationPage } from "../ui/evaluation/NewEvaluationPage";
 import FederationResultsPage from "../ui/FederationResultsPage";
 import AgentsPage from "../ui/AgentsPage";
 import ModelsPage from "../ui/ModelsPage";
@@ -28,6 +31,12 @@ export function PageRouter({ state, dispatch, route }: { state: State; dispatch:
       return <TasksPage state={state} />;
     case "results":
       return <FederationResultsPage state={state} />;
+    case "evaluations":
+      return <EvaluationsPage />;
+    case "newEvaluation":
+      return <NewEvaluationPage state={state} />;
+    case "evaluation":
+      return <EvaluationPage key={route.id} id={route.id} state={state} />;
     case "newTask":
       return <TaskConfigPage state={state} dispatch={dispatch} initialScenario={route.scenario}
         application={route.application} />;

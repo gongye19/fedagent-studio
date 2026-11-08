@@ -65,9 +65,9 @@ def get_task(task_id: str, platform: PlatformDep, session: SessionDep) -> TaskOu
 
 @router.delete("/tasks/{task_id}", status_code=204, tags=["tasks"])
 def delete_task(task_id: str, background: BackgroundTasks, platform: PlatformDep, session: SessionDep) -> Response:
-    evaluation_id = tasks.delete_task(session, task_id)
+    evaluation_ids = tasks.delete_task(session, task_id)
     background.add_task(tasks.remove_run_directory, platform, task_id)
-    if evaluation_id:
+    for evaluation_id in evaluation_ids:
         background.add_task(tasks.remove_run_directory, platform, evaluation_id)
     return Response(status_code=204)
 

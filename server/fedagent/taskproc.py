@@ -8,7 +8,7 @@ import sys
 
 from . import models as m
 from .engine import TaskEngine
-from .experience import evaluation
+from .experience import evaluation, package_evaluation
 from .platform import Platform
 
 
@@ -20,7 +20,12 @@ def main() -> None:
         platform = Platform.create(migrate=False)
         with platform.db.session() as session:
             job = session.get(m.Task, task_id)
-        status = evaluation.run(platform, job) if job and job.source_task_id else TaskEngine(platform, task_id).run()
+        if job and job.evaluation_package_id:
+            status = package_evaluation.run(platform, job)
+        elif job and job.source_task_id:
+            status = evaluation.run(platform, job)
+        else:
+            status = TaskEngine(platform, task_id).run()
         logging.getLogger("fedagent.taskproc").info("task %s finished with status %s", task_id, status)
     except Exception:
         logging.getLogger("fedagent.taskproc").exception("task %s crashed", task_id)

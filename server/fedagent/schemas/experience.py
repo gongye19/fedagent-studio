@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated, Literal
 
 from pydantic import Field, StringConstraints, model_validator
@@ -111,3 +112,46 @@ class EvaluationOut(Model):
     score: EvaluationScore
     sites: list[EvaluationSite]
     cases: list[EvaluationCase]
+
+
+CaseUsage = Literal["backtest", "heldout"]
+
+
+class PackageEvaluationIn(Model):
+    package_id: str = Field(min_length=1, max_length=64)
+    model: str = Field(min_length=1, max_length=160)
+    dataset_ids: list[Annotated[str, StringConstraints(min_length=1, max_length=64)]] = Field(min_length=2, max_length=2)
+    limit: int = Field(default=100, ge=1, le=100)
+
+
+class PackageEvaluationSummary(Model):
+    id: str
+    package_name: str
+    total: int
+    usage: Literal["backtest", "heldout", "mixed"]
+    status: Status
+    created_at: datetime
+
+
+class PackageEvaluationSite(EvaluationSite):
+    usage: CaseUsage
+
+
+class PackageEvaluationResultArm(Model):
+    correct: bool | None
+    error: str | None
+
+
+class PackageEvaluationCase(Model):
+    site_id: str
+    case_id: str
+    arms: dict[Arm, PackageEvaluationResultArm]
+    change: Change
+
+
+class PackageEvaluationOut(PackageEvaluationSummary):
+    model: str
+    error: str | None
+    paired: int
+    sites: list[PackageEvaluationSite]
+    cases: list[PackageEvaluationCase]
