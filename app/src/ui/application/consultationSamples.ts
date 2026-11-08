@@ -49,17 +49,33 @@ const PRETERM_SAMPLE = [
   },
 ];
 
-const EAR_PAIN_SAMPLE = {
-  label: "进食时右耳电击痛",
+const BARTTER_SAMPLE = {
+  label: "9 岁男孩多尿、嗜盐",
   text: [
-    "Simulated case. A 25-year-old woman has occasional shooting pain in her right ear when she eats.",
-    "She had her right eardrum repaired 12 weeks ago for recurrent ear infections, and her hearing has improved. Earrings also cause discomfort.",
-    "She reports no fever, neck pain, facial tenderness, or dizziness. Her jaw does not click and is not tender. Tapping behind the right ear elicits tenderness in the right tonsillar region.",
-    "Which department should see her now? Give one leading working diagnosis, or say uncertain if the facts do not support one, and briefly explain your reasoning.",
-  ].join(" "),
+    "Simulated consultation case. Here is the history and the available physical exam.",
+    "Demographics: 9-year-old boy",
+    "History: The boy is brought in by his mother due to generalized weakness, increased urination, and increased thirst for the past few months. He has been increasingly preferring sedentary activities over playing outdoors. The mother also reports that her son has had frequent episodes of constipation since birth.",
+    "Symptoms / Primary Symptom: Generalized weakness, increased urination, and increased thirst",
+    "Symptoms / Secondary Symptoms: Frequent episodes of constipation since birth",
+    "Symptoms / Secondary Symptoms: Cravings for salty foods",
+    "Symptoms / Secondary Symptoms: Lethargy",
+    "Symptoms / Secondary Symptoms: Prefers sedentary activities",
+    "Past Medical History: Patient was delivered healthy, is fully immunized, and has no remarkable medical history.",
+    "Social History: The patient lives with his parents. His father is a banker and his mother is a librarian. He has no siblings.",
+    "Review of Systems: Reports generalized weakness without any specific trigger, frequent urination, increased thirst, and cravings for salty foods. No fever, vomiting, or respiratory symptoms reported.",
+    "Physical exam:",
+    "Vital Signs / Pulse: 90/min",
+    "Vital Signs / Blood Pressure: 110/75 mm Hg",
+    "Vital Signs / Respiratory Rate: 15/min",
+    "General Examination / Growth Parameters: In the bottom 10th percentile for height and weight according to his age",
+    "General Examination / Skin: Normal, no rash or hyperpigmentation",
+    "Abdominal Examination: Unremarkable",
+    "Other Findings: Overall physical examination is unremarkable except for the growth parameters.",
+    "Which department should see this patient now, and what is the single most likely working diagnosis? Start with 'Working diagnosis:' and one leading diagnosis if justified, or 'Working diagnosis: uncertain'. Briefly explain the supplied findings supporting it and any key information still needed.",
+  ].join("\n"),
 };
 
-export const SAMPLE_QUESTIONS = [PRETERM_SAMPLE[0], EAR_PAIN_SAMPLE];
+export const SAMPLE_QUESTIONS = [PRETERM_SAMPLE[0], BARTTER_SAMPLE];
 
 export function nextSampleDetail(messages: readonly ChatMessage[]) {
   const userTurns = messages.filter(({ role }) => role === "user");
