@@ -1,4 +1,3 @@
-.medical-data-next { margin-bottom: var(--space-3); }
 .app-shell:has(.consultation) { height: var(--consultation-viewport, 100dvh); min-height: 0; grid-template-rows: minmax(0, 1fr); }
 .main:has(.consultation) { min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr); background: var(--background); }
 .page:has(> .consultation) { display: flex; flex-direction: column; width: 100%; min-height: 0; padding: 0; gap: 0; }

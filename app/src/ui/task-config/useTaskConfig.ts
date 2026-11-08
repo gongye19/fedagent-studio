@@ -20,7 +20,7 @@ import {
   type Estimate,
   type Issue,
 } from "../../domain/config";
-import { availableResource, DEFAULT_ENDPOINT_ID, endpointOf, fits } from "../../domain/resources";
+import { DEFAULT_ENDPOINT_ID, endpointOf } from "../../domain/resources";
 import { createTask, taskRequest } from "../../state/actions";
 import { showFlash } from "../../state/flash";
 import { navigate } from "../../state/route";
@@ -35,7 +35,6 @@ export function useTaskConfig(
   dispatch: Dispatch<Action>,
   initialScenario?: ScenarioId,
   application?: string,
-  datasetId?: string,
 ) {
   const draft = state.draft;
   // 没动过的草稿不保留：每次打开都按当前的参与方和数据重新选，默认名称按当前任务类型生成。
@@ -49,20 +48,18 @@ export function useTaskConfig(
     dispatch({ type: "resetDraft" });
   }, [dispatch]);
 
-  const incoming = state.datasets.find((dataset) => dataset.id === datasetId && dataset.ready && availableResource(dataset));
-  const entryScenario = initialScenario ?? incoming?.scenario;
   useEffect(() => {
-    if (!entryScenario) return;
-    dispatch({ type: "chooseScenario", scenario: entryScenario, auto: true });
-    if (application && recordTaskTypesFor(entryScenario).includes(application))
+    if (!initialScenario) return;
+    dispatch({ type: "chooseScenario", scenario: initialScenario, auto: true });
+    if (application && recordTaskTypesFor(initialScenario).includes(application))
       dispatch({ type: "chooseTaskType", taskType: application });
-  }, [dispatch, entryScenario, application]);
+  }, [dispatch, initialScenario, application]);
 
   function selectScenario(id: Draft["scenario"]) {
     dispatch({ type: "chooseScenario", scenario: id });
     if (application && recordTaskTypesFor(id).includes(application))
       dispatch({ type: "chooseTaskType", taskType: application });
-    if (entryScenario && id !== entryScenario) navigate({ page: "newTask" }, { keepScroll: true });
+    if (initialScenario && id !== initialScenario) navigate({ page: "newTask" }, { keepScroll: true });
   }
 
   function selectTaskType(taskType: Draft["taskType"]) {
@@ -71,9 +68,6 @@ export function useTaskConfig(
 
   function selectAlgorithm(id: Draft["algorithm"]) {
     dispatch({ type: "chooseAlgorithm", algorithm: id });
-    if (id && incoming && draft.scenario && draft.taskType && fits(incoming, draft.scenario, draft.taskType)) {
-      dispatch({ type: "pickDataset", participantId: incoming.participantId, datasetId: incoming.id });
-    }
   }
 
   const update = (patch: Partial<Draft>) =>

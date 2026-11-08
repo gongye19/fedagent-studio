@@ -22,7 +22,7 @@ describe("问诊样例资料", () => {
   it("其他病例或自行改写的对话不带入早产儿资料", () => {
     expect(nextSampleDetail([])).toBeUndefined();
     expect(nextSampleDetail(turn(SAMPLE_QUESTIONS[1].text))).toBeUndefined();
-    expect(nextSampleDetail(turn(`${SAMPLE_QUESTIONS[0].text} Different patient.`))).toBeUndefined();
+    expect(nextSampleDetail(turn(`${SAMPLE_QUESTIONS[0].text} 另一位患者。`))).toBeUndefined();
     expect(nextSampleDetail([...turn(SAMPLE_QUESTIONS[0].text), ...turn("还有什么需要注意？")])).toBeUndefined();
   });
 });

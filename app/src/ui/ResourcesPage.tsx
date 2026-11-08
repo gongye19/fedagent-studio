@@ -1,6 +1,5 @@
 import { MEDICAL_RECORDS } from "../domain/consultation";
 import { visibleApplicationType } from "../domain/catalog";
-import { hrefOf } from "../state/route";
 import { useState } from "react";
 import { availableResource } from "../domain/resources";
 import { navigate, type Route } from "../state/route";
@@ -25,7 +24,6 @@ export default function ResourcesPage({
     id,
   });
   const data = state.datasets.filter((d) => visibleApplicationType(d.taskType) && availableResource(d));
-  const selected = data.find((item) => item.id === selectedId && item.taskType === MEDICAL_RECORDS && item.ready);
   function closeUpload() {
     setAdding(false);
     if (upload) navigate(route(), { keepScroll: true });
@@ -40,9 +38,6 @@ export default function ResourcesPage({
           <Icon name="plus" />上传数据
         </button>}
       />
-      {selected ? <div className="detail-actions medical-data-next">
-        <a className="button button--secondary" href={hrefOf({ page: "newTask", dataset: selected.id })}>用这份记录生成经验包</a>
-      </div> : null}
       <DataResources
         state={state}
         datasets={data}

@@ -80,6 +80,7 @@ describe("route", () => {
     expect(parseHash("#/nowhere")).toEqual({ page: "home" });
     expect(parseHash("#/tasks")).toEqual({ page: "tasks" });
     expect(parseHash("#/tasks/new")).toEqual({ page: "newTask" });
+    expect(parseHash("#/tasks/new?dataset=ds-own")).toEqual({ page: "newTask" });
     expect(parseHash("#/tasks/new/nowhere")).toEqual({ page: "tasks" });
     expect(parseHash("#/libraries/lib-1")).toEqual({ page: "app", id: "lib-1", tab: undefined });
     expect(parseHash("#/consultation?package=app-1")).toEqual({ page: "consultation", packageId: "app-1" });

@@ -41,7 +41,7 @@ export type From = "newTask";
 export type Route =
   | { page: "home" }
   | { page: "tasks" }
-  | { page: "newTask"; scenario?: ScenarioId; application?: string; dataset?: string }
+  | { page: "newTask"; scenario?: ScenarioId; application?: string }
   | { page: "resources"; space?: ResourceSpace; kind?: ResourceKind; id?: string; upload?: boolean }
   | { page: "task"; id: string; tab?: TaskTab }
   | { page: "results" }
@@ -80,8 +80,7 @@ export function parseHash(hash: string): Route {
         const scenario = oneOf(SCENARIO_IDS, third);
         if (third && !scenario) return {page:"tasks"};
         const application = search.get("application") ?? undefined;
-        const dataset = search.get("dataset") ?? undefined;
-        return {...(scenario ? { page: "newTask" as const, scenario } : { page: "newTask" as const }), ...(application ? { application } : {}), ...(dataset ? { dataset } : {})};
+        return {...(scenario ? { page: "newTask" as const, scenario } : { page: "newTask" as const }), ...(application ? { application } : {})};
       }
       return { page: "task", id: second, tab: oneOf(TASK_TABS, third) };
     case "results":
@@ -135,7 +134,7 @@ export function hrefOf(route: Route): string {
     case "tasks":
       return "#/tasks";
     case "newTask":
-      return `#/tasks/new${route.scenario ? `/${route.scenario}` : ""}${query({application: route.application, dataset: route.dataset})}`;
+      return `#/tasks/new${route.scenario ? `/${route.scenario}` : ""}${query({application: route.application})}`;
     case "resources":
       return (route.kind === "models" || route.kind === "agents"
         ? `#/resources/${route.space === "public" ? "public" : "mine"}/${route.kind}`

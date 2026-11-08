@@ -16,6 +16,10 @@ from ..schemas.experience import ChatIn, ChatOut, ConsultationOut, ConsultationT
 
 MEDICAL_RECORDS = "medical-records"
 RECORD_ALGORITHMS = {"fot-records", "evomedclaw-records"}
+RETRIEVAL_TERMS = {
+    "早产": "prematurity preterm premature",
+    "绒毛膜羊膜炎": "chorioamnionitis",
+}
 PROMPT = (
     "You are a medical consultation assistant in a research demo. Answer in the user's language. "
     "Continue the conversation using the given dialogue. Use earlier answers without asking again. "
@@ -64,6 +68,10 @@ def _guidance(platform: Platform, app: m.App | None, body: ChatIn):
     ):
         raise ServiceError(422, "请选择已发布的医疗问诊经验包")
     evidence = "\n".join(message.content for message in body.messages if message.role == "user")
+    if app.algorithm == "evomedclaw-records":
+        # 经验卡按英文词检索。只补充已有病史词的同义词，问诊原文仍照常传给模型。
+        terms = [english for chinese, english in RETRIEVAL_TERMS.items() if chinese in evidence]
+        evidence = "\n".join([evidence, *terms])
     return experience_guidance(app.algorithm, app.content, evidence)
 
 

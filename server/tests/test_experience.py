@@ -132,11 +132,19 @@ def test_consultation_uses_history_and_fixed_package(platform, client, monkeypat
     assert client.post(url, json=body).status_code == 422
 
 
-def test_consultation_routes_baseline_and_package_with_same_prompt(platform, client, monkeypatch):
-    task, _ = completed(platform, client, "fot-records")
+@pytest.mark.parametrize("algorithm_id", ["fot-records", "evomedclaw-records"])
+def test_consultation_routes_baseline_and_package_with_same_prompt(platform, client, monkeypatch, algorithm_id):
+    task, _ = completed(platform, client, algorithm_id)
     published = client.post("/v1/apps", json={"taskId": task, "builtAfterRound": 1, "name": "medical"})
     assert published.status_code == 201, published.text
     package_id = published.json()["id"]
+    if algorithm_id == "evomedclaw-records":
+        with platform.db.session() as session:
+            session.get(m.App, package_id).content = {"memory": {"entries": [{
+                "entry_id": "card-1", "department": "pediatrics", "owner_role": "local_doctor",
+                "stage": "synthesis", "summary": "Two clinical clues", "guidance": "Review the findings together.",
+                "required_evidence": ["prematurity", "chorioamnionitis"],
+            }]}}
     calls = []
 
     def reply(self, messages, **kwargs):
@@ -150,7 +158,8 @@ def test_consultation_routes_baseline_and_package_with_same_prompt(platform, cli
 
     monkeypatch.setattr(GatewayModel, "chat", reply)
     url = "/v1/consultation/chat"
-    body = {"model": "fake:fake", "messages": [{"role": "user", "content": "晚上咳嗽"}]}
+    question = "宝宝早产，我产前有绒毛膜羊膜炎。" if algorithm_id == "evomedclaw-records" else "晚上咳嗽"
+    body = {"model": "fake:fake", "messages": [{"role": "user", "content": question}]}
     baseline = client.post(url, json=body)
     augmented = client.post(url, json={**body, "packageId": package_id})
     assert baseline.status_code == augmented.status_code == 200
@@ -160,8 +169,13 @@ def test_consultation_routes_baseline_and_package_with_same_prompt(platform, cli
     assert calls[0][0] == calls[1][0]
     assert calls[0][1]["dialogue"] == calls[1][1]["dialogue"] == body["messages"]
     assert not calls[0][1]["experience"] and calls[1][1]["experience"]
+    if algorithm_id == "evomedclaw-records":
+        assert [item["id"] for item in calls[1][1]["experience"]] == ["card-1"]
     assert client.post(url, json={**body, "packageId": "missing"}).status_code == 404
     assert client.post(url, json={**body, "model": "missing:missing"}).status_code == 422
     assert len(calls) == 2
+    if algorithm_id == "evomedclaw-records":
+        unrelated = {**body, "packageId": package_id, "messages": [{"role": "user", "content": "晚上咳嗽"}]}
+        assert client.post(url, json=unrelated).json()["experienceEntries"] == 0
     body["messages"][0]["content"] = "bad response"
     assert client.post(url, json=body).status_code == 502

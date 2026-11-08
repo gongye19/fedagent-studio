@@ -17,15 +17,13 @@ export default function TaskConfigPage({
   dispatch,
   initialScenario,
   application,
-  datasetId,
 }: {
   state: State;
   dispatch: Dispatch<Action>;
   initialScenario?: ScenarioId;
   application?: string;
-  datasetId?: string;
 }) {
-  const config = useTaskConfig(state, dispatch, initialScenario, application, datasetId);
+  const config = useTaskConfig(state, dispatch, initialScenario, application);
   const {
     draft,
     algorithm,

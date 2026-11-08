@@ -30,7 +30,7 @@ export function PageRouter({ state, dispatch, route }: { state: State; dispatch:
       return <FederationResultsPage state={state} />;
     case "newTask":
       return <TaskConfigPage state={state} dispatch={dispatch} initialScenario={route.scenario}
-        application={route.application ?? (route.dataset ? MEDICAL_RECORDS : undefined)} datasetId={route.dataset} />;
+        application={route.application} />;
     case "resources":
       return route.kind === "models" ? <ModelsPage state={state} space={route.space} /> : route.kind === "agents" ? <AgentsPage space={route.space} /> : <ResourcesPage state={state} selectedId={route.id} upload={route.upload} />;
     case "task": {
