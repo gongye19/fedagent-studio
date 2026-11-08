@@ -49,7 +49,7 @@ export function ConsultationWindow({
   const historyRef = useRef<HTMLDivElement>(null);
   const followLatest = useRef(true);
   const selected = packages.find((item) => item.id === window.packageId);
-  const selectedModel = models.find((item) => item.ref === window.model);
+  const selectedModel = models.find((item) => item.ref === window.model) ?? (started ? undefined : models[0]);
   const limitReached = messages.length >= 40;
   const canSend = Boolean(
     selectedModel && (!window.packageId || selected) && input.trim() && !pending && !limitReached,
@@ -71,19 +71,20 @@ export function ConsultationWindow({
 
   async function send(event: FormEvent) {
     event.preventDefault();
-    if (!canSend || request.current) return;
+    if (!canSend || !selectedModel || request.current) return;
     const text = input.trim();
     const history: ChatMessage[] = messages.map(({ role, content }) => ({ role, content }));
     history.push({ role: "user", content: text });
     const controller = new AbortController();
     request.current = controller;
     followLatest.current = true;
+    if (window.model !== selectedModel.ref) onSettings({ model: selectedModel.ref });
     onStart();
     setStarted(true);
     setPending(text);
     setProblem("");
     try {
-      const reply = await consult(selected?.id ?? null, window.model, history, controller.signal);
+      const reply = await consult(selected?.id ?? null, selectedModel.ref, history, controller.signal);
       if (controller.signal.aborted) return;
       setMessages([...messages, { role: "user", content: text }, {
         role: "assistant", content: reply.output, department: reply.department, experienceEntries: reply.experienceEntries,
@@ -149,11 +150,10 @@ export function ConsultationWindow({
                 {SAMPLE_QUESTIONS.map(({ label, text, packageName }) => (
                   <button key={text} className="consultation-example" type="button"
                     aria-pressed={input === text} onClick={() => fill(text)}>
-                    {label}<small>对照 {packageName}</small>
+                    <span>{label}</span><small>对照 {packageName}</small>
                   </button>
                 ))}
               </div>
-              <p className="consultation-note consultation-demo-hint">两栏选同一病例和模型，一栏不加载经验。</p>
             </div>
           ) : null}
           {showDemo && sample && nextSample ? (
@@ -183,7 +183,7 @@ export function ConsultationWindow({
           <div className="consultation-toolbar">
             <SelectField className="consultation-pick" aria-label={`${title}模型`} value={selectedModel?.ref ?? ""}
               disabled={started || !models.length} onValueChange={(model) => onSettings({ model })}>
-              <option value="" disabled>{models.length ? "选择模型" : "暂无可用模型"}</option>
+              <option value="" disabled>{started ? "当前模型不可用" : "暂无可用模型"}</option>
               {models.map((item) => <option key={item.ref} value={item.ref}>{item.label}</option>)}
             </SelectField>
             <button type="submit" className="button button--primary consultation-send"
