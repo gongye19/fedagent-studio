@@ -63,6 +63,7 @@
   justify-self: end; width: min(100%, 216px); min-height: 32px;
   padding: 4px 8px; gap: 4px; font-size: var(--text-xs);
 }
+.consultation-package .select-value { white-space: normal; text-wrap: balance; overflow-wrap: anywhere; line-height: 16px; }
 .consultation-close.button { width: 32px; min-height: 32px; padding: 0; }
 .consultation-close.button:disabled { opacity: .42; }
 
