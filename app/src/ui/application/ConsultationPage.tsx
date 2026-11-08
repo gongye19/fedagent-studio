@@ -1,15 +1,20 @@
 import { useEffect, useRef, useState } from "react";
+import { ALGORITHMS } from "../../domain/catalog";
 import { isConsultationPackage } from "../../domain/consultation";
 import { usableModelOptions } from "../../domain/resources";
 import type { State } from "../../state/store";
 import { PageHead } from "../common";
+import { formatNumber } from "../format";
 import { Icon } from "../icons";
 import { ConsultationWindow, type WindowSettings } from "./ConsultationWindow";
 
 const MAX_WINDOWS = 3;
 
 export function ConsultationPage({ state, packageId }: { state: State; packageId?: string }) {
-  const packages = state.published.filter(isConsultationPackage);
+  const packages = state.published.filter(isConsultationPackage).map((item) => {
+    const unit = ALGORITHMS.find((algorithm) => algorithm.id === item.algorithm)?.output.unit ?? "条经验";
+    return { id: item.id, name: `${item.name}（${formatNumber(item.items.length)} ${unit}）` };
+  });
   const models = usableModelOptions(state.endpoints);
   const [windows, setWindows] = useState<WindowSettings[]>([
     { id: 1, packageId: "", model: "" },

@@ -60,7 +60,7 @@
 }
 .consultation-mark .icon { width: 17px; height: 17px; }
 .consultation-package.select-trigger {
-  justify-self: end; width: min(100%, 176px); min-height: 32px;
+  justify-self: end; width: min(100%, 216px); min-height: 32px;
   padding: 4px 8px; gap: 4px; font-size: var(--text-xs);
 }
 .consultation-close.button { width: 32px; min-height: 32px; padding: 0; }
