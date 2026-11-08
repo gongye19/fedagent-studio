@@ -97,6 +97,8 @@ def test_independent_paired_evaluation_and_resume(platform, client, monkeypatch,
     result = client.get(url).json()
     assert result["score"] == {"total": 2, "paired": 2, "attempted": 6, "none": 0, "local": 2, "federated": 2,
                                 "improved": 0, "worsened": 0, "unchanged": 2}
+    assert all(case["caseId"].startswith("病例 ") and not case["reference"] and
+               all(arm["output"] is None for arm in case["arms"].values()) for case in result["cases"])
     assert len(responses) == 7
     assert senders == [{sites[0]}, {sites[1]}]
     assert client.get(f"/v1/tasks/{task}").json()["status"] == "completed"

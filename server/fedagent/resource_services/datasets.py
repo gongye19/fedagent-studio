@@ -21,7 +21,7 @@ def dataset_ready(dataset: m.Dataset) -> bool:
 
 
 def dataset_out(dataset: m.Dataset) -> DatasetOut:
-    sample = dataset.sample or None
+    sample = dataset.sample if dataset.source == "builtin" else None
     return DatasetOut(
         id=dataset.id,
         name=dataset.name,
@@ -118,7 +118,7 @@ def create_dataset(
         source="upload",
         count=report.count,
         answered=report.answered,
-        sample=checked.sample.model_dump() if checked.sample else None,
+        shared=True,
         content_path=path,
         content_hash=digest,
     )
@@ -147,7 +147,7 @@ def delete_data_resource(session: Session, dataset_id: str) -> None:
     if dataset is None:
         raise not_found("数据资源")
     if dataset.resource_space != "workspace" or dataset.source == "builtin":
-        raise ServiceError(409, "公用数据由平台维护，不能在我的资源中删除")
+        raise ServiceError(409, "这份数据由其提供方维护，当前工作区不能移除")
     require_unused(session, m.TaskSite.dataset_id, dataset.id, "数据")
     source = session.get(m.Participant, dataset.participant_id)
     remaining = session.scalar(select(func.count()).where(m.Dataset.participant_id == dataset.participant_id)) or 0

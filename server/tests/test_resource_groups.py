@@ -69,9 +69,9 @@ def test_shared_resources_keep_ownership_and_share_independently(platform, clien
     check = client.post("/v1/task-checks", json=body).json()["id"]
     own = sharing("agent", agents[0], True)
     assert own["resourceSpace"] == "workspace" and own["shared"] and own["ownerId"] == "workspace"
-    assert not next(d for d in client.get("/v1/datasets").json() if d["id"] == datasets[0])["shared"]
+    assert next(d for d in client.get("/v1/datasets").json() if d["id"] == datasets[0])["shared"]
     assert client.post("/v1/tasks", json={**body, "checkId": check}).status_code == 422
-    sharing("data", datasets[0], True)
+    assert client.patch(f"/v1/resources/data/{datasets[0]}/sharing", json={"shared": False}).status_code == 409
     sharing("agent", agents[0], False)
     assert next(d for d in client.get("/v1/datasets").json() if d["id"] == datasets[0])["shared"]
     llm = client.post("/v1/endpoints", json={"name": "仅测试LLM", "baseUrl": "https://llm.test/v1", "models": ["m"]}).json()["id"]

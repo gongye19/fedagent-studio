@@ -32,7 +32,7 @@ export function PageRouter({ state, dispatch, route }: { state: State; dispatch:
       return <TaskConfigPage state={state} dispatch={dispatch} initialScenario={route.scenario}
         application={route.application ?? (route.dataset ? MEDICAL_RECORDS : undefined)} datasetId={route.dataset} />;
     case "resources":
-      return route.kind === "models" ? <ModelsPage state={state} space={route.space} /> : route.kind === "agents" ? <AgentsPage space={route.space} /> : <ResourcesPage state={state} space={route.space} selectedId={route.id} upload={route.upload} />;
+      return route.kind === "models" ? <ModelsPage state={state} space={route.space} /> : route.kind === "agents" ? <AgentsPage space={route.space} /> : <ResourcesPage state={state} selectedId={route.id} upload={route.upload} />;
     case "task": {
       const task = taskOf(state, route.id);
       return task ? (

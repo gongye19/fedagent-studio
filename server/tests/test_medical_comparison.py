@@ -59,7 +59,8 @@ def test_three_groups_reuse_eval_cases_generate_once_and_paginate_by_case(platfo
     page = client.get(f"/v1/tasks/{task_id}/case-comparisons?limit=1").json()
     assert page["total"] == 2 and page["hasMore"]
     assert [case["round"] for case in page["items"][0]["cases"]] == [1, 2, 3]
-    assert all(case["itemId"] == "eval-private" for case in page["items"][0]["cases"])
+    assert page["items"][0]["itemId"].startswith("样本 ")
+    assert all(case["itemId"] == page["items"][0]["itemId"] for case in page["items"][0]["cases"])
     second = client.get(f"/v1/tasks/{task_id}/case-comparisons?offset=1&limit=1").json()
     assert not second["hasMore"] and second["items"][0]["key"] != page["items"][0]["key"]
     store = AgentStore(platform.settings.data_dir / "remote")

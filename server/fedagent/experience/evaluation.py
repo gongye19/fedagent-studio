@@ -89,7 +89,10 @@ def present(session: Session, job: m.Task) -> EvaluationOut:
                 score.improved += int(change == "improved")
                 score.worsened += int(change == "worsened")
                 score.unchanged += int(change == "unchanged")
-        cases.append(EvaluationCase(site_id=site, case_id=case["case_id"], reference=case["reference"], arms=arms, change=change))
+        public_arms: dict[Arm, EvaluationArm] = {
+            key: EvaluationArm(correct=arm.correct, error="评测未完成" if arm.error else None) for key, arm in arms.items()
+        }
+        cases.append(EvaluationCase(site_id=site, case_id=f"病例 {index + 1}", reference="", arms=public_arms, change=change))
     return EvaluationOut.model_validate(dict(status=job.status, error=job.error, model=job.config["model"],
                                               score=summary, sites=list(scores.values()), cases=cases if job.status not in ("running", "queued") else []))
 

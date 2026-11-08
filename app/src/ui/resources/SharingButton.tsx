@@ -7,7 +7,7 @@ export function SharingButton({
   kind,
   resource,
 }: {
-  kind: ResourceKind;
+  kind: Exclude<ResourceKind, "data">;
   resource: {
     id: string;
     name: string;
@@ -40,9 +40,7 @@ export function SharingButton({
         >
           {resource.shared
             ? "取消后，其他系统的新任务不能再选择这项资源。已开始的任务继续运行，资源仍保留在我的资源中。"
-            : kind === "data"
-              ? "共享后，平台内其他使用者可以在任务中使用这份数据。共享状态可随时取消。"
-              : `共享后，平台内其他使用者可以通过平台调用这个 ${kind === "agent" ? "Agent" : "LLM"} 接口，会消耗接口额度。API 密钥不会展示。${kind === "agent" ? "它的数据需要单独共享。" : ""}`}
+            : `共享后，平台内其他使用者可以通过平台调用这个 ${kind === "agent" ? "Agent" : "LLM"} 接口，会消耗接口额度。API 密钥不会展示。${kind === "agent" ? "数据需另行接入。" : ""}`}
         </Confirm>
       ) : null}
     </>

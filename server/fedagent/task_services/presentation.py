@@ -14,6 +14,7 @@ from ..registry import stage_descriptions
 from ..schemas import CursorOut, GroupOut, MemberOut, MessageOut, OutputItem, OutputVersionOut, RoundOut, TaskOut
 from ..schemas.registry import StageOut
 from ..units import load_sites
+from .data_visibility import PRIVATE_TASK_ERROR, uses_uploaded_data
 
 
 def _artifact_items(algorithm: Algorithm | None, row: m.Artifact) -> list[OutputItem]:
@@ -165,7 +166,7 @@ def task_out(platform: Platform, session: Session, task: m.Task) -> TaskOut:
         config=config,
         members=members,
         status=task.status,  # type: ignore[arg-type]
-        error=task.error,
+        error=PRIVATE_TASK_ERROR if task.error and uses_uploaded_data(session, task.id) else task.error,
         cursor=cursor,
         rounds=rounds,
         evaluation_labels=manifest.rounds.labels if manifest else [],

@@ -46,9 +46,7 @@ export function DataResourceForm({
   }
   return (
     <div className="resource-intake">
-      {category ? (
-        <p className="resource-context">{TASK_TYPES[category.taskType].label} · 上传后保存到我的资源</p>
-      ) : null}
+      <p className="resource-context">{category ? `${TASK_TYPES[category.taskType].label} · ` : ""}上传后供联邦任务使用。数据名称和说明会在目录中显示。</p>
       <FieldGroup>
         <DatasetFields
           form={form}
@@ -62,7 +60,7 @@ export function DataResourceForm({
         missing={missing}
         saving={saving}
         error={error}
-        saveLabel="保存数据"
+        saveLabel="上传数据"
         onCancel={onCancel}
         onSave={() => void save()}
       />

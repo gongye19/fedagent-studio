@@ -5,11 +5,12 @@ from collections import Counter, defaultdict
 from contextlib import suppress
 from typing import Any
 
-from fedagent_sdk import Manifest
+from fedagent_sdk import SERVER, Manifest
 from sqlalchemy import select
 
 from .. import models as m
 from ..schemas.cases import CaseComparisonOut, CaseComparisonPageOut, CaseOut, CasePageOut
+from .data_visibility import protected_sites
 
 CASE_REPORT = "case_result"
 
@@ -76,7 +77,21 @@ def recorded_cases(platform, session, task, *, round=None, site=None) -> list[Ca
         cases.append(CaseOut(key=f"failed:{unit.id}", round=unit.round, site=unit.site_id, item_id=unit.unit_key,
                              step=unit.step, outcome="error", error=display_text((unit.error or "执行失败").splitlines()[0])[:500]))
     cases.sort(key=lambda c: (c.round, c.site, c.item_id, c.key))
-    return cases
+    aliases = {row.id: {str(item): index for index, item in enumerate(row.items, 1)}
+               for row in session.scalars(protected_sites(task.id))}
+    if not aliases:
+        return cases
+    public_cases = []
+    for case in cases:
+        if case.site not in aliases and case.site != SERVER:
+            public_cases.append(case)
+            continue
+        site_aliases = aliases.setdefault(case.site, {})
+        item_id = "_" if case.item_id == "_" else f"样本 {site_aliases.setdefault(case.item_id, len(site_aliases) + 1)}"
+        key = case.key if not case.key.startswith("old:") else f"protected:{case.round}:{case.site}:{case.step}:{item_id}"
+        public_cases.append(CaseOut(key=key, round=case.round, site=case.site, step=case.step,
+                                    outcome=case.outcome, item_id=item_id))
+    return public_cases
 
 
 def page(platform, session, task, *, round=None, site=None, outcome=None, offset=0, limit=20) -> CasePageOut:

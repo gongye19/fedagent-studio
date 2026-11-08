@@ -102,9 +102,13 @@ export function parseHash(hash: string): Route {
       return second ? { page: "participants", id: second } : { page: "participants" };
     }
     case "resources": {
-      const parts = path.split("/").filter(Boolean).map(decodeURIComponent);
-      return {page:"resources",space:second === "public" ? "public" : "workspace",
-        kind:oneOf(["data","models","agents"] as const,third) ?? "data",id:parts[3], ...(search.get("upload") === "1" ? { upload: true } : {})};
+      const upload = search.get("upload") === "1" ? { upload: true } : {};
+      if (second === "mine" || second === "public") {
+        const id = path.split("/").filter(Boolean).map(decodeURIComponent)[3];
+        return { page: "resources", space: second === "public" ? "public" : "workspace",
+          kind: oneOf(["data", "models", "agents"] as const, third) ?? "data", id, ...upload };
+      }
+      return { page: "resources", id: second === "data" ? third : undefined, ...upload };
     }
     case "datasets": {
       // 数据集已并入"参与方与数据"，旧的列表地址回到那里
@@ -133,7 +137,9 @@ export function hrefOf(route: Route): string {
     case "newTask":
       return `#/tasks/new${route.scenario ? `/${route.scenario}` : ""}${query({application: route.application, dataset: route.dataset})}`;
     case "resources":
-      return `#/resources/${route.space === "public" ? "public" : "mine"}/${route.kind ?? "data"}${route.id ? `/${part(route.id)}` : ""}${query({ upload: route.upload ? "1" : undefined })}`;
+      return (route.kind === "models" || route.kind === "agents"
+        ? `#/resources/${route.space === "public" ? "public" : "mine"}/${route.kind}`
+        : "#/resources" + (route.id ? `/data/${part(route.id)}` : "")) + query({ upload: route.upload ? "1" : undefined });
     case "task":
       return `#/tasks/${part(route.id)}${route.tab ? `/${route.tab}` : ""}`;
     case "results":

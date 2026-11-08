@@ -11,6 +11,7 @@ from ..schemas import EstimateOut, EventOut, MessageOut, TaskConfigIn, TaskOut, 
 from ..schemas.cases import CaseComparisonPageOut, CasePageOut
 from ..schemas.process import ProcessPageOut
 from ..task_services.cases import page as cases_page
+from ..task_services.data_visibility import PRIVATE_TASK_ERROR, PUBLIC_EVENT_KINDS, uses_uploaded_data
 from ..task_services.process import page as process_page
 from .dependencies import PlatformDep, SessionDep, admin_router
 
@@ -91,20 +92,27 @@ def task_messages(
     limit: Annotated[int, Query(ge=1, le=1000)] = 200,
     after: Annotated[int, Query(ge=0)] = 0,
 ) -> list[MessageOut]:
-    return tasks.messages_out(platform, session, tasks.get_task(session, task_id), round=round, site=site, limit=limit, after=after)
+    task = tasks.get_task(session, task_id)
+    if uses_uploaded_data(session, task_id):
+        return []
+    return tasks.messages_out(platform, session, task, round=round, site=site, limit=limit, after=after)
 
 
 @router.get("/tasks/{task_id}/events", response_model=list[EventOut], tags=["tasks"])
 def task_events(task_id: str, session: SessionDep) -> list[EventOut]:
     tasks.get_task(session, task_id)
     rows = session.scalars(select(m.Event).where(m.Event.task_id == task_id, m.Event.kind != "process").order_by(m.Event.id))
-    return [EventOut(id=row.id, kind=row.kind, message=row.message, created_at=row.created_at) for row in rows]
+    protected = uses_uploaded_data(session, task_id)
+    return [EventOut(id=row.id, kind=row.kind, message=PRIVATE_TASK_ERROR if protected and row.kind not in PUBLIC_EVENT_KINDS else row.message,
+                     created_at=row.created_at) for row in rows]
 
 
 @router.get("/tasks/{task_id}/process", response_model=ProcessPageOut, tags=["tasks"])
 def task_process(task_id: str, session: SessionDep, after: Annotated[int, Query(ge=0)] = 0,
                  round: Annotated[int | None, Query(ge=1)] = None, site: str | None = None) -> ProcessPageOut:
     tasks.get_task(session, task_id)
+    if uses_uploaded_data(session, task_id):
+        return ProcessPageOut(events=[], after=after, has_more=False, states={})
     return process_page(session, task_id, after=after, round=round, site=site)
 
 

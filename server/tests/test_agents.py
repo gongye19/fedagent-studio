@@ -78,9 +78,12 @@ def test_remote_steps_two_rounds_share_artifact_and_grade_locally(platform, clie
     assert len([r for r in view["rounds"] if r.get("output")]) == (1 if medical else 2)
     assert all(r.get("correct") is not None for r in view["rounds"])
     cases = client.get(f"/v1/tasks/{task_id}/cases").json()
-    assert cases["total"] == (6 if medical else 4) and all(c["prediction"] for c in cases["items"])
+    assert cases["total"] == (6 if medical else 4)
     if medical:
-        assert all(c["itemId"] == "eval-private" for c in cases["items"])
+        assert all(c["itemId"].startswith("样本 ") and not (c["prediction"] or c["reference"] or c["input"] or c["fields"])
+                   for c in cases["items"])
+    else:
+        assert all(c["prediction"] for c in cases["items"])
     assert any(req.round == (3 if medical else 2) and req.artifact for req in requests)
     assert all(
         "answer" not in item.fields for req in requests if not platform.registry.algorithm(req.algorithm).manifest.step(req.step).labels for item in req.items

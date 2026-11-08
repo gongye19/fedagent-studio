@@ -92,20 +92,20 @@ def freeze_cases(platform: Platform, session: Session, task_id: str, sources: li
         if not rows:
             raise ServiceError(422, f"「{site.participant_name}」没有可用的带标注评测病例")
         site_ids: set[str] = set()
-        for row in rows:
+        for index, row in enumerate(rows, 1):
             case_id = str(row["id"])
             fingerprint = _fingerprint(row)
             normalized_id = case_id.strip().casefold()
             if normalized_id in train_ids or fingerprint in train_fingerprints:
-                raise ServiceError(422, f"病例「{case_id}」与生成经验用的记录重合，请换用留出病例")
+                raise ServiceError(422, f"第 {index} 条病例与生成经验用的记录重合，请换用留出病例")
             if normalized_id in site_ids or fingerprint in seen:
-                raise ServiceError(422, f"评测病例「{case_id}」重复，请为各来源选择不同病例")
+                raise ServiceError(422, f"第 {index} 条评测病例重复，请为各来源选择不同病例")
             site_ids.add(normalized_id)
             seen.add(fingerprint)
             evidence = CASE_TYPE.strip_labels(row)
             evidence.pop("split", None)
             if len(str(evidence)) > 40000:
-                raise ServiceError(422, f"病例「{case_id}」内容过长")
+                raise ServiceError(422, f"第 {index} 条病例内容过长")
             result.append({"site_id": site.id, "site_name": site.participant_name, "case_id": case_id,
                            "input": evidence, "reference": row["answer"]})
     if len(result) > 100:

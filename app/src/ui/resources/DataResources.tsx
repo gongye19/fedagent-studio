@@ -8,20 +8,17 @@ import { Icon } from "../icons";
 import { DataDetail } from "./DataDetail";
 import { ResourceTable } from "./ResourceTable";
 
-export function DataResources({state, datasets, own, selectedId, onSelect}: {
+export function DataResources({state, datasets, selectedId, onSelect}: {
   state: State;
   datasets: Dataset[];
-  own: boolean;
   selectedId?: string;
   onSelect: (id?: string) => void;
 }) {
   return (
     <ResourceTable label="联邦数据列表" className="table--resources" columns={[
-      {label: "数据名称"}, {label: "任务类型"}, {label: "所属方"},
+      {label: "数据名称"}, {label: "任务类型"}, {label: "提供方"},
       {label: "样本数", className: "numeric"},
-    ]} empty={!datasets.length} emptyContent={own
-      ? "还没有数据。上传并通过校验后，可在任务中选择。"
-      : "暂无共享数据。"}>
+    ]} empty={!datasets.length} emptyContent="还没有数据。上传并通过校验后，可在联邦任务中使用。">
       {datasets.map((d) => {
         const open = selectedId === d.id;
         return (
@@ -41,12 +38,7 @@ export function DataResources({state, datasets, own, selectedId, onSelect}: {
               <td data-label="任务类型">
                 {TASK_TYPES[d.taskType]?.label ?? d.taskType}
               </td>
-              <td data-label="所属方">
-                {d.ownerName}
-                {d.resourceSpace === "workspace" && d.shared ? (
-                  <Tag>已共享</Tag>
-                ) : null}
-              </td>
+              <td data-label="提供方">{d.ownerName}</td>
               <td className="numeric" data-label="样本数">
                 {d.ready ? (
                   formatNumber(d.count)

@@ -53,7 +53,7 @@ export function CaseItem({ item, task }: { item: CaseResult; task: Task }) {
         {item.input ? <div><dt>输入</dt><dd>{item.input}</dd></div> : null}
         {item.prediction ? <div><dt>实际回答</dt><dd>{item.prediction}</dd></div> : null}
         {item.reference ? <div><dt>参考答案</dt><dd>{item.reference}</dd></div> : null}
-      </dl> : !item.error ? <p className="muted">历史记录未保存回答详情</p> : null}
+      </dl> : !item.error ? <p className="muted">暂无可展示的回答详情</p> : null}
     </div>
   </details></li>;
 }

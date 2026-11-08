@@ -57,13 +57,13 @@ function EvaluationResults({ result }: { result: Evaluation }) {
           <details key={`${item.siteId}/${item.caseId}`} className="evaluation-case">
             <summary><span>{item.caseId} · {result.sites.find((entry) => entry.id === item.siteId)?.name}</span>
               <strong className={`evaluation-${item.change}`}>{CHANGE[item.change]}</strong></summary>
-            <p className="muted">参考诊断 · {item.reference}</p>
+            {item.reference ? <p className="muted">参考诊断 · {item.reference}</p> : <p className="muted">病例正文和参考诊断不在协作结果中展示。</p>}
             <div className="evaluation-answers">
               {ARMS.map(({ id, name }) => {
                 const arm = item.arms[id];
                 return <article key={id}>
                   <h4>{name} · {arm?.correct === true ? "匹配" : arm?.correct === false ? "未匹配" : "未完成"}</h4>
-                  <p>{arm?.output ?? arm?.error ?? "等待评测"}</p>
+                  {arm?.output || arm?.error ? <p>{arm.output ?? arm.error}</p> : null}
                   {arm?.experienceKeys?.length ? <details><summary>本组提供的经验（{arm.experienceKeys.length}）</summary>
                     <ul>{arm.experienceKeys.map((key) => <li key={key}>{key}</li>)}</ul>
                   </details> : null}

@@ -15,6 +15,8 @@ def set_shared(session: Session, kind: str, resource_id: str, shared: bool):
         raise not_found("资源")
     if row.resource_space != "workspace":
         raise ServiceError(403, "只能管理当前工作区自己接入资源的共享状态")
+    if isinstance(row, m.Dataset) and row.source == "upload" and not shared:
+        raise ServiceError(409, "上传的数据供联邦任务使用。如需停止使用，请移除数据。")
     if isinstance(row, m.Endpoint) and row.kind == "fake":
         raise ServiceError(409, "测试接口不能共享")
     row.shared = shared

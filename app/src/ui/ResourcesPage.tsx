@@ -1,38 +1,30 @@
 import { MEDICAL_RECORDS } from "../domain/consultation";
-import { visibleTaskType } from "../domain/catalog";
+import { visibleApplicationType } from "../domain/catalog";
 import { hrefOf } from "../state/route";
 import { useState } from "react";
-import { inResourceScope, type ResourceSpace } from "../domain/resources";
+import { availableResource } from "../domain/resources";
 import { navigate, type Route } from "../state/route";
 import type { State } from "../state/store";
 import { PageHead } from "./common";
 import { Icon } from "./icons";
-import { ResourceScope } from "./resources/ResourceScope";
-import { useContentMotion } from "./hooks";
 import { DataResources } from "./resources/DataResources";
 import { ResourceIntakeDialog } from "./ResourceIntakeDialog";
 
 export default function ResourcesPage({
   state,
-  space = "workspace",
   selectedId,
   upload,
 }: {
   state: State;
-  space?: ResourceSpace;
   selectedId?: string;
   upload?: boolean;
 }) {
   const [adding, setAdding] = useState(false);
-  const panelMotion = useContentMotion(space, true);
-  const own = space === "workspace";
   const route = (id?: string): Route => ({
     page: "resources",
-    space,
-    kind: "data",
     id,
   });
-  const data = state.datasets.filter((d) => visibleTaskType(d.taskType) && inResourceScope(d, space));
+  const data = state.datasets.filter((d) => visibleApplicationType(d.taskType) && availableResource(d));
   const selected = data.find((item) => item.id === selectedId && item.taskType === MEDICAL_RECORDS && item.ready);
   function closeUpload() {
     setAdding(false);
@@ -43,43 +35,23 @@ export default function ResourcesPage({
       <PageHead
         title="联邦数据"
         back={selectedId ? {label: "联邦数据", route: route()} : undefined}
-        meta={
-          own
-            ? "上传已完成的问诊过程，校验后用于生成经验。"
-            : "已共享的数据和平台提供的公开基准数据。"
-        }
-        actions={
-          own ? (
-            <button
-              type="button"
-              className="button button--primary"
-              onClick={() => setAdding(true)}
-            >
-              <Icon name="plus" />
-              上传数据
-            </button>
-          ) : undefined
-        }
+        meta="上传的数据可用于联邦任务。目录只展示数据的基本信息。"
+        actions={<button type="button" className="button button--primary" onClick={() => setAdding(true)}>
+          <Icon name="plus" />上传数据
+        </button>}
       />
       {selected ? <div className="detail-actions medical-data-next">
         <a className="button button--secondary" href={hrefOf({ page: "newTask", dataset: selected.id })}>用这份记录生成经验包</a>
       </div> : null}
-      <ResourceScope
-        space={space}
-        routeOf={(value) => ({ page: "resources", space: value })}
+      <DataResources
+        state={state}
+        datasets={data}
+        selectedId={selectedId}
+        onSelect={(id) => navigate(route(id), { keepScroll: true })}
       />
-      <div ref={panelMotion}>
-        <DataResources
-          state={state}
-          datasets={data}
-          own={own}
-          selectedId={selectedId}
-          onSelect={(id) => navigate(route(id), { keepScroll: true })}
-        />
-      </div>
       <ResourceIntakeDialog
         state={state}
-        kind={own && (adding || upload) ? "data" : null}
+        kind={adding || upload ? "data" : null}
         category={{ scenario: "horizontal", taskType: MEDICAL_RECORDS }}
         title="上传问诊记录"
         onClose={closeUpload}

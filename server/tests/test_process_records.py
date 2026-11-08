@@ -3,8 +3,11 @@ import json
 
 import pytest
 from fedagent_records.records import MathRecords, MedicalRecords
-from fedagent_sdk import Row
+from fedagent_sdk import ProgressUpdate, Row
 from test_api import config, run
+
+from fedagent.task_services.process import append
+from fedagent.units import add_event
 
 
 def record(medical=False):
@@ -41,6 +44,7 @@ def test_record_to_library_to_application_without_agent(platform, client, algori
                               files={'file': ('records.jsonl', json.dumps(value).encode(), 'application/jsonl')})
         assert response.status_code == 201, response.text
         data = response.json()
+        assert data['dataset']['shared'] is True and data['dataset']['sample'] is None
         sites.append({'participantId':data['source']['id'],'datasetId':data['dataset']['id']})
     response = client.post('/v1/tasks',json=config(sites,algorithm=algorithm,taskType=task_type,rounds=1,trialCap=1))
     assert response.status_code == 201, response.text
@@ -49,6 +53,17 @@ def test_record_to_library_to_application_without_agent(platform, client, algori
     result = client.get(f'/v1/tasks/{id_}').json()
     assert result['rounds'][0]['output']['items']
     assert not any(s['id'] in ('solve','diagnose','learn') for s in result['stages'])
+    canary = '只供内部处理的病历正文'
+    append(platform, task_id=id_, origin='private', seq=1, site=sites[0]['participantId'], round=1,
+           step='extract', unit='r1', event=ProgressUpdate(activity='private', title=canary, status='completed'))
+    with platform.db.session() as session:
+        add_event(session, id_, 'pause', canary)
+        add_event(session, id_, 'other-error', canary)
+    for endpoint in ('', '/cases', '/case-comparisons', '/messages', '/process', '/events'):
+        response = client.get(f'/v1/tasks/{id_}{endpoint}')
+        assert response.status_code == 200 and canary not in response.text
+    assert client.get(f'/v1/tasks/{id_}/process').json()['events'] == []
+    assert client.get(f'/v1/tasks/{id_}/messages').json() == []
     publish = client.post('/v1/apps',json={'taskId':id_,'builtAfterRound':1,'name':'shared experience'})
     assert publish.status_code == 201, publish.text
     app = publish.json()['id']

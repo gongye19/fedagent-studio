@@ -47,7 +47,7 @@ export function ComparisonCase({ item, task }: { item: Row; task: Task }) {
     <div className="case-answers">{task.evaluationLabels?.map((label, i) => {
       const row = item.cases.find((c) => c.round === i + 1);
       return <section key={label}><h3>{label}<span className={`case-label case-label--${row?.outcome ?? "pending"}`}>{row ? outcomes[row.outcome] : "尚未完成"}</span></h3>
-        <p>{row?.prediction ?? row?.error ?? (row ? "未保存回答正文" : "—")}</p>
+        {row?.prediction || row?.error ? <p>{row.prediction ?? row.error}</p> : null}
       </section>;
     })}</div>
     {source?.fields?.length || source?.input ? <details className="case-input"><summary>查看病例</summary>

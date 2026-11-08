@@ -90,8 +90,11 @@ describe("route", () => {
     expect(parseHash("#/datasets/ds-amc")).toEqual({ page: "participants" });
   });
 
-  it("keeps resource space, kind and selected resource in navigable URLs", () => {
-    const routes:Route[] = [{page:"newTask"},{page:"resources",space:"workspace",kind:"data",id:"ds-own"},{page:"resources",space:"public",kind:"models"},{page:"resources",space:"workspace",kind:"agents"}];
+  it("unifies data URLs while preserving selected data and interface scopes", () => {
+    const routes:Route[] = [{page:"newTask"},{page:"resources",id:"ds-own"},{page:"resources",space:"public",kind:"models"},{page:"resources",space:"workspace",kind:"agents"}];
     for (const route of routes) expect(parseHash(hrefOf(route))).toEqual({...route,...(route.page==="resources"&&!('id' in route)?{id:undefined}:{})});
+    for (const scope of ["mine", "public"]) {
+      expect(hrefOf(parseHash(`#/resources/${scope}/data/ds-own?upload=1`))).toBe("#/resources/data/ds-own?upload=1");
+    }
   });
 });
