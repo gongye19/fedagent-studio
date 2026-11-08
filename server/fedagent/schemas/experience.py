@@ -1,7 +1,8 @@
+import re
 from datetime import datetime
 from typing import Annotated, Literal
 
-from pydantic import Field, StringConstraints, model_validator
+from pydantic import Field, StringConstraints, field_validator, model_validator
 
 from .base import Model
 
@@ -43,16 +44,50 @@ class ConsultationIn(ChatIn):
     package_id: str | None = Field(default=None, min_length=1, max_length=64)
 
 
-class ConsultationTurn(Model):
+class ConsultationSampleTurn(Model):
+    label: str
+    text: str
+
+
+class ConsultationSample(Model):
+    package_name: str
+    turns: list[ConsultationSampleTurn]
+
+
+class ConsultationAnswer(Model):
     output: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=6000)]
     department: Department
+
+
+class ConsultationTurn(ConsultationAnswer):
     suggestions: list[Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]] = Field(
         max_length=3,
     )
 
 
+class ConsultationFinalTurn(ConsultationAnswer):
+    diagnosis: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=160)]
+
+    @field_validator("diagnosis")
+    @classmethod
+    def one_diagnosis(cls, value: str) -> str:
+        name = re.sub(r"[（(][^）)]*[）)]", "", value)
+        alternatives = r"\b(?:or|versus|rule out)\b|排除|不考虑|或|还是|[\r\n]"
+        if re.search(alternatives, value, re.IGNORECASE) or re.search(r"[、，,；;/／]", name):
+            raise ValueError("最终诊断应为一个首选诊断")
+        return value
+
+
+class ConsultationDiagnosis(Model):
+    case_label: str
+    diagnosis: str
+    reference: str
+    matched: bool | None
+
+
 class ConsultationOut(ConsultationTurn):
     experience_entries: int
+    final: ConsultationDiagnosis | None = None
 
 
 class EvaluationSource(Model):

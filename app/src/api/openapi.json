@@ -2157,6 +2157,59 @@
     }
    }
   },
+  "/v1/consultation/samples": {
+   "get": {
+    "tags": [
+     "apps"
+    ],
+    "summary": "Consultation Samples",
+    "operationId": "consultation_samples_v1_consultation_samples_get",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/ConsultationSample"
+         },
+         "title": "Response Consultation Samples V1 Consultation Samples Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/v1/consultation/chat": {
    "post": {
     "tags": [
@@ -5948,6 +6001,41 @@
     "type": "object",
     "title": "CompleteIn"
    },
+   "ConsultationDiagnosis": {
+    "properties": {
+     "caseLabel": {
+      "type": "string",
+      "title": "Caselabel"
+     },
+     "diagnosis": {
+      "type": "string",
+      "title": "Diagnosis"
+     },
+     "reference": {
+      "type": "string",
+      "title": "Reference"
+     },
+     "matched": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Matched"
+     }
+    },
+    "type": "object",
+    "required": [
+     "caseLabel",
+     "diagnosis",
+     "reference",
+     "matched"
+    ],
+    "title": "ConsultationDiagnosis"
+   },
    "ConsultationIn": {
     "properties": {
      "model": {
@@ -6027,6 +6115,16 @@
      "experienceEntries": {
       "type": "integer",
       "title": "Experienceentries"
+     },
+     "final": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ConsultationDiagnosis"
+       },
+       {
+        "type": "null"
+       }
+      ]
      }
     },
     "type": "object",
@@ -6037,6 +6135,45 @@
      "experienceEntries"
     ],
     "title": "ConsultationOut"
+   },
+   "ConsultationSample": {
+    "properties": {
+     "packageName": {
+      "type": "string",
+      "title": "Packagename"
+     },
+     "turns": {
+      "items": {
+       "$ref": "#/components/schemas/ConsultationSampleTurn"
+      },
+      "type": "array",
+      "title": "Turns"
+     }
+    },
+    "type": "object",
+    "required": [
+     "packageName",
+     "turns"
+    ],
+    "title": "ConsultationSample"
+   },
+   "ConsultationSampleTurn": {
+    "properties": {
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text"
+     }
+    },
+    "type": "object",
+    "required": [
+     "label",
+     "text"
+    ],
+    "title": "ConsultationSampleTurn"
    },
    "CursorOut": {
     "properties": {

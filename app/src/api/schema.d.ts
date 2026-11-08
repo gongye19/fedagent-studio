@@ -507,6 +507,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/consultation/samples": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Consultation Samples */
+        get: operations["consultation_samples_v1_consultation_samples_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/consultation/chat": {
         parameters: {
             query?: never;
@@ -1552,6 +1569,17 @@ export interface components {
              */
             graded: components["schemas"]["GradedIn"][];
         };
+        /** ConsultationDiagnosis */
+        ConsultationDiagnosis: {
+            /** Caselabel */
+            caseLabel: string;
+            /** Diagnosis */
+            diagnosis: string;
+            /** Reference */
+            reference: string;
+            /** Matched */
+            matched: boolean | null;
+        };
         /** ConsultationIn */
         ConsultationIn: {
             /** Model */
@@ -1574,6 +1602,21 @@ export interface components {
             suggestions: string[];
             /** Experienceentries */
             experienceEntries: number;
+            final?: components["schemas"]["ConsultationDiagnosis"] | null;
+        };
+        /** ConsultationSample */
+        ConsultationSample: {
+            /** Packagename */
+            packageName: string;
+            /** Turns */
+            turns: components["schemas"]["ConsultationSampleTurn"][];
+        };
+        /** ConsultationSampleTurn */
+        ConsultationSampleTurn: {
+            /** Label */
+            label: string;
+            /** Text */
+            text: string;
         };
         /** CursorOut */
         CursorOut: {
@@ -4081,6 +4124,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChatOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    consultation_samples_v1_consultation_samples_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsultationSample"][];
                 };
             };
             /** @description Validation Error */

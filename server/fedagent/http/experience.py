@@ -5,11 +5,13 @@ from sqlalchemy.exc import IntegrityError
 from .. import apps, tasks
 from ..errors import ServiceError
 from ..experience import consultation, evaluation, package_evaluation
+from ..experience.consultation_samples import DEMO_CASES
 from ..schemas.experience import (
     ChatIn,
     ChatOut,
     ConsultationIn,
     ConsultationOut,
+    ConsultationSample,
     EvaluationIn,
     EvaluationOut,
     PackageEvaluationIn,
@@ -30,7 +32,12 @@ def chat(app_id: str, body: ChatIn, platform: PlatformDep, session: SessionDep) 
     return consultation.chat(platform, app, model, body)
 
 
-@router.post("/consultation/chat", response_model=ConsultationOut, tags=["apps"])
+@router.get("/consultation/samples", response_model=list[ConsultationSample], tags=["apps"])
+def consultation_samples() -> list[ConsultationSample]:
+    return [case.sample for case in DEMO_CASES]
+
+
+@router.post("/consultation/chat", response_model=ConsultationOut, response_model_exclude_unset=True, tags=["apps"])
 def routed_chat(body: ConsultationIn, platform: PlatformDep, session: SessionDep) -> ConsultationOut:
     app = apps.get_app(session, body.package_id) if body.package_id else None
     model = consultation.verified_model(platform, session, body.model)

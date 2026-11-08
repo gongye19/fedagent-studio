@@ -1,4 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
+import { consultationSamples } from "../../api/consultation";
 import { ALGORITHMS } from "../../domain/catalog";
 import { isConsultationPackage } from "../../domain/consultation";
 import { usableModelOptions } from "../../domain/resources";
@@ -16,6 +18,11 @@ export function ConsultationPage({ state, packageId }: { state: State; packageId
     return { id: item.id, name: `${item.name}（${formatNumber(item.items.length)} ${unit}）` };
   });
   const models = usableModelOptions(state.endpoints);
+  const samples = useQuery({
+    queryKey: ["consultation-samples"],
+    queryFn: ({ signal }) => consultationSamples(signal),
+    staleTime: Infinity,
+  });
   const [windows, setWindows] = useState<WindowSettings[]>([
     { id: 1, packageId: "", model: "" },
     { id: 2, packageId: packageId ?? "", model: "" },
@@ -71,6 +78,8 @@ export function ConsultationPage({ state, packageId }: { state: State; packageId
   return (
     <section className="consultation" aria-label="医疗问诊" ref={page}>
       <PageHead className="consultation-head" title="医疗问诊" back={{ label: "应用", route: { page: "apps" } }}
+        meta={samples.isError ? <>演示病例暂未加载。<button className="text-link" type="button"
+          disabled={samples.isFetching} onClick={() => void samples.refetch()}>重试</button></> : undefined}
         actions={<>
           <button ref={addButton} className="button button--ghost" type="button" onClick={addWindow}
             aria-disabled={addDisabled}
@@ -98,7 +107,7 @@ export function ConsultationPage({ state, packageId }: { state: State; packageId
         {windows.length === 0 ? <p className="consultation-empty">点击「添加窗口」开始问诊。</p> : null}
         {windows.map((item, index) => (
           <ConsultationWindow key={`${session}:${item.id}`} window={item} title={`问诊 ${index + 1}`}
-            active={item.id === active} packages={packages} models={models}
+            active={item.id === active} packages={packages} models={models} samples={samples.data ?? []}
             closeDisabled={locked}
             onClose={() => closeWindow(index)} onStart={() => setLocked(true)}
             onSettings={(values) => updateWindow(item.id, values)} />
