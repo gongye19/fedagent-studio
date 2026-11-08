@@ -216,8 +216,8 @@
   align-items: start;
   gap: var(--space-4);
 }
-.comparison-case, .comparison-model { margin: 0; }
-.comparison-model { margin-top: var(--space-2); }
+.comparison-model { margin: 0; }
+.comparison-model + .comparison-model { margin-top: var(--space-2); }
 .comparison-reference {
   margin: var(--space-3) 0 0;
   padding: var(--space-3);
@@ -235,18 +235,14 @@
 .comparison-verdict > strong { margin-inline-start: var(--space-2); }
 .comparison-verdict p { margin: var(--space-2) 0 0; }
 .comparison-verdict ul { margin: var(--space-2) 0 0; padding-inline-start: var(--space-4); }
-.comparison-turns {
-  display: grid;
-  gap: var(--space-3);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  overflow-wrap: anywhere;
+.comparison-history { max-height: clamp(300px, 54dvh, 620px); }
+.comparison-thread {
+  gap: var(--space-4);
+  padding: var(--space-2);
 }
-.comparison-turns > li + li { border-top: 1px solid var(--border); padding-top: var(--space-3); }
-.comparison-question { display: flex; align-items: baseline; gap: var(--space-2); font-weight: 600; }
-.comparison-question .tag { flex: none; }
-.comparison-observation { margin: var(--space-2) 0 0; padding: var(--space-3); border-radius: var(--radius); background: var(--surface); }
+.comparison-exchange { display: flex; flex-direction: column; gap: var(--space-3); }
+.comparison-thread .consultation-message { max-width: 88%; }
+.comparison-thread .consultation-message--user { display: flex; flex-direction: column; align-items: flex-end; }
 @media (max-width: 720px) {
   .comparison-columns { grid-template-columns: minmax(0, 1fr); }
 }

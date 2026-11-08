@@ -1,4 +1,6 @@
+import hashlib
 import json
+from dataclasses import replace
 from threading import Event, Thread
 
 import pytest
@@ -9,9 +11,12 @@ from fedagent import models as m
 from fedagent.experience import comparison_case, consultation_comparison
 from fedagent.model_runtime import GatewayModel
 
+BARTTER = comparison_case.CASES["medqa-ext-141"]
+SHOULDER = comparison_case.CASES["medqa-ext-143"]
 BASE = "/v1/consultation/comparisons"
 CASE = {
-    "id": comparison_case.CASE.id,
+    "id": BARTTER.summary.id,
+    "objective": "Assess the patient presenting with fatigue",
     "answer": "Bartter's syndrome",
     "patient": {"History": "Longstanding fatigue", "Past_Medical_History": "Case note mentions Bartter's syndrome"},
     "examination": {"Vital_Signs": "Blood pressure 110/75"},
@@ -31,8 +36,22 @@ def setup(platform, client, monkeypatch):
         return [dict(row, provenance=provenance) for row in load(path)]
 
     monkeypatch.setattr(platform.files, "load", training)
-    monkeypatch.setattr(comparison_case, "load_case", lambda platform, case_id: CASE)
-    monkeypatch.setattr(consultation_comparison, "load_case", lambda platform, case_id: CASE)
+    directory = platform.settings.data_dir / "consultation-cases"
+    directory.mkdir()
+    cases = {
+        BARTTER.summary.id: (BARTTER, CASE),
+        SHOULDER.summary.id: (SHOULDER, {
+            "id": SHOULDER.summary.id, "answer": "Adhesive capsulitis",
+            "objective": "Assess shoulder stiffness", "patient": {"History": "New shoulder pain"},
+            "examination": {"Shoulder_Examination": "Reduced range of motion"},
+        }),
+    }
+    definitions = {}
+    for case_id, (definition, data) in cases.items():
+        raw = json.dumps(data).encode()
+        (directory / f"{case_id}.json").write_bytes(raw)
+        definitions[case_id] = replace(definition, file_sha256=hashlib.sha256(raw).hexdigest())
+    monkeypatch.setattr(comparison_case, "CASES", definitions)
     return {"caseId": CASE["id"], "packageId": response.json()["id"], "model": "fake:fake"}, provenance
 
 
@@ -46,7 +65,7 @@ def run(platform, job_id):
 def test_requires_source_disjointness_and_hides_comparison_from_tasks(platform, client, setup):
     body, provenance = setup
     assert client.get("/v1/consultation/comparison-cases").json()[0]["id"] == CASE["id"]
-    provenance.update(sourceHash=comparison_case.SOURCE_SHA256, sourceIndex=comparison_case.SOURCE_INDEX)
+    provenance.update(sourceHash=comparison_case.SOURCE_SHA256, sourceIndex=BARTTER.source_index)
     assert client.post(BASE, json=body).status_code == 422
     provenance.clear()
     assert client.post(BASE, json=body).status_code == 409
@@ -83,7 +102,7 @@ def test_independent_actions_resume_and_reveal_after_both_finish(platform, clien
         payload = json.loads(messages[-1]["content"])
         calls.append((key.site_id, key.unit_key, payload))
         assert self.name == "fake"
-        assert payload["opening"] == comparison_case.CASE.opening
+        assert payload["opening"] == BARTTER.summary.opening
         assert "bartter" not in messages[-1]["content"].casefold()
         assert bool(payload["experience"]) == (key.site_id == "experience")
         actions = ([("ask", "Past_Medical_History", "有既往病史吗？"), ("diagnosis", "", "其他诊断")]
@@ -192,3 +211,29 @@ def test_grading_failure_retries_only_unscored_diagnosis(platform, client, monke
     assert [arm["matched"] for arm in client.get(url).json()["arms"]] == [True, True]
     assert sorted(calls) == ["baseline", "experience"]
     assert grades == ["baseline", "experience", "experience"]
+
+
+
+def test_picker_filters_bad_files_and_checks_selected_case_provenance(platform, client, setup):
+    body, provenance = setup
+    url = "/v1/consultation/comparison-cases"
+    cases = client.get(url).json()
+    assert [item["id"] for item in cases] == [BARTTER.summary.id, SHOULDER.summary.id]
+    assert all(set(item) == {"id", "title", "opening"} for item in cases)
+    assert client.post(BASE, json={**body, "caseId": "unknown"}).status_code == 404
+
+    selected = {**body, "caseId": SHOULDER.summary.id}
+    provenance.update(sourceHash=comparison_case.SOURCE_SHA256, sourceIndex=SHOULDER.source_index)
+    assert client.post(BASE, json=selected).status_code == 422
+    provenance["sourceIndex"] = BARTTER.source_index
+    started = client.post(BASE, json=selected)
+    assert started.status_code == 201, started.text
+    job_id = started.json()["id"]
+    assert started.json()["case"] == SHOULDER.summary.model_dump()
+    assert "reference" not in started.json()
+    path = platform.settings.data_dir / "consultation-cases" / f"{SHOULDER.summary.id}.json"
+    path.write_text("{}")
+    assert client.get(url).json() == [BARTTER.summary.model_dump()]
+    assert client.get(f"{BASE}/{job_id}").json()["case"]["id"] == SHOULDER.summary.id
+    assert client.post(f"{BASE}/{job_id}/cancel").status_code == 200
+    assert client.post(BASE, json=selected).status_code == 409

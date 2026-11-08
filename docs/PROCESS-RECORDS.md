@@ -2,7 +2,13 @@
 
 ## 实时问诊对比的留出病例
 
-医疗问诊应用中的「实时对比」使用 [MedAgentSim 固定版本](https://huggingface.co/ItsMaxNorm/MedAgentSim-datasets/tree/ad770a78ed4902f672548faf1a87abbbc18484bb) 的 `medqa_extended_v1.jsonl` 第 141 行。原始行单独安装在运行目录 `data/consultation-cases/medqa-ext-141.json`，部署从 Git 获取代码，病例文件随运行数据备份。取行时去掉行末换行，校验 SHA-256 为 `24d0895867bdb336c511e587cd4b3ef88974f17b3eb9eae3edc30a12f69769c7`。没有原档或校验失败时，实时对比入口会显示暂无留出病例。
+医疗问诊应用中的「实时对比」使用 [MedAgentSim 固定版本](https://huggingface.co/ItsMaxNorm/MedAgentSim-datasets/tree/ad770a78ed4902f672548faf1a87abbbc18484bb) 的 `medqa_extended_v1.jsonl`。将原始行（去掉行末换行）分别保存到运行目录 `data/consultation-cases/`。部署从 Git 获取代码，病例文件随运行数据备份。病例菜单只列出已安装且通过校验的病例。
+
+| 原档行号 | 文件 | SHA-256 |
+| --- | --- | --- |
+| 138 | `medqa-ext-138.json` | `0f037b747eb43491a71d71956a67442fe93b3673be49d21e3d9f025dee52bb41` |
+| 141 | `medqa-ext-141.json` | `24d0895867bdb336c511e587cd4b3ef88974f17b3eb9eae3edc30a12f69769c7` |
+| 143 | `medqa-ext-143.json` | `a42ef1fc0ebe70c34fdd99a5ee9329af1c8a2e9529edfa4e9f41ce7f19c1f2b0` |
 
 这是公开病例驱动的模拟，医生决策由所选模型实时生成。原档带参考诊断，医生只收到主诉和已经申请到的资料，评分端在两栏结束后才读取参考。FoT 和 EvoMedClaw 的两份正式包均可用于对比，其他包需具备可核验的冻结来源。
 

@@ -6,21 +6,16 @@ import { hrefOf } from "../../state/route";
 import { Tag } from "../common";
 import { Icon } from "../icons";
 import { SelectField } from "../SelectField";
+import { ConsultationMessage } from "./ConsultationMessage";
 import { sampleProgress } from "./consultationSamples";
 
 export type WindowSettings = { id: number; packageId: string; model: string };
 type Message = ChatMessage & { department?: ChatReply["department"]; experienceEntries?: number };
 
 function ConversationMessage({ role, content, department, experienceEntries }: Message) {
-  return (
-    <article className={`consultation-message consultation-message--${role}`}>
-      <strong className={role === "user" ? "visually-hidden" : "consultation-speaker"}>
-        {role === "user" ? "你" : department ? `${department} · 问诊助手` : "接诊助手"}
-      </strong>
-      <p>{content}</p>
-      {experienceEntries ? <small>本轮提供 {experienceEntries} 条经验</small> : null}
-    </article>
-  );
+  const speaker = role === "user" ? undefined : department ? `${department} · 问诊助手` : "接诊助手";
+  return <ConsultationMessage role={role} content={content} speaker={speaker}
+    note={experienceEntries ? `本轮提供 ${experienceEntries} 条经验` : undefined} />;
 }
 
 type Props = {

@@ -16,7 +16,7 @@ from ..resources import new_id
 from ..schemas.consultation_comparison import Arm, ComparisonArm, ComparisonIn, ComparisonOut, ComparisonStep
 from ..schemas.experience import Status
 from . import comparison_runtime, evaluation
-from .comparison_case import CASE, REFERENCE_LABEL, assert_holdout, load_case, safe_evidence
+from .comparison_case import assert_holdout, get_case, load_case, safe_evidence
 from .consultation import verified_model
 from .package_evaluation import verified_package
 
@@ -45,19 +45,20 @@ def start(platform: Platform, session: Session, body: ComparisonIn) -> m.Task:
         if active(session) is not None:
             raise ServiceError(409, "已有实时对比，请先完成或停止当前问诊")
         app, source, artifact = verified_package(platform, session, body.package_id)
-        case = load_case(platform, body.case_id)
-        assert_holdout(platform, session, source, case)
+        definition = get_case(body.case_id)
+        case = load_case(platform, definition)
+        assert_holdout(platform, session, source, definition, case)
         model = verified_model(platform, session, body.model)
         endpoint = session.get(m.Endpoint, parse_ref(model)[0])
         assert endpoint is not None
         config = {
-            "case": CASE.model_dump(), "evidence": safe_evidence(case), "reference": case["answer"],
-            "reference_label": REFERENCE_LABEL, "experience": artifact.content, "package_name": app.name,
+            "case": definition.summary.model_dump(), "evidence": safe_evidence(case, definition.reference_label),
+            "reference": case["answer"], "reference_label": definition.reference_label, "experience": artifact.content, "package_name": app.name,
             "package_id": app.id, "artifact_version": artifact.version,
             "model": model, "endpoint_signature": endpoint_signature(endpoint), "max_steps": MAX_STEPS,
         }
         job = m.Task(
-            id=new_id("cmp"), name=f"实时问诊对比 · {CASE.title}", scenario=source.scenario,
+            id=new_id("cmp"), name=f"实时问诊对比 · {definition.summary.title}", scenario=source.scenario,
             task_type=m.CONSULTATION_COMPARISON, algorithm=source.algorithm,
             plugin_version=source.plugin_version, plugin_hash=source.plugin_hash, config=config,
             audit={"comparison_digest": digest(config)}, status="queued", fake=endpoint.id == FAKE_ENDPOINT,

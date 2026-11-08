@@ -2,12 +2,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { consultationComparisons, type ConsultationComparisonArm } from "../../api/consultationComparison";
 import { isConsultationPackage } from "../../domain/consultation";
-import { usableModelOptions } from "../../domain/resources";
+import { modelLabel, usableModelOptions } from "../../domain/resources";
 import { hrefOf, navigate, type Route } from "../../state/route";
 import type { State } from "../../state/store";
 import { PageHead, Tag, type Tone } from "../common";
 import { Field, FieldGroup, Panel } from "../console";
 import { SelectField } from "../SelectField";
+import { ComparisonConversation } from "./ComparisonConversation";
 
 const comparisonRoute = (comparison: string): Route => ({ page: "consultation", comparison });
 const back = { label: "医疗问诊", route: { page: "consultation" } } as const;
@@ -21,18 +22,18 @@ const statuses: Record<ConsultationComparisonArm["status"], [string, Tone]> = {
   failed: ["已暂停", "warning"],
   canceled: ["已停止", "neutral"],
 };
-const actionNames = { ask: "追问", exam: "查体", test: "检验", diagnosis: "诊断" };
 
 function Setup({ state, packageId }: { state: State; packageId?: string }) {
   const cache = useQueryClient();
   const packages = state.published.filter(isConsultationPackage);
   const models = usableModelOptions(state.endpoints);
+  const [selectedCase, setCase] = useState("");
   const [selectedPackage, setPackage] = useState(packageId ?? "");
   const [selectedModel, setModel] = useState<string>();
   const model = selectedModel ?? models[0]?.ref ?? "";
   const cases = useQuery({ queryKey: ["consultation-comparison-cases"], queryFn: ({ signal }) => consultationComparisons.cases(signal) });
   const active = useQuery({ queryKey: activeKey, queryFn: ({ signal }) => consultationComparisons.active(signal) });
-  const caseItem = cases.data?.[0];
+  const caseItem = cases.data?.find((item) => item.id === selectedCase);
   const start = useMutation({
     mutationFn: consultationComparisons.start,
     onSuccess: (run) => {
@@ -53,8 +54,11 @@ function Setup({ state, packageId }: { state: State; packageId?: string }) {
         event.preventDefault();
         if (caseItem && canStart && !start.isPending) start.mutate({ caseId: caseItem.id, packageId: selectedPackage, model });
       }}>
-        <Field label="留出病例">
-          {caseItem ? <p className="comparison-case">{caseItem.title}</p> : <p className="muted">{cases.isPending ? "正在加载病例…" : "暂无可用留出病例"}</p>}
+        <Field label="留出病例" htmlFor="compare-case">
+          <SelectField id="compare-case" value={caseItem?.id ?? ""} onValueChange={setCase} disabled={start.isPending || !cases.data?.length}>
+            <option value="" disabled>{cases.isPending ? "正在加载病例…" : cases.data?.length ? "选择病例" : "暂无可用留出病例"}</option>
+            {cases.data?.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
+          </SelectField>
         </Field>
         <FieldGroup>
           <Field label="经验包" htmlFor="compare-package">
@@ -81,7 +85,9 @@ function Setup({ state, packageId }: { state: State; packageId?: string }) {
   </>;
 }
 
-function ComparisonColumn({ arm, packageName, complete }: { arm: ConsultationComparisonArm; packageName: string; complete: boolean }) {
+function ComparisonColumn({ arm, packageName, opening, complete }: {
+  arm: ConsultationComparisonArm; packageName: string; opening: string; complete: boolean;
+}) {
   const [label, tone] = statuses[arm.status];
   const questions = arm.steps.filter((step) => step.action === "ask").length;
   const checks = arm.steps.filter((step) => step.action === "exam" || step.action === "test");
@@ -97,13 +103,7 @@ function ComparisonColumn({ arm, packageName, complete }: { arm: ConsultationCom
       {checks.length > 0 && <ul aria-label="查体与检验">{checks.map((step, index) =>
         <li key={index}>{step.label}{step.result === "病例未提供该项资料" ? "（无资料）" : ""}</li>)}</ul>}
     </div>}
-    <ol className="comparison-turns" aria-label="问诊过程">
-      {arm.steps.map((step, index) => <li key={index}>
-        <div className="comparison-question"><Tag>{actionNames[step.action]}</Tag><span>{step.text}</span></div>
-        {step.result && <p className="comparison-observation">{step.result}</p>}
-      </li>)}
-    </ol>
-    {!arm.steps.length && !complete && <p className="muted">{arm.status === "running" ? "正在决定下一步…" : "尚无问诊记录"}</p>}
+    <ComparisonConversation arm={arm} opening={opening} />
   </Panel>;
 }
 
@@ -136,14 +136,13 @@ function Run({ id, state }: { id: string; state: State }) {
     {(run.error || control.error || item?.error) && <p className="field-error" role="alert">{run.error?.message ?? control.error?.message ?? item?.error}</p>}
     {!item ? (run.isPending && <p role="status" className="muted">正在加载问诊…</p>) : <div className="consultation-comparison">
       <Panel title={item.case.title} actions={<Tag>留出病例</Tag>}>
-        <p className="comparison-case">{item.case.opening}</p>
-        <p className="muted comparison-model">{usableModelOptions(state.endpoints).find((model) => model.ref === item.model)?.label ?? item.model}</p>
+        <p className="muted comparison-model">{modelLabel(item.model, state.endpoints, { withStatus: false })}</p>
         {complete && item.reference && <p className="comparison-reference" role="status">参考诊断 <strong>{item.reference}</strong></p>}
         {pending && item.arms.every((arm) => arm.status === "diagnosed" || arm.status === "limit") &&
           <p className="muted comparison-model" role="status">正在核对两栏诊断…</p>}
       </Panel>
       <div className="comparison-columns">
-        {item.arms.map((arm) => <ComparisonColumn key={arm.arm} arm={arm} packageName={item.packageName} complete={complete} />)}
+        {item.arms.map((arm) => <ComparisonColumn key={arm.arm} arm={arm} packageName={item.packageName} opening={item.case.opening} complete={complete} />)}
       </div>
     </div>}
   </>;
