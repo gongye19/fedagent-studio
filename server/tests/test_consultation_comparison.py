@@ -1,27 +1,35 @@
 import hashlib
 import json
-from dataclasses import replace
 from threading import Event, Thread
 
 import pytest
 from fedagent_sdk import ChatResult, ModelError
 from test_experience import completed
 
-from fedagent import models as m
-from fedagent.experience import comparison_case, consultation_comparison
+from fedagent.experience import comparison_case, comparison_holdout, consultation_comparison
 from fedagent.model_runtime import GatewayModel
 
-BARTTER = comparison_case.CASES["medqa-ext-141"]
-SHOULDER = comparison_case.CASES["medqa-ext-143"]
 BASE = "/v1/consultation/comparisons"
+PICKER = "/v1/consultation/comparison-cases"
 CASE = {
-    "id": BARTTER.summary.id,
+    "id": "medqa-ext-141",
     "objective": "Assess the patient presenting with fatigue",
     "answer": "Bartter's syndrome",
     "patient": {"History": "Longstanding fatigue", "Past_Medical_History": "Case note mentions Bartter's syndrome"},
     "examination": {"Vital_Signs": "Blood pressure 110/75"},
     "tests": {"Serum_Electrolytes": "Potassium 3.2 mEq/L"},
 }
+BARTTER = comparison_case._summary(140, CASE)
+SHOULDER = comparison_case._summary(142, {
+    "id": "medqa-ext-143", "answer": "Adhesive capsulitis",
+    "objective": "Assess shoulder stiffness", "patient": {"History": "New shoulder pain"},
+    "examination": {"Shoulder_Examination": "Reduced range of motion"}, "tests": {},
+})
+ORIGINAL = comparison_case._summary(2, {
+    "id": "medqa-ext-3", "answer": "A diagnosis",
+    "objective": "Assess the patient", "patient": {"History": "An unrelated original case"},
+    "examination": {}, "tests": {},
+})
 
 
 @pytest.fixture
@@ -38,20 +46,12 @@ def setup(platform, client, monkeypatch):
     monkeypatch.setattr(platform.files, "load", training)
     directory = platform.settings.data_dir / "consultation-cases"
     directory.mkdir()
-    cases = {
-        BARTTER.summary.id: (BARTTER, CASE),
-        SHOULDER.summary.id: (SHOULDER, {
-            "id": SHOULDER.summary.id, "answer": "Adhesive capsulitis",
-            "objective": "Assess shoulder stiffness", "patient": {"History": "New shoulder pain"},
-            "examination": {"Shoulder_Examination": "Reduced range of motion"},
-        }),
-    }
-    definitions = {}
-    for case_id, (definition, data) in cases.items():
-        raw = json.dumps(data).encode()
-        (directory / f"{case_id}.json").write_bytes(raw)
-        definitions[case_id] = replace(definition, file_sha256=hashlib.sha256(raw).hexdigest())
-    monkeypatch.setattr(comparison_case, "CASES", definitions)
+    lines = [b""] * (SHOULDER.source_index + 1)
+    for definition in (ORIGINAL, BARTTER, SHOULDER):
+        lines[definition.source_index] = json.dumps(definition.record).encode()
+    raw = b"\n".join(lines)
+    (directory / comparison_case.SOURCE_NAME).write_bytes(raw)
+    monkeypatch.setattr(comparison_case, "SOURCE_SHA256", hashlib.sha256(raw).hexdigest())
     return {"caseId": CASE["id"], "packageId": response.json()["id"], "model": "fake:fake"}, provenance
 
 
@@ -64,8 +64,8 @@ def run(platform, job_id):
 
 def test_requires_source_disjointness_and_hides_comparison_from_tasks(platform, client, setup):
     body, provenance = setup
-    assert client.get("/v1/consultation/comparison-cases").json()[0]["id"] == CASE["id"]
-    provenance.update(sourceHash=comparison_case.SOURCE_SHA256, sourceIndex=BARTTER.source_index)
+    assert CASE["id"] in {row["id"] for row in client.get(PICKER, params={"packageId": body["packageId"]}).json()}
+    provenance.update(sourceHash=comparison_holdout.SOURCE_SHA256, sourceIndex=BARTTER.source_index)
     assert client.post(BASE, json=body).status_code == 422
     provenance.clear()
     assert client.post(BASE, json=body).status_code == 409
@@ -171,16 +171,6 @@ def test_action_limit_finishes_without_inventing_diagnosis(platform, client, mon
         assert len(arm["steps"]) == 2 and arm["steps"][0]["result"] == "病例未提供该项资料"
 
 
-def test_case_installation_requires_pinned_content(platform, client):
-    assert client.get("/v1/consultation/comparison-cases").json() == []
-    directory = platform.settings.data_dir / "consultation-cases"
-    directory.mkdir()
-    (directory / f"{CASE['id']}.json").write_text(json.dumps(CASE))
-    assert client.get("/v1/consultation/comparison-cases").json() == []
-    with platform.db.session() as session:
-        assert session.query(m.Task).count() == 0
-
-
 def test_grading_failure_retries_only_unscored_diagnosis(platform, client, monkeypatch, setup):
     body, _ = setup
     calls = []
@@ -213,27 +203,54 @@ def test_grading_failure_retries_only_unscored_diagnosis(platform, client, monke
     assert grades == ["baseline", "experience", "experience"]
 
 
-
-def test_picker_filters_bad_files_and_checks_selected_case_provenance(platform, client, setup):
+def test_picker_filters_selected_package_and_requires_pinned_content(platform, client, setup):
     body, provenance = setup
-    url = "/v1/consultation/comparison-cases"
-    cases = client.get(url).json()
-    assert [item["id"] for item in cases] == [BARTTER.summary.id, SHOULDER.summary.id]
+    params = {"packageId": body["packageId"]}
+    cases = client.get(PICKER, params=params).json()
+    assert [item["id"] for item in cases] == [ORIGINAL.summary.id, BARTTER.summary.id, SHOULDER.summary.id]
     assert all(set(item) == {"id", "title", "opening"} for item in cases)
     assert client.post(BASE, json={**body, "caseId": "unknown"}).status_code == 404
 
+    # Odd legacy partition zero-based index 1 is original/extended line 3.
+    odd = next(key for key, value in comparison_holdout.SOURCE_OFFSETS.items() if value == (2, 0, 54))
+    provenance.update(sourceHash=odd, sourceIndex=1)
+    assert [item["id"] for item in client.get(PICKER, params=params).json()] == [BARTTER.summary.id, SHOULDER.summary.id]
+    assert client.post(BASE, json={**body, "caseId": ORIGINAL.summary.id}).status_code == 422
+
     selected = {**body, "caseId": SHOULDER.summary.id}
-    provenance.update(sourceHash=comparison_case.SOURCE_SHA256, sourceIndex=SHOULDER.source_index)
+    provenance.update(sourceHash=comparison_holdout.SOURCE_SHA256, sourceIndex=SHOULDER.source_index)
+    assert [item["id"] for item in client.get(PICKER, params=params).json()] == [ORIGINAL.summary.id, BARTTER.summary.id]
     assert client.post(BASE, json=selected).status_code == 422
-    provenance["sourceIndex"] = BARTTER.source_index
+    provenance.clear()
+    assert client.get(PICKER, params=params).status_code == 409
+    provenance.update(sourceHash=comparison_holdout.SOURCE_SHA256, sourceIndex=BARTTER.source_index)
     started = client.post(BASE, json=selected)
     assert started.status_code == 201, started.text
     job_id = started.json()["id"]
     assert started.json()["case"] == SHOULDER.summary.model_dump()
     assert "reference" not in started.json()
-    path = platform.settings.data_dir / "consultation-cases" / f"{SHOULDER.summary.id}.json"
+
+    path = platform.settings.data_dir / "consultation-cases" / comparison_case.SOURCE_NAME
     path.write_text("{}")
-    assert client.get(url).json() == [BARTTER.summary.model_dump()]
+    assert client.get(PICKER, params=params).status_code == 409
     assert client.get(f"{BASE}/{job_id}").json()["case"]["id"] == SHOULDER.summary.id
     assert client.post(f"{BASE}/{job_id}/cancel").status_code == 200
     assert client.post(BASE, json=selected).status_code == 409
+    path.unlink()
+    assert client.get(PICKER, params=params).status_code == 409
+
+
+def test_case_catalog_masks_answer_in_public_text_and_preserves_distinct_test_targets():
+    data = {
+        "id": "source-id", "answer": "Key Diagnosis (KD)", "objective": "Confirm Key Diagnosis",
+        "patient": {"Demographics": "Adult", "Symptoms": {"Primary_Symptom": "Known KD"}},
+        "examination": {}, "tests": {"Key_Diagnosis": "A test confirms KD", "key diagnosis": "a second test"},
+    }
+    raw = json.dumps(data).encode()
+    case = comparison_case._parse_catalog(raw, hashlib.sha256(raw).hexdigest())["medqa-ext-1"]
+    exposed = json.dumps(case.summary.model_dump()).casefold()
+    assert "diagnosis" not in exposed and " kd" not in exposed
+    assert comparison_case.safe_evidence(case)["test"] == {
+        "[redacted]": "A test confirms [redacted]", "[redacted] (2)": "a second test",
+    }
+    assert case.record["answer"] == data["answer"]

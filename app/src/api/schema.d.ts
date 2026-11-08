@@ -4601,7 +4601,9 @@ export interface operations {
     };
     comparison_cases_v1_consultation_comparison_cases_get: {
         parameters: {
-            query?: never;
+            query: {
+                packageId: string;
+            };
             header?: {
                 authorization?: string | null;
             };

@@ -9,14 +9,15 @@ import { Icon } from "../icons";
 
 export const ModelSelector = (props: ComponentProps<typeof Dialog.Root>) => <Dialog.Root {...props} />;
 export const ModelSelectorTrigger = (props: ComponentProps<typeof Dialog.Trigger>) => <Dialog.Trigger {...props} />;
-export function ModelSelectorContent({ children, title = "选择模型", className, ...props }: ComponentProps<typeof Dialog.Content> & { title?: ReactNode }) {
+export function ModelSelectorContent({ children, title = "选择模型", closeLabel = "关闭模型选择", className, ...props }:
+  ComponentProps<typeof Dialog.Content> & { title?: ReactNode; closeLabel?: string }) {
   return (
     <Dialog.Portal>
       <Dialog.Overlay className="model-picker-overlay" />
       <Dialog.Content {...props} aria-describedby={undefined} className={`model-picker${className ? ` ${className}` : ""}`}>
         <div className="model-picker-head">
           <Dialog.Title>{title}</Dialog.Title>
-          <Dialog.Close className="model-picker-close" aria-label="关闭模型选择"><Icon name="x" /></Dialog.Close>
+          <Dialog.Close className="model-picker-close" aria-label={closeLabel}><Icon name="x" /></Dialog.Close>
         </div>
         <Command>{children}</Command>
       </Dialog.Content>

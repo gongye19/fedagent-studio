@@ -2,15 +2,11 @@
 
 ## 实时问诊对比的留出病例
 
-医疗问诊应用中的「实时对比」使用 [MedAgentSim 固定版本](https://huggingface.co/ItsMaxNorm/MedAgentSim-datasets/tree/ad770a78ed4902f672548faf1a87abbbc18484bb) 的 `medqa_extended_v1.jsonl`。将原始行（去掉行末换行）分别保存到运行目录 `data/consultation-cases/`。部署从 Git 获取代码，病例文件随运行数据备份。病例菜单只列出已安装且通过校验的病例。
+医疗问诊应用中的「实时对比」使用 [MedAgentSim 固定版本](https://huggingface.co/ItsMaxNorm/MedAgentSim-datasets/tree/ad770a78ed4902f672548faf1a87abbbc18484bb) 的完整 `medqa_extended_v1.jsonl`。将原档保存到运行目录 `data/consultation-cases/medqa_extended_v1.jsonl`，SHA-256 为 `54a024eb2705c6c55d1988766adf4ab02ea7bbe2a28f843107b740032200f232`。旧运行从冻结配置读取病例。新运行和病例目录均使用完整原档，数据随运行目录备份。
 
-| 原档行号 | 文件 | SHA-256 |
-| --- | --- | --- |
-| 138 | `medqa-ext-138.json` | `0f037b747eb43491a71d71956a67442fe93b3673be49d21e3d9f025dee52bb41` |
-| 141 | `medqa-ext-141.json` | `24d0895867bdb336c511e587cd4b3ef88974f17b3eb9eae3edc30a12f69769c7` |
-| 143 | `medqa-ext-143.json` | `a42ef1fc0ebe70c34fdd99a5ee9329af1c8a2e9529edfa4e9f41ce7f19c1f2b0` |
+原档有 214 条，前 107 条与原版逐条一致。先选经验包，再从可核验病例中搜索。筛除同一来源行、同一编号、去标注内容相同或病史高度相似的记录。两份正式包均排除了参与生成的 108 条，目前各有 106 例可选。以文件和病例匹配为核验口径，公开原档病例之间仍可能涉及相同疾病或相似临床线索。
 
-这是公开病例驱动的模拟，医生决策由所选模型实时生成。原档带参考诊断，医生只收到主诉和已经申请到的资料，评分端在两栏结束后才读取参考。FoT 和 EvoMedClaw 的两份正式包均可用于对比，其他包需具备可核验的冻结来源。
+医生从主诉开始，只能通过选择动作获取原档资料。标题、开场、检查项目及返回资料遮盖字面参考诊断。评分只用原档标注，待两栏都完成后，在各栏最终诊断下方显示判分与统计。
 
 用户上传已经发生的问诊或解题过程，平台提取／聚合经验，供平台的医疗问诊、数学推理应用使用。无需 Agent API。LLM 可选已验证共享接口，也可在 LLM 接口页登记自己的接口。当前共用工作区，资源归属标签不是多租户权限。
 

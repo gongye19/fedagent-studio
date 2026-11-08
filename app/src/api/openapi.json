@@ -2720,6 +2720,17 @@
     "operationId": "comparison_cases_v1_consultation_comparison_cases_get",
     "parameters": [
      {
+      "name": "packageId",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64,
+       "title": "Packageid"
+      }
+     },
+     {
       "name": "authorization",
       "in": "header",
       "required": false,

@@ -1,11 +1,11 @@
-from typing import Literal
+from typing import Annotated, Literal
 
+from fastapi import Query
 from sqlalchemy.exc import IntegrityError
 
 from .. import apps, tasks
 from ..errors import ServiceError
 from ..experience import consultation, consultation_comparison, evaluation, package_evaluation
-from ..experience.comparison_case import available_cases
 from ..experience.consultation_samples import DEMO_CASES
 from ..schemas.consultation_comparison import ComparisonCase, ComparisonIn, ComparisonOut
 from ..schemas.experience import (
@@ -106,8 +106,9 @@ def control_package_evaluation(job_id: str, action: Literal["resume", "cancel"],
 
 
 @router.get("/consultation/comparison-cases", response_model=list[ComparisonCase], tags=["apps"])
-def comparison_cases(platform: PlatformDep) -> list[ComparisonCase]:
-    return available_cases(platform)
+def comparison_cases(platform: PlatformDep, session: SessionDep,
+                     package_id: Annotated[str, Query(alias="packageId", min_length=1, max_length=64)]) -> list[ComparisonCase]:
+    return consultation_comparison.available_cases(platform, session, package_id)
 
 
 @router.get("/consultation/comparisons/active", response_model=ComparisonOut | None,
