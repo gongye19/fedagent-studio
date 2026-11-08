@@ -129,22 +129,29 @@ def _redact_reference(value: Any, pattern: re.Pattern[str]) -> Any:
 
 
 def freeze_package_cases(platform: Platform, session: Session, task_id: str,
-                         dataset_ids: list[str], limit: int) -> list[dict]:
-    if len(set(dataset_ids)) != len(dataset_ids):
+                         dataset_ids: list[str] | None, limit: int | None) -> list[dict]:
+    if dataset_ids is not None and len(set(dataset_ids)) != len(dataset_ids):
         raise ServiceError(422, "请选择两份不同的问诊数据")
     sites = source_sites(session, task_id)
     if not sites:
         raise ServiceError(409, "缺少经验包的来源数据，无法识别回测病例")
     train_ids, train_fingerprints = _training_cases(platform, sites)
+    if dataset_ids is None:
+        sources = [(site.dataset_id, site.dataset_hash) for site in sites]
+    else:
+        # 兼容显式选择数据集的评测请求。
+        sources = [(dataset_id, None) for dataset_id in dataset_ids]
+        limit = limit or 100
     seen: set[str] = set()
     result = []
-    for dataset_id in dataset_ids:
+    for dataset_id, frozen_hash in sources:
         dataset = session.get(m.Dataset, dataset_id)
         if (dataset is None or dataset.task_type != "medical-records" or not dataset.content_path
                 or (dataset.resource_space != "workspace" and not dataset.shared)):
-            raise ServiceError(422, "请选择可用的医疗问诊数据")
+            raise ServiceError(422, "评测所需的医疗问诊数据已不可用")
+        content_path = f"{dataset.id}/{frozen_hash}.jsonl" if frozen_hash else dataset.content_path
         try:
-            rows = [(ordinal, row) for ordinal, row in enumerate(platform.files.load(dataset.content_path), 1)
+            rows = [(ordinal, row) for ordinal, row in enumerate(platform.files.load(content_path), 1)
                     if row.get("answer")][:limit]
         except (ValueError, OSError) as error:
             raise ServiceError(422, f"无法读取「{dataset.name}」的病例") from error
@@ -167,6 +174,6 @@ def freeze_package_cases(platform: Platform, session: Session, task_id: str,
             phrase = r"\s+".join(map(re.escape, reference.split()))
             pattern = re.compile(rf"(?<!\w){phrase}(?!\w)", re.IGNORECASE)
             result.append({"site_id": dataset.id, "site_name": dataset.name, "ordinal": ordinal,
-                           "usage": "backtest" if reused else "heldout", "data_hash": dataset.content_hash,
+                           "usage": "backtest" if reused else "heldout", "data_hash": frozen_hash or dataset.content_hash,
                            "input": _redact_reference(clean, pattern), "reference": reference})
     return result

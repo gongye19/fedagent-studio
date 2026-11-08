@@ -11,15 +11,18 @@ from fedagent.experience import evaluation
 from fedagent.model_runtime import GatewayModel
 
 
-def completed(platform, client, algorithm):
+def completed(platform, client, algorithm, *, sources=("a", "b"), cases_per_site=1):
     sites = []
-    for source in ("a", "b"):
-        value = record(True)
-        value["id"] = f"training-{source}"
-        value["input"]["patient"] += f" {source}"
+    for source in sources:
+        rows = []
+        for i in range(cases_per_site):
+            value = record(True)
+            value["id"] = f"training-{source}" if i == 0 else f"{source}-{i}"
+            value["input"]["patient"] += f" {source}" if i == 0 else f" {source} case {i}"
+            rows.append(json.dumps(value))
         created = client.post("/v1/resources/data", data={
             "name": f"records-{source}", "sourceName": source, "hosting": "platform", "taskType": "medical-records",
-        }, files={"file": ("records.jsonl", json.dumps(value))})
+        }, files={"file": ("records.jsonl", "\n".join(rows))})
         assert created.status_code == 201, created.text
         data = created.json()
         sites.append({"participantId": data["source"]["id"], "datasetId": data["dataset"]["id"]})
@@ -287,3 +290,22 @@ def test_published_package_evaluation_keeps_pairs_separate_and_legacy_intact(pla
     with platform.db.session() as session:
         assert not session.scalars(select(m.Event).where(m.Event.task_id.in_([legacy_id, job_id, second]))).all()
     assert all(not (platform.settings.runs_dir / id_).exists() for id_ in (legacy_id, job_id, second))
+
+
+
+def test_package_evaluation_defaults_to_all_source_cases(platform, client):
+    source, _ = completed(platform, client, "fot-records", sources=("a", "b", "c"), cases_per_site=101)
+    app = client.post("/v1/apps", json={"taskId": source, "builtAfterRound": 1, "name": "FoT"}).json()["id"]
+    payload = {"packageId": app, "model": "fake:fake"}
+
+    assert client.post("/v1/evaluations", json={**payload, "limit": 1}).status_code == 422
+    response = client.post("/v1/evaluations", json=payload)
+    assert response.status_code == 201, response.text
+    result = response.json()
+    assert result["total"] == 303
+    assert result["usage"] == "mixed"
+    assert [(site["name"], site["usage"], site["total"]) for site in result["sites"]] == [
+        (f"records-{source_name}", usage, total)
+        for source_name in ("a", "b", "c")
+        for usage, total in (("backtest", 1), ("heldout", 100))
+    ]

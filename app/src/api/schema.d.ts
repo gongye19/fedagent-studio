@@ -2206,12 +2206,9 @@ export interface components {
             /** Model */
             model: string;
             /** Datasetids */
-            datasetIds: string[];
-            /**
-             * Limit
-             * @default 100
-             */
-            limit: number;
+            datasetIds?: string[] | null;
+            /** Limit */
+            limit?: number | null;
         };
         /** PackageEvaluationOut */
         PackageEvaluationOut: {

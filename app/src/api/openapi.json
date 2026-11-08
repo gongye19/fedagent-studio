@@ -7582,29 +7582,41 @@
       "title": "Model"
      },
      "datasetIds": {
-      "items": {
-       "type": "string",
-       "maxLength": 64,
-       "minLength": 1
-      },
-      "type": "array",
-      "maxItems": 2,
-      "minItems": 2,
+      "anyOf": [
+       {
+        "items": {
+         "type": "string",
+         "maxLength": 64,
+         "minLength": 1
+        },
+        "type": "array",
+        "maxItems": 2,
+        "minItems": 2
+       },
+       {
+        "type": "null"
+       }
+      ],
       "title": "Datasetids"
      },
      "limit": {
-      "type": "integer",
-      "maximum": 100.0,
-      "minimum": 1.0,
-      "title": "Limit",
-      "default": 100
+      "anyOf": [
+       {
+        "type": "integer",
+        "maximum": 100.0,
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Limit"
      }
     },
     "type": "object",
     "required": [
      "packageId",
-     "model",
-     "datasetIds"
+     "model"
     ],
     "title": "PackageEvaluationIn"
    },

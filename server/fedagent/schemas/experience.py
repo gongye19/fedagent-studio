@@ -120,8 +120,16 @@ CaseUsage = Literal["backtest", "heldout"]
 class PackageEvaluationIn(Model):
     package_id: str = Field(min_length=1, max_length=64)
     model: str = Field(min_length=1, max_length=160)
-    dataset_ids: list[Annotated[str, StringConstraints(min_length=1, max_length=64)]] = Field(min_length=2, max_length=2)
-    limit: int = Field(default=100, ge=1, le=100)
+    dataset_ids: list[Annotated[str, StringConstraints(min_length=1, max_length=64)]] | None = Field(
+        default=None, min_length=2, max_length=2,
+    )
+    limit: int | None = Field(default=None, ge=1, le=100)
+
+    @model_validator(mode="after")
+    def validate_limit(self):
+        if self.dataset_ids is None and self.limit is not None:
+            raise ValueError("按经验包来源评测时使用全部病例")
+        return self
 
 
 class PackageEvaluationSummary(Model):
