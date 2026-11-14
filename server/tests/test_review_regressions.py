@@ -284,3 +284,13 @@ def test_pre_task_connectivity_uses_the_guarded_network(platform, client, monkey
     monkeypatch.setattr("socket.getaddrinfo", lambda *a, **k: [(None, None, None, None, ("127.0.0.1", 80))])
     with patch.object(httpcore.SyncBackend, "connect_tcp", side_effect=AssertionError("must not open socket")), pytest.raises(ModelError):
         model_connection(platform, endpoint_id)
+
+
+def test_truncated_model_stream_remains_retryable():
+    from fedagent.model_network import ModelResponseStream
+    def truncated():
+        yield b"data: partial\n"
+        raise httpcore.RemoteProtocolError("synthetic truncated stream")
+    response = httpcore.Response(200, content=truncated())
+    with pytest.raises(httpx.TransportError):
+        list(ModelResponseStream(response))

@@ -75,7 +75,7 @@ class ModelResponseStream(httpx.SyncByteStream):
             yield from self.response.iter_stream()
         except httpcore.TimeoutException as error:
             raise httpx.ReadTimeout("模型接口读取超时") from error
-        except httpcore.NetworkError as error:
+        except (httpcore.NetworkError, httpcore.ProtocolError) as error:
             raise httpx.ReadError("模型接口连接中断") from error
 
     def close(self) -> None:
