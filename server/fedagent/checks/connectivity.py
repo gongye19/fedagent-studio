@@ -1,4 +1,6 @@
 """任务开始前只检查可达性，不执行算法、不发送病例和推理请求。"""
+from dataclasses import replace
+
 import httpx
 from fedagent_sdk import ModelError
 
@@ -12,7 +14,7 @@ def model_connection(platform, endpoint_id: str) -> str:
         return "连接正常"
     headers = {"Authorization": f"Bearer {endpoint.api_key}"} if endpoint.api_key else {}
     try:
-        with httpx.Client(timeout=5, transport=platform.gateway._transport, follow_redirects=False) as client:
+        with platform.gateway.client(replace(endpoint, timeout=5)) as client:
             response = client.get(endpoint.base_url.rstrip("/") + "/models", headers=headers)
             # 接入验证已确认真实推理；不支持模型列表的服务只探测聊天路由，不生成文字。
             if response.status_code in (404, 405):

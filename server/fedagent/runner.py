@@ -21,7 +21,8 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import select, update
+from sqlalchemy.orm import Session
 
 from . import models as m
 from .platform import Platform
@@ -92,29 +93,6 @@ class Runner:
     def tick(self) -> None:
         db = self.platform.db
         settings = self.platform.settings
-        with db.session() as session:
-            # 标为运行中、却没有本 runner 管的进程（例如 runner 重启过）：重新排队，从检查点继续。
-            # 上一个 runner 留下的进程还在跑时，先结束它，等它退出后再排队。
-            for task in session.scalars(select(m.Task).where(m.Task.status == "running")):
-                if task.id in self.children:
-                    continue
-                if task.pid and leftover_process(task.pid, task.id):
-                    self._stop_leftover(task.id, task.pid)
-                    continue
-                self.leftovers.pop(task.id, None)
-                task.status = "queued"
-                task.pid = None
-                add_event(session, task.id, "requeue", "运行进程不在了，重新排队，从检查点继续")
-            slots = settings.max_running_tasks - len(self.children)
-            if slots > 0:
-                queued = session.scalars(select(m.Task).where(m.Task.status == "queued").order_by(m.Task.created_at).limit(slots)).all()
-                for task in queued:
-                    task.status = "running"
-                    task.command = None
-                    process = self._spawn(task.id)
-                    task.pid = process.pid
-                    self.children[task.id] = Child(process, time.monotonic())
-                    log.info("started task %s (pid %s)", task.id, process.pid)
         for task_id, child in list(self.children.items()):
             code = child.process.poll()
             if code is None:
@@ -123,20 +101,69 @@ class Runner:
             del self.children[task_id]
             with db.session() as session:
                 task = session.get(m.Task, task_id)
-                if task is None:
+                if task is not None:
+                    task.pid = None
+                    if task.status == "running":
+                        self._recover_task(session, task, f"任务进程退出（退出码 {code}）")
+        occupied = set(self.children)
+        with db.session() as session:
+            # 标为运行中、却没有本 runner 管的进程（例如 runner 重启过）：重新排队，从检查点继续。
+            # 上一个 runner 留下的进程还在跑时，先结束它，等它退出后再排队。
+            for task in session.scalars(select(m.Task).where(m.Task.status == "running")):
+                if task.id in self.children:
                     continue
+                if task.pid and leftover_process(task.pid, task.id):
+                    occupied.add(task.id)
+                    self._stop_leftover(task.id, task.pid)
+                    continue
+                self.leftovers.pop(task.id, None)
                 task.pid = None
-                if task.status != "running":
+                self._recover_task(session, task, "运行进程不在了", restart=False)
+        slots = max(0, settings.max_running_tasks - len(occupied))
+        if not slots:
+            return
+        with db.session() as session:
+            queued = list(session.scalars(select(m.Task.id).where(
+                m.Task.status == "queued", m.Task.command.is_(None),
+            ).order_by(m.Task.created_at).limit(slots)))
+        for task_id in queued:
+            # 领取必须先提交。新进程启动后立即读取数据库，不能让它看到 queued。
+            with db.session() as session:
+                claimed = session.execute(update(m.Task).where(
+                    m.Task.id == task_id, m.Task.status == "queued", m.Task.command.is_(None),
+                ).values(status="running")).rowcount  # type: ignore[attr-defined]
+                if not claimed:
                     continue
-                task.restarts += 1
-                if task.restarts > settings.task_restart_limit:
-                    task.status = "paused"
-                    reason = f"任务进程连续 {settings.task_restart_limit} 次意外退出，已暂停；日志在运行目录的 task.log"
-                    task.error = reason
-                    add_event(session, task_id, "pause", reason)
-                else:
-                    task.status = "queued"
-                    add_event(session, task_id, "restart", f"任务进程意外退出（退出码 {code}），从检查点重启")
+            try:
+                process = self._spawn(task_id)
+            except OSError:
+                log.exception("could not start task %s", task_id)
+                with db.session() as session:
+                    task = session.get(m.Task, task_id)
+                    if task is not None and task.status == "running":
+                        self._recover_task(session, task, "任务进程启动失败")
+                continue
+            self.children[task_id] = Child(process, time.monotonic())
+            with db.session() as session:
+                session.execute(update(m.Task).where(m.Task.id == task_id).values(pid=process.pid))
+            log.info("started task %s (pid %s)", task_id, process.pid)
+
+    def _recover_task(self, session: Session, task: m.Task, reason: str, *, restart: bool = True) -> None:
+        if task.command:
+            task.status = "canceled" if task.command == "cancel" else "paused"
+            task.finished_at = m.now() if task.status == "canceled" else None
+            task.command = None
+            add_event(session, task.id, task.status, "任务已取消" if task.status == "canceled" else "任务已暂停")
+            return
+        task.restarts += int(restart)
+        if task.restarts > self.platform.settings.task_restart_limit:
+            task.status = "paused"
+            message = "任务进程多次无法完成，已暂停；日志在运行目录的 task.log"
+            task.error = message
+            add_event(session, task.id, "pause", message)
+        else:
+            task.status = "queued"
+            add_event(session, task.id, "restart" if restart else "requeue", f"{reason}，从检查点继续")
 
     def _stop_leftover(self, task_id: str, pid: int) -> None:
         signaled = self.leftovers.get(task_id)

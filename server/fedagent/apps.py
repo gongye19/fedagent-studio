@@ -97,7 +97,7 @@ def _application(platform: Platform, app: m.App, body: ApplyIn):
         result = algorithm.apply(artifact, request, model)
         correct = None
         if task_type.is_labeled(item) and task_type.graders:
-            correct = registry.grader(task_type.graders[0]).evaluate(result.output, item, model)
+            correct = registry.grader(task_type.graders[0]).evaluate(result.details.get("diagnosis", result.output), item, model)
         tokens = int(model.usage.get("prompt_tokens", 0)) + int(model.usage.get("completion_tokens", 0))
         return ApplySide(output=result.output, correct=correct, tokens=tokens, details=result.details)
 

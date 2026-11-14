@@ -5,7 +5,7 @@ import { ConsultationMessage } from "./ConsultationMessage";
 
 const requestedAction = { exam: "查体", test: "申请检验" };
 
-function EvaluationSummary({ arm, reference }: { arm: ConsultationComparisonArm; reference: string }) {
+function EvaluationSummary({ arm, reference, legacy }: { arm: ConsultationComparisonArm; reference: string; legacy: boolean }) {
   const questions = arm.steps.filter((step) => step.action === "ask").length;
   const checks = arm.steps.filter((step) => step.action === "exam" || step.action === "test").length;
   const [label, tone] = arm.matched === true ? ["答对", "success"] as const
@@ -13,17 +13,18 @@ function EvaluationSummary({ arm, reference }: { arm: ConsultationComparisonArm;
       : [arm.diagnosis ? "暂未判定" : "未提交诊断", "warning"] as const;
   return <section className="comparison-verdict" aria-label="评测结果">
     <div className="comparison-verdict-head"><strong>评测结果</strong><Tag tone={tone}>{label}</Tag></div>
+    {legacy && <p className="muted comparison-model">旧版评分</p>}
     <p className="comparison-reference">参考诊断 <strong>{reference}</strong></p>
     <dl className="comparison-metrics" aria-label="问诊统计">
       <div><dt>追问轮数</dt><dd>{questions}</dd></div>
       <div><dt>查体及检验</dt><dd>{checks} 项</dd></div>
-      <div><dt>问诊步骤</dt><dd>{arm.steps.length}</dd></div>
+      <div><dt>问诊步骤</dt><dd>{arm.steps.length + Number(Boolean(arm.diagnosis))}</dd></div>
     </dl>
   </section>;
 }
 
-export function ComparisonConversation({ arm, opening, reference }: {
-  arm: ConsultationComparisonArm; opening: string; reference?: string | null;
+export function ComparisonConversation({ arm, opening, reference, legacy = false }: {
+  arm: ConsultationComparisonArm; opening: string; reference?: string | null; legacy?: boolean;
 }) {
   const log = useRef<HTMLDivElement>(null);
   const follow = useRef(arm.status === "running" || arm.status === "waiting");
@@ -46,7 +47,7 @@ export function ComparisonConversation({ arm, opening, reference }: {
           speaker={step.action === "ask" ? "患者" : step.action === "exam" ? "查体结果" : "检验结果"} />}
       </div>)}
       {arm.diagnosis && <ConsultationMessage role="assistant" speaker="问诊医生 · 最终诊断" content={arm.diagnosis} />}
-      {reference && <EvaluationSummary arm={arm} reference={reference} />}
+      {reference && <EvaluationSummary arm={arm} reference={reference} legacy={legacy} />}
       {arm.status === "running" && <div className="consultation-waiting">
         <span className="consultation-dots" aria-hidden="true"><i /><i /><i /></span>医生正在判断下一步…
       </div>}

@@ -611,6 +611,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/evaluations/{job_id}/cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Package Evaluation Cases */
+        get: operations["get_package_evaluation_cases_v1_evaluations__job_id__cases_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/evaluations/{job_id}/{action}": {
         parameters: {
             query?: never;
@@ -1673,6 +1690,8 @@ export interface components {
         };
         /** ComparisonOut */
         ComparisonOut: {
+            /** Scoringversion */
+            scoringVersion?: string | null;
             /** Id */
             id: string;
             case: components["schemas"]["ComparisonCase"];
@@ -2035,6 +2054,8 @@ export interface components {
         };
         /** EvaluationOut */
         EvaluationOut: {
+            /** Scoringversion */
+            scoringVersion?: string | null;
             /**
              * Status
              * @enum {string}
@@ -2401,6 +2422,17 @@ export interface components {
              */
             change: "improved" | "worsened" | "unchanged" | "incomplete";
         };
+        /** PackageEvaluationCasePage */
+        PackageEvaluationCasePage: {
+            /** Cases */
+            cases: components["schemas"]["PackageEvaluationCase"][];
+            /** Total */
+            total: number;
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+        };
         /** PackageEvaluationIn */
         PackageEvaluationIn: {
             /** Packageid */
@@ -2435,6 +2467,8 @@ export interface components {
              * Format: date-time
              */
             createdAt: string;
+            /** Scoringversion */
+            scoringVersion?: string | null;
             /** Model */
             model: string;
             /** Error */
@@ -2445,6 +2479,10 @@ export interface components {
             sites: components["schemas"]["PackageEvaluationSite"][];
             /** Cases */
             cases: components["schemas"]["PackageEvaluationCase"][];
+            /** Changes */
+            changes?: {
+                [key: string]: number;
+            };
         };
         /** PackageEvaluationResultArm */
         PackageEvaluationResultArm: {
@@ -4534,7 +4572,9 @@ export interface operations {
     };
     get_package_evaluation_v1_evaluations__job_id__get: {
         parameters: {
-            query?: never;
+            query?: {
+                includeCases?: boolean;
+            };
             header?: {
                 authorization?: string | null;
             };
@@ -4552,6 +4592,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PackageEvaluationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_package_evaluation_cases_v1_evaluations__job_id__cases_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+                site?: string | null;
+                change?: "all" | "changed" | "improved" | "worsened" | "unchanged" | "incomplete";
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PackageEvaluationCasePage"];
                 };
             };
             /** @description Validation Error */

@@ -3,6 +3,7 @@ from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from threading import Lock
 from typing import cast
 
+from fedagent_evomed.grading import SCORING_VERSION
 from fedagent_sdk import ModelError
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
@@ -65,6 +66,7 @@ def start(platform: Platform, session: Session, body: ComparisonIn) -> m.Task:
             "reference": case.record["answer"], "reference_label": case.reference_label, "experience": artifact.content, "package_name": app.name,
             "package_id": app.id, "artifact_version": artifact.version,
             "model": model, "endpoint_signature": endpoint_signature(endpoint), "max_steps": MAX_STEPS,
+            "consumer_hash": platform.registry.algorithm(source.algorithm).code_hash(), "scoring_version": SCORING_VERSION,
         }
         job = m.Task(
             id=new_id("cmp"), name=f"实时问诊对比 · {case.summary.title}"[:120], scenario=source.scenario,
@@ -99,6 +101,7 @@ def present(session: Session, job: m.Task) -> ComparisonOut:
                                   diagnosis=diagnosis if complete else None,
                                   matched=verdict["matched"] if complete and verdict else None))
     return ComparisonOut(id=job.id, case=job.config["case"], package_name=job.config["package_name"],
+                         scoring_version=job.config.get("scoring_version"),
                          model=job.config["model"], status=cast(Status, job.status), max_steps=job.config["max_steps"],
                          arms=arms, reference=job.config["reference_label"] if complete else None, error=job.error)
 
@@ -115,7 +118,7 @@ def run(platform: Platform, job: m.Task) -> str:
     config = job.config
     algorithm = platform.registry.algorithms.get(job.algorithm)
     if (digest(config) != job.audit.get("comparison_digest") or algorithm is None
-            or algorithm.version != job.plugin_version or algorithm.code_hash() != job.plugin_hash):
+            or algorithm.version != job.plugin_version or algorithm.code_hash() != config.get("consumer_hash", job.plugin_hash)):
         return _pause(platform, job, "冻结的问诊配置或算法版本已变化")
     with platform.db.session() as session:
         current = get(session, job.id)

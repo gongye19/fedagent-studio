@@ -141,6 +141,7 @@ class EvaluationSite(EvaluationScore):
 
 
 class EvaluationOut(Model):
+    scoring_version: str | None = None
     status: Status
     error: str | None
     model: str
@@ -193,8 +194,16 @@ class PackageEvaluationCase(Model):
 
 
 class PackageEvaluationOut(PackageEvaluationSummary):
+    scoring_version: str | None = None
     model: str
     error: str | None
     paired: int
     sites: list[PackageEvaluationSite]
     cases: list[PackageEvaluationCase]
+    changes: dict[Change, int] = Field(default_factory=dict)
+
+
+class PackageEvaluationCasePage(Model):
+    cases: list[PackageEvaluationCase]
+    total: int
+    counts: dict[Change, int]

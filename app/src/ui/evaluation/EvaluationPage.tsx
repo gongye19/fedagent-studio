@@ -49,6 +49,7 @@ export function EvaluationPage({ id, state }: { id: string; state: State }) {
     {control.error ? <Notice tone="warning">{control.error.message}</Notice> : null}
     {result ? <>
       <Panel title={USAGE[result.usage]} extra={<EvaluationStatus status={result.status} />}>
+        {!result.scoringVersion && <p className="muted">旧版评分 · 使用修正后的诊断判分请重新发起评测。</p>}
         <p>{result.usage === "heldout" ? "病例未参与所选经验包的生成。" : "回测病例参与过经验包生成。验证新病例上的效果需要另选未参与生成的病例。"}</p>
         <p className="muted" role={running ? "status" : undefined}>已完成 {result.paired} / {result.total} 例配对</p>
         {result.error ? <Notice tone="warning">{result.error}</Notice> : null}

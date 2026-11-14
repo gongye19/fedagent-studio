@@ -14,11 +14,6 @@
 .resource-dialog button.text-link { background: none; border: 0; padding: 4px 0; cursor: pointer; text-align: left; }
 .resource-dialog button.text-link:disabled { color: var(--muted); cursor: not-allowed; }
 .task-config .panel-empty { padding: 24px 12px; }
-.resource-selection { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-.resource-selection > span { display: inline-flex; align-items: center; gap: 4px; padding-left: 8px; border: 1px solid var(--border); border-radius: 6px; font-size: var(--text-xs); max-width: 100%; }
-.resource-selection > span > span { min-width: 0; overflow-wrap: anywhere; }
-.resource-selection button { flex: none; width: 32px; height: 32px; border: 0; border-radius: 4px; background: none; cursor: pointer; }
-.resource-selection button:hover { background: var(--surface-hover); }
 .resource-table .resource-empty-row > td { padding: 0; }
 .resource-table .resource-empty-row .panel-empty { min-height: 144px; align-content: center; }
 .resource-space-bar { display: flex; align-items: center; gap: 4px; margin-bottom: 16px; }
@@ -40,7 +35,6 @@
   .resource-space-bar > :is(button,a) { min-height: 44px; }
   .resource-model-control { flex-wrap: wrap; }
   .resource-model-control > .select-trigger { flex-basis: 100%; }
-  .resource-selection button { width: 44px; height: 44px; }
   .task-config .table--select th[scope="row"] { min-width: 0; }
 }
 

@@ -45,7 +45,7 @@ class Platform:
             settings=settings,
             db=db,
             registry=registry or get_registry(),
-            gateway=Gateway(db, secrets, transport=transport),
+            gateway=Gateway(db, secrets, transport=transport, allowed_hosts=tuple(settings.llm_allowed_hosts)),
             files=DatasetFiles(settings.datasets_dir),
             secrets=secrets,
         )

@@ -1,5 +1,4 @@
 import json
-import re
 
 import httpx
 import pytest
@@ -113,8 +112,8 @@ def test_endpoint_check_lists_models_and_uses_algorithm_settings(tmp_path) -> No
     assert [(check["model"], check["ok"]) for check in result["checks"]] == [("m1", True), ("m2", False), ("m3", True)]
     assert result["ok"] is False
     assert "top_p" in result["message"]
-    # 错误原因取接口返回的 message，不是整段 JSON
-    assert result["checks"][1]["message"] == "接口返回 400：temperature and top_p cannot both be specified for this model"
+    # 已知参数冲突返回固定说明，不直接回显上游响应正文
+    assert result["checks"][1]["message"] == "模型接口返回 400：模型不支持同时设置 temperature 和 top_p"
     assert "模型列表里没有：m3" in result["message"]
     # 按算法实际用的生成参数发：FoT 最长输出 32768，temperature 0.7，top_p 0.9
     assert sent[0]["max_tokens"] == 32768
@@ -122,14 +121,14 @@ def test_endpoint_check_lists_models_and_uses_algorithm_settings(tmp_path) -> No
     assert sent[0]["top_p"] == 0.9
 
 
-def test_retry_exhaustion_keeps_provider_reason(tmp_path, monkeypatch) -> None:
+def test_retry_exhaustion_redacts_provider_body(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr("time.sleep", lambda _: None)
 
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(503, json={"error": {"message": "No available accounts"}})
 
     platform = make(tmp_path, handler)
-    with pytest.raises(ModelError, match="接口返回 503：No available accounts"):
+    with pytest.raises(ModelError, match="模型接口返回 503"):
         platform.gateway.model("ep-test:m1").chat("hi")
 
 
@@ -222,7 +221,7 @@ def test_falls_back_to_plain_request_when_streaming_is_rejected(tmp_path, monkey
     assert [body.get("stream") for body in sent] == [True, None]
 
 
-def test_cloudflare_timeout_page_is_retried_and_reported_by_title(tmp_path, monkeypatch) -> None:
+def test_cloudflare_timeout_page_is_retried_without_echoing_html(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr("time.sleep", lambda _: None)
     page = "<!DOCTYPE html><html><head><title>api.example | 524: A timeout occurred</title></head><body>...</body></html>"
     calls = []
@@ -232,7 +231,7 @@ def test_cloudflare_timeout_page_is_retried_and_reported_by_title(tmp_path, monk
         return httpx.Response(524, headers={"content-type": "text/html"}, content=page.encode())
 
     platform = make(tmp_path, handler)
-    with pytest.raises(ModelError, match=re.escape("接口返回 524：api.example | 524: A timeout occurred")):
+    with pytest.raises(ModelError, match="模型接口返回 524"):
         platform.gateway.model("ep-test:m1").chat("hi")
     assert len(calls) == 4  # 第一次加上 3 次重试（测试接口的重试次数是 3）
 

@@ -3,7 +3,6 @@ import { hrefOf } from "../../state/route";
 import { participantOf, type Action, type State } from "../../state/store";
 import { PanelEmpty } from "../common";
 import { Panel } from "../console";
-import { Icon } from "../icons";
 import { InfoTip } from "../InfoTip";
 import { AgentParticipationPanel } from "./AgentParticipationPanel";
 import { InlineError } from "./InlineError";
@@ -75,30 +74,6 @@ export function TaskResourcesPanel({
               </a>
             </PanelEmpty>
           )}
-          {joined.length ? (
-            <div className="resource-selection" aria-label="已选择的数据">
-              {joined.map((p) => (
-                <span key={p.participantId}>
-                  <span>
-                    {state.datasets.find((d) => d.id === p.datasetId)?.name}
-                  </span>
-                  <button
-                    type="button"
-                    aria-label={`移除 ${state.datasets.find((d) => d.id === p.datasetId)?.name}`}
-                    onClick={() =>
-                      dispatch({
-                        type: "pickDataset",
-                        participantId: p.participantId,
-                        datasetId: null,
-                      })
-                    }
-                  >
-                    <Icon name="x" />
-                  </button>
-                </span>
-              ))}
-            </div>
-          ) : null}
           <InlineError
             id="participants-error"
             message={fieldError("participants")}

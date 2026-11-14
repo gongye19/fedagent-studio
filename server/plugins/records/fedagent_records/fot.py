@@ -31,3 +31,8 @@ class RecordFoT(FoT):
 
     def apply(self, artifact, request, model):
         return answer(artifact, request, model)
+
+    def fake_reply(self, step_id, prompt, seed):
+        if "return JSON with diagnosis" in prompt:
+            return '{"diagnosis":"Pneumonia","explanation":"Synthetic test diagnosis."}'
+        return super().fake_reply(step_id, prompt, seed)

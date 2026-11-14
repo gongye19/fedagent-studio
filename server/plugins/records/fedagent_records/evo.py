@@ -18,7 +18,6 @@ ROLES = {'doctor': 'LocalDoctor', 'patient': 'Patient', 'test': 'Measurement',
 class RecordEvo(Algorithm):
     manifest = load_manifest(Path(__file__).with_name('evo.yaml'))
     aggregate = EvoMedClaw.aggregate
-    fake_reply = EvoMedClaw.fake_reply
     describe = EvoMedClaw.describe
     describe_message = EvoMedClaw.describe_message
     describe_message_items = EvoMedClaw.describe_message_items
@@ -31,10 +30,10 @@ class RecordEvo(Algorithm):
         record = ctx.item
         if not record.get('answer'):
             raise StepFailed('EvoMedClaw 经验校验需要记录的参考诊断 answer', pause=True)
-        correct = DiagnosisClinicalGrader().evaluate(record['output'], {'answer': record['answer']}, ctx.model)
+        output = re.sub(r'^DIAGNOSIS READY:\s*', '', record['output'], flags=re.I)
+        correct = DiagnosisClinicalGrader().evaluate(output, {'answer': record['answer']}, ctx.model)
         dialogue = [{"speaker": ROLES.get(event['role'], event['role']), "text": event['content'],
                      "stage": event.get('stage', 'consultation')} for event in record['events']]
-        output = re.sub(r'^DIAGNOSIS READY:\s*', '', record['output'], flags=re.I)
         if not any(event['speaker'] == 'LocalDoctor' and event['text'].startswith('DIAGNOSIS READY:') for event in dialogue):
             dialogue.append({'speaker': 'LocalDoctor', 'text': 'DIAGNOSIS READY: ' + output, 'stage': 'final'})
         outcome = {'scenario_id': int(hashlib.sha256(f'{ctx.site.id}:{record.id}'.encode()).hexdigest()[:12], 16), 'answer': output, 'is_correct': correct}
@@ -70,3 +69,8 @@ class RecordEvo(Algorithm):
 
     def model_settings(self):
         return {'max_tokens': 4096, 'temperature': 0}
+
+    def fake_reply(self, step_id, prompt, seed):
+        if "return JSON with diagnosis" in prompt:
+            return '{"diagnosis":"Pneumonia","explanation":"Synthetic test diagnosis."}'
+        return EvoMedClaw().fake_reply(step_id, prompt, seed)

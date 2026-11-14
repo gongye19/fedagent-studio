@@ -135,7 +135,7 @@
   /* 行内链接不改变排版，只把可点区域撑到 44px 左右 */
   .crumbs a, .text-link, .link-button { padding-block: 12px; margin-block: -12px; }
   /* 指标链接上下撑开 */
-  .stat-link { display: inline-block; padding-block: 6px; margin-block: -6px; }
+  .stat-link { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; padding-block: 6px; margin-block: -6px; }
   .button--compact { min-height: 40px; }
   .cell-button { min-height: 40px; }
 }

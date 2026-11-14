@@ -20,10 +20,10 @@ class Judge:
 
 @pytest.mark.parametrize("prediction", ["Paucibacillary tuberculoid leprosy",
     "Borderline lepromatous Hansen disease (multibacillary leprosy)"])
-def test_original_contains_rule_fixes_both_false_zero_predictions(prediction):
-    model = Judge(error=AssertionError("fast match must not call model"))
+def test_subtype_diagnoses_use_clinical_equivalence(prediction):
+    model = Judge()
     assert DiagnosisClinicalGrader().evaluate(prediction, {"answer": "Leprosy"}, model)
-    assert not model.prompts
+    assert len(model.prompts) == 1
     assert not DiagnosisExactGrader().grade(prediction, {"answer": "Leprosy"})
 
 
@@ -68,7 +68,7 @@ def test_learning_marks_subtype_diagnosis_success_in_trajectory_and_cards(monkey
     request = AgentRequest(run_id="learning-test", algorithm="evomedclaw", version=algorithm.version,
         task_type="medical-diagnosis", task_id="local-test", site_id="one", role="participant", round=2, rounds=3,
         step="learn", unit_key="learn", params={"maxTurns": 4}, items=[to_item(MedicalDiagnosis(), case, labels=True)])
-    ctx = context_of(request, algorithm, Judge(error=AssertionError("fast match must not call model")))
+    ctx = context_of(request, algorithm, Judge())
     learn(ctx)
     kept = {key: value for key, _, value in ctx.result.kept}
     assert kept["diagnostic_trajectory"]["is_correct"] is True

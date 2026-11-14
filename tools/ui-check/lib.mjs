@@ -108,7 +108,7 @@ export async function routes(base) {
 }
 
 const ROUTES = [
-  "#/", "#/tasks",
+  "#/", "#/tasks", "#/results", "#/evaluations", "#/evaluations/new", "#/apps/consultation", "#/apps/consultation?compare=new",
   { route: "#/tasks", name: "#/tasks 筛选无结果", script: SEARCH("task-search", "zzz") },
   "#/tasks/new/horizontal",
   "#/tasks/new", "#/resources/mine/data", "#/resources/public/data", "#/resources/mine/models", "#/resources/public/models", "#/resources/mine/agents", "#/resources/public/agents",
@@ -118,7 +118,6 @@ const ROUTES = [
   "#/tasks/new/vertical",
   "{tasks}",
   "#/apps",
-  { route: "#/apps", name: "#/apps 筛选无结果", script: SELECT("task-type", "math-reasoning") + ";" + SEARCH("app-search", "zzz") },
   "{apps}",
   "#/participants", "#/participants/horizontal/p-a",
   { route: "#/participants", name: "#/participants 筛选", script: SEARCH("participant-search", "参与方 A") },

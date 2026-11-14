@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from urllib.parse import urlsplit
-
-from sqlalchemy import select
+from fedagent_sdk import ModelError
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from .. import models as m
 from ..errors import ServiceError
 from ..gateway import FAKE_ENDPOINT
+from ..model_network import validate_url
 from ..platform import Platform
 from ..schemas import EndpointIn, EndpointOut
 from .common import new_id, not_found
@@ -57,15 +57,11 @@ def save_endpoint(platform: Platform, session: Session, body: EndpointIn, endpoi
         if endpoint.kind == "fake":
             raise ServiceError(409, "测试用假模型不能修改")
     base_url = body.base_url.strip()
-    try:
-        url = urlsplit(base_url)
-        valid_url = url.scheme in ("http", "https") and bool(url.hostname) and not url.username and not url.password and not url.query and not url.fragment
-        if url.port is not None and not 1 <= url.port <= 65535:
-            valid_url = False
-    except ValueError:
-        valid_url = False
-    if base_url and (not valid_url or any(char.isspace() for char in base_url)):
-        raise ServiceError(422, "接口地址要以 http:// 或 https:// 开头")
+    if base_url:
+        try:
+            validate_url(base_url, platform.gateway.allowed_hosts)
+        except ModelError as error:
+            raise ServiceError(422, str(error)) from error
     models = _clean_models(body.models)
     if len(models) > 1:
         raise ServiceError(422, "每个接口只能选用一个模型；使用其他模型请另登记一个接口")
@@ -92,10 +88,14 @@ def delete_endpoint(session: Session, endpoint_id: str) -> None:
         raise ServiceError(403, "只能删除当前工作区自己的 LLM 接口")
     if endpoint.builtin or endpoint.id == FAKE_ENDPOINT:
         raise ServiceError(409, "预留的接口不能删除")
+    references = [m.Task.config[key].as_string() for key in ("model", "aggregation_model", "clientModel", "serverModel")]
+    references.append(m.TaskSite.model_ref)
     active = session.scalar(
         select(m.Task.name)
-        .join(m.TaskSite, m.TaskSite.task_id == m.Task.id)
-        .where(m.Task.status.in_(("queued", "running", "paused")), (m.TaskSite.model_ref == endpoint_id) | m.TaskSite.model_ref.startswith(f"{endpoint_id}:"))
+        .outerjoin(m.TaskSite, m.TaskSite.task_id == m.Task.id)
+        .where(m.Task.status.in_(("queued", "running", "paused")), or_(
+            *(or_(ref == endpoint_id, ref.startswith(f"{endpoint_id}:")) for ref in references),
+        ))
         .limit(1)
     )
     if active is not None:

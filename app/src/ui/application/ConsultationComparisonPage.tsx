@@ -92,13 +92,13 @@ function Setup({ state, packageId }: { state: State; packageId?: string }) {
   </>;
 }
 
-function ComparisonColumn({ arm, packageName, opening, reference }: {
-  arm: ConsultationComparisonArm; packageName: string; opening: string; reference?: string | null;
+function ComparisonColumn({ arm, packageName, opening, reference, legacy }: {
+  arm: ConsultationComparisonArm; packageName: string; opening: string; reference?: string | null; legacy: boolean;
 }) {
   const [label, tone] = statuses[arm.status];
   return <Panel title={arm.arm === "baseline" ? "无经验" : packageName} id={`comparison-${arm.arm}`}
     actions={<Tag tone={reference ? "neutral" : tone} live={arm.status === "running"}>{reference ? "问诊结束" : label}</Tag>}>
-    <ComparisonConversation arm={arm} opening={opening} reference={reference} />
+    <ComparisonConversation arm={arm} opening={opening} reference={reference} legacy={legacy} />
   </Panel>;
 }
 
@@ -136,7 +136,8 @@ function Run({ id, state }: { id: string; state: State }) {
           <p className="muted comparison-model" role="status">正在核对两栏诊断…</p>}
       </Panel>
       <div className="comparison-columns">
-        {item.arms.map((arm) => <ComparisonColumn key={arm.arm} arm={arm} packageName={item.packageName} opening={item.case.opening} reference={complete ? item.reference : undefined} />)}
+        {item.arms.map((arm) => <ComparisonColumn key={arm.arm} arm={arm} packageName={item.packageName} opening={item.case.opening}
+          reference={complete ? item.reference : undefined} legacy={!item.scoringVersion} />)}
       </div>
     </div>}
   </>;

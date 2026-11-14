@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     client_offline_seconds: int = 120
     """本地参与方超过这么久没有心跳就算离线。"""
     task_restart_limit: int = 3
+    llm_allowed_hosts: list[str] = []
+    """管理员显式允许的内网模型域名、IP 或 CIDR；默认只连接公网地址。"""
 
     @property
     def db_url(self) -> str:

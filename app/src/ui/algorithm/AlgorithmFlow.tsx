@@ -25,8 +25,6 @@ function FlowPanel({algorithm, guide}: {algorithm: Algorithm; guide: AlgorithmGu
 
   useEffect(() => {
     const controller = new AbortController();
-    setPhase("loading");
-    setHtml(undefined);
     void loadDiagramSource(url, controller.signal).then((source) => {
       if (!controller.signal.aborted) setHtml(source);
     }).catch(() => { if (!controller.signal.aborted) setPhase("error"); });
@@ -51,6 +49,7 @@ function FlowPanel({algorithm, guide}: {algorithm: Algorithm; guide: AlgorithmGu
       if (stacked.current !== next) {
         stacked.current = next;
         setPhase("loading");
+        setHtml(undefined);
         setMobile(next);
       }
     });
@@ -76,13 +75,13 @@ function FlowPanel({algorithm, guide}: {algorithm: Algorithm; guide: AlgorithmGu
     }>
       <div ref={wrapper} className={`algorithm-diagram${mobile ? " algorithm-diagram--stacked" : ""}`} aria-busy={phase === "loading"}
         style={{aspectRatio: `${dimensions.width} / ${dimensions.height}`}}>
-        <iframe ref={frame} title={`${algorithm.name} 架构流程示意图`} sandbox="allow-scripts" tabIndex={-1}
+        <iframe key={url} ref={frame} title={`${algorithm.name} 架构流程示意图`} sandbox="allow-scripts" tabIndex={-1}
           srcDoc={html}
           onError={() => setPhase("error")} />
         {phase === "loading" ? <div className="algorithm-diagram-state" role="status">正在加载流程图…</div> : null}
         {phase === "error" ? <div className="algorithm-diagram-state" role="alert">
           <p>流程图暂时无法加载，可在下方查看文字步骤。</p>
-          <button type="button" className="button button--secondary button--compact" onClick={() => { setPhase("loading"); setAttempt((value) => value + 1); }}>重新加载</button>
+          <button type="button" className="button button--secondary button--compact" onClick={() => { setPhase("loading"); setHtml(undefined); setAttempt((value) => value + 1); }}>重新加载</button>
         </div> : null}
       </div>
       <details className="algorithm-explanation">

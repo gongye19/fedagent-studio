@@ -2600,6 +2600,16 @@
       }
      },
      {
+      "name": "includeCases",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": true,
+       "title": "Includecases"
+      }
+     },
+     {
       "name": "authorization",
       "in": "header",
       "required": false,
@@ -2623,6 +2633,121 @@
        "application/json": {
         "schema": {
          "$ref": "#/components/schemas/PackageEvaluationOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/evaluations/{job_id}/cases": {
+   "get": {
+    "tags": [
+     "evaluations"
+    ],
+    "summary": "Get Package Evaluation Cases",
+    "operationId": "get_package_evaluation_cases_v1_evaluations__job_id__cases_get",
+    "parameters": [
+     {
+      "name": "job_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Job Id"
+      }
+     },
+     {
+      "name": "offset",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 0,
+       "default": 0,
+       "title": "Offset"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 100,
+       "minimum": 1,
+       "default": 12,
+       "title": "Limit"
+      }
+     },
+     {
+      "name": "site",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Site"
+      }
+     },
+     {
+      "name": "change",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "enum": [
+        "all",
+        "changed",
+        "improved",
+        "worsened",
+        "unchanged",
+        "incomplete"
+       ],
+       "type": "string",
+       "default": "changed",
+       "title": "Change"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PackageEvaluationCasePage"
         }
        }
       }
@@ -6396,6 +6521,17 @@
    },
    "ComparisonOut": {
     "properties": {
+     "scoringVersion": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Scoringversion"
+     },
      "id": {
       "type": "string",
       "title": "Id"
@@ -7398,6 +7534,17 @@
    },
    "EvaluationOut": {
     "properties": {
+     "scoringVersion": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Scoringversion"
+     },
      "status": {
       "type": "string",
       "enum": [
@@ -8239,6 +8386,43 @@
     ],
     "title": "PackageEvaluationCase"
    },
+   "PackageEvaluationCasePage": {
+    "properties": {
+     "cases": {
+      "items": {
+       "$ref": "#/components/schemas/PackageEvaluationCase"
+      },
+      "type": "array",
+      "title": "Cases"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "counts": {
+      "additionalProperties": {
+       "type": "integer"
+      },
+      "propertyNames": {
+       "enum": [
+        "improved",
+        "worsened",
+        "unchanged",
+        "incomplete"
+       ]
+      },
+      "type": "object",
+      "title": "Counts"
+     }
+    },
+    "type": "object",
+    "required": [
+     "cases",
+     "total",
+     "counts"
+    ],
+    "title": "PackageEvaluationCasePage"
+   },
    "PackageEvaluationIn": {
     "properties": {
      "packageId": {
@@ -8331,6 +8515,17 @@
       "format": "date-time",
       "title": "Createdat"
      },
+     "scoringVersion": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Scoringversion"
+     },
      "model": {
       "type": "string",
       "title": "Model"
@@ -8363,6 +8558,21 @@
       },
       "type": "array",
       "title": "Cases"
+     },
+     "changes": {
+      "additionalProperties": {
+       "type": "integer"
+      },
+      "propertyNames": {
+       "enum": [
+        "improved",
+        "worsened",
+        "unchanged",
+        "incomplete"
+       ]
+      },
+      "type": "object",
+      "title": "Changes"
      }
     },
     "type": "object",

@@ -38,6 +38,7 @@ class ComparisonArm(Model):
 
 
 class ComparisonOut(Model):
+    scoring_version: str | None = None
     id: str
     case: ComparisonCase
     package_name: str

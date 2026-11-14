@@ -21,11 +21,10 @@ from typing import Any
 
 import httpx
 from fedagent_sdk import Algorithm, ChatResult, ModelError
-from fedagent_sdk.openai_compat import error_text
 
 from .crypto import SecretBox
 from .db import Database
-from .model_runtime import GatewayModel, _snippet
+from .model_runtime import GatewayModel
 from .model_runtime import prompt_text as prompt_text
 from .model_runtime import request_hash as request_hash
 from .models import Endpoint
@@ -75,10 +74,12 @@ def parse_ref(ref: str) -> tuple[str, str | None]:
 
 
 class Gateway:
-    def __init__(self, db: Database, secrets: SecretBox, *, transport: httpx.BaseTransport | None = None) -> None:
+    def __init__(self, db: Database, secrets: SecretBox, *, transport: httpx.BaseTransport | None = None,
+                 allowed_hosts: tuple[str, ...] = ()) -> None:
         self.db = db
         self.secrets = secrets
         self._transport = transport
+        self.allowed_hosts = allowed_hosts
         self._semaphores: dict[str, threading.BoundedSemaphore] = {}
         self._lock = threading.Lock()
 
@@ -132,7 +133,9 @@ class Gateway:
             return semaphore
 
     def client(self, endpoint: EndpointConfig) -> httpx.Client:
-        return httpx.Client(timeout=httpx.Timeout(endpoint.timeout, connect=30.0), transport=self._transport)
+        from .model_network import model_client, validate_url
+        validate_url(endpoint.base_url, self.allowed_hosts)
+        return model_client(httpx.Timeout(endpoint.timeout, connect=min(30.0, endpoint.timeout)), self.allowed_hosts, self._transport)
 
     @contextmanager
     def slot(self, endpoint: EndpointConfig, *, wait_timeout: float | None = None) -> Iterator[None]:
@@ -179,19 +182,21 @@ class Gateway:
         """按地址和密钥读模型列表；新增、编辑接口时还没保存也能读。"""
         if not base_url.strip():
             raise ModelError("还没有填接口地址")
+        from .model_network import model_client, validate_url
+        validate_url(base_url.strip(), self.allowed_hosts)
         headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
         try:
-            with httpx.Client(timeout=httpx.Timeout(30.0), transport=self._transport) as client:
+            with model_client(httpx.Timeout(30.0), self.allowed_hosts, self._transport) as client:
                 response = client.get(base_url.strip().rstrip("/") + "/models", headers=headers)
         except (httpx.TimeoutException, httpx.TransportError) as error:
             raise ModelError(f"连接失败：{type(error).__name__}") from error
         if response.status_code >= 400:
-            raise ModelError(f"接口返回 {response.status_code}：{error_text(response.text, response.headers.get('content-type', ''))}")
+            raise ModelError(f"模型列表接口返回 {response.status_code}")
         try:
             items = response.json().get("data") or []
             return sorted({str(item["id"]) for item in items if isinstance(item, dict) and item.get("id")})
         except (ValueError, AttributeError, TypeError) as error:
-            raise ModelError(f"模型列表无法解析：{_snippet(response.text)}") from error
+            raise ModelError("模型列表格式无法解析") from error
 
     def probe(self, endpoint_id: str, model: str, settings: dict[str, Any]) -> ChatResult:
         """按给定的生成参数发一条短请求；失败直接反馈，由用户决定重试。"""

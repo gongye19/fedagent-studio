@@ -4,21 +4,22 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from fedagent_sdk import ApplyRequest, Artifact, ModelError, StepFailed
+from fedagent_evomed.grading import SCORING_VERSION
+from fedagent_sdk import Artifact, ModelError, StepFailed
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from .. import models as m
 from ..errors import ServiceError
-from ..gateway import FAKE_ENDPOINT, EndpointConfig, LedgerKey, parse_ref
-from ..model_runtime import GatewayModel
+from ..gateway import FAKE_ENDPOINT, parse_ref
 from ..platform import Platform
 from ..resources import new_id
 from ..schemas.experience import Arm, Change, EvaluationArm, EvaluationCase, EvaluationIn, EvaluationOut, EvaluationScore, EvaluationSite
 from ..units import add_event
+from .answering import evaluate_arm as evaluate_arm
 from .baseline import local_package
 from .cases import freeze_cases
-from .consultation import MEDICAL_RECORDS, RECORD_ALGORITHMS, experience_guidance, verified_model
+from .consultation import MEDICAL_RECORDS, RECORD_ALGORITHMS, verified_model
 
 ARMS: tuple[Arm, ...] = ("none", "local", "federated")
 LOG = logging.getLogger(__name__)
@@ -39,7 +40,7 @@ def start(platform: Platform, session: Session, task: m.Task, body: EvaluationIn
     if existing is not None:
         raise ServiceError(409, "该经验包已有一项评测，请查看或继续已有评测")
     algorithm = platform.registry.algorithm(task.algorithm)
-    if algorithm.version != task.plugin_version or algorithm.code_hash() != task.plugin_hash:
+    if algorithm.version != task.plugin_version:
         raise ServiceError(409, "当前算法与生成该经验包时的版本不同")
     artifact = _artifact_row(session, task.id)
     if artifact is None:
@@ -53,7 +54,8 @@ def start(platform: Platform, session: Session, task: m.Task, body: EvaluationIn
         raise ServiceError(422, "请选择带参考诊断的独立病例")
     job = m.Task(id=new_id("eval"), source_task_id=task.id, name=f"评测 · {task.name}"[:120], scenario=task.scenario,
                  task_type=task.task_type, algorithm=task.algorithm, plugin_version=task.plugin_version, plugin_hash=task.plugin_hash,
-                 config={"model": model, "aggregation_model": aggregation_model, "artifact_version": artifact.version, "cases": cases},
+                 config={"model": model, "aggregation_model": aggregation_model, "artifact_version": artifact.version, "cases": cases,
+                         "consumer_hash": algorithm.code_hash(), "scoring_version": SCORING_VERSION},
                  status="queued", fake=parse_ref(model)[0] == FAKE_ENDPOINT or task.fake)
     session.add(job)
     session.flush()
@@ -100,7 +102,7 @@ def present(session: Session, job: m.Task) -> EvaluationOut:
             key: EvaluationArm(correct=arm.correct, error="评测未完成" if arm.error else None) for key, arm in arms.items()
         }
         cases.append(EvaluationCase(site_id=site, case_id=f"病例 {index + 1}", reference="", arms=public_arms, change=change))
-    return EvaluationOut.model_validate(dict(status=job.status, error=job.error, model=job.config["model"],
+    return EvaluationOut.model_validate(dict(status=job.status, error=job.error, model=job.config["model"], scoring_version=job.config.get("scoring_version"),
                                               score=summary, sites=list(scores.values()), cases=cases if job.status not in ("running", "queued") else []))
 
 
@@ -128,42 +130,6 @@ def stop_requested(platform: Platform, job: m.Task) -> str | None:
     return None
 
 
-def evaluate_arm(platform: Platform, job: m.Task, case: dict, index: int, arm: Arm, artifact: Artifact | None,
-                 resolved: tuple[EndpointConfig, str] | None = None) -> EvaluationArm:
-    algorithm = platform.registry.algorithm(job.algorithm)
-    grader = platform.registry.grader(job.config.get("grader") or platform.registry.task_type(MEDICAL_RECORDS).graders[0])
-    ledger = LedgerKey(job.id, case["site_id"], 1, arm, str(index))
-    if resolved is None:
-        model = platform.gateway.model(job.config["model"], plugin=algorithm, purpose="experience-eval", ledger=ledger)
-    else:
-        model = GatewayModel(platform.gateway, *resolved, plugin=algorithm, purpose="experience-eval", ledger=ledger, step_id=None)
-    response = algorithm.apply(artifact, ApplyRequest(input=case["input"]), model)
-    if not response.output.strip():
-        raise ModelError("模型未返回诊断")
-    if resolved is None:
-        correct = grader.evaluate(response.output, {"answer": case["reference"]}, model)
-    else:
-        # 评分格式错只丢弃本组评分缓存，继续时仍可复用已经作答的结果。
-        grading_key = LedgerKey(job.id, case["site_id"], 1, f"{arm}-grade", str(index))
-        grading_model = GatewayModel(platform.gateway, *resolved, plugin=algorithm, purpose="experience-eval",
-                                     ledger=grading_key, step_id=None)
-        try:
-            correct = grader.evaluate(response.output, {"answer": case["reference"]}, grading_model)
-        except ModelError:
-            with platform.db.session() as session:
-                session.execute(update(m.CallRecord).where(
-                    m.CallRecord.task_id == job.id, m.CallRecord.site_id == case["site_id"],
-                    m.CallRecord.step == grading_key.step, m.CallRecord.unit_key == str(index),
-                    m.CallRecord.status == "ok",
-                ).values(status="discarded"))
-            raise
-    keys = []
-    if artifact is not None:
-        guidance = experience_guidance(job.algorithm, artifact.content, case["input"])
-        keys = list(guidance) if isinstance(guidance, dict) else [entry["id"] for entry in guidance]
-    return EvaluationArm(output=response.output, correct=correct, experience_keys=keys)
-
-
 def run(platform: Platform, job: m.Task) -> str:
     with platform.db.session() as session:
         current = session.get(m.Task, job.id)
@@ -172,7 +138,7 @@ def run(platform: Platform, job: m.Task) -> str:
         if current is None or source is None or artifact_row is None:
             raise RuntimeError("评测来源已不存在")
         algorithm = platform.registry.algorithm(source.algorithm)
-        if algorithm.version != source.plugin_version or algorithm.code_hash() != source.plugin_hash:
+        if algorithm.version != source.plugin_version or algorithm.code_hash() != job.config.get("consumer_hash", source.plugin_hash):
             current.status = "paused"
             current.error = "当前算法与生成经验包时的版本不同"
             return "paused"

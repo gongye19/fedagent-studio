@@ -7,6 +7,7 @@ from .. import apps, tasks
 from ..errors import ServiceError
 from ..experience import consultation, consultation_comparison, evaluation, package_evaluation
 from ..experience.consultation_samples import DEMO_CASES
+from ..experience.package_results import CaseFilter, case_page
 from ..schemas.consultation_comparison import ComparisonCase, ComparisonIn, ComparisonOut
 from ..schemas.experience import (
     ChatIn,
@@ -16,6 +17,7 @@ from ..schemas.experience import (
     ConsultationSample,
     EvaluationIn,
     EvaluationOut,
+    PackageEvaluationCasePage,
     PackageEvaluationIn,
     PackageEvaluationOut,
     PackageEvaluationSummary,
@@ -92,8 +94,17 @@ def start_package_evaluation(body: PackageEvaluationIn, platform: PlatformDep, s
 
 
 @router.get("/evaluations/{job_id}", response_model=PackageEvaluationOut, tags=["evaluations"])
-def get_package_evaluation(job_id: str, session: SessionDep) -> PackageEvaluationOut:
-    return package_evaluation.present(session, package_evaluation.get(session, job_id))
+def get_package_evaluation(job_id: str, session: SessionDep,
+                           include_cases: Annotated[bool, Query(alias="includeCases")] = True) -> PackageEvaluationOut:
+    return package_evaluation.present(session, package_evaluation.get(session, job_id), include_cases=include_cases)
+
+
+@router.get("/evaluations/{job_id}/cases", response_model=PackageEvaluationCasePage, tags=["evaluations"])
+def get_package_evaluation_cases(job_id: str, session: SessionDep,
+                                 offset: Annotated[int, Query(ge=0)] = 0,
+                                 limit: Annotated[int, Query(ge=1, le=100)] = 12,
+                                 site: str | None = None, change: CaseFilter = "changed") -> PackageEvaluationCasePage:
+    return case_page(session, package_evaluation.get(session, job_id), site=site, change=change, offset=offset, limit=limit)
 
 
 @router.post("/evaluations/{job_id}/{action}", response_model=PackageEvaluationOut, tags=["evaluations"])

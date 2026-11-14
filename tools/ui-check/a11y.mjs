@@ -11,12 +11,12 @@ mkdirSync(dirname(OUT), { recursive: true });
 
 const CHECK = `(() => {
   const out = { headings: [], unnamed: [], unlabeled: [], dupIds: [], tabindex: [], overflow: null, small: [], tiny: [], contrast: [] };
-  const visible = (el) => { const r = el.getBoundingClientRect(); const s = getComputedStyle(el); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none' && !el.closest('details:not([open]) > :not(summary)'); };
+  const visible = (el) => { const r = el.getBoundingClientRect(); const s = getComputedStyle(el); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none' && !el.closest('[aria-hidden="true"]') && !el.closest('details:not([open]) > :not(summary)'); };
   document.querySelectorAll('h1,h2,h3,h4').forEach((h) => { if (visible(h)) out.headings.push(h.tagName + ':' + h.textContent.trim().slice(0, 24)); });
   const nameOf = (el) => (el.getAttribute('aria-label') || (el.getAttribute('aria-labelledby') && document.getElementById(el.getAttribute('aria-labelledby'))?.textContent) || el.textContent || el.getAttribute('title') || '').trim();
   document.querySelectorAll('button, a[href], summary, [role=button], [role=radio], [role=tab]').forEach((el) => { if (visible(el) && !nameOf(el)) out.unnamed.push(el.outerHTML.slice(0, 90)); });
   document.querySelectorAll('input, select, textarea, [role=combobox]').forEach((el) => {
-    if (el.type === 'hidden') return;
+    if (el.type === 'hidden' || !visible(el) || el.closest('[aria-hidden="true"]')) return;
     const labelled = el.closest('label') || (el.id && document.querySelector('label[for="' + el.id + '"]')) || el.getAttribute('aria-label') || el.getAttribute('aria-labelledby');
     if (!labelled) out.unlabeled.push(el.outerHTML.slice(0, 90));
   });

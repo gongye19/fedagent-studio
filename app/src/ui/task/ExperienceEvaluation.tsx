@@ -126,7 +126,10 @@ export function ExperienceEvaluation({ task, state }: { task: Task; state: State
       {result && running ? <p role="status">{result.status === "queued" ? "评测排队中" : "正在评测"} · 已完成 {result.score.paired} / {result.score.total} 例三组对照</p> : null}
       {result?.error ? <Notice tone="warning">{result.error}</Notice> : null}
       {result?.status === "canceled" ? <p>评测已停止，以下为已保存的结果。</p> : null}
-      {result && !running ? <EvaluationResults result={result} /> : null}
+      {result && !running ? <>
+        {!result.scoringVersion && <p className="muted">旧版评分 · 使用修正后的判分请在联邦评测中重新发起评测。</p>}
+        <EvaluationResults result={result} />
+      </> : null}
     </Panel>
   );
 }

@@ -78,6 +78,8 @@ def next_step(platform: Platform, job: m.Task, resolved: tuple[EndpointConfig, s
                 diagnosis = ConsultationFinalTurn.one_diagnosis(action.text)
                 return ComparisonStep(action="diagnosis", label="提交诊断", text=diagnosis), ""
             target = action.target or action.text
+            canonical = {key.casefold(): key for key in evidence[action.action]}
+            target = canonical.get(target.casefold(), target)
             if (action.action, target.casefold()) in used:
                 raise ValueError("target was already requested")
             value = evidence[action.action].get(target)

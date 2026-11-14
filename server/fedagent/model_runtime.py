@@ -202,7 +202,9 @@ class GatewayModel:
                         content_type = response.headers.get("content-type", "")
                         if response.status_code >= 400:
                             reason = error_text(response.read().decode(errors="replace"), content_type)
-                            last_error = f"接口返回 {response.status_code}：{reason}"
+                            last_error = f"模型接口返回 {response.status_code}"
+                            if response.status_code in (400, 422) and "top_p" in reason and "temperature" in reason:
+                                last_error += "：模型不支持同时设置 temperature 和 top_p"
                             if stream and response.status_code in (400, 422) and "stream" in reason.lower():
                                 stream = False  # 不支持流式参数的接口：改用普通请求
                                 attempt -= 1  # 协议兼容回退不消耗失败重试次数。
@@ -217,12 +219,12 @@ class GatewayModel:
                             try:
                                 reply = read_json(json.loads(text))
                             except (ValueError, KeyError, IndexError, TypeError) as error:
-                                raise ModelError(f"接口返回的内容无法解析：{_snippet(text)}") from error
+                                raise ModelError("模型接口返回的内容格式无法解析") from error
                 except (httpx.TimeoutException, httpx.TransportError) as error:
                     last_error = f"连接失败：{type(error).__name__}"
                     continue
                 if reply.error:
-                    last_error = f"接口返回错误：{reply.error}"
+                    last_error = "模型接口返回错误"
                     continue
                 if reply.empty:
                     # 有的中转在上游出错时回 200 和空回答、不计 token：当作暂时性错误重试，不记成成功的调用
@@ -235,8 +237,3 @@ class GatewayModel:
                     finish_reason=reply.finish_reason,
                 )
         raise ModelUnavailable(f"重试 {endpoint.max_retries} 次后仍失败（{last_error}）")
-
-
-def _snippet(text: str, limit: int = 300) -> str:
-    text = " ".join(text.split())
-    return text if len(text) <= limit else text[:limit] + "…"

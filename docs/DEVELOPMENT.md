@@ -1,5 +1,11 @@
 # 开发说明
 
+### LLM 出站连接与评测版本（T139）
+
+LLM 地址保存时检查协议和字面 IP，连接时对全部 DNS 结果检查后连接已检查 IP，保留原域名的 Host 和 TLS 验证。默认不使用环境代理、不跟随跳转。内部模型由管理员设置 `FEDAGENT_LLM_ALLOWED_HOSTS='["model.internal.example","10.10.0.5"]'`，用户登记接口不能豁免。HTTP 模拟 transport 只用于测试。
+
+新评测的 `consumer_hash` 是本次应用适配代码，来源任务的 `plugin_hash` 仍代表生成实现。`scoring_version` 标识判分规则，旧评分保留并显示旧版。新评测冻结输入位于 `runs/<任务>/cases/<哈希>.jsonl`，备份恢复须包含运行目录。摘要支持 `includeCases=false`，明细由 `GET /v1/evaluations/{id}/cases` 按需筛选分页。
+
 T105算法规范展示在ui/algorithm/AlgorithmContract与AgentContract；api/algorithmContracts统一读取已有GET /v1/algorithms/{id}/contract。不要另存写死的规范或恢复来源／下载入口。CodeBlock新增scrollable可选属性，默认false；开启时pre可键盘聚焦且最高18rem，完整JSON保持可解析。正文按backend dataContracts、manifest.steps与plans生成，来源元数据不渲染。仅前端改动使用静态资源热更新、先上传哈希文件再原子换index，保留旧文件且不重启任务；无需因文案与展示更改付费重跑算法。
 
 T104新增test_execution_resume／test_medical_parallel：用真实HTTP超时异常、运行恢复及Barrier检验并发重叠，不以耗时阈值写脆弱测试。覆盖已完成学习病例不重跑、坏输出局部作废、长ID分支、服务重启、活动事件／空闲预算、串并行编译一致、原专家提示与排序一致、接口槽位上限和乱序缓存重放。SDK ForkableModel可选，普通Model实现无须增加fork；新医疗协议1.4需重新验证资源，不能伪造准入。部署前确认用户任务结束，备份主库及两个Agent私库，安装SDK0.2.8／医疗包0.3.1并保留费用账本。
