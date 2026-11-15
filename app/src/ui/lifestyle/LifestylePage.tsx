@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { demoExperience, demoMatches, demoUsers, packageOutdated } from "../../domain/lifestyle/simulation";
+import { demoExperience, demoMatches, demoUsers, packageOutdated, sourceIds } from "../../domain/lifestyle/simulation";
 import { navigate, type LifestyleTab } from "../../state/route";
 import { Confirm, NotFound, PageHead, TabLinks, Tag } from "../common";
 import { AppPreview } from "./AppPreview";
@@ -27,7 +27,7 @@ export function LifestylePage({tab="users",userId}: {tab?:LifestyleTab;userId?:s
   }
   if (userId && !user) return <NotFound kind="演示用户" back={{page:"lifestyle"}} backLabel="LifeStyle" />;
   return <div className="lifestyle-demo">
-    <PageHead title={user ? user.name : "LifeStyle"} status={<Tag>交互演示</Tag>}
+    <PageHead className="lifestyle-head" title={user ? user.name : "LifeStyle"} status={<Tag>交互演示</Tag>}
       back={user ? {label:"LifeStyle",route:{page:"lifestyle"}} : undefined}
       meta="虚构数据与预设规则；未连接 LifeStyle，不运行真实联邦算法或发送推送。"
       actions={!user ? <button type="button" className="button button--secondary" onClick={() => setResetting(true)}>重置演示</button> : undefined} />
@@ -44,10 +44,10 @@ export function LifestylePage({tab="users",userId}: {tab?:LifestyleTab;userId?:s
             {!experience || outdated ? <button type="button" className="button button--primary" onClick={generate}>{experience ? "更新演示经验包" : "生成演示经验包"}</button>
               : <button type="button" className="button button--primary" onClick={match}>匹配用户</button>}</div>
           <UserList users={users} matches={matches} />
-        </> : tab === "experience" ? <ExperiencePanel experience={experience} outdated={outdated} onGenerate={generate} onMatch={match} />
-          : <AppPreview users={users} matches={matches} />}
+        </> : tab === "experience" ? <ExperiencePanel experience={experience} outdated={outdated} sourceCount={sourceIds(users).length} onGenerate={generate} onMatch={match} />
+          : <AppPreview users={users} matches={matches} packageReady={Boolean(experience && !outdated)} onGenerate={generate} onMatch={match} />}
       </div>
     </>}
-    <p className="lifestyle-status" role="status">{storageError ? "当前浏览器无法保存演示状态，刷新后可能丢失。" : message}</p>
+    <p className={storageError ? "lifestyle-status" : "visually-hidden"} role="status">{storageError ? "当前浏览器无法保存演示状态，刷新后可能丢失。" : message}</p>
   </div>;
 }

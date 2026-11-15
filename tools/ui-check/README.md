@@ -78,3 +78,7 @@ T142 更新对齐验收：联邦数据是四列平面表，不再展开；脚本
 ### LifeStyle 演示（T143）
 
 `BASE=http://127.0.0.1:8893/ node tools/ui-check/lifestyle.mjs` 检查 1440／1280／768／390 的完整 mock 流程、上传失效、刷新、重置与返回。脚本拦截所有非 GET／HEAD 的浏览器 fetch，只改变隔离 Chrome 的本地演示状态，不创建生产资源或调用模型；`BASE` 可指向部署站点做同样的只读验收。截图和 JSON 保存在 OUT（默认 /tmp/fedagent-lifestyle-ui）。
+
+### LifeStyle 排版（T144）
+
+`BASE=http://127.0.0.1:8894/ node tools/ui-check/lifestyle-layout.mjs` 覆盖6种视宽×14状态（含空经验、空预览、通知收展、资料／报告、失效、重置取消），保存坐标和截图。检查实际左右缘、内边距、段落按钮间距、标签值轴、预览居中、表头边界；不以“没有溢出”代替对齐。脚本只更改浏览器mock状态，拦截所有HTTP写入；WIDTHS／CDP_PORT／OUT可调整，生产可同样只读运行。

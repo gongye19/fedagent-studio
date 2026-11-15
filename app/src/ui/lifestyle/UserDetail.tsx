@@ -8,7 +8,7 @@ export function UserDetail({user,match,onUpload}: {user:DemoUser;match?:DemoMatc
   return <div className="lifestyle-detail">
     <Panel title="健康资料">
       <dl className="lifestyle-facts">
-        {[["年龄",`${user.age} 岁`],["性别",user.sex],["身高",`${user.height} cm`],
+        {[["年龄",`${user.age} 岁`],["性别",user.sex],["身高",user.height === null ? "未提供" : `${user.height} cm`],
           ["体重",user.weight === null ? "未提供" : `${user.weight} kg`],["BMI",bmi(user)?.toFixed(1) ?? "未知"],
           ["每周运动",user.activityDays === null ? "未提供" : `${user.activityDays} 天`],["每晚睡眠",`${user.sleepHours} 小时`],
           ["资料更新",formatDate(user.updatedAt)]].map(([label,value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
