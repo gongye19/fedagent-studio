@@ -23,6 +23,7 @@ import NewParticipantPage from "../ui/NewParticipantPage";
 import TaskConfigPage from "../ui/TaskConfigPage";
 import ParticipantsPage from "../ui/ParticipantsPage";
 import ResourcesPage from "../ui/ResourcesPage";
+import { LifestylePage } from "../ui/lifestyle/LifestylePage";
 import TaskPage from "../ui/TaskPage";
 import TasksPage from "../ui/TasksPage";
 
@@ -54,6 +55,8 @@ export function PageRouter({ state, dispatch, route }: { state: State; dispatch:
     case "consultation":
       if (route.comparison) return <ConsultationComparisonPage key={route.comparison} id={route.comparison} state={state} packageId={route.packageId} />;
       return <ConsultationPage key={route.packageId ?? ""} state={state} packageId={route.packageId} />;
+    case "lifestyle":
+      return <LifestylePage tab={route.tab} userId={route.userId} />;
     case "apps":
       return <AppsPage />;
     case "application":

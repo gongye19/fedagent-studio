@@ -23,9 +23,11 @@
 import { useEffect, useState } from "react";
 import type { ScenarioId } from "../domain/catalog";
 import { MEDICAL_RECORDS } from "../domain/consultation";
+import { LIFESTYLE_DEMO } from "../domain/applications";
 import type { ResourceSpace } from "../domain/resources";
 
 export type ResourceKind = "data" | "models" | "agents";
+export type LifestyleTab = "users" | "experience" | "preview";
 
 /** 三种场景是平台内置的（后端核心里的规则），地址里只认这三个；注册表还没读到时也能解析地址。 */
 const SCENARIO_IDS: readonly ScenarioId[] = ["horizontal", "vertical", "transfer"];
@@ -50,6 +52,7 @@ export type Route =
   | { page: "newEvaluation" }
   | { page: "evaluation"; id: string }
   | { page: "consultation"; packageId?: string; comparison?: string }
+  | { page: "lifestyle"; tab?: LifestyleTab; userId?: string }
   | { page: "apps" }
   | { page: "application"; taskType: string }
   | { page: "app"; id: string; tab?: AppTab }
@@ -63,6 +66,7 @@ export type Route =
   | { page: "editEndpoint"; id: string; from?: From };
 
 export function applicationRoute(taskType: string): Route {
+  if (taskType === LIFESTYLE_DEMO) return {page:"lifestyle"};
   return taskType === MEDICAL_RECORDS ? { page: "consultation" } : { page: "application", taskType };
 }
 
@@ -75,7 +79,7 @@ export function parseHash(hash: string): Route {
   const search = new URLSearchParams(query);
   const from: From | undefined = search.get("from") === "new-task" ? "newTask" : undefined;
   const withFrom = <T extends object>(route: T): T & { from?: From } => (from ? { ...route, from } : route);
-  const [first, second, third] = path.split("/").filter(Boolean).map(decodeURIComponent);
+  const [first, second, third, fourth] = path.split("/").filter(Boolean).map(decodeURIComponent);
   switch (first) {
     case "tasks":
       if (!second) return { page: "tasks" };
@@ -99,6 +103,8 @@ export function parseHash(hash: string): Route {
     case "apps":
     case "libraries": // 旧地址
       if (first === "apps" && second === "consultation") return consultationRoute(search);
+      if (first === "apps" && second === LIFESTYLE_DEMO) return third === "users" && fourth
+        ? {page:"lifestyle",userId:fourth} : {page:"lifestyle",tab:oneOf(["users","experience","preview"] as const,third)};
       return second ? { page: "app", id: second, tab: oneOf(APP_TABS, third) } : { page: "apps" };
     case "participants": {
       if (second === "new") return withFrom({ page: "newParticipant" as const });
@@ -157,6 +163,8 @@ export function hrefOf(route: Route): string {
       return "#/evaluations/" + part(route.id);
     case "consultation":
       return `#/apps/consultation${query({ package: route.packageId, compare: route.comparison })}`;
+    case "lifestyle":
+      return `#/apps/lifestyle${route.userId ? `/users/${part(route.userId)}` : route.tab && route.tab !== "users" ? `/${route.tab}` : ""}`;
     case "apps":
       return "#/apps";
     case "application":
@@ -213,6 +221,8 @@ export function pageKeyOf(route: Route): string {
       return `${route.page}:${route.id}`;
     case "consultation":
       return route.comparison ? `consultation:${route.comparison}` : route.page;
+    case "lifestyle":
+      return route.userId ? `lifestyle:${route.userId}` : route.page;
     case "algorithms":
       return route.id ? `algorithm:${route.id}` : route.page;
     default:

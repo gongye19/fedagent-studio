@@ -109,6 +109,7 @@ export async function routes(base) {
 
 const ROUTES = [
   "#/", "#/tasks", "#/results", "#/evaluations", "#/evaluations/new", "#/apps/consultation", "#/apps/consultation?compare=new",
+  "#/apps/lifestyle", "#/apps/lifestyle/users/ls-04", "#/apps/lifestyle/experience", "#/apps/lifestyle/preview",
   { route: "#/tasks", name: "#/tasks 筛选无结果", script: SEARCH("task-search", "zzz") },
   "#/tasks/new/horizontal",
   "#/tasks/new", "#/resources/mine/data", "#/resources/public/data", "#/resources/mine/models", "#/resources/public/models", "#/resources/mine/agents", "#/resources/public/agents",

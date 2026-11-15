@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { TASK_TYPES, visibleApplicationType, visibleTaskType } from "../domain/catalog";
+import { visibleTaskType } from "../domain/catalog";
+import { applicationEntries, LIFESTYLE_DEMO } from "../domain/applications";
 import { MEDICAL_RECORDS } from "../domain/consultation";
 import { applicationRoute, hrefOf, type Route } from "../state/route";
 import { type State } from "../state/store";
@@ -24,6 +25,7 @@ function navKeyOf(route: Route): NavKey {
     case "evaluation":
       return "evaluations";
     case "consultation":
+    case "lifestyle":
     case "apps":
     case "application":
       return "apps";
@@ -65,6 +67,7 @@ export function Sidebar({ route, state }: { route: Route; state: State | null })
   const inApps = active === "apps";
   const appsExpanded = appsToggle?.inApps === inApps ? appsToggle.expanded : inApps || appsToggle?.expanded === true;
   const currentApplication = route.page === "consultation" ? MEDICAL_RECORDS
+    : route.page === "lifestyle" ? LIFESTYLE_DEMO
     : route.page === "application" ? route.taskType
     : route.page === "app" ? state?.published.find((item) => item.id === route.id)?.taskType : undefined;
   const close = () => setOpen(false);
@@ -130,12 +133,12 @@ export function Sidebar({ route, state }: { route: Route; state: State | null })
               <Icon name="chevron" />
             </button>
             <ul id="app-nav" className="nav-children" hidden={!appsExpanded}>
-              {Object.keys(TASK_TYPES).filter(visibleApplicationType).map((type) => (
-                <li key={type}>
-                  <a className={`nav-link${currentApplication === type ? " nav-link--active" : ""}`}
-                    aria-current={currentApplication === type ? "page" : undefined}
-                    href={hrefOf(applicationRoute(type))} onClick={close}>
-                    {TASK_TYPES[type].label}
+              {applicationEntries().map((application) => (
+                <li key={application.id}>
+                  <a className={`nav-link${currentApplication === application.id ? " nav-link--active" : ""}`}
+                    aria-current={currentApplication === application.id ? "page" : undefined}
+                    href={hrefOf(applicationRoute(application.id))} onClick={close}>
+                    {application.label}
                   </a>
                 </li>
               ))}
