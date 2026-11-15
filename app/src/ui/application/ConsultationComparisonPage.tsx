@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { consultationComparisons, type ConsultationComparisonArm } from "../../api/consultationComparison";
 import { isConsultationPackage } from "../../domain/consultation";
-import { modelLabel, usableModelOptions } from "../../domain/resources";
+import { modelLabel, selectedModelRef, usableModelOptions } from "../../domain/resources";
 import { hrefOf, navigate, type Route } from "../../state/route";
 import type { State } from "../../state/store";
 import { PageHead, Tag, type Tone } from "../common";
@@ -31,7 +31,7 @@ function Setup({ state, packageId }: { state: State; packageId?: string }) {
   const [selectedCase, setCase] = useState("");
   const [selectedPackage, setPackage] = useState(packageId ?? "");
   const [selectedModel, setModel] = useState<string>();
-  const model = selectedModel ?? models[0]?.ref ?? "";
+  const model = selectedModelRef(selectedModel, state.endpoints);
   const hasPackage = packages.some((item) => item.id === selectedPackage);
   const cases = useQuery({
     queryKey: ["consultation-comparison-cases", selectedPackage],

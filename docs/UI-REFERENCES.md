@@ -344,3 +344,7 @@ T92根据用户四项明确反馈继续沿用控制台风格：返回在标题�
 ## T114：医疗问诊聊天界面
 
 用户确认以 [Claude 开场与追问流程](https://mobbin.com/flows/4c9e9350-306e-4afd-b016-b5ba7b1101d0) 为输入区参考，以 [ChatGPT 对话界面](https://mobbin.com/screens/f9fa472b-1f11-45f1-9132-019c2501f56d) 为消息排版参考。借鉴居中开场、输入区内的模型入口、底部追问、限宽正文和右侧用户气泡。复用 PageHead、SelectField、Icon 和既有会话请求。
+
+## T140：既有控制台方向下的目录密度修正
+
+延续 T62 已确认的 Braintrust／LangSmith 信息层级，不新增主视觉方向。重新实际查看 [Braintrust 数据详情](https://mobbin.com/screens/55e7a8ff-e03c-49a3-9c6c-c0a3cc977170)：浏览表格与说明／元信息职责分开。借鉴信息收敛和详情承载，未引入其行级内容预览、筛选器、实验或额外功能。搜索另外返回 Databricks 元数据页，仅查看候选，不作为新主参考采用。目录及详情均沿用项目字号、间距、表格与返回规范，组件与验收见 FLOW T140。

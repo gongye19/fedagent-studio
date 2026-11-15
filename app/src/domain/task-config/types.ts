@@ -1,3 +1,4 @@
+import { DEFAULT_MODEL } from "../resources";
 import type { components } from "../../api/schema";
 import type { AlgorithmId, Params, ScenarioId, TaskType } from "../catalog";
 
@@ -40,7 +41,7 @@ export type TaskConfig = {
 export type Draft = Omit<TaskConfig, "scenario" | "taskType" | "algorithm" | "trialCap"> & {
   /** 编辑时允许清空；提交到 API 前必须是有效整数。 */
   trialCap: number | "";
-  /** null：还没改过名称，页面显示按打开时间生成的默认名称；空字符串：用户清空了，创建时仍用默认名称。 */
+  /** null：还没改过名称，页面显示按任务类型生成的默认名称；空字符串：用户清空了，创建时仍用默认名称。 */
   name: string | null;
   agentGroups: AgentGroup[];
   scenario: ScenarioId | null;
@@ -58,9 +59,9 @@ export const DEFAULT_DRAFT: Draft = {
   taskType: null,
   algorithm: null,
   participants: [],
-  clientModel: "",
+  clientModel: DEFAULT_MODEL,
   clientOverrides: {},
-  serverModel: "",
+  serverModel: DEFAULT_MODEL,
   execution: "builtin",
   agentId: null,
   agentOverrides: {},

@@ -24,6 +24,7 @@ type Props = {
   active: boolean;
   packages: readonly { id: string; name: string }[];
   models: ReturnType<typeof usableModelOptions>;
+  defaultModel: string;
   samples: readonly ConsultationSample[];
   closeDisabled: boolean;
   onClose: () => void;
@@ -32,7 +33,7 @@ type Props = {
 };
 
 export function ConsultationWindow({
-  window, title, active, packages, models, samples, closeDisabled, onClose, onStart, onSettings,
+  window, title, active, packages, models, defaultModel, samples, closeDisabled, onClose, onStart, onSettings,
 }: Props) {
   const inputId = useId();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -46,7 +47,7 @@ export function ConsultationWindow({
   const historyRef = useRef<HTMLDivElement>(null);
   const followLatest = useRef(true);
   const selected = packages.find((item) => item.id === window.packageId);
-  const selectedModel = models.find((item) => item.ref === window.model) ?? (started ? undefined : models[0]);
+  const selectedModel = models.find((item) => item.ref === (window.model || (started ? "" : defaultModel)));
   const final = lastReply?.final;
   const limitReached = messages.length >= 40;
   const canSend = Boolean(
@@ -189,7 +190,7 @@ export function ConsultationWindow({
           <div className="consultation-toolbar">
             <SelectField className="consultation-pick" aria-label={`${title}模型`} value={selectedModel?.ref ?? ""}
               disabled={started || !models.length} onValueChange={(model) => onSettings({ model })}>
-              <option value="" disabled>{started ? "当前模型不可用" : "暂无可用模型"}</option>
+              <option value="" disabled>{window.model ? "所选模型不可用" : models.length ? "请选择模型" : "暂无可用模型"}</option>
               {models.map((item) => <option key={item.ref} value={item.ref}>{item.label}</option>)}
             </SelectField>
             <button type="submit" className="button button--primary consultation-send"

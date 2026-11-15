@@ -2,7 +2,7 @@ import { useState } from "react";
 import { type Dataset } from "../../domain/resources";
 import { deleteDataResource } from "../../state/actions";
 import type { State } from "../../state/store";
-import { Confirm, Facts } from "../common";
+import { Confirm } from "../common";
 import { LocalConnect } from "../ParticipantsPage";
 
 export function DataDetail({
@@ -17,15 +17,13 @@ export function DataDetail({
   const [removing, setRemoving] = useState(false);
   const source = state.participants.find((p) => p.id === dataset.participantId);
   return (
-    <div className="participant-detail">
-      <Facts
-        items={[
-          ["数据来源", source?.name ?? "来源已删除"],
-          ["数据规范", dataset.schemaVersion],
-          ["已标注", `${dataset.answered} / ${dataset.count}`],
-          ["说明", dataset.description || "—"],
-        ]}
-      />
+    <div className="dataset-detail">
+      <dl className="dataset-metadata">
+        <div><dt>数据来源</dt><dd>{source?.name ?? "来源已删除"}</dd></div>
+        <div><dt>数据格式</dt><dd>{dataset.schemaVersion}</dd></div>
+        <div><dt>参考答案</dt><dd>{dataset.answered} / {dataset.count} 条已标注</dd></div>
+      </dl>
+      {dataset.description ? <p className="dataset-description">{dataset.description}</p> : null}
       {source?.hosting === "local" ? (
         <LocalConnect
           participantId={source.id}
@@ -35,10 +33,10 @@ export function DataDetail({
         />
       ) : null}
       {dataset.resourceSpace === "workspace" ? (
-        <div className="detail-actions">
+        <div className="dataset-actions">
           <button
             type="button"
-            className="button button--secondary button--compact button--danger"
+            className="button button--ghost button--compact button--danger"
             onClick={() => setRemoving(true)}
           >
             删除数据

@@ -124,9 +124,9 @@ describe("params", () => {
 });
 
 describe("draft", () => {
-  it("requires an explicit model choice even with one available model", () => {
+  it("defaults to the platform model and still permits clearing the selection", () => {
     const selected = draft({ clientModel: "", serverModel: "" });
-    expect([DEFAULT_DRAFT.clientModel, DEFAULT_DRAFT.serverModel]).toEqual(["", ""]);
+    expect([DEFAULT_DRAFT.clientModel, DEFAULT_DRAFT.serverModel]).toEqual(["default", "default"]);
     expect(toConfig(selected)?.clientModel).toBe("");
     expect(draftIssues(selected, DATASETS, PARTICIPANTS, [ENDPOINTS[1]])).toContainEqual({ field: "models", message: "请选择所需的模型接口" });
     expect(draftIssues(draft(), DATASETS, PARTICIPANTS, [ENDPOINTS[1]])).toEqual([]);
@@ -137,15 +137,15 @@ describe("draft", () => {
     const untyped = chooseTaskType(current, null);
     expect([untyped.algorithm, untyped.taskType, untyped.params]).toEqual(["fot", null, current.params]);
     for (const cleared of [untyped, chooseAlgorithm(current, null), chooseScenario(current, null)]) {
-      expect([cleared.clientModel, cleared.serverModel, cleared.participants, cleared.clientOverrides, cleared.agentGroups]).toEqual(["", "", [], {}, []]);
+      expect([cleared.clientModel, cleared.serverModel, cleared.participants, cleared.clientOverrides, cleared.agentGroups]).toEqual(["default", "default", [], {}, []]);
     }
-    expect(chooseAlgorithm(current, "evomedclaw").clientModel).toBe("");
+    expect(chooseAlgorithm(current, "evomedclaw").clientModel).toBe("default");
     const algorithm = algorithmOf("fot");
     const accepts = algorithm.accepts;
     try {
       algorithm.accepts = [...accepts, "medical-diagnosis"];
       const other = chooseTaskType(current, "medical-diagnosis");
-      expect([other.taskType, other.algorithm, other.params, other.participants, other.serverModel]).toEqual(["medical-diagnosis", "fot", current.params, [], ""]);
+      expect([other.taskType, other.algorithm, other.params, other.participants, other.serverModel]).toEqual(["medical-diagnosis", "fot", current.params, [], "default"]);
     } finally { algorithm.accepts = accepts; }
   });
 

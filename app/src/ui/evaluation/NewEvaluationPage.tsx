@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { packageEvaluations } from "../../api/evaluations";
 import { isConsultationPackage } from "../../domain/consultation";
-import { usableModelOptions } from "../../domain/resources";
+import { selectedModelRef, usableModelOptions } from "../../domain/resources";
 import { hrefOf, navigate } from "../../state/route";
 import type { State } from "../../state/store";
 import { PageHead } from "../common";
@@ -13,7 +13,8 @@ import { evaluationListKey, evaluationsRoute } from "./evaluationView";
 export function NewEvaluationPage({ state }: { state: State }) {
   const cache = useQueryClient();
   const [packageId, setPackageId] = useState("");
-  const [model, setModel] = useState("");
+  const [chosenModel, setModel] = useState<string>();
+  const model = selectedModelRef(chosenModel, state.endpoints);
   const packages = state.published.filter((item) => isConsultationPackage(item) &&
     state.tasks.some((task) => task.id === item.taskId && task.status === "completed"));
   const models = usableModelOptions(state.endpoints);

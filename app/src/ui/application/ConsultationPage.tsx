@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { consultationSamples } from "../../api/consultation";
 import { ALGORITHMS } from "../../domain/catalog";
 import { isConsultationPackage } from "../../domain/consultation";
-import { usableModelOptions } from "../../domain/resources";
+import { platformModelRef, usableModelOptions } from "../../domain/resources";
 import { hrefOf } from "../../state/route";
 import type { State } from "../../state/store";
 import { PageHead } from "../common";
@@ -19,6 +19,7 @@ export function ConsultationPage({ state, packageId }: { state: State; packageId
     return { id: item.id, name: `${item.name}（${formatNumber(item.items.length)} ${unit}）` };
   });
   const models = usableModelOptions(state.endpoints);
+  const defaultModel = platformModelRef(state.endpoints);
   const samples = useQuery({
     queryKey: ["consultation-samples"],
     queryFn: ({ signal }) => consultationSamples(signal),
@@ -109,7 +110,7 @@ export function ConsultationPage({ state, packageId }: { state: State; packageId
         {windows.length === 0 ? <p className="consultation-empty">点击「添加窗口」开始问诊。</p> : null}
         {windows.map((item, index) => (
           <ConsultationWindow key={`${session}:${item.id}`} window={item} title={`问诊 ${index + 1}`}
-            active={item.id === active} packages={packages} models={models} samples={samples.data ?? []}
+            active={item.id === active} packages={packages} models={models} defaultModel={defaultModel} samples={samples.data ?? []}
             closeDisabled={locked}
             onClose={() => closeWindow(index)} onStart={() => setLocked(true)}
             onSettings={(values) => updateWindow(item.id, values)} />

@@ -102,8 +102,8 @@ export function chooseScenario(draft: Draft, scenario: ScenarioId | null): Draft
     algorithm: null,
     participants: [],
     agentGroups: [],
-    clientModel: "",
-    serverModel: "",
+    clientModel: DEFAULT_DRAFT.clientModel,
+    serverModel: DEFAULT_DRAFT.serverModel,
     clientOverrides: {},
     agentId: null,
     agentOverrides: {},
@@ -119,7 +119,7 @@ export function chooseTaskType(draft: Draft, taskType: TaskType | null): Draft {
     if (draft.taskType === taskType) return draft;
     const compatible = taskType && draft.algorithm && algorithmOf(draft.algorithm).accepts.includes(taskType);
     const base = chooseAlgorithm(draft, compatible ? draft.algorithm : null);
-    return { ...base, taskType, participants: [], agentGroups: [], clientModel: "", serverModel: "", clientOverrides: {}, agentOverrides: {}, agentId: null };
+    return { ...base, taskType, participants: [], agentGroups: [], clientModel: DEFAULT_DRAFT.clientModel, serverModel: DEFAULT_DRAFT.serverModel, clientOverrides: {}, agentOverrides: {}, agentId: null };
   }
   if (
     !draft.algorithm ||
@@ -131,8 +131,8 @@ export function chooseTaskType(draft: Draft, taskType: TaskType | null): Draft {
     ...draft,
     taskType,
     participants: [],
-    clientModel: "",
-    serverModel: "",
+    clientModel: DEFAULT_DRAFT.clientModel,
+    serverModel: DEFAULT_DRAFT.serverModel,
     agentGroups: algorithmOf(draft.algorithm).requirements.agentRequired
       ? emptyAgentGroups(algorithmOf(draft.algorithm).minParticipants)
       : [],
@@ -157,8 +157,8 @@ export function chooseAlgorithm(draft: Draft, algorithm: AlgorithmId | null): Dr
       ? emptyAgentGroups(definition.minParticipants)
       : [],
     clientOverrides: {},
-    clientModel: "",
-    serverModel: "",
+    clientModel: DEFAULT_DRAFT.clientModel,
+    serverModel: DEFAULT_DRAFT.serverModel,
     execution: definition?.requirements.agentRequired ? "agent" : "builtin",
     agentId: null,
     agentOverrides: {},

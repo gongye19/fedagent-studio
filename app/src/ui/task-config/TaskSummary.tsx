@@ -2,18 +2,13 @@ import { taskModelSummary } from "../../domain/config";
 import { TASK_TYPES } from "../../domain/catalog";
 import { ScenarioTag } from "../ScenarioTag";
 import { CheckStatus } from "../CheckStatus";
-import { modelLabel } from "../../domain/resources";
-import { hrefOf, type Route } from "../../state/route";
+import { isPlatformEndpoint, modelLabel } from "../../domain/resources";
+import { hrefOf } from "../../state/route";
 import { type State } from "../../state/store";
 import { Panel } from "../console";
 import { formatNumber } from "../format";
 import { EstimateBlock } from "../task-config/TaskEstimate";
 import type { TaskConfigController } from "./useTaskConfig";
-const endpointRoute = (id: string): Route => ({
-  page: "editEndpoint",
-  id,
-  from: "newTask",
-});
 
 export function TaskSummary({
   state,
@@ -41,6 +36,9 @@ export function TaskSummary({
     validationError,
     check,
   } = config;
+  const pricedEndpoint = state.endpoints.find((endpoint) => endpoint.id === priceEndpoint);
+  const priceHref = pricedEndpoint && !isPlatformEndpoint(pricedEndpoint) && pricedEndpoint.resourceSpace === "workspace"
+    ? hrefOf({ page: "editEndpoint", id: pricedEndpoint.id, from: "newTask" }) : undefined;
   return (
     <aside className="order-summary" aria-label="配置摘要" id="task-summary">
       <Panel
@@ -144,7 +142,7 @@ export function TaskSummary({
             pending={!result || validationPending}
             remoteExecution={draft.execution === "agent"}
             serverModelLabel={algorithm?.requirements.serverModelLabel}
-            priceHref={hrefOf(endpointRoute(priceEndpoint))}
+            priceHref={priceHref}
           /> : null}
         <div className="summary-actions">
           <a

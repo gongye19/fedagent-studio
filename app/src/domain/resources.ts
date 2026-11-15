@@ -81,11 +81,15 @@ export const PARTICIPANT_STATUS: Record<ParticipantStatus, string> = {
 };
 
 /**
- * 预留的默认 LLM 接口：OpenAI 兼容，具体服务和模型由用户在"模型接口"里配置。
- * 历史与已选引用可写作 DEFAULT_MODEL；新任务模型留空，必须由用户选择。
+ * 平台维护的默认 LLM 接口。用户可另行登记自己的接口，默认引用兼容历史任务。
  */
 export const DEFAULT_ENDPOINT_ID = "default";
 export const DEFAULT_MODEL = "default";
+
+/** 平台接口由部署方维护，用户目录中只读；fake 仅在本地开发出现。 */
+export function isPlatformEndpoint(endpoint: Endpoint): boolean {
+  return endpoint.builtin || endpoint.id === DEFAULT_ENDPOINT_ID;
+}
 
 /** 填了地址和模型才算配置好；测试用的假模型总是可用。 */
 export function isConfigured(endpoint: Endpoint): boolean {
@@ -147,6 +151,18 @@ export function usableModelOptions(endpoints: readonly Endpoint[]) {
     const endpoint = endpointOf(option.ref, endpoints);
     return endpoint && availableResource(endpoint) && isConfigured(endpoint) && endpoint.verified;
   });
+}
+
+/** 只默认选择已验证的平台模型，不把列表中的第一个自定义接口当作默认值。 */
+export function platformModelRef(endpoints: readonly Endpoint[]): string {
+  const options = usableModelOptions(endpoints);
+  return options.find((option) => option.ref === DEFAULT_MODEL)?.ref ?? "";
+}
+
+/** 未主动选择时使用平台模型；已选但失效时留空，不擅自切换接口。 */
+export function selectedModelRef(selected: string | undefined, endpoints: readonly Endpoint[]): string {
+  const ref = selected ?? platformModelRef(endpoints);
+  return usableModelOptions(endpoints).some((option) => option.ref === ref) ? ref : "";
 }
 
 /**

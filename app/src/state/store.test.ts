@@ -9,7 +9,7 @@ describe("draft", () => {
   it("migrates old automatic model defaults once and preserves new explicit choices", () => {
     const stored = withDefaults({ name: "未完成任务", scenario: "horizontal", touched: true, clientModel: "default", serverModel: "default" });
     const migrated = decodeDraft(JSON.stringify(stored));
-    expect([migrated.name, migrated.scenario, migrated.clientModel, migrated.serverModel]).toEqual(["未完成任务", "horizontal", "", ""]);
+    expect([migrated.name, migrated.scenario, migrated.clientModel, migrated.serverModel]).toEqual(["未完成任务", "horizontal", "default", "default"]);
     expect(decodeDraft(JSON.stringify({ ...stored, selectionVersion: 2 }))).toEqual(stored);
     expect(decodeDraft(JSON.stringify({ ...migrated, selectionVersion: 2 }))).toEqual(migrated);
   });

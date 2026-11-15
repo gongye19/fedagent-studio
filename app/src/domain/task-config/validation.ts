@@ -4,6 +4,7 @@ import { algorithmOf, scenarioOf, type Algorithm } from "../catalog";
 import {
   endpointOf,
   isConfigured,
+  isPlatformEndpoint,
   availableResource,
   modelLabel,
   type Dataset,
@@ -166,7 +167,9 @@ export function draftIssues(
   ) {
     issues.push({
       field: "models",
-      message: "所选的模型接口不可用，请到 LLM 接口页完成接入验证后重新选择",
+      message: refs.some((ref) => { const endpoint = endpointOf(ref, endpoints); return endpoint && isPlatformEndpoint(endpoint) && (!isConfigured(endpoint) || !endpoint.verified); })
+        ? "平台模型暂不可用，请联系平台管理员，或选择自己的可用模型接口"
+        : "所选的模型接口不可用，请到大模型接口页完成接入验证后重新选择",
     });
   }
   if (

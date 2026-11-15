@@ -69,6 +69,11 @@ def main(argv: list[str] | None = None) -> None:
     provider.add_argument("--platform-model", help="同机模拟时复用已保存的 LLM 接口，不复制模型密钥")
     commands.add_parser("runner")
     commands.add_parser("seed")
+    model_commands = commands.add_parser("models").add_subparsers(dest="action", required=True)
+    default_model = model_commands.add_parser("configure-default", help="管理员在服务器本地维护平台模型")
+    default_model.add_argument("--name")
+    default_model.add_argument("--base-url", required=True)
+    default_model.add_argument("--model", required=True)
     resources = commands.add_parser("resources").add_subparsers(dest="action", required=True)
     resources.add_parser("remove-demo", help="清理旧版空合作方与占位机构文案")
     db = commands.add_parser("db").add_subparsers(dest="action", required=True)
@@ -90,6 +95,10 @@ def main(argv: list[str] | None = None) -> None:
         _serve(True, args.host, args.port)
     elif args.command == "serve":
         _serve(False, args.host, args.port)
+    elif args.command == "models":
+        from .model_admin import configure_default
+
+        configure_default(_platform(), args.name, args.base_url, args.model)
     elif args.command == "agent-serve":
         import uvicorn
 

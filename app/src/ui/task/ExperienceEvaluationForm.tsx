@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { EvaluationSource } from "../../api/consultation";
-import { availableResource, usableModelOptions } from "../../domain/resources";
+import { availableResource, selectedModelRef, usableModelOptions } from "../../domain/resources";
 import type { Task } from "../../domain/task";
 import type { State } from "../../state/store";
 import { hrefOf } from "../../state/route";
@@ -19,7 +19,8 @@ export function ExperienceEvaluationForm({ task, state, busy, onStart, onClose }
   const datasets = state.datasets.filter((item) => item.taskType === "medical-diagnosis" && item.ready &&
     item.source !== "local" && item.answered > 0 && availableResource(item));
   const models = usableModelOptions(state.endpoints);
-  const [model, setModel] = useState("");
+  const [chosenModel, setModel] = useState<string>();
+  const model = selectedModelRef(chosenModel, state.endpoints);
   const [selections, setSelections] = useState<Record<string, Selection>>({});
   const [reading, setReading] = useState(false);
   const [problem, setProblem] = useState("");

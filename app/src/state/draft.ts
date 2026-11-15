@@ -13,7 +13,7 @@ export function decodeDraft(raw: string): Draft {
   if (selectionVersion !== SELECTION_VERSION && draft.taskType)
     return withDefaults({ name: draft.name, touched: false });
   return withDefaults(selectionVersion === SELECTION_VERSION ? draft : {
-    ...draft, clientModel: "", serverModel: "", clientOverrides: {},
+    ...draft, clientModel: DEFAULT_DRAFT.clientModel, serverModel: DEFAULT_DRAFT.serverModel, clientOverrides: {},
   });
 }
 

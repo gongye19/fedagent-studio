@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useId, useState } from "react";
 import { api, ApiError } from "../api/client";
 import type { components } from "../api/schema";
-import { DEFAULT_ENDPOINT_ID, type Endpoint } from "../domain/resources";
+import { DEFAULT_ENDPOINT_ID, isPlatformEndpoint, type Endpoint } from "../domain/resources";
 import { deleteEndpoint, saveEndpoint } from "../state/actions";
 import { showFlash } from "../state/flash";
 import { backTo, navigate, type From } from "../state/route";
@@ -25,7 +25,14 @@ type Props = { state: State; id?: string; from?: From };
  */
 export default function EndpointPage({ state, id, from }: Props) {
   const endpoint = id ? state.endpoints.find((item) => item.id === id) : undefined;
-  if (id && (!endpoint || endpoint.kind === "fake")) return <NotFound kind="接口" back={{ page: "models" }} backLabel="LLM 接口" />;
+  if (id && (!endpoint || endpoint.kind === "fake")) return <NotFound kind="接口" back={{ page: "models" }} backLabel="大模型接口" />;
+  if (endpoint && (isPlatformEndpoint(endpoint) || endpoint.resourceSpace !== "workspace")) return <>
+    <PageHead title={endpoint.name} back={{ label: "大模型接口", route: { page: "models" } }} />
+    <Panel title={isPlatformEndpoint(endpoint) ? "平台默认模型" : "只读接口"}>
+      <p>{endpoint.models.join("、") || "尚未配置"}</p>
+      <p className="muted">{isPlatformEndpoint(endpoint) ? "由平台维护，可直接在任务、评测与应用中选择。" : "共享接口不能在这里修改，可在模型目录添加自己的接口。"}</p>
+    </Panel>
+  </>;
   return <EndpointForm key={id ?? "new"} state={state} endpoint={endpoint} from={from} />;
 }
 
@@ -40,7 +47,7 @@ export function EndpointForm({ state, endpoint, from, onSaved, onCancel, onBusyC
   const [keyRevision, setKeyRevision] = useState(0);
   const formId = useId();
   const [clearKey, setClearKey] = useState(false);
-  const [concurrency, setConcurrency] = useState(endpoint?.concurrency ?? 8);
+  const [concurrency, setConcurrency] = useState(String(endpoint?.concurrency ?? 8));
   const [price, setPrice] = useState(endpoint?.price === null || endpoint?.price === undefined ? "" : String(endpoint.price));
   const [removing, setRemoving] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -65,14 +72,17 @@ export function EndpointForm({ state, endpoint, from, onSaved, onCancel, onBusyC
   const listError = available.error ? (available.error instanceof ApiError ? available.error.message : "读不到模型列表") : null;
   const priceValue = price.trim() === "" ? null : Number(price);
   const validPrice = priceValue === null || (Number.isFinite(priceValue) && priceValue >= 0);
+  const concurrencyValue = Number(concurrency);
+  const validConcurrency = concurrency.trim() !== "" && Number.isInteger(concurrencyValue) && concurrencyValue >= 1 && concurrencyValue <= 256;
   const missing = [
     name.trim() ? null : "名称",
     url === "" ? "接口地址" : validUrl ? null : "正确的接口地址",
     model.trim() ? null : "模型",
     validPrice ? null : "正确的单价",
+    validConcurrency ? null : "1–256 的并发上限",
   ].filter((item): item is string => Boolean(item));
   const back = backTo(from, { page: "models", space: endpoint?.resourceSpace ?? "workspace" }, state.draft.scenario);
-  const title = endpoint ? `编辑“${endpoint.name}”` : "新增接口";
+  const title = endpoint ? `编辑“${endpoint.name}”` : "添加大模型接口";
 
   async function save() {
     if (missing.length || saving) return;
@@ -84,7 +94,7 @@ export function EndpointForm({ state, endpoint, from, onSaved, onCancel, onBusyC
         name: name.trim(),
         baseUrl: url,
         models: [model.trim()],
-        concurrency,
+        concurrency: concurrencyValue,
         price: priceValue,
         // 留空：不修改已保存的密钥；勾了清除：清掉
         apiKey: clearKey ? "" : apiKey.trim() ? apiKey.trim() : null,
@@ -126,7 +136,7 @@ export function EndpointForm({ state, endpoint, from, onSaved, onCancel, onBusyC
   ) : null;
   return (
     <>
-      {!onSaved ? <PageHead title={title} back={{ label: from === "newTask" ? "任务配置" : "LLM 接口", route: back }} actions={actions} /> : null}
+      {!onSaved ? <PageHead title={title} back={{ label: from === "newTask" ? "任务配置" : "大模型接口", route: back }} actions={actions} /> : null}
       {removing && endpoint ? (
         <Confirm title={`删除“${endpoint.name}”？`} confirmLabel="删除" onConfirm={() => remove()} onCancel={() => setRemoving(false)}>
           排队、运行或暂停的任务使用此接口时不能删除；删除后，新建任务不能再选它的模型。
@@ -177,8 +187,8 @@ export function EndpointForm({ state, endpoint, from, onSaved, onCancel, onBusyC
                   />
                 )}
               </Field>
-              <Field label="并发上限" htmlFor="endpoint-concurrency">
-                <input id="endpoint-concurrency" name="endpoint-concurrency" type="number" inputMode="numeric" autoComplete="off" min={1} max={256} value={concurrency} onChange={(event) => setConcurrency(Math.max(1, Math.min(256, Number.parseInt(event.target.value, 10) || 1)))} />
+              <Field label="并发上限" htmlFor="endpoint-concurrency" error={validConcurrency ? undefined : "请填写 1–256 的整数"}>
+                <input id="endpoint-concurrency" name="endpoint-concurrency" type="number" inputMode="numeric" autoComplete="off" min={1} max={256} value={concurrency} aria-invalid={!validConcurrency} aria-describedby={validConcurrency ? undefined : "endpoint-concurrency-error"} onChange={(event) => setConcurrency(event.target.value)} />
               </Field>
               <Field label="单价" optional htmlFor="endpoint-price" error={validPrice ? undefined : "单价不能小于 0"}>
                 <UnitInput id="endpoint-price" unit="元 / 百万 token" name="endpoint-price" type="number" inputMode="decimal" autoComplete="off" min={0} step="0.1" value={price} placeholder="未设置" aria-invalid={!validPrice} aria-describedby={validPrice ? undefined : "endpoint-price-error"} onChange={(event) => setPrice(event.target.value)} />

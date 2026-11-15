@@ -1,25 +1,19 @@
-/* 算法：按场景分三栏，每栏是这个场景下的算法卡片，最后一个虚线框是"待接入"的空位 */
-.algo-board-shell { container-type: inline-size; }
-.algo-board { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
-@container (min-width: 800px) { .algo-board { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; } }
+/* 算法目录：紧凑入口，完整信息在详情页。 */
+.algo-board { display: grid; gap: var(--space-4); max-width: 1000px; }
 .algo-column { padding: var(--space-4); display: grid; gap: var(--space-3); background: var(--background); border: 1px solid var(--border); border-radius: var(--radius); }
 .algo-column-head { display: flex; gap: var(--space-3); align-items: center; justify-content: space-between; }
-.algo-column-head h2 { font-size: var(--text-md); font-weight: var(--weight-semibold); }
+.algo-column-head h2 { font-size: var(--text-sm); font-weight: var(--weight-semibold); }
 .algo-count { color: var(--muted); font-size: var(--text-xs); }
-.algo-list { display: grid; gap: var(--space-2); }
-.algo-card { padding: var(--space-3) var(--space-4); display: grid; gap: 4px; color: var(--foreground); background: var(--background); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); text-decoration: none; }
-a.algo-card { transition: border-color .15s ease, background-color .15s ease; }
-a.algo-card:hover { border-color: var(--accent); background: var(--accent-surface); }
-a.algo-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.algo-card-head { display: flex; gap: var(--space-2); align-items: center; justify-content: space-between; }
-.algo-card-head strong { font-size: var(--text-md); font-weight: var(--weight-semibold); }
-.algo-card-head .icon { color: var(--muted); }
-.algo-card-full { color: var(--muted); font-size: var(--text-xs); }
-.algo-card-text { margin-top: 2px; color: var(--secondary); font-size: var(--text-sm); }
-.algo-card-facts { margin-top: var(--space-1); display: flex; flex-wrap: wrap; gap: 2px var(--space-4); font-size: var(--text-xs); }
-.algo-card-label { margin-right: 6px; color: var(--muted); }
-.algo-empty { padding: var(--space-2) 0; color: var(--muted); font-size: var(--text-sm); text-align: center; }
-.algo-card--placeholder { min-height: 44px; display: flex; gap: 6px; align-items: center; justify-content: center; color: var(--muted); background: transparent; border-style: dashed; font-size: var(--text-sm); }
+.algo-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+.algo-card { padding: var(--space-4); display: flex; gap: var(--space-3); align-items: center; justify-content: space-between; color: var(--foreground); border: 1px solid var(--border); border-radius: var(--radius-sm); text-decoration: none; transition: border-color .15s ease, background-color .15s ease; }
+.algo-card > div { min-width: 0; display: grid; gap: 6px; }
+.algo-card strong { font-size: var(--text-md); font-weight: var(--weight-semibold); }
+.algo-card div > span { color: var(--muted); font-size: var(--text-xs); }
+.algo-card > .icon { flex: none; color: var(--muted); }
+.algo-card:hover { border-color: var(--accent); background: var(--accent-surface); }
+.algo-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.algo-empty { color: var(--muted); font-size: var(--text-sm); grid-column: 1 / -1; }
+@media (max-width: 640px) { .algo-list { grid-template-columns: minmax(0, 1fr); } }
 /* 算法详情：参与方和服务端各一组，按顺序编号 */
 .algo-steps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4) var(--space-8); }
 .algo-steps-group { display: grid; gap: var(--space-2); align-content: start; }

@@ -14,7 +14,7 @@ describe("application experience configuration", () => {
     const changed = chooseTaskType({...selected, clientModel:"default", participants:[{participantId:"p", datasetId:"d"}]}, "math-records");
     expect(changed.algorithm).toBeNull();
     expect(changed.participants).toEqual([]);
-    expect(changed.clientModel).toBe("");
+    expect(changed.clientModel).toBe("default");
   });
   it("can clear the application and choose FoT for either application", () => {
     const selected = chooseAlgorithm(chooseTaskType(DEFAULT_DRAFT, "medical-records"), "fot-records");

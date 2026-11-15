@@ -1,136 +1,70 @@
-import {
-  inResourceScope,
-  type ResourceSpace,
-  endpointOf,
-  isConfigured,
-} from "../domain/resources";
-import { hrefOf } from "../state/route";
-import type { State } from "../state/store";
-import { PageHead, Tag } from "./common";
-import { SharingButton } from "./resources/SharingButton";
-import { ResourceScope } from "./resources/ResourceScope";
-import { ResourceTable } from "./resources/ResourceTable";
-import { Icon } from "./icons";
 import { useState } from "react";
 import { api } from "../api/client";
+import { availableResource, DEFAULT_ENDPOINT_ID, isPlatformEndpoint } from "../domain/resources";
+import { hrefOf } from "../state/route";
 import { keys, queryClient } from "../state/server";
+import type { State } from "../state/store";
 import { CheckStatus } from "./CheckStatus";
+import { PageHead, Tag } from "./common";
+import { Icon } from "./icons";
+import { SharingButton } from "./resources/SharingButton";
+import { ResourceTable } from "./resources/ResourceTable";
 
-function usedBy(state: State, endpointId: string): number {
-  return state.tasks.filter((task) =>
-    [
-      task.config.serverModel,
-      ...task.members.map((member) => member.model),
-    ].some((ref) => endpointOf(ref, state.endpoints)?.id === endpointId),
-  ).length;
-}
-
-/** 模型接口列表。新增和编辑都是独立页面，和参与方一样。 */
-export default function ModelsPage({
-  state,
-  space = "workspace",
-}: {
-  state: State;
-  space?: ResourceSpace;
-}) {
+/** 平台接口只读；自行接入的接口在同一目录管理、验证与选择。 */
+export default function ModelsPage({ state }: { state: State }) {
   const [checking, setChecking] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const endpoints = state.endpoints.filter((item) => isPlatformEndpoint(item) || availableResource(item))
+    .sort((a, b) => Number(b.id === DEFAULT_ENDPOINT_ID) - Number(a.id === DEFAULT_ENDPOINT_ID)
+      || Number(isPlatformEndpoint(b)) - Number(isPlatformEndpoint(a)));
   async function verify(id: string) {
-    setChecking(id); setErrors((old) => ({...old, [id]: ""}));
+    setChecking(id);
+    setErrors((old) => ({ ...old, [id]: "" }));
     try {
       const report = await api.testEndpoint(id);
-      if (!report.ok) setErrors((old) => ({...old, [id]: report.message}));
-      await queryClient.invalidateQueries({queryKey: keys.endpoints});
-    } catch (error) { setErrors((old) => ({...old, [id]: error instanceof Error ? error.message : "验证失败，请重试"})); }
-    finally { setChecking(null); }
+      if (!report.ok) setErrors((old) => ({ ...old, [id]: report.message }));
+      await queryClient.invalidateQueries({ queryKey: keys.endpoints });
+    } catch (error) {
+      setErrors((old) => ({ ...old, [id]: error instanceof Error ? error.message : "验证失败，请重试" }));
+    } finally { setChecking(null); }
   }
-  return (
-    <>
-      <PageHead
-        title="大模型接口"
-        meta="配置和验证联邦任务、评测与应用使用的大模型。"
-        actions={space === "workspace" ? (
-          <a
-            className="button button--primary"
-            href={hrefOf({ page: "newEndpoint" })}
-          >
-            <Icon name="plus" />
-            新增接口
-          </a>
-        ) : undefined}
-      />
-      <ResourceScope
-        space={space}
-        routeOf={(value) => ({ page: "models", space: value })}
-      />
-      <ResourceTable label="大模型接口列表" columns={[
-        {label: "接口名称", width: "30%"}, {label: "模型", width: "20%"},
-        {label: "并发上限", className: "numeric", width: "10%"},
-        {label: "单价（元 / 百万 token）", className: "numeric", width: "18%"},
-        {label: "使用", className: "numeric", width: "10%"}, {label: "操作", className: "numeric"},
-      ]} empty={!state.endpoints.some((e) => inResourceScope(e, space))}
-        emptyContent={space === "workspace"
-          ? "尚未接入 LLM，可使用共享接口，或新增自己的接口。"
-          : "暂无共享 LLM 接口。"}>
-        {state.endpoints
-          .filter((e) => inResourceScope(e, space))
-          .map((endpoint) => {
-            const used = usedBy(state, endpoint.id);
-            return (
-              <tr key={endpoint.id}>
-                {/* 列表只写接口名称；地址、密钥这些细节在编辑页里看 */}
-                <th scope="row">
-                  <span className="cell-title">
-                    {endpoint.name}
-                    {endpoint.kind === "fake" ? (
-                      <Tag>测试用</Tag>
-                    ) : isConfigured(endpoint) ? null : (
-                      <Tag tone="warning">待配置</Tag>
-                    )}
-                    {endpoint.configured ? <CheckStatus status={checking === endpoint.id ? "running" : errors[endpoint.id] ? "failed" : endpoint.verified ? "passed" : "pending"} /> : null}
-                  </span>
-                </th>
-                {/* 每个接口选用一个模型，只列这一个 */}
-                <td data-label="模型" className="nowrap">
-                  {endpoint.models.length > 1
-                    ? `${endpoint.models[0]} 等 ${endpoint.models.length} 个`
-                    : (endpoint.models[0] ?? "—")}
-                </td>
-                <td className="numeric" data-label="并发上限">
-                  {endpoint.concurrency}
-                </td>
-                <td
-                  className="numeric"
-                  data-label="单价（元 / 百万 token）"
-                >
-                  {endpoint.price === null ? "—" : endpoint.price}
-                </td>
-                <td className="numeric" data-label="使用">
-                  {used ? `${used} 个任务` : "—"}
-                </td>
-                <td className="numeric cell-action">
-                  {endpoint.configured && endpoint.kind !== "fake" ? <button className="button button--secondary button--compact" disabled={checking !== null} onClick={() => void verify(endpoint.id)}>验证接入</button> : null}
-                  {errors[endpoint.id] ? <p className="field-error" role="alert">{errors[endpoint.id]}</p> : null}
-                  <SharingButton kind="llm" resource={endpoint} />
-                  {endpoint.kind === "fake" ||
-                  (endpoint.resourceSpace !== "workspace" &&
-                    !endpoint.builtin) ? null : (
-                    <a
-                      className="button button--secondary button--compact"
-                      href={hrefOf({
-                        page: "editEndpoint",
-                        id: endpoint.id,
-                      })}
-                      aria-label={`编辑“${endpoint.name}”`}
-                    >
-                      编辑
-                    </a>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-      </ResourceTable>
-    </>
-  );
+  return <>
+    <PageHead title="大模型接口" meta="默认使用平台模型，可添加自己的模型接口。"
+      actions={<a className="button button--primary" href={hrefOf({ page: "newEndpoint" })}>
+        <Icon name="plus" />添加大模型接口
+      </a>} />
+    <ResourceTable label="大模型接口列表" className="table--models" columns={[
+      { label: "接口名称" }, { label: "模型" }, { label: "来源" }, { label: "状态" },
+      { label: "操作", className: "numeric" },
+    ]} empty={!endpoints.length} emptyContent="暂无模型接口。添加并验证后即可使用。">
+      {endpoints.map((endpoint) => {
+        const platform = isPlatformEndpoint(endpoint);
+        const editable = !platform && endpoint.resourceSpace === "workspace";
+        const status = checking === endpoint.id ? "running" : errors[endpoint.id] ? "failed"
+          : endpoint.verified ? "passed" : "pending";
+        return <tr key={endpoint.id}>
+          <th scope="row">{endpoint.name}</th>
+          <td data-label="模型">{endpoint.models.join("、") || "—"}</td>
+          <td data-label="来源"><Tag tone={platform ? "info" : "neutral"}>
+            {endpoint.kind === "fake" ? "本地测试" : platform ? "平台默认" : editable ? endpoint.shared ? "自行接入 · 已共享" : "自行接入" : "已共享"}
+          </Tag></td>
+          <td data-label="状态"><span className="model-availability">
+            <CheckStatus status={status} />
+            <span>{status === "running" ? "验证中" : status === "failed" ? "验证失败"
+              : status === "passed" ? "可用" : endpoint.configured ? "待验证" : "待配置"}</span>
+          </span></td>
+          <td className="numeric cell-action" data-label="操作">
+            {editable ? <div className="model-actions">
+              {endpoint.configured ? <button type="button" className="button button--ghost button--compact"
+                disabled={checking !== null} onClick={() => void verify(endpoint.id)}>验证</button> : null}
+              {endpoint.shared ? <SharingButton kind="llm" resource={endpoint} /> : null}
+              <a className="button button--secondary button--compact" aria-label={`编辑“${endpoint.name}”`}
+                href={hrefOf({ page: "editEndpoint", id: endpoint.id })}>编辑</a>
+            </div> : <span className="muted model-readonly">{platform ? "平台维护" : "只读"}</span>}
+            {errors[endpoint.id] ? <p className="field-error" role="alert">{errors[endpoint.id]}</p> : null}
+          </td>
+        </tr>;
+      })}
+    </ResourceTable>
+  </>;
 }

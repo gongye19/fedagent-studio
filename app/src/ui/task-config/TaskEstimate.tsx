@@ -1,7 +1,7 @@
 import type { Estimate } from "../../domain/config";
 import { formatDuration, formatNumber, formatTokens, formatYuan } from "../format";
 
-export function EstimateBlock({ result, pending = false, remoteExecution = false, priceHref, serverModelLabel = "平台模型" }: { result: Estimate | null; pending?: boolean; remoteExecution?: boolean; priceHref: string; serverModelLabel?: string }) {
+export function EstimateBlock({ result, pending = false, remoteExecution = false, priceHref, serverModelLabel = "平台模型" }: { result: Estimate | null; pending?: boolean; remoteExecution?: boolean; priceHref?: string; serverModelLabel?: string }) {
   const ready = pending ? null : result;
   if (remoteExecution)
     return (
@@ -41,9 +41,9 @@ export function EstimateBlock({ result, pending = false, remoteExecution = false
           <dt>费用</dt>
           <dd>
             {!ready ? "—" : ready.cost === null ? (
-              <a className="text-link" href={priceHref}>
+              priceHref ? <a className="text-link" href={priceHref}>
                 未设置单价
-              </a>
+              </a> : <span className="muted">未提供单价</span>
             ) : (
               formatYuan(ready.cost)
             )}

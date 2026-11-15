@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api, ApiError } from "../../api/client";
 import type { components } from "../../api/schema";
 import { TASK_TYPES } from "../../domain/catalog";
-import { DEFAULT_ENDPOINT_ID, modelLabel, usableModelOptions } from "../../domain/resources";
+import { selectedModelRef, modelLabel, usableModelOptions } from "../../domain/resources";
 import { hrefOf } from "../../state/route";
 import type { Published, State } from "../../state/store";
 import { SelectField } from "../SelectField";
@@ -16,8 +16,8 @@ type Side = { title: string; value: components["schemas"]["ApplySide"] };
 /** 一次使用经验库，或对同一输入按需比较有／无经验。 */
 export function UseLibraryPanel({ item, state }: { item: Published; state: State }) {
   const options = usableModelOptions(state.endpoints);
-  const [chosenModel, setModel] = useState("");
-  const model = options.some((option) => option.ref === chosenModel) ? chosenModel : "";
+  const [chosenModel, setModel] = useState<string>();
+  const model = selectedModelRef(chosenModel, state.endpoints);
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [values, setValues] = useState<Record<string, string>>({});
@@ -96,7 +96,7 @@ export function UseLibraryPanel({ item, state }: { item: Published; state: State
                 <option value="" disabled>{options.length ? "请选择模型" : "没有可用的模型接口"}</option>
                 {options.map((option) => <option key={option.ref} value={option.ref}>{option.label}</option>)}
               </SelectField>
-              {!options.length ? <a className="text-link" href={hrefOf(state.endpoints.some((endpoint) => endpoint.id === DEFAULT_ENDPOINT_ID) ? { page: "editEndpoint", id: DEFAULT_ENDPOINT_ID } : { page: "newEndpoint" })}>去配置</a> : null}
+              {!options.length ? <a className="text-link" href={hrefOf({ page: "models" })}>去配置</a> : null}
             </Field>
           </FieldGroup>
           <div className="form-actions">

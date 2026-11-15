@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from .. import models as m
 from ..errors import ServiceError
-from ..gateway import FAKE_ENDPOINT
+from ..gateway import DEFAULT_ENDPOINT, FAKE_ENDPOINT
 from ..model_network import validate_url
 from ..platform import Platform
 from ..schemas import EndpointIn, EndpointOut
@@ -44,7 +44,8 @@ def _clean_models(models: list[str]) -> list[str]:
     return seen
 
 
-def save_endpoint(platform: Platform, session: Session, body: EndpointIn, endpoint_id: str | None = None) -> m.Endpoint:
+def save_endpoint(platform: Platform, session: Session, body: EndpointIn, endpoint_id: str | None = None,
+                  *, allow_platform: bool = False) -> m.Endpoint:
     if endpoint_id is None:
         endpoint = m.Endpoint(id=new_id("ep"), name=body.name.strip(), kind="openai")
         session.add(endpoint)
@@ -52,7 +53,10 @@ def save_endpoint(platform: Platform, session: Session, body: EndpointIn, endpoi
         endpoint = session.get(m.Endpoint, endpoint_id)
         if endpoint is None:
             raise not_found("模型接口")
-        if endpoint.resource_space != "workspace" and not endpoint.builtin:
+        protected = endpoint.builtin or endpoint.id == DEFAULT_ENDPOINT
+        if protected and not allow_platform:
+            raise ServiceError(403, "平台模型由管理员维护，不能修改；可添加自己的模型接口")
+        if endpoint.resource_space != "workspace" and not (protected and allow_platform):
             raise ServiceError(403, "只能修改当前工作区自己的 LLM 接口")
         if endpoint.kind == "fake":
             raise ServiceError(409, "测试用假模型不能修改")
@@ -84,10 +88,10 @@ def delete_endpoint(session: Session, endpoint_id: str) -> None:
     endpoint = session.get(m.Endpoint, endpoint_id)
     if endpoint is None:
         raise not_found("模型接口")
-    if endpoint.resource_space != "workspace" and not endpoint.builtin:
+    if endpoint.builtin or endpoint.id in (DEFAULT_ENDPOINT, FAKE_ENDPOINT):
+        raise ServiceError(409, "平台模型由管理员维护，不能删除")
+    if endpoint.resource_space != "workspace":
         raise ServiceError(403, "只能删除当前工作区自己的 LLM 接口")
-    if endpoint.builtin or endpoint.id == FAKE_ENDPOINT:
-        raise ServiceError(409, "预留的接口不能删除")
     references = [m.Task.config[key].as_string() for key in ("model", "aggregation_model", "clientModel", "serverModel")]
     references.append(m.TaskSite.model_ref)
     active = session.scalar(
