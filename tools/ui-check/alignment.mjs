@@ -40,6 +40,8 @@ const read = `(() => {
     overflow: document.documentElement.scrollWidth > innerWidth,
     tables: tables.map(table => ({
       label: table.getAttribute('aria-label') ?? table.className,
+      bounds: rect(table),
+      headerVisible: Boolean(table.querySelector('thead')?.getBoundingClientRect().height),
       header: [...table.querySelectorAll(':scope > thead > tr:first-child > th')].map(e => ({...rect(e), text:text(e), label:e.textContent})),
       rows: [...table.querySelectorAll(':scope > tbody > tr:not(.detail-row):not(.resource-empty-row)')].filter(r => r.cells.length > 1).map(r =>
         [...r.cells].map(e => { const contentRange=document.createRange(); contentRange.selectNodeContents(e); return {...rect(e), block:rect(contentRange), text:text(e), numeric:e.classList.contains('numeric'), label:e.dataset.label,
@@ -60,7 +62,16 @@ function inspect(state, width) {
   const issues = [];
   const near = (a, b, label, tolerance = 1) => { if (Math.abs(a - b) > tolerance) issues.push(`${label}: ${a.toFixed(2)} / ${b.toFixed(2)}`); };
   if (state.overflow) issues.push("页面横向溢出");
-  if (width > 720) for (const table of state.tables) {
+  for (const table of state.tables) {
+    // 各表断点不同：任务表先切三列卡片，不能只根据视口宽度推断是否仍显示表头。
+    if (!table.headerVisible) {
+      for (const row of table.rows) for (const cell of row) {
+        const content = cell.plain ? cell.block : cell.content;
+        if (content && (content.left < table.bounds.left - 1 || content.right > table.bounds.right + 1))
+          issues.push(`${table.label}/卡片内容超出左右边界`);
+      }
+      continue;
+    }
     for (const row of table.rows) row.forEach((cell, i) => {
       const block = cell.plain ? cell.block : cell.content;
       const reference = row[0].plain ? row[0].block : row[0].content;
