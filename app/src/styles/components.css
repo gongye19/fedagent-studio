@@ -244,6 +244,13 @@ input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin:
 .row-button .icon { color: var(--muted); transition: transform .15s ease; }
 .row-button[aria-expanded="true"] .icon { transform: rotate(90deg); }
 .detail-row > td { padding: 0 var(--space-4) var(--space-5) 38px; }
+/* 展开箭头只占控件位；表头、名称和详情以文字的起点对齐。 */
+.table--expandable { --table-name-inset: calc(var(--space-4) + 14px + var(--space-2)); }
+.table--expandable .row-button { align-items: center; }
+.table--expandable .row-button > .icon { align-self: center; margin-top: 0; }
+@media (min-width: 721px) {
+  .table--expandable thead th:first-child, .table--expandable .detail-row > td { padding-left: var(--table-name-inset); }
+}
 .cell-button { min-width: 44px; padding: 4px 8px; color: var(--accent-strong); background: transparent; border: 1px solid transparent; border-radius: var(--radius-sm); font-variant-numeric: tabular-nums; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 4px; }
 .cell-button:hover { background: var(--accent-soft); }
 .table td .cell-button { margin-block: -5px; }

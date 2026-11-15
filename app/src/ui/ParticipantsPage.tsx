@@ -109,7 +109,7 @@ function DataTable({
   return (
     <div className="table-shell">
       {/* 列宽固定（宽屏），展开详情时列不会跳动 */}
-      <table className="table table--rows table--fixed table--stack table--participants">
+      <table className="table table--rows table--fixed table--stack table--participants table--expandable">
         <thead>
           <tr>
             <th scope="col" style={{ width: "28%" }}>参与方</th>

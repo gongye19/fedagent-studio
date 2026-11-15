@@ -22,8 +22,8 @@ export function DataDetail({
         <div><dt>数据来源</dt><dd>{source?.name ?? "来源已删除"}</dd></div>
         <div><dt>数据格式</dt><dd>{dataset.schemaVersion}</dd></div>
         <div><dt>参考答案</dt><dd>{dataset.answered} / {dataset.count} 条已标注</dd></div>
+        {dataset.description ? <div><dt>说明</dt><dd>{dataset.description}</dd></div> : null}
       </dl>
-      {dataset.description ? <p className="dataset-description">{dataset.description}</p> : null}
       {source?.hosting === "local" ? (
         <LocalConnect
           participantId={source.id}
@@ -36,7 +36,7 @@ export function DataDetail({
         <div className="dataset-actions">
           <button
             type="button"
-            className="button button--ghost button--compact button--danger"
+            className="button button--secondary button--compact button--danger"
             onClick={() => setRemoving(true)}
           >
             删除数据

@@ -15,9 +15,9 @@ export function DataResources({state, datasets, selectedId, onSelect}: {
   onSelect: (id?: string) => void;
 }) {
   return (
-    <ResourceTable label="联邦数据列表" className="table--resources" columns={[
-      {label: "数据名称"}, {label: "任务类型"}, {label: "提供方"},
-      {label: "样本数", className: "numeric"},
+    <ResourceTable label="联邦数据列表" className="table--resources table--expandable" columns={[
+      {label: "数据名称", width: "48%"}, {label: "任务类型", width: "18%"},
+      {label: "提供方", width: "22%"}, {label: "样本数", className: "numeric", width: "12%"},
     ]} empty={!datasets.length} emptyContent="还没有数据。上传并通过校验后，可在联邦任务中使用。">
       {datasets.map((d) => {
         const open = selectedId === d.id;
