@@ -87,15 +87,16 @@ describe("route", () => {
     expect(parseHash("#/tasks/t1/uploads")).toEqual({ page: "task", id: "t1", tab: undefined });
     expect(parseHash("#/tasks/t1/unknown")).toEqual({ page: "task", id: "t1", tab: undefined });
     // 数据集已并入"参与方与数据"
-    expect(parseHash("#/datasets")).toEqual({ page: "participants" });
-    expect(parseHash("#/datasets/ds-amc")).toEqual({ page: "participants" });
+    expect(parseHash("#/datasets")).toEqual({ page: "resources" });
+    expect(parseHash("#/datasets/ds-amc")).toEqual({ page: "resources" });
   });
 
-  it("unifies data URLs while preserving selected data and interface scopes", () => {
-    const routes:Route[] = [{page:"newTask"},{page:"resources",id:"ds-own"},{page:"resources",space:"public",kind:"models"},{page:"resources",space:"workspace",kind:"agents"}];
-    for (const route of routes) expect(parseHash(hrefOf(route))).toEqual({...route,...(route.page==="resources"&&!('id' in route)?{id:undefined}:{})});
+  it("flattens data URLs while preserving interface scopes", () => {
+    const routes:Route[] = [{page:"newTask"},{page:"resources"},{page:"resources",space:"public",kind:"models"},{page:"resources",space:"workspace",kind:"agents"}];
+    for (const route of routes) expect(parseHash(hrefOf(route))).toEqual(route);
+    expect(parseHash("#/resources/data/ds-own")).toEqual({page:"resources"});
     for (const scope of ["mine", "public"]) {
-      expect(hrefOf(parseHash(`#/resources/${scope}/data/ds-own?upload=1`))).toBe("#/resources/data/ds-own?upload=1");
+      expect(hrefOf(parseHash(`#/resources/${scope}/data/ds-own?upload=1`))).toBe("#/resources?upload=1");
     }
   });
 });

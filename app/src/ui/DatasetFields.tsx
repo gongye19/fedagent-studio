@@ -116,7 +116,7 @@ export function DatasetFields({ form, hosting, onChange, resourceIntake = false,
               {file.checking ? <p><CheckStatus status="running" />{file.name}</p> : null}
               {file.error ? <p><Icon name="x" />{file.error}</p> : null}
               {file.check?.ok ? (
-                <p><CheckStatus status="passed" />{formatNumber(file.check.count)} 条样本 · {formatNumber(file.check.answered)} 条标注</p>
+                <p><CheckStatus status="passed" />{formatNumber(file.check.count)} {resourceIntake ? "条记录" : <>条样本 · {formatNumber(file.check.answered)} 条标注</>}</p>
               ) : null}
               {file.check && !file.check.ok ? (
                 <>
@@ -153,9 +153,9 @@ export function DatasetFields({ form, hosting, onChange, resourceIntake = false,
               onChange={(event) => onChange((current) => ({ ...current, name: event.target.value }))}
             />
           </Field>
-          <Field label="说明" optional htmlFor={ids.description}>
+          {!resourceIntake ? <Field label="说明" optional htmlFor={ids.description}>
             <input id={ids.description} name="dataset-description" autoComplete="off" value={form.description} placeholder="记录数据用途或来源" maxLength={60} onChange={(event) => onChange((current) => ({ ...current, description: event.target.value }))} />
-          </Field>
+          </Field> : null}
         </>
       ) : null}
     </>

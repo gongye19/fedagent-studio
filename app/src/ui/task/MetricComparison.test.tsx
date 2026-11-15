@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it } from "vitest";
 import { completedTask } from "../../test/fixtures";
-import { TaskTable } from "../TaskTable";
+import { hasTaskMetric, TaskTable } from "../TaskTable";
 import { trendData } from "./trend";
 import { MetricComparison } from "./MetricComparison";
 
@@ -49,4 +49,29 @@ it("keeps the frozen grading rule and only shows a model for model-based grading
   task.config = { ...task.config, grader: "diagnosis-exact", serverModel: "" };
   html = renderToStaticMarkup(<ConfigTab task={task} state={state} />);
   expect(html).not.toContain("评测模型"); expect(html).toContain("诊断名称匹配");
+});
+
+
+it("omits an entirely empty metric column but preserves a real zero result", () => {
+  const task = completedTask({ rounds: [] });
+  expect(renderToStaticMarkup(<TaskTable tasks={[task]} onDelete={() => {}} />)).not.toContain("主要指标");
+  task.rounds = [{ round: 1, correct: {} }];
+  expect(renderToStaticMarkup(<TaskTable tasks={[task]} onDelete={() => {}} />)).not.toContain("主要指标");
+  task.members = [{...task.members[0], answered: 1}];
+  task.rounds = [{ round: 1, correct: {[task.members[0].participantId]: 0} }];
+  const html = renderToStaticMarkup(<TaskTable tasks={[task]} onDelete={() => {}} />);
+  expect(html).toContain("主要指标");
+  expect(html).toContain("0.0%");
+});
+
+it("keeps metric columns stable when filtering and retains completed evaluation labels before an empty round", () => {
+  const task = completedTask();
+  task.evaluationLabels = ["无经验", "本站经验", "联邦经验"];
+  task.members = [{...task.members[0], answered: 1}];
+  task.rounds = [{round:2, correct:{[task.members[0].participantId]:0}}, {round:3, correct:{}}];
+  expect(hasTaskMetric(task)).toBe(true);
+  const html = renderToStaticMarkup(<TaskTable tasks={[task]} onDelete={() => {}} />);
+  expect(html).toContain("主要指标"); expect(html).toContain("0.0%"); expect(html).toContain("本站经验");
+  const pending = completedTask({rounds:[]});
+  expect(renderToStaticMarkup(<TaskTable tasks={[pending]} showMetrics={[task,pending].some(hasTaskMetric)} onDelete={() => {}} />)).toContain("主要指标");
 });

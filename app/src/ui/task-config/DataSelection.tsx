@@ -36,6 +36,11 @@ export function ParticipantTable({
     ready: datasets,
     picked: datasets.find((dataset) => dataset.id === picks.get(participant.id)),
   }));
+  const showLocation = open.some(({ participant }) => participant.hosting === "local");
+  const nameCounts = new Map<string, number>();
+  for (const { ready } of open) for (const name of new Set(ready.map((dataset) => dataset.name))) {
+    nameCounts.set(name, (nameCounts.get(name) ?? 0) + 1);
+  }
   const chosen = open.filter((row) => row.picked).length;
   const all = open.length > 0 && chosen === open.length;
   const some = !all && chosen > 0;
@@ -83,9 +88,7 @@ export function ParticipantTable({
             <th scope="col" className="numeric col-optional">
               样本
             </th>
-            <th scope="col" className="col-optional">
-              存放位置
-            </th>
+            {showLocation ? <th scope="col" className="col-optional">存放位置</th> : null}
           </tr>
         </thead>
         <tbody>
@@ -132,12 +135,12 @@ export function ParticipantTable({
                   ) : (
                     <label htmlFor={inputId}>{shown.name}</label>
                   )}
-                  <InfoTip label={`${shown.name} 的来源`}>
-                    {participant.name} · {DATA_LOCATION_LABELS[participant.hosting]}
-                  </InfoTip>
+                  {showLocation || (nameCounts.get(shown.name) ?? 0) > 1 ? <InfoTip label={`${shown.name} · ${participant.name} 的来源`}>
+                    {participant.name}{showLocation ? ` · ${DATA_LOCATION_LABELS[participant.hosting]}` : ""}
+                  </InfoTip> : null}
                 </th>
                 <td className="numeric col-optional">{formatNumber(shown.count)}</td>
-                <td className="col-optional">{DATA_LOCATION_LABELS[participant.hosting]}</td>
+                {showLocation ? <td className="col-optional">{DATA_LOCATION_LABELS[participant.hosting]}</td> : null}
               </tr>
             );
           })}

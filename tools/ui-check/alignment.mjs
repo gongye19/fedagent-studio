@@ -13,11 +13,11 @@ if (process.env.LONG_CONTENT === "1") await browser.send("Page.addScriptToEvalua
   window.fetch = async (...args) => {
     const response = await originalFetch(...args);
     const url = new URL(typeof args[0] === 'string' ? args[0] : args[0].url, location.href);
-    if (url.pathname !== '/v1/datasets' || !response.ok) return response;
+    if (!['/v1/datasets','/v1/participants'].includes(url.pathname) || !response.ok) return response;
     const rows = await response.clone().json();
+    if (url.pathname === '/v1/participants') for (const row of rows) row.name = '临床数据协作研究工作区与跨机构资源提供方';
     for (const row of rows) if (row.taskType === 'medical-records') {
       row.name = '跨机构医疗问诊过程记录与病例检查结果汇总，用于检验较长数据名称在不同屏宽下的换行和对齐';
-      row.ownerName = '临床数据协作研究工作区与跨机构资源提供方';
       row.description = '仅供浏览器排版检查，未修改或上传服务器数据。'.repeat(10);
     }
     return new Response(JSON.stringify(rows), {status:response.status,headers:response.headers});
@@ -48,13 +48,16 @@ const read = `(() => {
           content:rect(e.querySelector('.row-button, .table-link, .tag, .model-availability, .model-actions, button') ?? e),
           plain:!e.querySelector('button, .tag, .model-availability, .model-actions')}; })),
     })),
-    detail: [...document.querySelectorAll('.dataset-metadata > div')].map(e => ({label:text(e.querySelector('dt')),value:text(e.querySelector('dd'))})),
     name: document.querySelector('.row--open .row-button > span') ? text(document.querySelector('.row--open .row-button > span')) : null,
     toggles: [...document.querySelectorAll('.row-button')].map(rect),
     detailOpen: Boolean(document.querySelector('.row--open')),
     participantDetail: document.querySelector('.participant-detail') ? rect(document.querySelector('.participant-detail')) : null,
-    deleteButton: document.querySelector('.dataset-actions > button') ? rect(document.querySelector('.dataset-actions > button')) : null,
-    detailLabels: [...document.querySelectorAll('.dataset-metadata dt')].map(e => e.textContent),
+    flatData: document.querySelector('.table--resources') ? {
+      labels:[...document.querySelectorAll('.table--resources thead th')].map(e=>e.textContent),
+      expandable:Boolean(document.querySelector('.table--resources .row-button, .table--resources .detail-row')),
+      extraDescription:document.querySelector('.table--resources').textContent.includes('仅供浏览器排版检查'),
+      actions:[...document.querySelectorAll('.table--resources tbody button')].map(e=>({lastCell:e.closest('td')===e.closest('tr').lastElementChild,...rect(e)})),
+    } : null,
   };
 })()`;
 
@@ -85,15 +88,16 @@ function inspect(state, width) {
       near(header.text[edge], isName ? cell.text[edge] : actual, `${table.label}/${header.label}`);
     });
   }
-  for (const field of state.detail) {
-    near(field.label.left, state.detail[0].label.left, "详情标签起点");
-    near(field.value.left, state.detail[0].value.left, "详情值起点");
-    near((field.label.top + field.label.bottom) / 2, (field.value.top + field.value.bottom) / 2, "详情首行基线", 1.5);
-  }
   if (width > 720 && state.name && state.participantDetail) near(state.name.left, state.participantDetail.left, "参与方名称与详情起点");
-  if (state.deleteButton && state.detail.length) near(state.deleteButton.left, state.detail[0].label.left, "删除按钮边框与详情起点");
-  if (state.deleteButton && state.deleteButton.width < 44) issues.push("删除按钮触达宽度不足");
-  if (width > 720 && state.name && state.detail.length) near(state.name.left, state.detail[0].label.left, "名称与详情起点");
+  if (state.flatData) {
+    if (state.flatData.labels.join() !== "数据名称,任务类型,样本数,操作") issues.push("数据目录列与用户所需信息不一致");
+    if (state.flatData.expandable) issues.push("数据目录仍有不需要的展开");
+    if (state.flatData.extraDescription) issues.push("数据目录仍展示冗长说明");
+    for (const action of state.flatData.actions) {
+      if (!action.lastCell) issues.push("删除操作未放在数据行末尾");
+      if (action.width < 44) issues.push("删除操作触达宽度不足");
+    }
+  }
   if (width <= 720) for (const target of state.toggles) if (target.height < 44) issues.push("展开按钮触达区域不足 44px");
   return issues;
 }
@@ -106,7 +110,7 @@ try {
       const before = await evaluate(browser.send, read);
       const issues = inspect(before, width);
       const expanded = [];
-      if (route === "resources" || route === "participants") {
+      if (route === "participants") {
         const labels = await evaluate(browser.send, "[...document.querySelectorAll('.table--expandable > tbody > tr > th > .row-button')].map(b=>b.closest('tr').textContent)");
         if (!labels.length) issues.push("没有可测的可展开数据行，未完成对齐验收");
         if (process.env.LONG_CONTENT === "1" && !labels.some(s=>s.includes('跨机构医疗问诊过程记录与病例检查结果汇总'))) issues.push("长内容夹具没有显示");
@@ -116,17 +120,12 @@ try {
           const after = await evaluate(browser.send, read);
           const rowIssues = inspect(after, width);
           if (!after.detailOpen) rowIssues.push("行未展开");
-          if (route === "resources" && after.detail.length < 3) rowIssues.push("数据详情未被测量");
           if (route === "participants" && !after.participantDetail) rowIssues.push("参与方详情未被测量");
-          if (route === "resources" && process.env.LONG_CONTENT === "1") {
-            if (!after.detailLabels.includes("说明")) rowIssues.push("长说明未被测量");
-            if (!after.deleteButton) rowIssues.push("缺少可编辑测试数据，未验证删除操作对齐");
-          }
           if (width > 720) for (let i=0; i<(before.tables[0]?.header.length ?? 0); i++) {
             const a=before.tables[0].header[i], b=after.tables[0].header[i];
             if (Math.abs(a.left-b.left)>1 || Math.abs(a.width-b.width)>1) rowIssues.push(`展开后第 ${i+1} 列移动`);
           }
-          expanded.push({rowIndex,fields:after.detailLabels,deleteMeasured:Boolean(after.deleteButton),issues:rowIssues});
+          expanded.push({rowIndex,issues:rowIssues});
           issues.push(...rowIssues.map(issue=>`行 ${rowIndex+1}: ${issue}`));
           if (rowIndex === 0) {
             const shot=await browser.send("Page.captureScreenshot", {format:"png",captureBeyondViewport:false});

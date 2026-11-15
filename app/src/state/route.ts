@@ -43,7 +43,7 @@ export type Route =
   | { page: "home" }
   | { page: "tasks" }
   | { page: "newTask"; scenario?: ScenarioId; application?: string }
-  | { page: "resources"; space?: ResourceSpace; kind?: ResourceKind; id?: string; upload?: boolean }
+  | { page: "resources"; space?: ResourceSpace; kind?: ResourceKind; upload?: boolean }
   | { page: "task"; id: string; tab?: TaskTab }
   | { page: "results" }
   | { page: "evaluations" }
@@ -110,15 +110,14 @@ export function parseHash(hash: string): Route {
     case "resources": {
       const upload = search.get("upload") === "1" ? { upload: true } : {};
       if (second === "mine" || second === "public") {
-        const id = path.split("/").filter(Boolean).map(decodeURIComponent)[3];
-        return { page: "resources", space: second === "public" ? "public" : "workspace",
-          kind: oneOf(["data", "models", "agents"] as const, third) ?? "data", id, ...upload };
+        const kind = oneOf(["data", "models", "agents"] as const, third) ?? "data";
+        if (kind !== "data") return { page: "resources", space: second === "public" ? "public" : "workspace", kind, ...upload };
       }
-      return { page: "resources", id: second === "data" ? third : undefined, ...upload };
+      return { page: "resources", ...upload };
     }
     case "datasets": {
-      // 数据集已并入"参与方与数据"，旧的列表地址回到那里
-      if (second !== "new") return { page: "participants" };
+      // 旧数据列表统一进入联邦数据；新增旧客户端数据的运维入口仍保留。
+      if (second !== "new") return { page: "resources" };
       const participant = search.get("participant");
       return withFrom(participant ? { page: "newDataset" as const, participant } : { page: "newDataset" as const });
     }
@@ -145,7 +144,7 @@ export function hrefOf(route: Route): string {
     case "resources":
       return (route.kind === "models" || route.kind === "agents"
         ? `#/resources/${route.space === "public" ? "public" : "mine"}/${route.kind}`
-        : "#/resources" + (route.id ? `/data/${part(route.id)}` : "")) + query({ upload: route.upload ? "1" : undefined });
+        : "#/resources") + query({ upload: route.upload ? "1" : undefined });
     case "task":
       return `#/tasks/${part(route.id)}${route.tab ? `/${route.tab}` : ""}`;
     case "results":

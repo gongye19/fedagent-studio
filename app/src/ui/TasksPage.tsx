@@ -10,7 +10,7 @@ import { DeleteTaskConfirm } from "./DeleteTaskConfirm";
 import { Panel } from "./console";
 import { Icon } from "./icons";
 import { sortTasks } from "./labels";
-import { TaskTable } from "./TaskTable";
+import { hasTaskMetric, TaskTable } from "./TaskTable";
 
 type Filter = "all" | TaskStatus;
 
@@ -54,8 +54,8 @@ export default function TasksPage({ state }: { state: State }) {
         </SelectField>
         {filtering ? <button type="button" className="button button--ghost button--compact" onClick={clear}>清除筛选</button> : null}
       </div>
-      <Panel title="全部任务" extra={filtering ? `${filtered.length} / ${tasks.length} 个任务` : `${tasks.length} 个任务`} flush>
-        {filtered.length ? <TaskTable tasks={filtered} onDelete={setDeleting} /> : (
+      <Panel flush>
+        {filtered.length ? <TaskTable tasks={filtered} showMetrics={tasks.some(hasTaskMetric)} onDelete={setDeleting} /> : (
           <PanelEmpty>{tasks.length ? "没有符合条件的任务。" : "还没有任务，点击右上角“新建联邦任务”开始。"}</PanelEmpty>
         )}
       </Panel>

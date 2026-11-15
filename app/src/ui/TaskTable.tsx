@@ -1,5 +1,5 @@
 import { TASK_TYPES } from "../domain/catalog";
-import { averageAccuracy, canDeleteTask, evaluationLabel, scoreDifference, latestScoredRound, TASK_STATUS, type Task } from "../domain/task";
+import { averageAccuracy, canDeleteTask, evaluationLabel, scoreDifference, TASK_STATUS, type Task } from "../domain/task";
 import { hrefOf } from "../state/route";
 import { Tag } from "./common";
 import { formatDate, formatDelta, formatPercent } from "./format";
@@ -12,9 +12,17 @@ export function TaskStatus({ task }: { task: Task }) {
   return <Tag tone={statusTone(task)} live={task.status === "running"}>{TASK_STATUS[task.status]}</Tag>;
 }
 
+function latestMetricRound(task: Task) {
+  return task.rounds.filter(({ round }) => averageAccuracy(task, round) !== null).at(-1)?.round ?? null;
+}
+
+export function hasTaskMetric(task: Task) {
+  return latestMetricRound(task) !== null;
+}
+
 /** 主要指标：第 1 轮（本地）→ 最新一轮（联邦）。指标名由任务类型决定。 */
 export function MetricChange({ task }: { task: Task }) {
-  const latest = latestScoredRound(task);
+  const latest = latestMetricRound(task);
   if (!latest) return <span className="muted">—</span>;
   if (task.evaluationLabels?.length) {
     const local = averageAccuracy(task, 2), shared = averageAccuracy(task, 3);
@@ -34,10 +42,12 @@ export function MetricChange({ task }: { task: Task }) {
 }
 
 /** 场景、算法和任务类型各占一列；窄屏保留独立字段，改为卡片布局。 */
-export function TaskTable({ tasks, onDelete }: { tasks: readonly Task[]; onDelete: (task: Task) => void }) {
+export function TaskTable({ tasks, onDelete, showMetrics = tasks.some(hasTaskMetric) }: {
+  tasks: readonly Task[]; onDelete: (task: Task) => void; showMetrics?: boolean;
+}) {
   return (
     <div className="table-shell">
-      <table className="table table--stack table--tasks">
+      <table className="table table--stack table--tasks" aria-label="联邦任务列表">
         <thead>
           <tr>
             <th scope="col">任务名称</th>
@@ -45,7 +55,7 @@ export function TaskTable({ tasks, onDelete }: { tasks: readonly Task[]; onDelet
             <th scope="col">算法</th>
             <th scope="col">任务类型</th>
             <th scope="col">状态</th>
-            <th scope="col" className="numeric">主要指标</th>
+            {showMetrics ? <th scope="col" className="numeric">主要指标</th> : null}
             <th scope="col" className="numeric">开始时间</th>
             <th scope="col" className="numeric">操作</th>
           </tr>
@@ -68,7 +78,7 @@ export function TaskTable({ tasks, onDelete }: { tasks: readonly Task[]; onDelet
                   </div>
 
                 </td>
-                <td className="numeric" data-label="主要指标"><MetricChange task={task} /></td>
+                {showMetrics ? <td className="numeric" data-label="主要指标"><MetricChange task={task} /></td> : null}
                 <td className="numeric nowrap" data-label="开始时间">{task.startedAt ? <time dateTime={task.startedAt}>{formatDate(task.startedAt)}</time> : <span className="muted">尚未开始</span>}</td>
                 <td className="numeric" data-label="操作">
                   <button type="button" className="button button--ghost button--danger button--compact" disabled={!canDeleteTask(task)} title={canDeleteTask(task) ? undefined : "请先取消任务，结束后才能删除"} aria-label={`删除任务“${task.name}”`} onClick={() => onDelete(task)}>删除</button>

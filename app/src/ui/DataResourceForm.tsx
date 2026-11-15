@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ApiError } from "../api/client";
 import type { components } from "../api/schema";
-import { TASK_TYPES, type ScenarioId, type TaskType } from "../domain/catalog";
+import type { ScenarioId, TaskType } from "../domain/catalog";
 import { createDataResource } from "../state/actions";
 import { FormActions } from "./common";
 import { FieldGroup } from "./console";
@@ -46,7 +46,6 @@ export function DataResourceForm({
   }
   return (
     <div className="resource-intake">
-      <p className="resource-context">{category ? `${TASK_TYPES[category.taskType].label} · ` : ""}上传后供联邦任务使用。数据名称和说明会在目录中显示。</p>
       <FieldGroup>
         <DatasetFields
           form={form}
