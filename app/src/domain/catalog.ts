@@ -37,6 +37,7 @@ export type TaskTypeDef = {
   unlabeledNote: string;
   /** 试用时输入框的占位文字。 */
   placeholder: string;
+  applicationGrading?: boolean;
   structuredInput?: boolean;
   inputLabel?: string;
   answerLabel?: string;
@@ -151,6 +152,7 @@ export function installRegistry(registry: Registry): void {
       format: item.format,
       unlabeledNote: item.unlabeledNote,
       placeholder: item.placeholder,
+      applicationGrading: item.applicationGrading,
       structuredInput: item.structuredInput,
       inputLabel: item.inputLabel,
       answerLabel: item.answerLabel,

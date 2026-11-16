@@ -1,5 +1,6 @@
 """部署门禁必须在停止服务、上传或覆盖运行文件之前拒绝不安全的状态。"""
 import importlib.util
+import json
 import os
 import shutil
 import sqlite3
@@ -98,3 +99,38 @@ def test_server_build_failure_keeps_live_runtime_untouched(tmp_path):
     assert (runtime / "serve.sh").read_bytes() == before
     assert not (runtime / "backups").exists()
     assert not (runtime / "run/deployed-revision").exists()
+
+
+@pytest.mark.parametrize("candidate,blocked", [({"fot-records": "same"}, False), ({"fot-records": "changed"}, True), ({}, True)])
+def test_paused_plugin_compatibility_is_checked_before_deploy(tmp_path, candidate, blocked):
+    (tmp_path / "data").mkdir()
+    path = tmp_path / "data/fedagent.db"
+    with sqlite3.connect(path) as db:
+        db.execute("CREATE TABLE tasks(id TEXT, status TEXT, algorithm TEXT, plugin_hash TEXT, config TEXT)")
+        db.execute("CREATE TABLE task_checks(id TEXT, status TEXT)")
+        db.execute("INSERT INTO tasks VALUES('kept-task', 'paused', 'fot-records', 'same', '{}')")
+    before = path.read_bytes()
+    if blocked:
+        with pytest.raises(RuntimeError, match="kept-task"):
+            guard()(tmp_path, candidate)
+    else:
+        guard()(tmp_path, candidate)
+    assert path.read_bytes() == before
+
+
+@pytest.mark.parametrize("source,consumer,blocked", [("old", "candidate", False), ("candidate", "old", True)])
+def test_paused_evaluation_uses_consumer_hash_not_source_hash(tmp_path, source, consumer, blocked):
+    (tmp_path / "data").mkdir()
+    path = tmp_path / "data/fedagent.db"
+    with sqlite3.connect(path) as db:
+        db.execute("CREATE TABLE tasks(id TEXT, status TEXT, algorithm TEXT, plugin_hash TEXT, config TEXT)")
+        db.execute("CREATE TABLE task_checks(id TEXT, status TEXT)")
+        db.execute("INSERT INTO tasks VALUES('evaluation', 'paused', 'fot-records', ?, ?)",
+                   (source, json.dumps({'consumer_hash': consumer})))
+    before = path.read_bytes()
+    if blocked:
+        with pytest.raises(RuntimeError, match="evaluation"):
+            guard()(tmp_path, {"fot-records": "candidate"})
+    else:
+        guard()(tmp_path, {"fot-records": "candidate"})
+    assert path.read_bytes() == before

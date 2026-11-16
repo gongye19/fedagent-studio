@@ -3021,6 +3021,11 @@ export interface components {
         /** TaskTypeOut */
         TaskTypeOut: {
             /**
+             * Applicationgrading
+             * @default true
+             */
+            applicationGrading: boolean;
+            /**
              * Recordbased
              * @default false
              */

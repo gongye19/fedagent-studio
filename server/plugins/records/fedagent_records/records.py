@@ -20,6 +20,19 @@ class ProcessRecords(TaskType):
     reference_required = False
     domain: ClassVar[TaskType]
 
+    def normalize_input(self, value: Any, identifier: str) -> Any:
+        if isinstance(self.domain, MedicalDiagnosis):
+            if not isinstance(value, dict):
+                raise ValueError("input：医疗过程需要病例对象")
+            if any(k in value for k in ("answer", "Correct_Diagnosis", "correct_diagnosis")):
+                raise ValueError("input 中不能包含参考诊断；请放在顶层 answer")
+            value = self.domain.strip_labels(normalize_case({**value, "id": identifier}))
+            value.pop("split", None)
+            return value
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError("input：请填写题目")
+        return value
+
     def check(self, rows: list[Row]) -> CheckReport:
         report = CheckReport()
         seen: set[str] = set()
@@ -34,16 +47,7 @@ class ProcessRecords(TaskType):
                 identifier = str(identifier)
                 if identifier in seen:
                     raise ValueError("id：记录编号重复")
-                input_ = value.get("input")
-                if isinstance(self.domain, MedicalDiagnosis):
-                    if not isinstance(input_, dict):
-                        raise ValueError("input：医疗过程需要病例对象")
-                    if any(k in input_ for k in ("answer", "Correct_Diagnosis", "correct_diagnosis")):
-                        raise ValueError("input 中不能包含参考诊断；请放在顶层 answer")
-                    input_ = self.domain.strip_labels(normalize_case({**input_, "id": identifier}))
-                    input_.pop("split", None)
-                elif not isinstance(input_, str) or not input_.strip():
-                    raise ValueError("input：请填写题目")
+                input_ = self.normalize_input(value.get("input"), identifier)
                 events = value.get("events")
                 if not isinstance(events, list) or not 1 <= len(events) <= 200:
                     raise ValueError("events：需要 1–200 条实际过程记录，只有病例或题目不够")

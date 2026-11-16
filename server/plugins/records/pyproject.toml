@@ -3,7 +3,7 @@ name = "fedagent-records"
 version = "0.1.0"
 description = "过程记录校验、平台经验提取及应用"
 requires-python = ">=3.12"
-dependencies = ["fedagent-sdk>=0.2.9", "fedagent-fot", "fedagent-evomedclaw", "fedagent-math-reasoning"]
+dependencies = ["fedagent-sdk>=0.2.10", "fedagent-fot", "fedagent-evomedclaw", "fedagent-math-reasoning"]
 
 [project.entry-points."fedagent.algorithms"]
 fot-records = "fedagent_records.fot:RecordFoT"
@@ -12,6 +12,10 @@ evomedclaw-records = "fedagent_records.evo:RecordEvo"
 [project.entry-points."fedagent.task_types"]
 math-records = "fedagent_records.records:MathRecords"
 medical-records = "fedagent_records.records:MedicalRecords"
+lifestyle-records = "fedagent_records.lifestyle:LifestyleRecords"
+
+[project.entry-points."fedagent.graders"]
+lifestyle-rubric = "fedagent_records.lifestyle_grading:LifestyleGrader"
 
 [tool.uv.sources]
 fedagent-sdk = {workspace = true}

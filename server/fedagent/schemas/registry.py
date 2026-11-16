@@ -31,6 +31,7 @@ class InputFieldOut(Model):
 
 
 class TaskTypeOut(Model):
+    application_grading: bool = True
     record_based: bool = False
     id: str
     label: str

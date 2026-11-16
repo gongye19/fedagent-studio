@@ -1,5 +1,7 @@
 # 交接说明
 
+T145（2026-11-17）覆盖 T143–144 的 LifeStyle mock 方案：最新用户要求改为公开知识／合成画像的经验推荐、先本地准备实测，不上线。代码分支 feat/lifestyle-experience-preparation。新任务 lifestyle-records 仅接受 FoT；新应用复用通用经验库问答与双栏对比。旧浏览器 mock 和专属 CSS／验收脚本已删除，旧地址兼容进入新应用。工具与本机产物见 [LIFESTYLE.md](./LIFESTYLE.md)。本机实测 36 次模型调用，三方包 8 条经验，3 道留出题三组均 100%（只验证链路，未体现提升）。后端 256／前端 83／工具 7 项及独立复核通过。所有真实任务／资源／评测留本机；服务器仅模型网关正常审计写入。未来部署先检查未完成任务的插件哈希兼容，不能改写旧哈希。
+
 T144 覆盖T143的布局：LifeStyle 共用内容宽度及面板轴线；空经验包按钮使用PanelEmpty action插槽；App选择在预览面板顶部，通知按内容居中，不再独立左右两栏或固定空白高度。详见D121及tools/ui-check/lifestyle-layout.mjs；模拟状态与真实数据隔离不变。
 
 T143：LifeStyle 已增加前端交互演示入口 #/apps/lifestyle，仅浏览器模拟数据／报告／包／匹配与 App 提示，无模型调用、后端写入、真实 LifeStyle 连接或推送。状态键 fedagent:lifestyle-demo:v1，重置只影响该键。勿把演示规则当 FoT 实现或将模拟资源加入真实注册表。详见 D120／FLOW T143；上线提交以 run/deployed-revision 核对。

@@ -10,6 +10,9 @@ from fedagent_sdk.jsonutil import extract_json_object
 
 
 def answer(artifact, request, model, *, cards=False):
+    if isinstance(request.input, dict) and request.input.get("application") == "lifestyle":
+        from .lifestyle import recommend
+        return recommend(artifact, request, model)
     content = artifact.content if artifact else {}
     guidance = relevant_cards(content, request.input) if cards else content
     instructions = (

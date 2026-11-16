@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "../api/client";
-import { algorithmOf, scenarioOf, TASK_TYPES } from "../domain/catalog";
+import { algorithmOf, scenarioOf, TASK_TYPES, visibleApplicationType } from "../domain/catalog";
 import type { Task } from "../domain/task";
 import { renameApp, withdrawApp } from "../state/actions";
 import { showFlash } from "../state/flash";
-import { hrefOf, navigate, type AppTab } from "../state/route";
+import { applicationRoute, hrefOf, navigate, type AppTab } from "../state/route";
 import { keys } from "../state/server";
 import type { Published, State } from "../state/store";
 import { CodeBlock, Confirm, Meta, Notice, PageHead, TabLinks } from "./common";
@@ -68,7 +68,9 @@ export default function AppPage({ item, task, state, tab }: Props) {
   return (
     <>
       <PageHead
-        back={{ label: "联邦成果", route: { page: "results" } }}
+        back={active === "try" && visibleApplicationType(item.taskType)
+          ? { label: TASK_TYPES[item.taskType].label, route: applicationRoute(item.taskType) }
+          : { label: "联邦成果", route: { page: "results" } }}
         title={item.name}
         meta={<Meta parts={[
           scenarioOf(item.scenario).short,

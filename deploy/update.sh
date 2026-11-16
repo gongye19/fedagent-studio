@@ -26,6 +26,9 @@ node -e 'const [a,b]=process.versions.node.split(".").map(Number); if(!((a===20&
 (cd "$stage/app" && npm ci --no-audit --no-fund && npm run build)
 # 先下载并验证运行依赖，减少停机时间；不更改当前运行中的虚拟环境。
 (cd "$stage/server" && "$uv" sync --frozen --no-dev --python 3.12)
+# 用已安装的候选插件计算指纹，不能让暂停任务部署后才发现无法续跑。
+(cd "$stage/server" && .venv/bin/python -c 'import json; from fedagent.registry import get_registry; print(json.dumps({k:a.code_hash() for k,a in get_registry().algorithms.items()}))') > "$stage/plugin-hashes.json"
+python3 "$stage/deploy/check_idle.py" "$ROOT" "$stage/plugin-hashes.json"
 mkdir -p "$stage/wheels"
 for package in fedagent-sdk fedagent-client fedagent-fot fedagent-math-reasoning fedagent-evomedclaw fedagent-records; do
   (cd "$stage/server" && "$uv" build --package "$package" --wheel --out-dir "$stage/wheels" -q)
@@ -69,10 +72,10 @@ recover() {
 }
 trap recover EXIT
 # 构建期间可能有人启动任务，再检查一次；停止后再次检查以处理并发请求。
-python3 "$stage/deploy/check_idle.py" "$ROOT"
+python3 "$stage/deploy/check_idle.py" "$ROOT" "$stage/plugin-hashes.json"
 stopped=1
 bash "$ROOT/serve.sh" stop 9>&-
-python3 "$stage/deploy/check_idle.py" "$ROOT"
+python3 "$stage/deploy/check_idle.py" "$ROOT" "$stage/plugin-hashes.json"
 backup_dir=$(python3 "$stage/deploy/backup.py" "$ROOT" | sed -n 's/^backup: //p')
 [ -d "$backup_dir/data" ] || { echo '完整备份未成功，停止发布' >&2; exit 1; }
 tar --exclude='server/.venv' --exclude='server/.data' --exclude='__pycache__' \

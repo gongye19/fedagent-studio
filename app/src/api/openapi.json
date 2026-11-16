@@ -9986,6 +9986,11 @@
    },
    "TaskTypeOut": {
     "properties": {
+     "applicationGrading": {
+      "type": "boolean",
+      "title": "Applicationgrading",
+      "default": true
+     },
      "recordBased": {
       "type": "boolean",
       "title": "Recordbased",

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { visibleTaskType } from "../domain/catalog";
-import { applicationEntries, LIFESTYLE_DEMO } from "../domain/applications";
+import { applicationEntries } from "../domain/applications";
 import { MEDICAL_RECORDS } from "../domain/consultation";
 import { applicationRoute, hrefOf, type Route } from "../state/route";
 import { type State } from "../state/store";
@@ -25,7 +25,6 @@ function navKeyOf(route: Route): NavKey {
     case "evaluation":
       return "evaluations";
     case "consultation":
-    case "lifestyle":
     case "apps":
     case "application":
       return "apps";
@@ -67,7 +66,6 @@ export function Sidebar({ route, state }: { route: Route; state: State | null })
   const inApps = active === "apps";
   const appsExpanded = appsToggle?.inApps === inApps ? appsToggle.expanded : inApps || appsToggle?.expanded === true;
   const currentApplication = route.page === "consultation" ? MEDICAL_RECORDS
-    : route.page === "lifestyle" ? LIFESTYLE_DEMO
     : route.page === "application" ? route.taskType
     : route.page === "app" ? state?.published.find((item) => item.id === route.id)?.taskType : undefined;
   const close = () => setOpen(false);

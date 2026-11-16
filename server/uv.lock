@@ -382,7 +382,7 @@ requires-dist = [
 
 [[package]]
 name = "fedagent-sdk"
-version = "0.2.9"
+version = "0.2.10"
 source = { editable = "sdk" }
 dependencies = [
     { name = "pydantic" },

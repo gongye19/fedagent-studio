@@ -15,7 +15,7 @@ export default function ApplicationPage({ state, taskType }: { state: State; tas
     <>
       <PageHead title={definition.label} back={{ label: "应用", route: { page: "apps" } }}
         meta="从已有过程生成经验库，再用经验处理新的输入。" />
-      <div className="list-toolbar">
+      <div className="application-actions">
         <a className={`button ${hasRecords ? "button--primary" : "button--secondary"}`}
           href={hrefOf({ page: "newTask", application: taskType })}>生成经验库</a>
         <a className={`button ${hasRecords ? "button--secondary" : "button--primary"}`}

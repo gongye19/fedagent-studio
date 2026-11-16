@@ -63,6 +63,7 @@ class CheckReport:
 
 
 class TaskType:
+    application_grading: ClassVar[bool] = True
     record_based: ClassVar[bool] = False
     id: ClassVar[str]
     label: ClassVar[str]

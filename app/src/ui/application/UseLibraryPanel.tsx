@@ -9,6 +9,7 @@ import { SelectField } from "../SelectField";
 import { Field, FieldGroup, Panel } from "../console";
 import { formatNumber } from "../format";
 import { Icon } from "../icons";
+import { adviceText } from "./adviceText";
 
 type RunMode = "invoke" | "compare";
 type Side = { title: string; value: components["schemas"]["ApplySide"] };
@@ -27,6 +28,7 @@ export function UseLibraryPanel({ item, state }: { item: Published; state: State
   const [problem, setProblem] = useState<string | null>(null);
   const type = TASK_TYPES[item.taskType];
   const fields = type?.inputFields ?? [];
+  const canGrade = type?.applicationGrading !== false;
   const fieldErrors: Record<string, string> = {};
   const structured: Record<string, unknown> = {};
   if (type?.structuredInput) {
@@ -50,7 +52,7 @@ export function UseLibraryPanel({ item, state }: { item: Published; state: State
 
   async function run(mode: RunMode) {
     if (missing || busy) return;
-    const submitted = { input: submittedInput, answer: answer.trim() || null, model };
+    const submitted = { input: submittedInput, answer: canGrade ? answer.trim() || null : null, model };
     setRunning(mode);
     setProblem(null);
     setResult(null);
@@ -88,9 +90,9 @@ export function UseLibraryPanel({ item, state }: { item: Published; state: State
             )) : <Field label={type?.inputLabel ?? "问题"} htmlFor="try-question" wide>
               <textarea id="try-question" name="question" autoComplete="off" rows={4} maxLength={20000} disabled={busy} value={question} placeholder={type?.placeholder} onChange={(event) => setQuestion(event.target.value)} />
             </Field>}
-            <Field label={type?.answerLabel ?? "标准答案"} optional htmlFor="try-answer">
+            {canGrade ? <Field label={type?.answerLabel ?? "标准答案"} optional htmlFor="try-answer">
               <input id="try-answer" name="answer" autoComplete="off" disabled={busy} value={answer} onChange={(event) => setAnswer(event.target.value)} />
-            </Field>
+            </Field> : null}
             <Field label="模型" htmlFor="try-model">
               <SelectField id="try-model" name="model" disabled={busy || !options.length} value={model} onValueChange={(value) => setModel(value)} onClear={() => setModel("")}>
                 <option value="" disabled>{options.length ? "请选择模型" : "没有可用的模型接口"}</option>
@@ -125,7 +127,7 @@ export function UseLibraryPanel({ item, state }: { item: Published; state: State
               <div key={title} className="compare-item">
                 <div className="compare-head">
                   <h3>{title}</h3>
-                  {side.correct === null ? (
+                  {!canGrade ? null : side.correct === null ? (
                     <span className="section-meta">未判分</span>
                   ) : (
                     <span className={side.correct ? "verdict verdict--right" : "verdict verdict--wrong"}>
@@ -133,7 +135,7 @@ export function UseLibraryPanel({ item, state }: { item: Published; state: State
                     </span>
                   )}
                 </div>
-                <p className="answer" lang="en">{side.output}</p>
+                <p className="answer" lang={canGrade ? "en" : "zh"}>{canGrade ? side.output : adviceText(side.output)}</p>
                 <span className="compare-usage">{formatNumber(side.tokens)} token</span>
               </div>
             ))}

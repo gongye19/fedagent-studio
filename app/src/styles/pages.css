@@ -229,3 +229,5 @@
 /* 应用目录：按容器宽度折行。 */
 .application-cards { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,280px),1fr)); gap: 20px; max-width: 960px; }
 .application-cards .panel p { margin-bottom: 20px; color: var(--muted); }
+
+.application-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-5); }

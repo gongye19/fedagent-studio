@@ -182,6 +182,7 @@ class Registry:
             "placeholder": task_type.placeholder,
             "schemaVersion": task_type.schema_version,
             "recordBased": task_type.record_based,
+            "applicationGrading": task_type.application_grading,
             "structuredInput": task_type.structured_input,
             "inputLabel": task_type.input_label,
             "answerLabel": task_type.answer_label,

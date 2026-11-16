@@ -63,3 +63,7 @@ uv run python ../tools/process-records/generate.py \
 ## T110 真实验收
 
 当时，数学 FoT、医疗 FoT、医疗 EvoMedClaw 三条链路均已在实验室服务器通过；保留四份带公开来源标记的生成记录与三个经验库。任务及应用标识、独立新输入测试、条件检索结果、用量与备份见 [验收记录](./process-records-check.json)。
+
+## LifeStyle（T145）
+
+新增 lifestyle-records：input 为 profile／question，events 记录可公开的建议过程，output 为最终建议。严格拒绝 input 夹带评测答案或未知字段；可选来源明确生成、合成性质。FoT 接受该类型，Evo 尚不接受。应用问答不接收标准答案或返回对错结论；批量模型辅助规则评测独立执行。见 [LIFESTYLE.md](./LIFESTYLE.md)。
