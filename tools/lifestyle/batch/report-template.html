@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LifeStyle 首批对照报告</title>
+<style>$STYLE</style>
+<main>
+  <h1>LifeStyle · 首批 FoT 对照</h1>
+  <p class="muted">$MODEL · 计划$DOCUMENTS份资料，已生成$PROCESSES条过程 · 24道独立推荐题 · $ENTRIES条聚合经验</p>
+  <section class="overview">
+    <img src="comparison.svg" alt="无经验与联邦经验的配对评分柱状对比">
+    <div class="stats">
+      <h2>联邦前后变化</h2><strong>$DELTA</strong>
+      <p>$BETTER题变好 · $SAME题持平 · $WORSE题变差</p>
+      <p>完整配对 $PAIRED / $TOTAL；未完成 $MISSING</p>
+      <p class="muted">模型按原始规则辅助评分，非医疗正确率。缺失不按答错处理。</p>
+    </div>
+  </section>
+  <section>
+    <h2>逐题对照</h2>
+    <div class="toolbar">
+      <label for="filter">问题范围</label>
+      <select id="filter">
+        <option value="all">全部</option><option value="better">变好</option>
+        <option value="worse">变差</option><option value="same">持平</option><option value="missing">未完成</option>
+      </select>
+      <span id="page" aria-live="polite"></span><button id="prev">上一页</button><button id="next">下一页</button>
+    </div>
+    <div id="cases">$CASES</div>
+  </section>
+  <section>
+    <h2>运行与边界</h2>
+    <p>远程尝试 $ATTEMPTS / $LIMIT；输入 $INPUT_TOKENS / 输出 $OUTPUT_TOKENS token。</p>
+    <p>状态：$STATUS；$ERROR</p>
+    <ul>$LIMITATIONS</ul>
+  </section>
+</main>
+<script>$SCRIPT</script>
+</html>

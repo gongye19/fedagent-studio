@@ -1,0 +1,9 @@
+{
+  "commit": "652c89d0ca9df547706735883097e9537d40dc47",
+  "url": "https://raw.githubusercontent.com/openai/simple-evals/652c89d0ca9df547706735883097e9537d40dc47/healthbench_eval.py",
+  "sha256": "b763d8c1f53ecd165f0d170a32bc948216b3dfeadafe238b2083328e1af4b2df",
+  "bytes": 27780,
+  "licenseSha256": "d831db55645e47ca8e491c5a0e37f1ee744d7b10bf5aa8d50146c795ac0176c0",
+  "licenseUrl": "https://raw.githubusercontent.com/openai/simple-evals/652c89d0ca9df547706735883097e9537d40dc47/LICENSE",
+  "templateDigest": "1af35997f98e1a856f5202daa5bd5858f123cc5a06d66341f965e7d92608e75f"
+}
