@@ -1,0 +1,161 @@
+{
+  "schema": "lifestyle-guidance-registry/1",
+  "python": "3.12.13",
+  "dependencies": {
+    "beautifulsoup4": "4.14.3",
+    "soupsieve": "4.1.1",
+    "typing_extensions": "4.16.0",
+    "httpx": "0.28.1",
+    "httpcore": "1.0.9",
+    "h11": "0.16.0",
+    "anyio": "4.16.0",
+    "idna": "3.20",
+    "certifi": "2026.10.23"
+  },
+  "policies": [
+    {
+      "id": "c49a87fc2ba2c1238d2a",
+      "kind": "robots",
+      "host": "www.nhs.uk",
+      "url": "https://www.nhs.uk/robots.txt",
+      "sha256": "ee6b60406a7277008cdd3bdedba97ca6c3ade405f269b0656ac704598e960ed0",
+      "bytes": 2674,
+      "file": "c49a87fc2ba2c1238d2a.raw",
+      "retrievedAt": "2026-11-18T12:26:02.384365+00:00",
+      "crawlDelay": 1
+    },
+    {
+      "id": "f9838f5336a28c646495",
+      "kind": "terms",
+      "host": "www.nhs.uk",
+      "url": "https://www.nhs.uk/our-policies/terms-and-conditions/",
+      "sha256": "3cba8fdb63e4e0ff5c960fa4d6f9f9c0abe944d10b1c79adb0f410ff9445f67b",
+      "bytes": 61244,
+      "file": "f9838f5336a28c646495.raw",
+      "retrievedAt": "2026-11-18T12:26:02.386122+00:00",
+      "crawlDelay": 1
+    },
+    {
+      "id": "0b63fe990457d6ee152e",
+      "kind": "exclusions",
+      "host": "www.nhs.uk",
+      "url": "https://www.nhs.uk/our-policies/terms-and-conditions/content-not-licensed-for-re-use/",
+      "sha256": "fefb0482728ba0397f4d1b46acf0a1547510ec3ccfd7cf2333ba69b87abe933f",
+      "bytes": 21617,
+      "file": "0b63fe990457d6ee152e.raw",
+      "retrievedAt": "2026-11-18T12:26:03.687795+00:00",
+      "crawlDelay": 1
+    },
+    {
+      "id": "b8a61d277db27eca9426",
+      "kind": "robots",
+      "host": "www.niddk.nih.gov",
+      "url": "https://www.niddk.nih.gov/robots.txt",
+      "sha256": "fe2415aaa62809a210bfae69230ca5dd63bb2de4259942b1009b54caa291f409",
+      "bytes": 270,
+      "file": "b8a61d277db27eca9426.raw",
+      "retrievedAt": "2026-11-18T12:25:56.990834+00:00",
+      "crawlDelay": 10
+    },
+    {
+      "id": "836ef06d4598a06a5728",
+      "kind": "copyright",
+      "host": "www.niddk.nih.gov",
+      "url": "https://www.niddk.nih.gov/copyright",
+      "sha256": "977bc7ff58fd3f8dc5059eaa6d2b535a44f6a296df9cd68d19202916a71c2126",
+      "bytes": 31766,
+      "file": "836ef06d4598a06a5728.raw",
+      "retrievedAt": "2026-11-18T12:25:56.991516+00:00",
+      "crawlDelay": 10
+    },
+    {
+      "id": "885ca8f6ac1a429bfd90",
+      "kind": "robots",
+      "host": "www.cdc.gov",
+      "url": "https://www.cdc.gov/robots.txt",
+      "sha256": "2837016c20845bf0f86ecfad68dbb4d37993338ee4584abd502087da48ea5ca7",
+      "bytes": 1699,
+      "file": "885ca8f6ac1a429bfd90.raw",
+      "retrievedAt": "2026-11-18T12:25:55.699777+00:00",
+      "crawlDelay": 1
+    },
+    {
+      "id": "23be1d520356bc7db403",
+      "kind": "copyright",
+      "host": "www.cdc.gov",
+      "url": "https://www.cdc.gov/other/agencymaterials.html",
+      "sha256": "ce4947eeeef60392ec42e43ee160d0ca628d9296717cdc3539820c95a4020f23",
+      "bytes": 84067,
+      "file": "23be1d520356bc7db403.raw",
+      "retrievedAt": "2026-11-18T12:25:57.474096+00:00",
+      "crawlDelay": 1
+    },
+    {
+      "id": "73b85577e6f390f62959",
+      "kind": "robots",
+      "host": "www.nhlbi.nih.gov",
+      "url": "https://www.nhlbi.nih.gov/robots.txt",
+      "sha256": "4ad85f0241e3d9ea00e7c394eda81132fc6eb1f0544f6d4c13e72e3564755cb4",
+      "bytes": 2659,
+      "file": "73b85577e6f390f62959.raw",
+      "retrievedAt": "2026-11-18T12:26:07.812120+00:00",
+      "crawlDelay": 1
+    },
+    {
+      "id": "7f20a266b07a3e369110",
+      "kind": "copyright",
+      "host": "www.nhlbi.nih.gov",
+      "url": "https://www.nhlbi.nih.gov/about/contact/trademark-branding-and-logo",
+      "sha256": "44fb43fa9bcc1d7c83693fc6f80ca5cb9113c4a3da0ea7b374fb7705af6d489b",
+      "bytes": 63565,
+      "file": "7f20a266b07a3e369110.raw",
+      "retrievedAt": "2026-11-18T12:26:18.169598+00:00",
+      "crawlDelay": 1
+    }
+  ],
+  "minimums": {
+    "articles": 50,
+    "topics": 8,
+    "sections": 200,
+    "eachDomain": 60
+  },
+  "similarity": {
+    "sharedShingles": 25,
+    "reviewContainment": 0.35,
+    "excludeContainment": 0.8,
+    "nearTitleRatio": 0.85
+  },
+  "sourceLimits": {
+    "fileBytes": 2000000,
+    "totalBytes": 100000000
+  },
+  "unavailableResearchCount": 13,
+  "researchOnlyPublisher": "ODPHP 4 snapshots excluded from initial parser scope",
+  "reuse": {
+    "NHS": {
+      "license": "OGL-3.0-with-NHS-terms",
+      "originalAttribution": "Information from the NHS website, as at 181126",
+      "derivedAttribution": "Contains public sector information licensed under the Open Government Licence v3.0.",
+      "conditions": "Text only; no third-party media, logos, excluded subsites, NHS approval or endorsement. Translation/adaptation has no inherited clinical approval."
+    },
+    "NIDDK": {
+      "license": "Federal information with stated exceptions",
+      "originalAttribution": "Source: National Institute of Diabetes and Digestive and Kidney Diseases, NIH.",
+      "conditions": "Keep original source distinct. No logos, endorsement or edited content represented as agency-specific medical advice."
+    },
+    "NHLBI": {
+      "license": "Federal information with stated exceptions",
+      "originalAttribution": "Source: National Heart, Lung, and Blood Institute; National Institutes of Health; U.S. Department of Health and Human Services.",
+      "conditions": "Unmodified original text. No third-party media, logos, product endorsement or advertising."
+    },
+    "CDC": {
+      "license": "Federal information with stated exceptions",
+      "originalAttribution": "Source: CDC. Original content freely available at source URL; no endorsement by CDC/HHS/US Government.",
+      "conditions": "Original substantive content preserved; no third-party media or logos. Generated advice is separate, not CDC original or endorsed."
+    }
+  },
+  "exclusions": {
+    "e84bdea1825dae23a651": "historical-minimum-10-minute-bout-rule-requires-review"
+  },
+  "currentActivityGuidanceEvidence": "https://www.cdc.gov/physical-activity-basics/guidelines/adults.html"
+}

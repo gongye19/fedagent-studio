@@ -1,0 +1,142 @@
+{
+  "5435d81332c4e78521d4:2": {
+    "decision": "topic-pass",
+    "reason": "direct-guidance-or-relevant-lifestyle-planning",
+    "textDigest": "a94b9a73e404218afd7299bdbf9c072478d4ba2ee59fd6244cce2b9256afe429",
+    "reviewer": "Codex topical/extraction check; not clinical validation",
+    "date": "2026-11-18"
+  },
+  "e26937bf86e1e6704889:1": {
+    "decision": "topic-pass",
+    "reason": "direct-guidance-or-relevant-lifestyle-planning",
+    "textDigest": "97d4fee0abb4aebeb90f71aabfb2f348e76f0a65c0c51fc84e70e750e76d76ad",
+    "reviewer": "Codex topical/extraction check; not clinical validation",
+    "date": "2026-11-18"
+  },
+  "ddb5559333e68cf90e7f:1": {
+    "decision": "context-only",
+    "reason": "overview-without-practical-advice",
+    "textDigest": "2406de1717c9dd5dcfbacfb9c1b34352b9ed3db423ae113b97656efd311a2b62",
+    "reviewer": "Codex topical/extraction check; not clinical validation",
+    "date": "2026-11-18"
+  },
+  "5f9cb74cccd6f361d5f3:3": {
+    "decision": "topic-pass",
+    "reason": "direct-guidance-or-relevant-lifestyle-planning",
+    "textDigest": "de6e70084b324b6238f5cc78aabbf74810a9b5a2e769b319d2198762a977e09d",
+    "reviewer": "Codex topical/extraction check; not clinical validation",
+    "date": "2026-11-18"
+  },
+  "94859026b888dccec60b:3": {
+    "decision": "topic-pass",
+    "reason": "direct-guidance-or-relevant-lifestyle-planning",
+    "textDigest": "7cc9f6662592da5c41a27f6a82f894a75cd851cd617271e696ceffe8aadc0913",
+    "reviewer": "Codex topical/extraction check; not clinical validation",
+    "date": "2026-11-18"
+  },
+  "49bd26805017749ac71b:5": {
+    "decision": "topic-pass",
+    "reason": "direct-guidance-or-relevant-lifestyle-planning",
+    "textDigest": "858fff802205966d06614604de4768491dae63a132a677e76acd02a55ec507f1",
+    "reviewer": "Codex topical/extraction check; not clinical validation",
+    "date": "2026-11-18"
+  },
+  "cc826ed6f115897a2b48:3": {
+    "decision": "topic-pass",
+    "reason": "direct-guidance-or-relevant-lifestyle-planning",
+    "textDigest": "7063fc263906d6797eba1c08e63351b7c583a1130651b520afa74318e1daf256",
+    "reviewer": "Codex topical/extraction check; not clinical validation",
+    "date": "2026-11-18"
+  },
+  "49bd26805017749ac71b:1": {
+    "decision": "topic-pass",
+    "reason": "direct-guidance-or-relevant-lifestyle-planning",
+    "textDigest": "f5c96656a18d609da28aed2dc7cb7fa9dc0ab23cb769df342183aa3eadb93747",
+    "reviewer": "Codex topical/extraction check; not clinical validation",
+    "date": "2026-11-18"
+  },
+  "cc826ed6f115897a2b48:2": {
+    "decision": "topic-pass",
+    "reason": "direct-guidance-or-relevant-lifestyle-planning",
+    "textDigest": "3d43e098ce340d2b9adfca56c777806b126858c4d0589a069423861e74ac2f7a",
+    "reviewer": "Codex topical/extraction check; not clinical validation",
+    "date": "2026-11-18"
+  },
+  "cc826ed6f115897a2b48:0": {
+    "decision": "topic-pass",
+    "reason": "direct-guidance-or-relevant-lifestyle-planning",
+    "textDigest": "0214ff4fbf3cf6fcf976d86975f57d4bfbf4e828a5933dd75a537d09e1a2ac13",
+    "reviewer": "Codex topical/extraction check; not clinical validation",
+    "date": "2026-11-18"
+  },
+  "e4679f3a80b01ef59190:1": {
+    "decision": "topic-pass",
+    "reason": "direct-guidance-or-relevant-lifestyle-planning",
+    "textDigest": "19b2c186b2e4af6195781a8538bb7e1e62e97ab36dff1adbbe3dd2cea904e9e1",
+    "reviewer": "Codex topical/extraction check; not clinical validation",
+    "date": "2026-11-18"
+  },
+  "79d28ca89f3adcedecee:4": {
+    "decision": "topic-pass",
+    "reason": "direct-guidance-or-relevant-lifestyle-planning",
+    "textDigest": "9aaa72f5d5eaf7ceb066897659e362dffb44838fa2fc4b83f178b348c4f162a8",
+    "reviewer": "Codex topical/extraction check; not clinical validation",
+    "date": "2026-11-18"
+  },
+  "1168a999a754ddb04ecf:3": {
+    "decision": "topic-pass",
+    "reason": "direct-guidance-or-relevant-lifestyle-planning",
+    "textDigest": "cc412f65217b39b4dccd5ebc1670cbd4c19cc70b761cedb7b19a0544f480f8ca",
+    "reviewer": "Codex topical/extraction check; not clinical validation",
+    "date": "2026-11-18"
+  },
+  "971df561ce1dfa38539e:6": {
+    "decision": "topic-pass",
+    "reason": "direct-guidance-or-relevant-lifestyle-planning",
+    "textDigest": "6cfc91f1ad7393c81fc0477f6d562834b79640461f914132eb8627b02dfa3b6a",
+    "reviewer": "Codex topical/extraction check; not clinical validation",
+    "date": "2026-11-18"
+  },
+  "cdc95d47602aef189b60:5": {
+    "decision": "topic-pass",
+    "reason": "direct-guidance-or-relevant-lifestyle-planning",
+    "textDigest": "bc5f6a91010a6e8706c80c0f573e7fd749562ab3f94e5269a17a1a7507a303fa",
+    "reviewer": "Codex topical/extraction check; not clinical validation",
+    "date": "2026-11-18"
+  },
+  "28e75ea6a6a29a05f472:3": {
+    "decision": "topic-pass",
+    "reason": "direct-guidance-or-relevant-lifestyle-planning",
+    "textDigest": "083608abef43a2141982a1fc0d72d8657c1a044d8cc19a79a360ab1907a94166",
+    "reviewer": "Codex topical/extraction check; not clinical validation",
+    "date": "2026-11-18"
+  },
+  "812258703920e80010c3:6": {
+    "decision": "topic-pass",
+    "reason": "direct-guidance-or-relevant-lifestyle-planning",
+    "textDigest": "22a1c89aeb34d820755eec02a0ded2c81e2928b9ca7350bf5b45c048f48ab752",
+    "reviewer": "Codex topical/extraction check; not clinical validation",
+    "date": "2026-11-18"
+  },
+  "28e75ea6a6a29a05f472:6": {
+    "decision": "context-only",
+    "reason": "program-selection-questions-not-diet-or-activity-instruction",
+    "textDigest": "b1a6cd900fde49bc20249eed9d2fd3dbf55f77dbbd3cc965b4554ef177f92bb6",
+    "reviewer": "Codex topical/extraction check; not clinical validation",
+    "date": "2026-11-18"
+  },
+  "9da309d2f4a8501c5801:3": {
+    "decision": "topic-pass",
+    "reason": "direct-guidance-or-relevant-lifestyle-planning",
+    "textDigest": "ae9461753e9b29166f0d4a2a3c782b5724765f5329ff263340b63aef54bd4787",
+    "reviewer": "Codex topical/extraction check; not clinical validation",
+    "date": "2026-11-18"
+  },
+  "9dc1b1a54a3cb61795ff:2": {
+    "decision": "context-only",
+    "reason": "reading-instructions-not-dietary-recommendation",
+    "textDigest": "3a2d5b3363f2c5024e67c9571e6545dccbb054f17fbb8c740f3c2a64dc66317a",
+    "reviewer": "Codex topical/extraction check; not clinical validation",
+    "date": "2026-11-18"
+  }
+}
