@@ -1,0 +1,109 @@
+{
+  "schema": "lifestyle-source-catalog/1",
+  "verifiedOn": "2026-11-18",
+  "python": "3.12",
+  "duckdb": "1.4.5",
+  "httpx": "0.28.1",
+  "files": [
+    {
+      "file": "healthbench-2025-05-07-06-14-12_oss_eval.jsonl",
+      "dataset": "openai/healthbench",
+      "revision": "40ee1968852fc57f625934251ac22be47077a8fb",
+      "url": "https://huggingface.co/datasets/openai/healthbench/resolve/40ee1968852fc57f625934251ac22be47077a8fb/2025-05-07-06-14-12_oss_eval.jsonl",
+      "sha256": "e99dd3c6372c10d6fcc5e385c5fae69d0dd40392dae56836ef9493ae324ecd2f",
+      "bytes": 60258154,
+      "license": "mit",
+      "licenseSource": "https://huggingface.co/datasets/openai/healthbench/raw/40ee1968852fc57f625934251ac22be47077a8fb/README.md"
+    },
+    {
+      "file": "medmcqa-test-00000-of-00001.parquet",
+      "dataset": "openlifescienceai/medmcqa",
+      "revision": "91c6572c454088bf71b679ad90aa8dffcd0d5868",
+      "url": "https://huggingface.co/datasets/openlifescienceai/medmcqa/resolve/91c6572c454088bf71b679ad90aa8dffcd0d5868/data/test-00000-of-00001.parquet",
+      "sha256": "1d308841f0c82df363d3d638b33b69b8abd266b1e615ae5d2607dbb24c70beb1",
+      "bytes": 936358,
+      "license": "apache-2.0",
+      "licenseSource": "https://huggingface.co/datasets/openlifescienceai/medmcqa/raw/91c6572c454088bf71b679ad90aa8dffcd0d5868/README.md"
+    },
+    {
+      "file": "medmcqa-train-00000-of-00001.parquet",
+      "dataset": "openlifescienceai/medmcqa",
+      "revision": "91c6572c454088bf71b679ad90aa8dffcd0d5868",
+      "url": "https://huggingface.co/datasets/openlifescienceai/medmcqa/resolve/91c6572c454088bf71b679ad90aa8dffcd0d5868/data/train-00000-of-00001.parquet",
+      "sha256": "b119434ba551517a6ec0ba1f7e0b4c029165ed284a4704f262ce37c791c493c5",
+      "bytes": 85899025,
+      "license": "apache-2.0",
+      "licenseSource": "https://huggingface.co/datasets/openlifescienceai/medmcqa/raw/91c6572c454088bf71b679ad90aa8dffcd0d5868/README.md"
+    },
+    {
+      "file": "medmcqa-validation-00000-of-00001.parquet",
+      "dataset": "openlifescienceai/medmcqa",
+      "revision": "91c6572c454088bf71b679ad90aa8dffcd0d5868",
+      "url": "https://huggingface.co/datasets/openlifescienceai/medmcqa/resolve/91c6572c454088bf71b679ad90aa8dffcd0d5868/data/validation-00000-of-00001.parquet",
+      "sha256": "b768a1ea34afc9f80d3106d9b21f80fa8a00ec450a1f6cd641af72ca9e591021",
+      "bytes": 1476104,
+      "license": "apache-2.0",
+      "licenseSource": "https://huggingface.co/datasets/openlifescienceai/medmcqa/raw/91c6572c454088bf71b679ad90aa8dffcd0d5868/README.md"
+    },
+    {
+      "file": "medquad.zip",
+      "dataset": "abachaa/MedQuAD",
+      "revision": "577bd37b96c02d1833b2c9eed2de9f96964e96cb",
+      "url": "https://codeload.github.com/abachaa/MedQuAD/zip/577bd37b96c02d1833b2c9eed2de9f96964e96cb",
+      "sha256": "161d948f8ce8f82accca1f5769a512dff2a01af2b3004d48f2b3da2758a38a09",
+      "bytes": 16953181,
+      "license": "CC-BY-4.0; excludes removed copyrighted answers",
+      "licenseSource": "https://raw.githubusercontent.com/abachaa/MedQuAD/577bd37b96c02d1833b2c9eed2de9f96964e96cb/LICENSE.txt"
+    },
+    {
+      "file": "mmlu-clean-readme.md",
+      "dataset": "mkieffer/MMLU-Pro-Health-annotations",
+      "revision": "71688a08116636696ef65e1262a7b516242d4c81",
+      "url": "https://huggingface.co/datasets/mkieffer/MMLU-Pro-Health/raw/71688a08116636696ef65e1262a7b516242d4c81/README.md",
+      "sha256": "22c92db11e2d87942927aec3066bcf3835a5623a4a88fc6519a94b0057974ba8",
+      "bytes": 11974,
+      "license": "mit",
+      "licenseSource": "https://huggingface.co/datasets/mkieffer/MMLU-Pro-Health/raw/71688a08116636696ef65e1262a7b516242d4c81/README.md"
+    },
+    {
+      "file": "mmlu-clean-test-00000-of-00001.parquet",
+      "dataset": "mkieffer/MMLU-Pro-Health",
+      "revision": "71688a08116636696ef65e1262a7b516242d4c81",
+      "url": "https://huggingface.co/datasets/mkieffer/MMLU-Pro-Health/resolve/71688a08116636696ef65e1262a7b516242d4c81/data/test-00000-of-00001.parquet",
+      "sha256": "b0f70fce69b7d30789bc40f5d51600efd61612c9d5abe86ec7ff4938dbd182df",
+      "bytes": 233411,
+      "license": "mit",
+      "licenseSource": "https://huggingface.co/datasets/mkieffer/MMLU-Pro-Health/raw/71688a08116636696ef65e1262a7b516242d4c81/README.md"
+    },
+    {
+      "file": "mmlu-clean-validation-00000-of-00001.parquet",
+      "dataset": "mkieffer/MMLU-Pro-Health",
+      "revision": "71688a08116636696ef65e1262a7b516242d4c81",
+      "url": "https://huggingface.co/datasets/mkieffer/MMLU-Pro-Health/resolve/71688a08116636696ef65e1262a7b516242d4c81/data/validation-00000-of-00001.parquet",
+      "sha256": "ad9075cf870e6cb1cae0fb7a44bc7972c0402a1c759ae1ba7c04127bb50980a6",
+      "bytes": 17664,
+      "license": "mit",
+      "licenseSource": "https://huggingface.co/datasets/mkieffer/MMLU-Pro-Health/raw/71688a08116636696ef65e1262a7b516242d4c81/README.md"
+    },
+    {
+      "file": "mmlu-test-00000-of-00001.parquet",
+      "dataset": "TIGER-Lab/MMLU-Pro",
+      "revision": "b189ec765aa7ed75c8acfea42df31fdae71f97be",
+      "url": "https://huggingface.co/datasets/TIGER-Lab/MMLU-Pro/resolve/b189ec765aa7ed75c8acfea42df31fdae71f97be/data/test-00000-of-00001.parquet",
+      "sha256": "0e24a191921c2f453518a537a8b2117bd137e7714d4ef1565e9ba06c1ecb9ad8",
+      "bytes": 4144185,
+      "license": "mit",
+      "licenseSource": "https://huggingface.co/datasets/TIGER-Lab/MMLU-Pro/raw/b189ec765aa7ed75c8acfea42df31fdae71f97be/README.md"
+    },
+    {
+      "file": "mmlu-validation-00000-of-00001.parquet",
+      "dataset": "TIGER-Lab/MMLU-Pro",
+      "revision": "b189ec765aa7ed75c8acfea42df31fdae71f97be",
+      "url": "https://huggingface.co/datasets/TIGER-Lab/MMLU-Pro/resolve/b189ec765aa7ed75c8acfea42df31fdae71f97be/data/validation-00000-of-00001.parquet",
+      "sha256": "139423c23722e480c807ac4a191409a710cfce4eba744c1d641cf88e730e2078",
+      "bytes": 42857,
+      "license": "mit",
+      "licenseSource": "https://huggingface.co/datasets/TIGER-Lab/MMLU-Pro/raw/b189ec765aa7ed75c8acfea42df31fdae71f97be/README.md"
+    }
+  ]
+}

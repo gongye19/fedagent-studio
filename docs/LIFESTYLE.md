@@ -53,6 +53,10 @@ FoT 复用现有 `fot-records` 的 `prepare / reflect / extract / collect / prof
 
 验收覆盖目录、上传、选资源、运行、发布、应用对比；桌面及窄屏检查字段、面板边界、按钮和结果对齐。批量评测先提供离线图表报告，暂不扩展医疗专属“联邦评测”界面或伪造医疗正确率。
 
+## 扩充语料（2026-11-18）
+
+用户最新决定先准备数据、看到调用量再确定正式运行。新的离线准备使用独立 `tools/lifestyle/corpus` 和 `data/lifestyle-prep/corpus/<实验名>/`，不覆盖以下旧冒烟命令和结果。实际数量、来源、限制、预算及准备命令见 [LIFESTYLE-CORPUS.md](./LIFESTYLE-CORPUS.md)。本次没有新增提取或评测模型调用，不部署。
+
 ## 本机命令
 
 从仓库根目录执行，`uv sync` 在 `server/` 中执行。工具独立测试用 `uv run --project server python -m pytest tools/lifestyle/tests`，核心后端测试不导入仓库工具：

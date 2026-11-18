@@ -1,0 +1,473 @@
+{
+  "schema": "lifestyle-topical-audit/1",
+  "reviewer": "Codex; topical screening only, not clinical expert review",
+  "healthbench": {
+    "83cf8f2d-2857-4f01-a283-9595d8f4ae8e": "consumer-diet-exercise-topical-only",
+    "9b4c14e9-c404-4646-87b7-d3badae8a68b": "consumer-diet-exercise-topical-only",
+    "086f6cb9-1ee5-4d5c-ad63-9285d3b714e5": "consumer-diet-exercise-topical-only",
+    "5370debb-39c1-495d-b4d3-7467eb6c6ac4": "consumer-diet-exercise-topical-only",
+    "15c68476-ddf2-405a-959d-4991e8648fd8": "consumer-diet-exercise-topical-only",
+    "0e819a9c-851d-4a7a-9263-62cfc8ce1b48": "consumer-diet-exercise-topical-only",
+    "b4086682-e8f4-468f-9f19-bce6f9a43979": "consumer-diet-exercise-topical-only",
+    "6566f489-f254-4bca-a86b-90f5ac7471d7": "consumer-diet-exercise-topical-only",
+    "1eee7568-e3e6-46c7-a37f-704867100fa7": "consumer-diet-exercise-topical-only",
+    "8ff101a6-e438-4166-bdac-be1d55d57c99": "consumer-diet-exercise-topical-only",
+    "17fd0228-c7e6-4e0e-90c3-1330b3b09cf2": "consumer-diet-exercise-topical-only",
+    "77d37a88-329c-4711-8fba-e88204c0b405": "consumer-diet-exercise-topical-only",
+    "fb27607d-6cac-43cf-ad7c-48fa0a310028": "consumer-diet-exercise-topical-only",
+    "638a7483-eec2-4449-87d1-b0a9e032f95a": "consumer-diet-exercise-topical-only",
+    "cfa1f25b-2d6a-48be-b41e-e848ac5e8b11": "consumer-diet-exercise-topical-only",
+    "8a012ac7-1cb4-42d8-8251-4b304acde065": "consumer-diet-exercise-topical-only",
+    "7471a1cc-ce27-4bd0-82a6-55fe5fe65140": "consumer-diet-exercise-topical-only",
+    "26298a9e-b28d-4988-9118-f4487a51966f": "consumer-diet-exercise-topical-only",
+    "9014c1af-0d4d-4d20-a408-8f31975b1313": "consumer-diet-exercise-topical-only",
+    "6f309672-0fdd-44cc-962f-69b6006bf75d": "consumer-diet-exercise-topical-only",
+    "bb4799b5-0e99-480a-8ec8-109b43161b1d": "consumer-diet-exercise-topical-only",
+    "fcaff172-5d7e-4122-adc8-e9911d503320": "consumer-diet-exercise-topical-only",
+    "efbde168-8d2b-47d0-8a91-b0a45e4ec400": "consumer-diet-exercise-topical-only",
+    "ff59b593-24e6-4c72-8270-495fd488c116": "consumer-diet-exercise-topical-only",
+    "7412f33a-9562-4094-b01c-ac2efdcb2064": "consumer-diet-exercise-topical-only",
+    "a14c7ed6-6927-42bc-9384-7f74c866f93d": "consumer-diet-exercise-topical-only",
+    "20169ed1-3357-4447-8ec6-5e148d99c315": "consumer-diet-exercise-topical-only",
+    "206d6b73-2983-402c-8515-70f4e032c117": "consumer-diet-exercise-topical-only",
+    "1bb29325-9c33-46c5-b222-25764bc19ec2": "consumer-diet-exercise-topical-only",
+    "35f0d354-e1e2-4444-97a3-eefc7c1ff276": "consumer-diet-exercise-topical-only",
+    "3f76b096-e987-4596-b004-b189c965eeb4": "consumer-diet-exercise-topical-only",
+    "472251ad-dd7a-4ea9-965a-37dc12ae1cc2": "consumer-diet-exercise-topical-only",
+    "c702c007-7788-4ccf-bae2-0a30d7358895": "consumer-diet-exercise-topical-only",
+    "51ceb47f-fcd7-49f6-bd1c-45a1df4143df": "consumer-diet-exercise-topical-only",
+    "4c9f3864-956a-4b07-9221-4bc43d98eacf": "consumer-diet-exercise-topical-only",
+    "b4a6a31e-66b9-41e3-b0d9-28c6c3fd2662": "consumer-diet-exercise-topical-only",
+    "8ea163bf-a0f5-4a56-9437-8c95abc78528": "consumer-diet-exercise-topical-only",
+    "8640997e-7700-428d-b8b5-444a6903408a": "consumer-diet-exercise-topical-only",
+    "2844bc35-d731-427e-910f-acb45b7fd2ec": "consumer-diet-exercise-topical-only",
+    "9fb5623a-7b9b-4a21-b110-f9baf224466a": "consumer-diet-exercise-topical-only",
+    "2560dc59-3cc1-4d60-9609-306683b68147": "consumer-diet-exercise-topical-only",
+    "37165947-d0f6-4677-a0e5-cc70ec977d5a": "consumer-diet-exercise-topical-only",
+    "8ed0587a-34d2-46a0-888c-69f2f335556e": "consumer-diet-exercise-topical-only",
+    "83ab85be-aea2-4e69-b93d-9be6fea02dee": "consumer-diet-exercise-topical-only",
+    "3d422da0-016b-4ce5-a744-320f12094382": "consumer-diet-exercise-topical-only",
+    "21fd6901-4633-409b-9bb1-1656e3491e31": "consumer-diet-exercise-topical-only",
+    "9f03109a-9986-4659-88e7-d6e86ea143d9": "consumer-diet-exercise-topical-only",
+    "48f5b13a-c820-4ba3-acaa-fdddf117e853": "consumer-diet-exercise-topical-only",
+    "a179a30f-398e-4af3-adca-ceab830f8f14": "consumer-diet-exercise-topical-only",
+    "bd372743-4779-4fe6-99fd-35b16b280591": "consumer-diet-exercise-topical-only",
+    "55159ee7-036e-4082-8398-1acecdafe921": "consumer-diet-exercise-topical-only",
+    "4a8f0b1e-bdff-46cc-92d8-b26a5bd65dd9": "consumer-diet-exercise-topical-only",
+    "a6e2aa43-c643-47c1-a0b9-6a558a9fcfaf": "consumer-diet-exercise-topical-only",
+    "a64b1295-71c6-44e3-a988-c866878c5d23": "consumer-diet-exercise-topical-only",
+    "c645d312-228a-456b-a4f3-45a726fdd416": "consumer-diet-exercise-topical-only",
+    "4ce4f302-bee8-4d1a-b36d-9eeb3fc1f2c6": "consumer-diet-exercise-topical-only",
+    "b5f5f1c5-5623-4c0f-85c8-03cf1e643bf6": "consumer-diet-exercise-topical-only",
+    "87ad52bc-b5b0-44c8-8143-92a160683998": "consumer-diet-exercise-topical-only",
+    "d0460389-1cba-4112-b8e0-079fe48a3fe6": "consumer-diet-exercise-topical-only",
+    "ff1b694c-91c0-4645-9773-fc8f80b01542": "consumer-diet-exercise-topical-only",
+    "ff9d484c-04f1-4674-abc1-1f9e023dc12a": "consumer-diet-exercise-topical-only",
+    "5772ff36-6503-4f1d-885a-6a3479e6c6ea": "consumer-diet-exercise-topical-only",
+    "1a928791-b7ec-4ef6-b65d-ce1959992ca7": "consumer-diet-exercise-topical-only",
+    "15c6432a-6dfd-485c-baa7-59ff7e7a353d": "consumer-diet-exercise-topical-only",
+    "30564618-20de-4427-a1bf-bf3c4b0f1941": "consumer-diet-exercise-topical-only",
+    "2526b00b-4781-452f-87d6-5cbbf9337084": "consumer-diet-exercise-topical-only",
+    "9df0e73a-70ee-48d8-9b30-6bfbdd6b43a1": "consumer-diet-exercise-topical-only",
+    "2dce5731-8e45-4c21-804f-8546e539d4bd": "consumer-diet-exercise-topical-only",
+    "c5992681-eb49-4ce8-a427-efa94f924bdd": "consumer-diet-exercise-topical-only",
+    "c59704a3-ed53-41b9-83ce-dc539ad63a62": "consumer-diet-exercise-topical-only",
+    "0fe6d721-f0f0-47d3-990c-47f611285a42": "consumer-diet-exercise-topical-only",
+    "d59f41e3-8546-469b-8805-7d3912087d11": "consumer-diet-exercise-topical-only",
+    "04c4cabb-609e-484c-8e23-7c6c7f9f8941": "consumer-diet-exercise-topical-only",
+    "8258be01-dd04-4e93-a8ad-8f09438f108c": "consumer-diet-exercise-topical-only",
+    "475df6de-6847-4480-8fff-f6575f5b73d6": "consumer-diet-exercise-topical-only",
+    "2c61636b-c3e8-405c-961b-3455c17656e2": "consumer-diet-exercise-topical-only",
+    "f3ba24df-449c-460f-ab4a-93381e80d902": "consumer-diet-exercise-topical-only",
+    "b7222323-3e15-4e47-bb0c-198d80c31bbe": "consumer-diet-exercise-topical-only",
+    "33be2908-5b4f-4a5a-91d8-5b91cf8bad62": "consumer-diet-exercise-topical-only",
+    "baca0235-86b4-4ddd-a3f3-fad6041fe96a": "consumer-diet-exercise-topical-only",
+    "ae728191-13f4-4451-9284-39ce02f8aaff": "consumer-diet-exercise-topical-only",
+    "c524be50-6442-4743-97b1-25e3b65bd591": "consumer-diet-exercise-topical-only",
+    "07449fb0-f45e-49af-bc55-b30fdc2fd826": "consumer-diet-exercise-topical-only",
+    "e5593a16-483a-492e-9e73-c5b7e0ad4715": "consumer-diet-exercise-topical-only",
+    "da370727-3f0c-4737-a788-82c76b376e89": "consumer-diet-exercise-topical-only",
+    "61b90306-ccb5-42b7-89d2-b58dcf5ba0b9": "consumer-diet-exercise-topical-only",
+    "a6ffb6e0-1baa-4e42-87a0-f85b24e2ff10": "consumer-diet-exercise-topical-only",
+    "71d8c4e8-5be3-4aac-9e07-d2ab18c453e9": "consumer-diet-exercise-topical-only",
+    "91fd4555-adc1-4ccd-80f0-05f44a8882e9": "consumer-diet-exercise-topical-only",
+    "315825b4-b3ca-4ac6-849b-889553303c5c": "consumer-diet-exercise-topical-only",
+    "295ad10f-3999-495a-871c-d037808d882a": "consumer-diet-exercise-topical-only",
+    "f7285945-9e39-429d-8314-b8afbd7f931f": "consumer-diet-exercise-topical-only",
+    "3f131632-318c-4575-92b9-aef8c90c9938": "consumer-diet-exercise-topical-only",
+    "24816a86-1ef5-4588-b275-21e675bfd1d5": "consumer-diet-exercise-topical-only",
+    "462b1d56-ce9f-4177-b09c-8c70b5f16c0c": "consumer-diet-exercise-topical-only",
+    "6846c606-7981-4665-86dc-dac94783ae6d": "consumer-diet-exercise-topical-only"
+  },
+  "samples": {
+    "medmcqa:train:0120662c-2bcb-4a25-b0a8-ee3c23603812": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:029622c7-c10d-4616-a1b4-0a7dd8d667b3": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:029d4f85-ab47-4a77-b574-2a00860602f1": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:0b2750f3-886f-40ea-9b09-6e3e69846871": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:10ec80bb-af04-4f94-9686-91b8752dc3d1": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:157f9a3b-5bec-4a67-937f-8714af3a0929": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:24812a63-0023-4086-804e-b619f54ff01f": {
+      "relevant": false,
+      "reason": "manually-identified-conflicting-family"
+    },
+    "medmcqa:train:25a4e4f8-4b44-4084-a1bb-b5ccd1bcb1a3": {
+      "relevant": true,
+      "reason": "supporting-diet-knowledge-not-guideline"
+    },
+    "medmcqa:train:267c2917-6ae6-4833-bd21-00bf62b9821d": {
+      "relevant": true,
+      "reason": "supporting-diet-knowledge-not-guideline"
+    },
+    "medmcqa:train:2a05e323-61b0-4922-a431-1d097e909606": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:2e68a778-d1ca-4b97-95d4-3eff0a883076": {
+      "relevant": true,
+      "reason": "supporting-diet-knowledge-not-guideline"
+    },
+    "medmcqa:train:2f30104e-d89d-44f4-bfd6-c7c154a69882": {
+      "relevant": true,
+      "reason": "supporting-diet-knowledge-not-guideline"
+    },
+    "medmcqa:train:38456844-f02b-427e-8ffa-246e536f20e7": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:3ac78d97-bd67-48ad-b12e-2ea9b2145de3": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:4283dead-7d59-4527-a02d-e64bebf2a9fd": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:441d487d-d6cf-4528-8b77-4ad3fddfcb8a": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:45eaa491-d790-4732-b8bb-c34c2a59b835": {
+      "relevant": true,
+      "reason": "supporting-diet-knowledge-not-guideline"
+    },
+    "medmcqa:train:4c8d473e-25e4-4d87-9999-45ab6d96773a": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:5ba847e3-1eff-4254-8c79-95347921053f": {
+      "relevant": true,
+      "reason": "supporting-diet-knowledge-not-guideline"
+    },
+    "medmcqa:train:5ec265ba-6a8c-4d7c-b36c-6bfb90c0bbc5": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:5fd74d5f-3d32-4823-ac9f-556e5be1ba8d": {
+      "relevant": true,
+      "reason": "supporting-diet-knowledge-not-guideline"
+    },
+    "medmcqa:train:622e77df-515e-4d1a-9356-40a90aa6c16b": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:64c1b402-6cb1-445b-96f0-e9c7ef040d11": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:6863d38f-50e5-4018-a607-4604e532657c": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:6aa33e46-aa92-4c04-ab60-c9c2bcf24b2f": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:6c52938b-5ee9-437a-81e7-62d0cacd2512": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:760acd64-391d-4211-ac22-681388785443": {
+      "relevant": false,
+      "reason": "manual-near-duplicate-of-medmcqa-train-5fd74d5f"
+    },
+    "medmcqa:train:78a92783-be42-45cb-afa0-9e50a681afe4": {
+      "relevant": false,
+      "reason": "manually-identified-conflicting-family"
+    },
+    "medmcqa:train:7ab61b4f-aa81-4357-a3b6-37d17b10d49f": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:7d8d8718-a75f-4306-a0bf-1f307d0f59a7": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:80a90539-0106-47e9-ba11-ea762544e24e": {
+      "relevant": true,
+      "reason": "supporting-diet-knowledge-not-guideline"
+    },
+    "medmcqa:train:891b895d-69d0-4231-9dfb-fc0b0a02adc3": {
+      "relevant": true,
+      "reason": "supporting-diet-knowledge-not-guideline"
+    },
+    "medmcqa:train:8ebea7a2-28d5-4021-a06f-491369bb706b": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:911c0caa-da89-4153-b4eb-3c761207533a": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:91bfb574-6389-481d-a486-8e7d711e31bd": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:a4bcd288-0aa2-46e2-a60e-825fd32a967e": {
+      "relevant": true,
+      "reason": "supporting-diet-knowledge-not-guideline"
+    },
+    "medmcqa:train:a9480888-a62f-4421-b6a3-91a40c81429d": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:b169ae17-afb8-432c-985b-f692b73ced92": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:b4c3964b-33a6-4a3b-8d9a-f662e2a1f8a6": {
+      "relevant": true,
+      "reason": "supporting-diet-knowledge-not-guideline"
+    },
+    "medmcqa:train:b892374d-5c95-4cb8-a0a3-b3fcd0dca1a7": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:b89ec983-a983-46f3-b221-652176d7c7cf": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:c03695ce-ecc3-4278-99be-82181b703b5d": {
+      "relevant": false,
+      "reason": "manually-identified-conflicting-family"
+    },
+    "medmcqa:train:c25154c7-a460-4b45-aa24-5019cf88c1f4": {
+      "relevant": true,
+      "reason": "supporting-diet-knowledge-not-guideline"
+    },
+    "medmcqa:train:c27ef788-438d-4c79-86bf-1b0d6656f856": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:c45db9d5-014d-4f75-9dde-f0246fe791fc": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:c5d8069f-5cf4-4b4e-aea8-b0adc3a4b56c": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:c75147a4-25eb-4f14-ac92-ba8d654ea2d2": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:cfb69359-0e86-4a8a-b74c-27f7364b75a4": {
+      "relevant": true,
+      "reason": "supporting-diet-knowledge-not-guideline"
+    },
+    "medmcqa:train:d5aee823-0a98-4912-80bc-03200b46a564": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:e3e1a0cc-96fc-45fd-b77c-d256167dd56d": {
+      "relevant": false,
+      "reason": "manually-identified-conflicting-family"
+    },
+    "medmcqa:train:e5e5584f-7aa8-4a4d-a06b-f8657b2a52e7": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:e6becfc9-5431-4e30-8e64-b453a9e40d95": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:e89621a1-afa6-4af6-9850-2890fc34e885": {
+      "relevant": true,
+      "reason": "supporting-diet-knowledge-not-guideline"
+    },
+    "medmcqa:train:eae0ccc3-62a7-4ea5-9563-ccecfbb9f2cb": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:f62552e1-78e1-4fcc-ac06-720270de6168": {
+      "relevant": true,
+      "reason": "supporting-diet-knowledge-not-guideline"
+    },
+    "medmcqa:train:f62667d6-8ace-458f-aa25-6994016b015f": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medmcqa:train:f64426ec-9fc9-4818-ad9c-62fa2f26f9b7": {
+      "relevant": false,
+      "reason": "incidental-lifestyle-or-mechanism-or-unverified-numeric-rule"
+    },
+    "medquad:8_NHLBI_QA_XML/0000045.xml:0000045-3": {
+      "relevant": true,
+      "reason": "explicit-diet-activity-management"
+    },
+    "medquad:4_MPlus_Health_Topics_QA/0000968.xml:0000968-1": {
+      "relevant": true,
+      "reason": "explicit-diet-activity-management"
+    },
+    "medquad:5_NIDDK_QA/0000153.xml:0000153-10": {
+      "relevant": true,
+      "reason": "explicit-diet-activity-management"
+    },
+    "medquad:5_NIDDK_QA/0000138.xml:0000138-9": {
+      "relevant": true,
+      "reason": "explicit-diet-activity-management"
+    },
+    "medquad:8_NHLBI_QA_XML/0000045.xml:0000045-1": {
+      "relevant": true,
+      "reason": "explicit-diet-activity-management"
+    },
+    "medquad:4_MPlus_Health_Topics_QA/0000445.xml:0000445-1": {
+      "relevant": true,
+      "reason": "explicit-diet-activity-management"
+    },
+    "medquad:8_NHLBI_QA_XML/0000058.xml:0000058-8": {
+      "relevant": true,
+      "reason": "explicit-diet-activity-management"
+    },
+    "medquad:5_NIDDK_QA/0000140.xml:0000140-9": {
+      "relevant": true,
+      "reason": "explicit-diet-activity-management"
+    },
+    "medquad:7_SeniorHealth_QA/0000061.xml:0000061-15": {
+      "relevant": true,
+      "reason": "explicit-diet-activity-management"
+    },
+    "medquad:5_NIDDK_QA/0000136.xml:0000136-8": {
+      "relevant": false,
+      "reason": "too-nonspecific-specialist-management"
+    },
+    "medquad:5_NIDDK_QA/0000078.xml:0000078-11": {
+      "relevant": true,
+      "reason": "explicit-diet-activity-management"
+    },
+    "medquad:5_NIDDK_QA/0000033.xml:0000033-12": {
+      "relevant": true,
+      "reason": "explicit-diet-activity-management"
+    },
+    "medquad:4_MPlus_Health_Topics_QA/0000372.xml:0000372-1": {
+      "relevant": true,
+      "reason": "explicit-diet-activity-management"
+    },
+    "medquad:5_NIDDK_QA/0000122.xml:0000122-11": {
+      "relevant": true,
+      "reason": "explicit-diet-activity-management"
+    },
+    "medquad:5_NIDDK_QA/0000157.xml:0000157-11": {
+      "relevant": true,
+      "reason": "explicit-diet-activity-management"
+    },
+    "medquad:5_NIDDK_QA/0000032.xml:0000032-8": {
+      "relevant": true,
+      "reason": "explicit-diet-activity-management"
+    },
+    "medquad:4_MPlus_Health_Topics_QA/0000437.xml:0000437-1": {
+      "relevant": true,
+      "reason": "explicit-diet-activity-management"
+    },
+    "medquad:5_NIDDK_QA/0000203.xml:0000203-11": {
+      "relevant": true,
+      "reason": "explicit-diet-activity-management"
+    },
+    "medquad:5_NIDDK_QA/0000035.xml:0000035-10": {
+      "relevant": true,
+      "reason": "explicit-diet-activity-management"
+    },
+    "medquad:4_MPlus_Health_Topics_QA/0000653.xml:0000653-1": {
+      "relevant": true,
+      "reason": "explicit-diet-activity-management"
+    }
+  },
+  "reservedDocuments": [
+    "5_NIDDK_QA/0000018.xml",
+    "5_NIDDK_QA/0000044.xml",
+    "7_SeniorHealth_QA/0000049.xml",
+    "8_NHLBI_QA_XML/0000071.xml"
+  ],
+  "reservedFocusHashes": [
+    "0b11eb31570a65b27c71334449a323239f13949f332564d6db679593e18b43a2",
+    "137b32c49bb8ce96ac14237d97512ffbed189643a848e8097f0e09989a277283",
+    "156da96d5bf6c69f6e23ff5b73786319c4504aa343f48973dfc093d91b54ab79",
+    "57e39a1b028c6badbda6f3a894557b0fd1fd806a411d81415bd9fdc7e6c1a0f6",
+    "cb103f1f29189a4587f9e8272d15f23f79c7aef5ddff89672ae906f3f6c52977",
+    "da0ee2e400f2aae6e3638a55f5c1da4741cdab3ad34a3241b80f2f950086995d"
+  ],
+  "smokeFingerprint": "7f88cef9e7a647c36fd7d3bd3294ee681b2e135e986b806208f5f3b8041fdb2f",
+  "sampleCohort": {
+    "MedQuAD": [
+      "medquad:8_NHLBI_QA_XML/0000045.xml:0000045-3",
+      "medquad:4_MPlus_Health_Topics_QA/0000968.xml:0000968-1",
+      "medquad:5_NIDDK_QA/0000153.xml:0000153-10",
+      "medquad:5_NIDDK_QA/0000138.xml:0000138-9",
+      "medquad:8_NHLBI_QA_XML/0000045.xml:0000045-1",
+      "medquad:4_MPlus_Health_Topics_QA/0000445.xml:0000445-1",
+      "medquad:8_NHLBI_QA_XML/0000058.xml:0000058-8",
+      "medquad:5_NIDDK_QA/0000140.xml:0000140-9",
+      "medquad:7_SeniorHealth_QA/0000061.xml:0000061-15",
+      "medquad:5_NIDDK_QA/0000136.xml:0000136-8",
+      "medquad:5_NIDDK_QA/0000078.xml:0000078-11",
+      "medquad:5_NIDDK_QA/0000033.xml:0000033-12",
+      "medquad:4_MPlus_Health_Topics_QA/0000372.xml:0000372-1",
+      "medquad:5_NIDDK_QA/0000122.xml:0000122-11",
+      "medquad:5_NIDDK_QA/0000157.xml:0000157-11",
+      "medquad:5_NIDDK_QA/0000032.xml:0000032-8",
+      "medquad:4_MPlus_Health_Topics_QA/0000437.xml:0000437-1",
+      "medquad:5_NIDDK_QA/0000203.xml:0000203-11",
+      "medquad:5_NIDDK_QA/0000035.xml:0000035-10",
+      "medquad:4_MPlus_Health_Topics_QA/0000653.xml:0000653-1"
+    ],
+    "MedMCQA": [
+      "medmcqa:train:4283dead-7d59-4527-a02d-e64bebf2a9fd",
+      "medmcqa:train:2e68a778-d1ca-4b97-95d4-3eff0a883076",
+      "medmcqa:train:78a92783-be42-45cb-afa0-9e50a681afe4",
+      "medmcqa:train:2f30104e-d89d-44f4-bfd6-c7c154a69882",
+      "medmcqa:train:3ac78d97-bd67-48ad-b12e-2ea9b2145de3",
+      "medmcqa:train:91bfb574-6389-481d-a486-8e7d711e31bd",
+      "medmcqa:train:0b2750f3-886f-40ea-9b09-6e3e69846871",
+      "medmcqa:train:5ec265ba-6a8c-4d7c-b36c-6bfb90c0bbc5",
+      "medmcqa:train:10ec80bb-af04-4f94-9686-91b8752dc3d1",
+      "medmcqa:train:64c1b402-6cb1-445b-96f0-e9c7ef040d11",
+      "medmcqa:train:c03695ce-ecc3-4278-99be-82181b703b5d",
+      "medmcqa:train:b89ec983-a983-46f3-b221-652176d7c7cf",
+      "medmcqa:train:029d4f85-ab47-4a77-b574-2a00860602f1",
+      "medmcqa:train:b4c3964b-33a6-4a3b-8d9a-f662e2a1f8a6",
+      "medmcqa:train:45eaa491-d790-4732-b8bb-c34c2a59b835",
+      "medmcqa:train:25a4e4f8-4b44-4084-a1bb-b5ccd1bcb1a3",
+      "medmcqa:train:622e77df-515e-4d1a-9356-40a90aa6c16b",
+      "medmcqa:train:c45db9d5-014d-4f75-9dde-f0246fe791fc",
+      "medmcqa:train:d5aee823-0a98-4912-80bc-03200b46a564",
+      "medmcqa:train:7ab61b4f-aa81-4357-a3b6-37d17b10d49f"
+    ]
+  }
+}
