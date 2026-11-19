@@ -12,18 +12,19 @@ from tools.lifestyle import model as bridge
 from tools.lifestyle.batch_tests.test_federation import FakeModel
 from tools.lifestyle.common import digest, jsonl, load
 from tools.lifestyle.full.federation.budget import InspectionUnavailable, SwitchingModel
+from tools.lifestyle.full.federation.resources import resource_labels
 from tools.lifestyle.full.federation.run import VerificationUnavailable, run
 from tools.lifestyle.runner import local_platform
 
 IDENTITY = {"endpoint": "default", "model": "test", "kind": "openai", "baseUrl": "https://example.test/v1"}
 
 
-def setup_plan(directory, batches=2):
+def setup_plan(directory, batches=2, sources=("NIH", "NHS")):
     values = []
     for index in range(batches):
         name = f"batch-{index + 1:02}"
         ids = []
-        for source in ("NIH", "NHS"):
+        for source in sources:
             records = [
                 {
                     "id": f"{source}-{index * 2 + i + 1:02}",
@@ -36,13 +37,22 @@ def setup_plan(directory, batches=2):
             ]
             jsonl(directory / "inputs" / (name + "-" + source + ".jsonl"), records)
             ids += [r["id"] for r in records]
-        values.append({"id": name, "count": 4, "sources": {"NIH": 2, "NHS": 2}, "ids": ids})
+        values.append(
+            {
+                "id": name,
+                "count": 2 * len(sources),
+                "sources": {s: 2 for s in sources},
+                "labels": {s: resource_labels("abcdef1234", name, s, 2) for s in sources},
+                "ids": ids,
+            }
+        )
     plan = {
         "generationAttempts": 100,
         "identity": IDENTITY,
         "modelRef": "default:test",
         "batches": values,
-        "counts": {"NIH": 2 * batches, "NHS": 2 * batches},
+        "counts": {s: 2 * batches for s in sources},
+        "resourceTag": "abcdef1234",
         "globalCallCap": 1500,
         "batchCallCap": 250,
         "contextCap": 1050000,
@@ -248,3 +258,14 @@ def test_transient_completed_recheck_failure_keeps_completed_facts(tmp_path, rem
     assert load(tmp_path / "source-usage.json")["status"] == "verification-required"
     assert run(tmp_path, plan)["status"] == "complete"
     assert (remote["paid"], remote["inspect"]) == before
+
+
+def test_all_six_actual_source_labels_pass_real_upload_and_fot(tmp_path, remote):
+    from tools.lifestyle.full.generation.prepare import COUNTS
+
+    plan = setup_plan(tmp_path, 1, sources=tuple(COUNTS))
+    assert max(len(v["name"]) for v in plan["batches"][0]["labels"].values()) <= 40
+    result = run(tmp_path, plan)
+    assert result["status"] == "complete" and set(result["sources"]) == set(COUNTS)
+    assert all(v["uploaded"] == v["extractedUnits"] == 2 for v in result["sources"].values())
+    assert remote["paid"] == 27

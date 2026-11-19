@@ -16,25 +16,43 @@ def test_prepare_requires_complete_generation_before_creating_inputs(tmp_path, m
     assert not (tmp_path / "federation").exists()
 
 
-def test_all444_partition_and_frozen_generation_and_upload_digest(tmp_path, monkeypatch):
+def complete_generation(tmp_path, monkeypatch):
     cases = [{"id": f"{source}-{i}", "source": source} for source, count in COUNTS.items() for i in range(count)]
     generation = tmp_path / "generation"
     for c in cases:
-        save(generation / "units" / (c["id"] + ".json"), {"value": {"id": c["id"], "source": c["source"]}})
+        save(
+            generation / "units" / (c["id"] + ".json"),
+            {
+                "value": {
+                    "id": c["id"],
+                    "input": {"profile": "公开资料，个人情况未知", "question": c["id"] + "适合什么活动？"},
+                    "events": [{"role": "advisor", "content": "先确认身体限制。"}],
+                    "output": "按能力逐步增加活动。",
+                    "provenance": {"synthetic": True, "sourceDataset": c["source"]},
+                }
+            },
+        )
     save(generation / "model.json", IDENTITY)
-    monkeypatch.setattr(preparation, "generation_prepare", lambda _: ({"fingerprint": "fixed-generation", "modelRef": "default:test", "counts": COUNTS}, cases))
+    monkeypatch.setattr(preparation, "generation_prepare", lambda _: ({"fingerprint": "f" * 64, "modelRef": "default:test", "counts": COUNTS}, cases))
     monkeypatch.setattr(
         preparation,
         "usage",
-        lambda *_: ({"state": {"status": "complete"}, "counts": {"unresolvedDispatches": 0}, "remoteAttempts": 445}, {c["id"]: "generated" for c in cases}),
+        lambda *_: ({"state": {"status": "complete"}, "counts": {"unresolvedDispatches": 0}, "remoteAttempts": 447}, {c["id"]: "generated" for c in cases}),
     )
+    return cases, generation
+
+
+def test_all444_partition_and_frozen_generation_and_upload_digest(tmp_path, monkeypatch):
+    cases, generation = complete_generation(tmp_path, monkeypatch)
     directory = tmp_path / "federation"
     plan = preparation.prepare(directory)
+    assert plan["resourceTag"] == "f" * 10
     assert [b["count"] for b in plan["batches"]] == [89, 89, 89, 89, 88]
     actual = Counter()
     ids = []
     for batch in plan["batches"]:
         assert set(batch["sources"]) == set(COUNTS)
+        assert all(len(label["name"]) <= 40 and len(label["sourceName"]) <= 40 and len(label["description"]) <= 120 for label in batch["labels"].values())
         records = preparation.records_for(directory, batch)
         for source, values in records.items():
             actual[source] += len(values)

@@ -101,3 +101,13 @@ uv run --project server python -m tools.lifestyle.full.federation run --resume-a
 五批实现补了完成态保护：复验失败只记录verificationError、阻止后续与整体complete，保留已完成／已发布事实，不把完成批次改成永久失败；恢复后可零调用重验。冻结生成目录前持有同一generation/.lock，不能在生成最后两次文件提交之间取到不一致快照。51项相关测试及ruff通过，最终原生只读Claude收尾复核PASS（此前三轮Companion完整代码复核的发现均已处理）。
 
 生成全部完成并冻结到联邦inputs后，不要再执行生成侧run或手改检查点；只读status可用。最新51项验证及代码摘要在verification/federation-validation.json，最终评审在verification/federation-final-review.json。
+
+## 全量生成完成及上传标签修复（2026-11-19）
+
+SSH恢复后同批续跑，20:39:52 HKT完成444／444：CDC61、MedMCQA14、MedQuAD85、NHLBI8、NHS191、NIDDK85。447次生成尝试＝444成功＋3已结束传输错误；已返回输入1,006,868／输出396,513 token，错误未返回用量不当作免费。
+
+五批开始时探测成功一次，CDC首分区已上传；MedMCQA名称41字超过上传接口40字限制而422，尚未开始反思／提取。此前短来源测试漏覆盖该边界，现准备阶段冻结并预检所有30份name/sourceName/description（40／40／120），六个真实来源通过正常API及FoT测试。v2以generationFingerprint的10位作为新资源标识，不再让显示名依赖自身计划指纹；执行代码变化仍会拒绝冻结重放，不能借此绕过版本检查。
+
+已有v1目录拒绝常规run，需显式维护命令`uv run --project server python -m tools.lifestyle.full.maintenance.repair_labels`。维护仅接受已知指纹、唯一CDC资源、一次已成功探测、无Task及后续批次的这个故障；归档旧输入、账本和只读数据库快照，保留旧resourceTag及CDC合法旧名称。只重冻结标签与计划指纹，30份记录逐字节相同、数据库零写入、生成447次与探测1次账本原样保留，预算不重置。异常恢复旧输入／状态／额度；不提供通用强制迁移或清账本入口。维护代码独立入库便于审计和测试，正式运行不导入它。执行前代码复核，实际回执保存在federation/repairs/，此段不是已经执行的凭据。
+
+标签修复最终验证：62项相关测试、ruff、差异检查通过；两次Companion全量复核后原生只读Claude定向终审PASS，无阻断项。终审未运行测试，结果由Codex执行；原2541文件摘要不变。修复后status暂为label-repaired-pending-run，到第一批返回后刷新实际来源统计，实时工作单元可查隔离平台数据库。回执verification/label-final-review.json。

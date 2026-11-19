@@ -11,13 +11,25 @@ from ...common import digest, load, save
 from ...runner import checked
 
 
+def resource_labels(tag, batch_id, source, count, *, name=None):
+    labels = {
+        "name": name or f"LifeStyle {source} · {batch_id[-2:]} · {tag}",
+        "sourceName": f"LifeStyle {source} · {tag}",
+        "description": f"{source}公开资料的模型生成建议过程，第{batch_id[-2:]}批，共{count}条；非患者或真实医院。",
+    }
+    if any(not labels[k].strip() or len(labels[k]) > limit for k, limit in (("name", 40), ("sourceName", 40), ("description", 120))):
+        raise ValueError("resource-label-exceeds-upload-contract")
+    return labels
+
+
 def ensure_resources(directory, plan, batch, records, platform, client, state):
     path = directory / batch["id"] / "state.json"
-    tag = plan["fingerprint"][:10]
+    tag = plan["resourceTag"]
     for source, values in records.items():
-        name = f"LifeStyle {source} · {batch['id']} · {tag}"
+        labels = batch["labels"][source]
+        name = labels["name"]
         raw = (directory / "inputs" / (batch["id"] + "-" + source + ".jsonl")).read_bytes()
-        source_name = f"LifeStyle {source} · {tag}"
+        source_name = labels["sourceName"]
         with platform.db.session() as session:
             dataset = only(session, m.Dataset, m.Dataset.name == name)
             recovered = {"participantId": dataset.participant_id, "datasetId": dataset.id} if dataset else None
@@ -34,7 +46,7 @@ def ensure_resources(directory, plan, batch, records, platform, client, state):
                         **source_fields,
                         "hosting": "platform",
                         "taskType": "lifestyle-records",
-                        "description": f"{source}公开资料的模型生成建议过程，第{batch['id'][-2:]}批，共{len(values)}条；非患者或真实医院。",
+                        "description": labels["description"],
                     },
                     files={"file": ("process.jsonl", raw, "application/jsonl")},
                 ),
@@ -101,7 +113,7 @@ def publish(directory, plan, batch, platform, client, state):
         library = artifacts[0].content
         if not isinstance(library, dict) or not library or not all(isinstance(k, str) and isinstance(v, str) and v.strip() for k, v in library.items()):
             raise ValueError("invalid-final-library")
-        name = f"LifeStyle FoT · 第{int(batch['id'][-2:])}/{len(plan['batches'])}批 · {plan['fingerprint'][:10]}"
+        name = f"LifeStyle FoT · 第{int(batch['id'][-2:])}/{len(plan['batches'])}批 · {plan['resourceTag']}"
         app = only(session, m.App, m.App.task_id == state["taskId"], m.App.name == name)
         app_id = app.id if app else None
     if app_id is None:

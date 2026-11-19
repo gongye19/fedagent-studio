@@ -2,6 +2,7 @@
 
 import fcntl
 import importlib.metadata
+import re
 import sys
 import tempfile
 from collections import Counter
@@ -13,6 +14,7 @@ from ...common import digest, jsonl, load, rows, save
 from ..generation.prepare import ROOT
 from ..generation.prepare import prepare as generation_prepare
 from ..generation.progress import usage
+from .resources import resource_labels
 
 PACKAGE = Path(__file__).parent
 
@@ -57,7 +59,7 @@ def capacity(record_count):
     return result
 
 
-def prepare(directory):
+def prepare(directory, *, resource_tag=None, label_overrides=None):
     generation = directory.parent / "generation"
     if not generation.exists():
         raise ValueError("all444-generation-must-complete-first")
@@ -66,15 +68,29 @@ def prepare(directory):
             fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError as error:
             raise ValueError("generation-lock-held; wait-for-process-exit-before-freezing") from error
-        return _prepare_locked(directory, generation)
+        return _prepare_locked(directory, generation, resource_tag=resource_tag, label_overrides=label_overrides)
 
 
-def _prepare_locked(directory, generation):
+def _prepare_locked(directory, generation, *, resource_tag=None, label_overrides=None):
     gp, cases = generation_prepare(generation)
     status, states = usage(generation, gp, cases)
     if status["state"]["status"] != "complete" or any(v != "generated" for v in states.values()) or status["counts"]["unresolvedDispatches"]:
         raise ValueError("all444-generation-must-complete-first")
     identity = load(generation / "model.json")
+    target = directory / "inputs"
+    if not target.exists() and any(directory.glob("batch-*")) and resource_tag is None and label_overrides is None:
+        raise ValueError("inputs-missing-but-batch-state-exists")
+    if target.exists():
+        frozen = load(target / "plan.json")
+        if frozen.get("protocol") != "lifestyle-full-federation/2":
+            raise ValueError("legacy-v1-inputs-need-explicit-revision")
+        if resource_tag is not None or label_overrides is not None:
+            raise ValueError("cannot-override-existing-frozen-labels")
+        resource_tag, label_overrides = frozen["resourceTag"], frozen["labelOverrides"]
+    resource_tag = resource_tag or gp["fingerprint"][:10]
+    label_overrides = label_overrides or {}
+    if not re.fullmatch(r"[a-f0-9]{10}", resource_tag):
+        raise ValueError("invalid-resource-tag")
     records = {c["id"]: load(generation / "units" / (c["id"] + ".json"))["value"] for c in cases}
     batches = []
     uploads = {}
@@ -86,11 +102,25 @@ def _prepare_locked(directory, generation):
             raise ValueError("batch-size-or-sources-invalid")
         for source in counts:
             uploads[f"{name}-{source}.jsonl"] = [records[c["id"]] for c in chosen if c["source"] == source]
-        batches.append({"id": name, "count": len(chosen), "sources": counts, "ids": [c["id"] for c in chosen], "capacityPlanningOnly": capacity(len(chosen))})
+        labels = {s: resource_labels(resource_tag, name, s, n, name=label_overrides.get(name + "/" + s)) for s, n in counts.items()}
+        batches.append(
+            {
+                "id": name,
+                "count": len(chosen),
+                "sources": counts,
+                "labels": labels,
+                "ids": [c["id"] for c in chosen],
+                "capacityPlanningOnly": capacity(len(chosen)),
+            }
+        )
     if len({i for b in batches for i in b["ids"]}) != 444 or sum(b["count"] for b in batches) != 444:
         raise ValueError("partition-must-cover-all444-once")
+    if set(label_overrides) - {b["id"] + "/" + s for b in batches for s in b["sources"]}:
+        raise ValueError("unknown-label-override")
     plan = {
-        "protocol": "lifestyle-full-federation/1",
+        "protocol": "lifestyle-full-federation/2",
+        "resourceTag": resource_tag,
+        "labelOverrides": label_overrides,
         "generationFingerprint": gp["fingerprint"],
         "generationFiles": files_at(generation),
         "generationAttempts": status["remoteAttempts"],
@@ -105,7 +135,6 @@ def _prepare_locked(directory, generation):
         "implementation": implementation(),
     }
     plan["fingerprint"] = digest(plan)
-    target = directory / "inputs"
     if target.exists():
         manifest = load(target / "manifest.json")
         if manifest["manifestDigest"] != digest({k: v for k, v in manifest.items() if k != "manifestDigest"}):
