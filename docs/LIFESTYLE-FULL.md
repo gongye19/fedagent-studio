@@ -55,3 +55,13 @@ uv run --project server python -m tools.lifestyle.full.generation run --continue
 ```
 
 正式目录计划为`data/lifestyle-prep/full/run-20261119/generation/`，尚未运行时不能把此路径当作已生成结果。`prepare/status`离线零调用，`run`才创建模型。数据、缓存、用量和回执不入Git；代码／来源元数据／文档进功能分支。旧代码和生产服务不变，后续执行／实际结果在此追加。
+
+## 生成阶段验收（2026-11-19）
+
+20项新用例＋3项既有模型保护用例通过，ruff（server配置）及git diff检查通过。Claude三轮全量代码复核后的低风险项已修正，原生只读CLI最后定向复核PASS；该轮未获/tmp两份历史评审文件读取权限，按当前源码与本文核对，测试由Codex实际执行。首批预算／绑定／两路停止与收尾／格式失败／CLI显式检查均覆盖。
+
+全部444条prepare零调用通过，正式生成输入指纹`75942e1103de928cbbb95b849e93e6d67b079271812531ffa1529737c92eb2ae`。旧T148 prepare零调用仍重放原指纹，2541个既有数据文件摘要未变。
+
+全量单次聚合的输出风险已核算：旧30条／90trace归类实际5587输出token、105.178秒；以每条最多3trace线性规划，444条约82688token／1557秒，超过现有32768／600秒。90条一批约16761／316秒，仅规划估计，不是保证。已向用户提交5批各不超过90条、分别保留原FoT包的选择；未确认前仅继续独立的全量生成，不实现新的汇总规则。证据在正式批次verification/aggregation-capacity.json。
+
+真实生成已于2026-11-19 18:09 HKT启动，代码`acc9845`已推送功能分支；首8条均成功、无格式失败，人工查看全部实际输出后记录摘要并显式继续同一批次。后续完整日志在generation/full.log，来源状态在generation/generation-usage.json。当前仍在生成，未上传／未提取／未发布。未上线。
