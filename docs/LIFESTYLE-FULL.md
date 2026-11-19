@@ -158,3 +158,7 @@ uv run --project server --with matplotlib==3.10.7 python -m tools.lifestyle.full
 当前联邦prepare仍返回2f4bc5b1…、旧T148 prepare仍返回ed956d37…，均零调用；2541个旧文件摘要未变。临时matplotlib环境未修改server依赖或锁文件。启动等待时绑定实现摘要，等待期间若代码／依赖变化，付费前停止，不拿旧进程执行新磁盘版本。统计的输入token规划范围只涉及24条带经验作答请求，不含后续评分，不是730调用总用量。
 
 证据保存在verification/comparison-tests-final-2.txt、comparison-tests-report.txt、comparison-code-review*.json、comparison-close-review.json。自动衔接实际启动结果后续追加；此时仍没有新增评测调用。
+
+### 自动衔接实际启动（2026-11-20 01:04 HKT）
+
+实现fcf01bf已推GitHub功能分支，单次wait-and-run进程已真实启动（当时PID14331，caffeinate防闲置休眠；非系统重启自启）。每30秒检查，当前等待学习进程持锁结束；首日志账本182／182／180，第三批进入profile，新增评测调用0、comparison/inputs尚未创建。没有六组评测、没有部署。启动回执verification/comparison-handoff-start.json，持续日志verification/comparison-handoff.log；进程、文件和额度校验完成才进入付费阶段。中途失败会保留检查点并退出需要处理，不会在后台无限重试。
