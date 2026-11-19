@@ -40,9 +40,9 @@ MedQuAD内原始NIDDK／NHLBI等子集另记`sourceCollection`，不可把它与
 
 ## 后续FoT与平台记录
 
-生成不等于反思／提取／聚合。之前“15批”是沿用首批30条的已验证规模，不是FoT硬限制。[官方Luna说明](https://developers.openai.com/api/docs/models/gpt-5.6-luna)标注1,050,000上下文token，但David代理`GET /models`只返回模型编号，实际窗口未证实。先根据真实提取经验的序列化体积核算，优先保留一次完整原FoT；不默默新增分层汇总或把多份库拼接冒充原版全量结果。之前的分批选择因此暂缓；如真实容量仍不允许再提交具体方案。
+生成不等于反思／提取／聚合。根据首批30条的真实输出和耗时，当前采用用户已确认的五批方案；每批不超过90条，分别保留原FoT经验库，不引入分层汇总或拼接库。[官方Luna说明](https://developers.openai.com/api/docs/models/gpt-5.6-luna)的1,050,000上下文token并不解决单次归类的输出长度和超时风险，David代理实际窗口也未返回容量信息。
 
-阶段一不建平台资源、不做付费接口探测、不发布。否则先上传六份完整数据，分批时又上传小份，会重复资源及计数。平台上传和来源统计将在真实聚合执行方案确定后按其粒度一次完成。最终每来源记录计划／生成／实际上传／参与提取的唯一条目数和trace数，联合经验库的最终数量单列，不把444输入当成444条经验或强行按来源分摊联合经验。
+阶段一不建平台资源或探测／发布。全部生成成功后，按五个互斥分区上传，每个来源共用来源标识，不额外重复上传六份完整数据。每来源的计划／生成／实际上传／参与提取的唯一条目数和trace数分别统计；最终经验数按批单列，不把444输入当成444条经验或按来源虚假分摊。
 
 ## 命令与验收
 
@@ -62,6 +62,42 @@ uv run --project server python -m tools.lifestyle.full.generation run --continue
 
 全部444条prepare零调用通过，正式生成输入指纹`75942e1103de928cbbb95b849e93e6d67b079271812531ffa1529737c92eb2ae`。旧T148 prepare零调用仍重放原指纹，2541个既有数据文件摘要未变。
 
-全量单次聚合的输出风险已核算：旧30条／90trace归类实际5587输出token、105.178秒；以每条最多3trace线性规划，444条约82688token／1557秒，超过现有32768／600秒。90条一批约16761／316秒，仅规划估计，不是保证。已向用户提交5批各不超过90条、分别保留原FoT包的选择；未确认前仅继续独立的全量生成，不实现新的汇总规则。证据在正式批次verification/aggregation-capacity.json。
+全量单次聚合的输出风险已核算：旧30条／90trace归类实际5587输出token、105.178秒；以每条最多3trace线性规划，444条约82688token／1557秒，超过现有32768／600秒。90条一批约16761／316秒，仅规划估计，不是保证。用户已回复继续，执行5批各不超过90条、分别保留原FoT包，不实现新的汇总规则。证据在正式批次verification/aggregation-capacity.json。
 
 真实生成已于2026-11-19 18:09 HKT启动，代码`acc9845`已推送功能分支；首8条均成功、无格式失败，人工查看全部实际输出后记录摘要并显式继续同一批次。后续完整日志在generation/full.log，来源状态在generation/generation-usage.json。当前仍在生成，未上传／未提取／未发布。未上线。
+
+## 五批正式提取方案（用户已确认继续）
+
+用户回复“继续吧”，按已展示的5批／各批保留经验包执行。以冻结的444个编号按5取模，89／89／89／89／88条，全部互斥且各含六来源；平台不另上传一份全量数据再重复上传分区。每来源共用一个来源标识、每批一份分区数据，通过正常API创建5个任务和各自经验包，不合并或分层汇总成所谓全量原版库。
+
+独立`tools/lifestyle/full/federation/`，不修改正在运行的生成代码、旧实验或生产插件。生成全部444成功且无未确认调用后，冻结完整生成文件、分区记录、模型身份、执行代码及依赖。每批沿用真实`fot-records`：读取过程→反思→提取（每条至多3）→汇总→原归类与局部修正→paper-auto建库。原版允许个别条目提取0条，仍要求全部反思／提取单元完成；单列产生经验的条目、0条经验的条目与trace数，不在原算法之外强制补一条或无限重试。
+
+整次含已花生成、五次探测、反思／提取／修正的远程尝试硬限1500；每批既有CachedModel上限不超过250，构造器850限制不变。批次开始时预留后续批次各`2n+3`，不足本批正常路径就在付费前拒绝；这是零重试下限，不保证余量足以覆盖全部修正。分配与已花账本持久化，成功／error／started均计入；禁止新目录或清账本增加额度。实际请求按序列化UTF8字节＋输出上限＋1024检查≤1050000，本地门槛不代表David窗口已验证；单次输出截断或超时仍可能失败，不能靠字节检查保证完成。
+
+公共隔离平台由离线冻结身份初始化，模型桥仅向当前批次转发；完成批次恢复不构造真实模型、不再探测。DrainingEngine只加步骤线程收尾和失败单元快照，核心算法不改。故障用GuardStop/ModelUnavailable立即暂停并保留已有调用；先保存失败单元尝试数，避免原引擎将一个失败单元放回pending后丢失原因。任何异常先停派发，再等在途线程结束。
+
+已结束的临时连接错误可由操作者检查SSH后显式`--resume-after-connection-check`续跑同批，构造器先核对同一远端模型身份，记录账本摘要和恢复编号。余下failed单元必须逐一匹配此前GuardStop快照：blocked无需新派发；ended必须在账本中有对应已结束error，且同请求连接错误少于2次；有usage的空回复／截断不计连接错误。reflect/extract走清单中的有限重试；profile/library清单重试为0，单次空回复或截断直接终止本批，aggregationRetries仅适用于插件已收到完整回复后的结构校验，不能恢复传输截断。仅重置其状态，不清零次数；原引擎自己复位的主失败单元也受独立账本同请求两次错误上限约束。未知started、身份／上下文／缓存／预算或算法格式错误不可按连接故障恢复。不自动连续重试。
+
+来源实际使用数从平台Dataset、TaskSite、WorkUnit与trace核对，逐任务写入audit.lifestyleSourceUsage，并在source-usage.json汇总六来源与5批。planned/generated/uploaded/processedItems/reflectedItems/extractedUnits/traceProducingItems/zeroTraceItems/traceCount分别记录；最终库条数只按批显示，不按来源虚假分摊。平台本地桥缓存重放可能复用原usage，真实远程尝试与token以持久远程账本为准，不当作供应商账单。没有重新评测或上线。
+
+```sh
+uv run --project server python -m tools.lifestyle.full.federation prepare
+uv run --project server python -m tools.lifestyle.full.federation run
+uv run --project server python -m tools.lifestyle.full.federation status
+# 仅在已结束连接故障、核对SSH后
+uv run --project server python -m tools.lifestyle.full.federation run --resume-after-connection-check
+```
+
+五批代码复核进一步区分免费身份读取故障与真实身份变更：前者不更改prepared／interrupted状态、不覆盖先前连接根因，可原批重试；后者仍在付费前终止。每批必须包含全部六来源，准备时强制核对。
+
+新批次先写入计划中的预期model.json，再由CachedModel实际读取远端核对；预置文件不是远端验证成功的凭据。身份漂移不能污染本批身份文件，且保持零付费终止。
+
+## 本次续跑状态（2026-11-19 20:15 HKT）
+
+从169条原检查点继续后，已真实生成382／444；来源CDC61／61、MedMCQA14／14、MedQuAD85／85、NHLBI8／8、NIDDK85／85、NHS129／191。385次远程尝试，382成功、3连接类error，无终态格式失败、无未确认started；剩余NHS62条中2条派发失败、60条未派发。874874输入／338377输出token为已返回用量，3条error可能已计费但未返回usage，不当作零费用。
+
+12:02 UTC左右SSH链路失效，10022双栈连接超时、22拒绝；Tailscale节点在线，8880 registry返回200。两条在途请求已按既定超时收尾，生成状态interrupted，可待SSH恢复后同批显式续跑，未擅自重复派发或重置预算。已向用户请求从服务器控制台确认／恢复SSH。没有建立平台资源、没有开始FoT付费聚合或发布，不能称382条经验。证据verification/network-interruption.json。
+
+五批实现补了完成态保护：复验失败只记录verificationError、阻止后续与整体complete，保留已完成／已发布事实，不把完成批次改成永久失败；恢复后可零调用重验。冻结生成目录前持有同一generation/.lock，不能在生成最后两次文件提交之间取到不一致快照。51项相关测试及ruff通过，最终原生只读Claude收尾复核PASS（此前三轮Companion完整代码复核的发现均已处理）。
+
+生成全部完成并冻结到联邦inputs后，不要再执行生成侧run或手改检查点；只读status可用。最新51项验证及代码摘要在verification/federation-validation.json，最终评审在verification/federation-final-review.json。
