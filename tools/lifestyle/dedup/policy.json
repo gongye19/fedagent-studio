@@ -1,0 +1,19 @@
+{
+  "schema": "lifestyle-unified-dedup/1",
+  "expectedUpstream": {
+    "knowledge": "2aa1ec183e20672b34005039201c7bdd0277d49221599fee4e73aef8e5069d6b",
+    "corpus": "482fa1059cef17d6eb529c3aba73683c46f08d1317f36b6feaae69c2cceed5bc"
+  },
+  "scope": "345 guidance sections + 85 MedQuAD evidence + 14 optional MedMCQA items; no evaluation or smoke records",
+  "thresholdOrigin": "Thresholds selected after an exploratory lexical preflight; not a semantic validation threshold.",
+  "thresholds": {
+    "cosine": 0.35,
+    "jaccard": 0.4,
+    "sharedShingles": 8,
+    "containment": 0.5,
+    "sameUrlShingles": 3
+  },
+  "mergeApprovals": [],
+  "handling": "No equivalence established. Keep every unconfirmed overlap and every population, disease, dose, region, version or layer variant separate. Never merge threshold edges or cross-layer pairs.",
+  "review": "Codex lexical/context inspection, not clinical or exhaustive semantic validation. No remote model calls."
+}
