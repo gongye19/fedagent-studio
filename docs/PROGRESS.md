@@ -1,5 +1,9 @@
 # 当前进展
 
+## T151（2026-11-20，准备中）：五个经验包共同加载，两组对比
+
+按用户确认，五批结果一起加载，与无经验作两组固定24题评测；正常730调用、850硬限，旧六组计划不执行。自动衔接与只读完成检查在独立comparison模块实现，不影响正在跑的五批或旧实验，87项相关测试及最终18项比较用例通过，ruff／差异检查及Claude独立终审PASS。当前未启动付费评测，提交后启动单次等待衔接，实际状态随后追加。详见[LIFESTYLE-FULL.md](./LIFESTYLE-FULL.md)。
+
 ## T150（2026-11-19，进行中）：全量444条与来源用量
 
 444条已全部真实生成（447次尝试＝444成功／3已结束传输错误）。CDC61、MedMCQA14、MedQuAD85、NHLBI8、NHS191、NIDDK85。SSH已恢复。首批上传名称超长故障已修复，原CDC资源／已成功probe／全部付费账本和限额保留，数据库零写入；代码bbc36ab已推功能分支，62项测试、ruff及Claude终审PASS。新版v2计划2f4bc5b1…已冻结，真实五批运行于本机隔离平台启动，首批89条prepare完成、反思推进中；本次记录时29条反思完成，无错误，尚未产出最终库。后续批次顺序执行，实际来源和trace统计写入Task.audit.lifestyleSourceUsage及federation/source-usage.json。运行进程与caffeinate仍在；不是五批已完成，不部署、不评测。详见[LIFESTYLE-FULL.md](./LIFESTYLE-FULL.md)。
