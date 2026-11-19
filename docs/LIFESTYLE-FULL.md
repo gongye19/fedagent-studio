@@ -111,3 +111,5 @@ SSH恢复后同批续跑，20:39:52 HKT完成444／444：CDC61、MedMCQA14、Med
 已有v1目录拒绝常规run，需显式维护命令`uv run --project server python -m tools.lifestyle.full.maintenance.repair_labels`。维护仅接受已知指纹、唯一CDC资源、一次已成功探测、无Task及后续批次的这个故障；归档旧输入、账本和只读数据库快照，保留旧resourceTag及CDC合法旧名称。只重冻结标签与计划指纹，30份记录逐字节相同、数据库零写入、生成447次与探测1次账本原样保留，预算不重置。异常恢复旧输入／状态／额度；不提供通用强制迁移或清账本入口。维护代码独立入库便于审计和测试，正式运行不导入它。执行前代码复核，实际回执保存在federation/repairs/，此段不是已经执行的凭据。
 
 标签修复最终验证：62项相关测试、ruff、差异检查通过；两次Companion全量复核后原生只读Claude定向终审PASS，无阻断项。终审未运行测试，结果由Codex执行；原2541文件摘要不变。修复后status暂为label-repaired-pending-run，到第一批返回后刷新实际来源统计，实时工作单元可查隔离平台数据库。回执verification/label-final-review.json。
+
+实际修复于2026-11-19 21:21 HKT完成：旧v1指纹d9acbac107…→新v2指纹2f4bc5b1a476865a5844352a7f33ec95fb4ca9276c1843afa528cf7f6a6f0e90；retained CDC ds-50947179／p-3788c34b，数据库摘要与原账本未变、零新调用。代码bbc36ab已推送功能分支，21:22恢复首批，复用原probe，89条数据均完成prepare并开始真实reflect。后续阶段状态以运行目录为准，不能将此开跑记录当全部提取完成。

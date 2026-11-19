@@ -2,7 +2,7 @@
 
 ## T150（2026-11-19，进行中）：全量444条与来源用量
 
-444条已全部真实生成（447尝试，444成功／3已结束传输错误；无started）。CDC61、MedMCQA14、MedQuAD85、NHLBI8、NHS191、NIDDK85。SSH已恢复。首批探测1次成功、CDC上传后MedMCQA名称超过40字限制而422，未开始算法。标签预检与独立文件修复经测试及Claude复核；实际执行／后续五批状态继续记入[LIFESTYLE-FULL.md](./LIFESTYLE-FULL.md)。保留全部账本、旧数据与版本检查，不部署、不评测。
+444条已全部真实生成（447次尝试＝444成功／3已结束传输错误）。CDC61、MedMCQA14、MedQuAD85、NHLBI8、NHS191、NIDDK85。SSH已恢复。首批上传名称超长故障已修复，原CDC资源／已成功probe／全部付费账本和限额保留，数据库零写入；代码bbc36ab已推功能分支，62项测试、ruff及Claude终审PASS。新版v2计划2f4bc5b1…已冻结，真实五批运行于本机隔离平台启动，首批89条prepare完成、反思推进中；本次记录时29条反思完成，无错误，尚未产出最终库。后续批次顺序执行，实际来源和trace统计写入Task.audit.lifestyleSourceUsage及federation/source-usage.json。运行进程与caffeinate仍在；不是五批已完成，不部署、不评测。详见[LIFESTYLE-FULL.md](./LIFESTYLE-FULL.md)。
 
 ## T149（2026-11-19）：全部444条候选跨批次查重
 
