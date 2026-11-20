@@ -162,3 +162,13 @@ uv run --project server --with matplotlib==3.10.7 python -m tools.lifestyle.full
 ### 自动衔接实际启动（2026-11-20 01:04 HKT）
 
 实现fcf01bf已推GitHub功能分支，单次wait-and-run进程已真实启动（当时PID14331，caffeinate防闲置休眠；非系统重启自启）。每30秒检查，当前等待学习进程持锁结束；首日志账本182／182／180，第三批进入profile，新增评测调用0、comparison/inputs尚未创建。没有六组评测、没有部署。启动回执verification/comparison-handoff-start.json，持续日志verification/comparison-handoff.log；进程、文件和额度校验完成才进入付费阶段。中途失败会保留检查点并退出需要处理，不会在后台无限重试。
+
+## T150／T151 完成验收（2026-11-20）
+
+五批于香港时间03:45全部完成：89／89／89／89／88条互斥资料共444条，六来源CDC61、MedMCQA14、MedQuAD85、NHLBI8、NHS191、NIDDK85均全部上传、反思和提取完成。共1332条中间trace，paper-auto输出分别18／19／16／19／27条，五包集合99条，未跨包去重，也不是单次全量FoT产出的统一库。所有任务completed，无残留pending／running单元；各来源实际用量已写Task.audit和source-usage.json。生成与提取实际1355次远程尝试，未触及1500限额。
+
+自动衔接于03:45:55开始，04:32:20完成24／24配对：48份新回答、682份逐规则判断；715次实际远程尝试全部ok，15次同请求复用，0失败、0缺题、0未确认started；用量1,104,801输入／97,028输出token。两阶段合计2070次尝试，原生成阶段的3个已结束连接error仍保留，不清零或假称免费。comparison输入指纹3427945496c1c553e9a8c3e8bcdf54f73fbf472bc2ce80709d1ff3c3d0451549。
+
+同模型固定24题平均原始规则满足分：无经验46.6449%，全部五包44.1261%，变化−2.5188个百分点；7题变好、11题持平、6题变差。本轮未观察到总体改善，不将局部改善案例或较少负面规则触发冒充总体提升；这是模型自评的推荐规则分，不是临床准确率。独立comparison/report.html、PNG／SVG、CSV、JSON均已生成。学习阶段source-usage.json的evaluationRun=false仅说明学习任务本身不含评测，独立比较完成状态以comparison/run.json为准。
+
+09:26 HKT离线复验冻结输入／模型账本／全部单元摘要／五库DB成果／24配对均通过；显式禁止remote和模型构造器后仍能完成复验，新增业务调用与身份读取均0，715次账本逐字节不变，2541个旧保护文件未改。实际图表已查看；全部一次性进程正常退出，未部署。验收回执verification/complete-verification.json；本轮未追加付费排查或重新评分。
