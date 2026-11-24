@@ -1,0 +1,119 @@
+{
+  "version": "1.0.1",
+  "sourceVersion": "a15df5f38c7d8cb59a1d499909a6a6ae5648af218deef7456d149dee88b89338",
+  "splitSeed": "sensor-samples-v1",
+  "holdoutPeople": "(n+2)//5 of all original participants before sample eligibility; no reseeding",
+  "participantUniverse": "CGMacros: 45 sensor-file participants, not gut-only 24/25; LifeSnaps: all 71 daily-table IDs",
+  "exclusionOrder": "source quality -> amount column absent -> amount missing/invalid -> nonpositive amount -> other food within +/-120min -> device-window diagnostics; excluded food records still block nearby meals",
+  "budgetTiers": "per source: smoke 2 learning cases per site and 6 evaluation cases total; first 10 per site and 24 evaluation total; all; optional nonoverlap view; choose evaluation round-robin across people independent of outcome",
+  "fileOrder": "evaluation inputs sorted by opaque case ID, not participant or chronology",
+  "cgmacros": {
+    "baselineOffsets": [
+      -15,
+      -1
+    ],
+    "postOffsets": [
+      0,
+      120
+    ],
+    "foodExclusionMinutes": 120,
+    "devices": [
+      "dexcom_mg_dl",
+      "libre_mg_dl"
+    ],
+    "glucoseRange": [
+      40,
+      400
+    ],
+    "amount": "finite positive raw value required; no units inferred; raw/status only in provenance, not model input",
+    "quality": "nutrition_candidate true and no existing quality_flags",
+    "priorActivityMinutes": 60,
+    "meanMinimumCoverage": 48,
+    "primaryTarget": "positive_iauc_120_mg_dl_min",
+    "profileFields": [
+      "age_years",
+      "sex_code",
+      "bmi",
+      "weight_kg",
+      "height_cm",
+      "fasting_glucose_mg_dl"
+    ],
+    "inputKeys": [
+      "profile",
+      "logged_meal",
+      "prior_activity"
+    ],
+    "mealFields": [
+      "type",
+      "nutrition_estimates",
+      "intake_status"
+    ],
+    "nutrientFields": [
+      "kcal",
+      "carbs_g",
+      "protein_g",
+      "fat_g",
+      "fiber_g"
+    ],
+    "activityFields": [
+      "window_minutes",
+      "heart_rate_bpm_observed_minutes",
+      "heart_rate_bpm_mean",
+      "mets_observed_minutes",
+      "mets_mean",
+      "activity_kcal_observed_minutes",
+      "activity_kcal_sum"
+    ],
+    "reference": "released interpolated grid, not raw independent measurements or causal recommendation benefit; own baseline protocol, not an exact author-notebook reproduction"
+  },
+  "lifesnaps": {
+    "historyOffsets": [
+      -2,
+      -1,
+      0
+    ],
+    "targetDayOffset": 2,
+    "maxTargetDurationMinutes": 1440,
+    "profileFields": {
+      "age_group": "age",
+      "gender": "gender",
+      "bmi_group": "bmi"
+    },
+    "profileConsensus": "only the three historical rows of this person; any missing/conflict -> null with flag; never target/future rows",
+    "historyFields": {
+      "steps": "steps",
+      "lightly_active_minutes": "lightly_active_minutes",
+      "moderately_active_minutes": "moderately_active_minutes",
+      "very_active_minutes": "very_active_minutes",
+      "sedentary_minutes": "sedentary_minutes",
+      "energy_burned_kcal": "calories",
+      "mean_hr_bpm": "bpm",
+      "minutes_asleep": "minutesAsleep"
+    },
+    "primaryTarget": "minutes_asleep",
+    "inputKeys": [
+      "profile",
+      "history"
+    ],
+    "reference": "released mainSleep/dateOfSleep aggregates; no exact sleep start/end available; one-day embargo reduces overnight overlap, not a validated prospective or intervention task"
+  },
+  "evaluation": {
+    "metric": "absolute error, mean within each participant then equal mean across participants",
+    "invalidPrediction": "unscored plus coverage; never replace with zero or silently claim benefit; require both arms 100% parse coverage for a complete benefit conclusion",
+    "peakDelta": "negative values retained, no clipping",
+    "execution": "one independent stateless conversation per case; only input is model payload, opaque id is metadata; runner not implemented here"
+  },
+  "budget": {
+    "maxBatchRecords": 30,
+    "minimumSitesPerBatch": 2,
+    "reserveScenarioPercent": 15,
+    "adapterImplemented": false,
+    "retrievalImplemented": false,
+    "executionApproved": false,
+    "normalFormulaTemplate": "2N+3B+2M",
+    "normalFormulaGeneratedExplanation": "3N+3B+2M",
+    "meaning": "template observation records cost zero initial generation calls; N extra calls for optional synthetic explanations; reflect/extract 2N, profile/library 2B, proposed probe B, two-arm numeric answers 2M; conditional on future validated adapter and bounded retrieval, not all per-batch libraries pasted into prompt",
+    "reserveMeaning": "planning reserve only, not worst-case retries or an approved cap; no verified current price, no currency estimate"
+  },
+  "sourceManifestSha256": "ae90f29eae3c75ab2396b409869a08f978c3a6cce68046f689d4fbb01bdbca3e"
+}
