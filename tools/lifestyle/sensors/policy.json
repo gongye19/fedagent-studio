@@ -1,0 +1,30 @@
+{
+  "version": "1.0.2",
+  "decimalPlaces": 8,
+  "rounding": "ROUND_HALF_EVEN",
+  "maxArchiveBytes": 12884901888,
+  "maxMemberBytes": 10737418240,
+  "maxCompressionRatio": 1000,
+  "mealTypes": {"breakfast": "breakfast", "lunch": "lunch", "dinner": "dinner", "snack": "snack", "snacks": "snack", "snack 1": "snack"},
+  "nutrientRanges": {"kcal": {"min": 30, "max": 1180}, "carbs_g": {"max": 176}, "protein_g": {"max": 176}, "fat_g": {"max": 176}, "fiber_g": {"max": 176}},
+  "mealCandidate": "known meal type, valid local timestamp, five finite nonnegative nutrients, kcal > 0; candidate is not a validated recommendation or CGM outcome",
+  "mealFlags": "all-zero nutrition, fiber > carbs, published dictionary range exceeded, missing image, missing nutrients; amount unit is a separate participant-level status and is always unverified",
+  "amountConsumed": "raw text only; participant-level heuristic unit status, never normalize as percent or multiply nutrients",
+  "glucose": "retain two published interpolated minute grids separately; flag outside 40..400 mg/dL without clipping; no response/benefit labels",
+  "lifeActivityCandidate": "steps >= 0, bpm > 0, all four activity-minute fields present and nonnegative, total <= 1440; no full-wear claim",
+  "lifeSleepCandidate": "duration_ms > 0 and 0 < minutesAsleep <= duration_ms/60000",
+  "lifeNumericBounds": {
+    "default": "finite nonnegative numeric values; invalid cells blanked with raw value in issues.jsonl",
+    "negativeAllowed": ["temperature", "daily_temperature_variation"],
+    "max100": ["spo2", "sleep_efficiency", "stress_score"],
+    "max1": ["sleep_points_percentage", "exertion_points_percentage", "responsiveness_points_percentage"],
+    "basis": "nonnegative count/duration/energy domains, saturation/efficiency/score 0..100 and component fraction 0..1; no clinical extreme clipping",
+    "zeroStress": "retain 0 as an unverified score and flag; do not infer it means absence of stress"
+  },
+  "untypedMealFields": "preserve any nutrient/amount/image/sugar values with empty Meal Type in a separate sidecar with all raw fields; not counted as typed meals",
+  "lifeTime": "strict local date and integer-valued hour 0..23, no UTC conversion or timezone inference; off-campaign dates retained with flag",
+  "dedup": "same table and participant/time key; compare all source payload strings except export index; identical payload merges all source row numbers, conflicting key quarantines entire group",
+  "unknownHeaders": "fail closed",
+  "missing": "no imputation; absent columns counted separately from empty cells",
+  "scope": "CGMacros all CSV tables and image references; LifeSnaps all seven CSV tables; BSON and images preserved in original ZIP without conversion"
+}

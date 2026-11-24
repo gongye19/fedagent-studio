@@ -1,6 +1,6 @@
 # 文档索引
 
-LifeStyle 当前准备阶段：[公开资料链路](./LIFESTYLE.md)／[运动与饮食语料、数量和调用预算](./LIFESTYLE-CORPUS.md)。最新要求为先准备、待用户决定付费运行规模，不部署。
+LifeStyle 最新为[CGMacros／LifeSnaps本地清理](./LIFESTYLE-SENSORS.md)，不调用模型或部署。此前[444条提取与五包两组评测](./LIFESTYLE-FULL.md)已完成，未见总体提升；[公开资料链路](./LIFESTYLE.md)／[语料与预算](./LIFESTYLE-CORPUS.md)保留原阶段记录。
 
 接手开发先读 [交接说明](./HANDOFF.md)（现状、部署、服务器怎么连、待办）。其余建议按以下顺序阅读：
 
