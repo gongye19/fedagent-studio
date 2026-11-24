@@ -1,6 +1,6 @@
 # 文档索引
 
-LifeStyle 最新为[观测样本、用户留出与调用预算](./LIFESTYLE-SAMPLES.md)，基于[CGMacros／LifeSnaps清理结果](./LIFESTYLE-SENSORS.md)，仅离线准备、不调用模型或部署。此前[444条提取与五包两组评测](./LIFESTYLE-FULL.md)已完成，未见总体提升；[公开资料链路](./LIFESTYLE.md)／[语料与预算](./LIFESTYLE-CORPUS.md)保留原阶段记录。
+LifeStyle 最新为[CGMacros观测经验小试](./LIFESTYLE-SENSOR-TRIAL.md)：先验证六学六测，正常27次、硬上限40，不跑全量、不部署。输入来自[观测样本、用户留出与调用预算](./LIFESTYLE-SAMPLES.md)及[CGMacros／LifeSnaps清理结果](./LIFESTYLE-SENSORS.md)。此前[444条提取与五包两组评测](./LIFESTYLE-FULL.md)已完成，未见总体提升；[公开资料链路](./LIFESTYLE.md)／[语料与预算](./LIFESTYLE-CORPUS.md)保留原阶段记录。
 
 接手开发先读 [交接说明](./HANDOFF.md)（现状、部署、服务器怎么连、待办）。其余建议按以下顺序阅读：
 
