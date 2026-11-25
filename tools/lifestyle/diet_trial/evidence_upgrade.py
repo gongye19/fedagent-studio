@@ -18,15 +18,23 @@ def upgrade(directory):
     old = load(directory / "recovery.json")
     receipt(directory, raw, old["implementation"])
     current = implementation()
-    if old.get("acceptedResponses"):
+    accepted = old.get("acceptedResponses", {})
+    next_stop_exists = len(accepted) == 1 and (directory / "recovery/evidence-STOP.json").exists()
+    if accepted and current == old["implementation"] and not next_stop_exists:
         return receipt(directory, raw, current)
+    index = len(accepted) + 1
+    if index > 2:
+        raise ValueError("only-first-two-original-format-stops-can-upgrade")
     changed = {
         p for p in old["implementation"]["files"] | current["files"] if old["implementation"]["files"].get(p) != current["files"].get(p)
     }
     allowed = {"tools/lifestyle/diet_trial/" + name for name in ("evidence.py", "evidence_upgrade.py", "run.py", "units.py", "__main__.py")}
     if changed - allowed or any(old["implementation"][k] != current[k] for k in current if k != "files"):
         raise ValueError("evidence-upgrade-cannot-change-prompts-scoring-or-algorithm")
-    if load(directory / "recovery/STOP.json")["type"] != "UnitExhausted":
+    stop = "recovery/STOP.json" if index == 1 else "recovery/evidence-STOP.json"
+    relative = f"judging/batch-{index}.json"
+    previous_file = "recovery-before-evidence.json" if index == 1 else "recovery-before-evidence-2.json"
+    if load(directory / stop)["type"] != "UnitExhausted":
         raise ValueError("only-first-judge-format-stop-can-upgrade")
     values = ledger(directory / "meter", raw["identity"])
     cases, replies = answers(directory, {**raw, "globalCallCap": 60, "recovery": old}, load(directory / "batch-01/library.json"))
@@ -36,14 +44,18 @@ def upgrade(directory):
             "input": public(c["input"]),
             "answers": {label: replies[c["id"]][arm] for label, arm in raw["blindMaps"][c["id"]].items()},
         }
-        for c in cases[:2]
+        for c in cases[2 * (index - 1) : 2 * index]
     ]
     messages = judge_messages(blinded)
     body = {"ref": raw["modelRef"], "identity": raw["identity"], "messages": messages, "settings": JUDGE_SETTINGS}
     key = digest(body)
     attempts = [r for r in values if r["requestHash"] == key]
-    unit = load(directory / "judging/batch-1.json")
-    if len(attempts) != 2 or any(r["status"] != "ok" for r in attempts) or unit["failures"] != ["InvalidFormat", "InvalidFormat"]:
+    unit = load(directory / relative)
+    if (
+        sum(r["status"] == "ok" for r in attempts) != 2
+        or any(r["status"] != "ok" and not r.get("completedUpstreamError") for r in attempts)
+        or unit["failures"] != ["InvalidFormat", "InvalidFormat"]
+    ):
         raise ValueError("only-two-original-completed-format-rejections-accepted")
     candidates = sorted((directory / "meter/rejected").glob(key + "-*.json"), key=lambda p: int(p.stem.rsplit("-", 1)[1]))
     candidates.append(directory / f"meter/calls/{key}.json")
@@ -69,7 +81,7 @@ def upgrade(directory):
     if backup.exists():
         raise ValueError("existing-evidence-backup-not-overwritten")
     shutil.copytree(directory, backup)
-    save(directory / "recovery-before-evidence.json", old)
+    save(directory / previous_file, old)
     proof = {"file": str(path.relative_to(directory)), "sha256": file_hash(path), "valueDigest": digest(parsed), "corrections": corrections}
     revised = {
         **old,
@@ -77,14 +89,16 @@ def upgrade(directory):
         "previousRecovery": old["digest"],
         "evidenceChangedFiles": sorted(changed),
         "ledgerPrefix": values,
-        "acceptedResponses": {"judging/batch-1.json": proof},
+        "acceptedResponses": {**accepted, relative: proof},
         "evidenceBackup": str(backup),
     }
+    if index > 1:
+        revised["scoringResume"] = index
     revised["protectedJobFiles"] = {
         **old["protectedJobFiles"],
-        "recovery/STOP.json": file_hash(directory / "recovery/STOP.json"),
-        "judging/batch-1.json": file_hash(directory / "judging/batch-1.json"),
-        "recovery-before-evidence.json": file_hash(directory / "recovery-before-evidence.json"),
+        stop: file_hash(directory / stop),
+        relative: file_hash(directory / relative),
+        previous_file: file_hash(directory / previous_file),
         proof["file"]: proof["sha256"],
     }
     for folder in ("answers", "generation", "meter/calls"):
@@ -92,7 +106,7 @@ def upgrade(directory):
     revised.pop("digest")
     revised["digest"] = digest(revised)
     save(
-        directory / "recovery/units/judging/batch-1.json",
+        directory / "recovery/units" / relative,
         {
             "fingerprint": unit["fingerprint"],
             "failures": [],

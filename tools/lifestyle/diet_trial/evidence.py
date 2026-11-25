@@ -7,9 +7,37 @@ from .protocol import judge_reply as strict_judge_reply
 
 
 def normalize(text, cases):
-    value = json.loads(text)
+    repairs = []
+    try:
+        value = json.loads(text)
+    except json.JSONDecodeError:
+        # 本次模型在两病例边界漏一个}；只允许这一种单字符、唯一可解析的结构修复。
+        candidates = []
+        quoted, escaped = False, False
+        outside = set()
+        for i, char in enumerate(text):
+            if not quoted:
+                outside.add(i)
+            if escaped:
+                escaped = False
+            elif char == "\\" and quoted:
+                escaped = True
+            elif char == '"':
+                quoted = not quoted
+        for match in re.finditer(r',(?=\s*\{\s*"id"\s*:)', text):
+            if match.start() not in outside:
+                continue
+            try:
+                parsed = json.loads(text[: match.start()] + "}" + text[match.start() :])
+                candidates.append((parsed, match.start()))
+            except json.JSONDecodeError:
+                continue
+        if len(candidates) != 1:
+            raise ValueError("judge-json-not-a-unique-single-missing-case-close") from None
+        value, position = candidates[0]
+        repairs = [{"type": "single-missing-case-close", "position": position, "inserted": "}"}]
     expected = {c["id"]: c for c in cases}
-    corrections = []
+    corrections = repairs
     # 非标准结构仍交给原严格解析器拒绝，不从残缺结果补分。
     if not isinstance(value, dict) or not isinstance(value.get("cases"), list):
         return text, corrections

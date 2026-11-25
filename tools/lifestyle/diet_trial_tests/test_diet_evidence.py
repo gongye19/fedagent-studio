@@ -78,3 +78,59 @@ def test_offline_acceptance_uses_earliest_response_and_reuses_all_12_answers(job
         shutil.rmtree(initial["backup"])
         if amended:
             shutil.rmtree(amended["evidenceBackup"])
+
+
+def test_single_missing_case_brace_is_the_only_syntax_change():
+    good, cases = sample("半盘蔬菜")
+    second = {**cases[0], "id": "case2"}
+    value = json.loads(good)
+    value["cases"].append({**value["cases"][0], "id": "case2"})
+    good = json.dumps(value, ensure_ascii=False)
+    boundary = good.index('}, {"id":')
+    broken = good[:boundary] + good[boundary + 1 :]
+    normalized, corrections = normalize(broken, [*cases, second])
+    assert json.loads(normalized) == json.loads(good)
+    assert corrections == [{"type": "single-missing-case-close", "position": boundary, "inserted": "}"}]
+    assert judge_reply(broken, [*cases, second]) == strict_judge(good, [*cases, second])
+    with pytest.raises(ValueError):
+        judge_reply(broken.replace('"pass": true', '"pass": tru', 1), [*cases, second])
+    with pytest.raises(ValueError):
+        judge_reply(broken, cases)  # 不接受多余病例，即使语法可修。
+
+
+def test_second_offline_upgrade_preserves_both_stops_and_only_calls_last_judge(job, remote, monkeypatch):
+    directory, _ = job
+    stopped(directory, remote)
+    initial = prepare_recovery(directory)
+    upgrades = []
+    try:
+        remote["fragmentedJudge"] = True
+        monkeypatch.setattr("tools.lifestyle.diet_trial.run.judge_reply", strict_judge)
+        with pytest.raises(ValueError, match="unit-two-failed"):
+            run(directory)
+        upgrades.append(upgrade(directory))
+        remote["malformedJudgeBatch2"] = True
+
+        def no_syntax_repair(text, cases):
+            json.loads(text)
+            return judge_reply(text, cases)
+
+        monkeypatch.setattr("tools.lifestyle.diet_trial.run.judge_reply", no_syntax_repair)
+        with pytest.raises(ValueError, match="unit-two-failed"):
+            run(directory)
+        prefix = load(directory / "meter/attempts.json")
+        stop = load(directory / "recovery/evidence-STOP.json")
+        monkeypatch.setattr("tools.lifestyle.diet_trial.run.judge_reply", judge_reply)
+        upgrades.append(upgrade(directory))
+        result = run(directory)
+        assert result["attempts"] == len(prefix) + 1
+        assert load(directory / "meter/attempts.json")[: len(prefix)] == prefix
+        assert load(directory / "recovery/evidence-STOP.json") == stop
+        assert len(upgrades[-1]["acceptedResponses"]) == 2
+        proof = upgrades[-1]["acceptedResponses"]["judging/batch-2.json"]
+        assert any(c.get("type") == "single-missing-case-close" for c in proof["corrections"])
+        assert verify(directory) == result
+    finally:
+        shutil.rmtree(initial["backup"])
+        for revision in upgrades:
+            shutil.rmtree(revision["evidenceBackup"])

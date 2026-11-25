@@ -201,6 +201,8 @@ def run(directory, *, link=None):
 
 def stop_path(directory, plan):
     approved = plan.get("recovery")
+    if approved and approved.get("scoringResume"):
+        return directory / f"recovery/scoring-{approved['scoringResume']}-STOP.json"
     return directory / (
         "recovery/evidence-STOP.json"
         if approved and approved.get("acceptedResponses")
