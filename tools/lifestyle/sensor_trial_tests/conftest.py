@@ -52,6 +52,13 @@ def remote(monkeypatch):
             raise ModelError("test unknown cost connection failure")
         is_eval = request["messages"][0]["content"].startswith("CG_OBSERVATION_V1")
         if is_eval:
+            if state.get("abstainShared") and json.loads(request["messages"][1]["content"])["experience"]:
+                return {
+                    "text": json.dumps({"explanation": "缺少该餐CGM，无法计算"}),
+                    "model": "test",
+                    "usage": {"prompt_tokens": 1, "completion_tokens": 1},
+                    "finish_reason": "stop",
+                }
             if state["truncated"]:
                 state["truncated"] -= 1
                 return {"text": "incomplete", "model": "test", "usage": {"completion_tokens": 1}, "finish_reason": "length"}

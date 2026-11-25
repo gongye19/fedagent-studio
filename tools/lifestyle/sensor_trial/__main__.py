@@ -14,7 +14,7 @@ from .verify import verify
 
 def main():
     parser = argparse.ArgumentParser(description="CGMacros 6学6测小试；正常27次、硬上限40，不部署")
-    parser.add_argument("action", choices=("prepare", "run", "verify", "prepare-recovery"))
+    parser.add_argument("action", choices=("prepare", "run", "verify", "prepare-recovery", "accept-abstentions"))
     parser.add_argument("--directory", required=True, type=Path)
     parser.add_argument("--source", type=Path)
     parser.add_argument("--model-ref", default="default:gpt-5.6-luna")
@@ -27,7 +27,11 @@ def main():
     else:
         directory.mkdir(parents=True, exist_ok=True)
         hold_experiment_lock(directory)
-        if args.action == "prepare-recovery":
+        if args.action == "accept-abstentions":
+            from .evaluation_upgrade import accept_abstentions
+
+            result = accept_abstentions(directory)
+        elif args.action == "prepare-recovery":
             result = prepare_recovery(directory, related=args.related_calls, server_audit=args.server_audit)
         elif args.action == "prepare":
             if args.source is None:

@@ -188,10 +188,15 @@ def test_retrieval_input_only_bounded_whole_entries_and_fallback():
         retrieve(value, {"huge": "x" * 12001})
 
 
-@pytest.mark.parametrize("value", [True, -1, "NaN", float("nan"), float("inf"), 1e100, None, "123"])
+@pytest.mark.parametrize("value", [True, -1, "NaN", float("nan"), float("inf"), 1e100, "123"])
 def test_invalid_numeric_predictions_rejected(value):
     with pytest.raises(ValueError):
         prediction(json.dumps({TARGET: value, "explanation": "reason"}))
+
+
+@pytest.mark.parametrize("value", [{"explanation": "不能给出数值"}, {TARGET: None, "explanation": "缺少信息"}])
+def test_abstention_is_not_a_zero_prediction(value):
+    assert prediction(json.dumps(value))[TARGET] is None
 
 
 def test_public_input_and_reference_not_conflated():

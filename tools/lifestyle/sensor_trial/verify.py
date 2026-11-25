@@ -102,18 +102,23 @@ def answer_value(directory, plan, case, arm, library):
     body = {"ref": plan["modelRef"], "identity": plan["identity"], "messages": request_messages, "settings": SETTINGS}
     key = digest(body)
     unit = load(directory / f"answers/{case['id']}-{arm}.json")
-    receipt = load(directory / f"answers/{case['id']}-{arm}-receipt.json")
+    answer_receipt = load(directory / f"answers/{case['id']}-{arm}-receipt.json")
     if (
         unit["fingerprint"] != digest({k: body[k] for k in ("identity", "messages", "settings")})
         or "value" not in unit
         or digest(unit["value"]) != unit.get("valueDigest")
-        or receipt != {"case": case["id"], "arm": arm, "requestHash": key, "retrieval": audit if arm == "shared" else None}
+        or answer_receipt != {"case": case["id"], "arm": arm, "requestHash": key, "retrieval": audit if arm == "shared" else None}
     ):
         raise ValueError("answer-unit-or-retrieval-changed")
-    cache = load(directory / f"meter/calls/{key}.json")
+    proof = unit.get("acceptedCachedResponse")
+    if proof:
+        approved = receipt(directory, plan, required=True).get("acceptedResponses", {})
+        if approved.get(f"{case['id']}-{arm}.json") != proof or proof["requestHash"] != key:
+            raise ValueError("original-abstention-not-approved")
+    cache = load(directory / proof["file"] if proof else directory / f"meter/calls/{key}.json")
     if (
         cache["request"] != body
-        or cache.get("rejected")
+        or (cache.get("rejected") and not proof)
         or cache.get("resultDigest") != digest(cache["result"])
         or cache["result"].get("finish_reason") not in (None, "stop")
         or prediction(cache["result"]["text"]) != unit["value"]
@@ -136,8 +141,18 @@ def verify(directory, *, completing=False):
         truth = ref["observed_outcome"][TARGET]
         pair = answers[case["id"]]
         predictions = {arm: pair[arm][0][TARGET] for arm in pair}
-        errors = {arm: rounded(abs(number(value) - number(truth))) for arm, value in predictions.items()}
-        diff = number(errors["shared"]) - number(errors["baseline"])
+        errors = {arm: rounded(abs(number(value) - number(truth))) if value is not None else None for arm, value in predictions.items()}
+        if all(value is not None for value in predictions.values()):
+            diff = number(errors["shared"]) - number(errors["baseline"])
+            change = "improved" if diff < 0 else "worse" if diff > 0 else "same"
+        else:
+            change = (
+                "both_abstained"
+                if all(v is None for v in predictions.values())
+                else "abstained_with_experience"
+                if predictions["shared"] is None
+                else "answered_with_experience"
+            )
         results.append(
             {
                 "id": case["id"],
@@ -145,7 +160,7 @@ def verify(directory, *, completing=False):
                 "observed": truth,
                 "predictions": predictions,
                 "absoluteErrors": errors,
-                "change": "improved" if diff < 0 else "worse" if diff > 0 else "same",
+                "change": change,
                 "retrieval": pair["shared"][1],
             }
         )
@@ -153,8 +168,9 @@ def verify(directory, *, completing=False):
         scores[arm] = macro_score(
             [{"participant_id": r["participant_id"], "truth": r["observed"], "prediction": r["predictions"][arm]} for r in results]
         )
-    if not all(s["complete"] and s["cases"] == 6 for s in scores.values()):
+    if not all(s["cases"] == 6 for s in scores.values()):
         raise ValueError("incomplete-paired-evaluation")
+    comparable = all(s["complete"] for s in scores.values())
     baseline = number(scores["baseline"]["conditional_user_macro_mae"])
     shared = number(scores["shared"]["conditional_user_macro_mae"])
     result = {
@@ -166,8 +182,9 @@ def verify(directory, *, completing=False):
         "experienceEntries": len(library),
         "sourceUsage": state["sourceUsage"],
         "scores": scores,
-        "maeDeltaSharedMinusBaseline": rounded(shared - baseline),
-        "relativeErrorReduction": rounded((baseline - shared) / baseline) if baseline else None,
+        "maeDeltaSharedMinusBaseline": rounded(shared - baseline) if comparable else None,
+        "relativeErrorReduction": rounded((baseline - shared) / baseline) if comparable and baseline else None,
+        "fullyComparable": comparable,
         "changes": dict(Counter(r["change"] for r in results)),
         "cases": results,
         "attempts": len(attempts),
@@ -207,13 +224,16 @@ def write_report(directory, result):
     ]
     lines.append(
         "|"
-        + "|".join(str(result["scores"][a]["conditional_user_macro_mae"]) for a in ("baseline", "shared"))
+        + "|".join(str(result["scores"][a]["conditional_user_macro_mae"] or "未给出数值") for a in ("baseline", "shared"))
         + "|"
-        + result["maeDeltaSharedMinusBaseline"]
+        + (result["maeDeltaSharedMinusBaseline"] or "不可直接比较")
         + "|"
     )
     lines += [
         "",
+        "回答覆盖率："
+        + "；".join(f"{a} {result['scores'][a]['valid']}/6" for a in ("baseline", "shared"))
+        + "。拒答不补零；覆盖率不完整时不计算总体提升。",
         f"变化：{result['changes']}；经验{result['experienceEntries']}条；实际派发{result['attempts']}/40。",
         f"另计连接诊断{result['relatedDiagnosticCalls']}次，合计{result['totalCountedDispatches']}/40；其中{result['unknownCostAttempts']}次失败调用用量未知，未按零费用处理。",
         "",

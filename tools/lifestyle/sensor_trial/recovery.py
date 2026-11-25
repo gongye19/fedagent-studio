@@ -18,7 +18,16 @@ ALLOWED = {
     "tools/lifestyle/full/federation/budget.py",
     *(
         "tools/lifestyle/sensor_trial/" + name
-        for name in ("prepare.py", "run.py", "verify.py", "__main__.py", "recovery.py", "transport.py")
+        for name in (
+            "prepare.py",
+            "run.py",
+            "verify.py",
+            "__main__.py",
+            "recovery.py",
+            "transport.py",
+            "adapter.py",
+            "evaluation_upgrade.py",
+        )
     ),
 }
 
@@ -77,6 +86,10 @@ def receipt(directory, plan, *, current=None, values=None, required=False):
         raise ValueError("completed-work-unit-recomputed-or-changed")
     if completed_values(directory, value["taskId"]) != value["completedValues"]:
         raise ValueError("completed-reflection-content-changed")
+    for proof in value.get("acceptedResponses", {}).values():
+        path = (directory / proof["file"]).resolve()
+        if not path.is_relative_to((directory / "meter").resolve()) or checksum(path) != proof["sha256"]:
+            raise ValueError("accepted-original-abstention-changed")
     return value
 
 
@@ -98,7 +111,8 @@ def prepare_recovery(directory, *, related=0, server_audit=None):
         raise ValueError("server-confirmed-amendment-requires-first-recovery")
     before = plan["implementation"]
     changed = {p for p in before["files"] | current["files"] if before["files"].get(p) != current["files"].get(p)}
-    if changed - ALLOWED or any(before[k] != current[k] for k in before if k != "files"):
+    ordinary = ALLOWED - {"tools/lifestyle/sensor_trial/adapter.py", "tools/lifestyle/sensor_trial/evaluation_upgrade.py"}
+    if changed - ordinary or any(before[k] != current[k] for k in before if k != "files"):
         raise ValueError("recovery-cannot-change-algorithm-or-unrelated-code")
     values = ledger(directory / "meter", plan["identity"])
     errors = [r for r in values if r["status"] == "error" and "usage" not in r]

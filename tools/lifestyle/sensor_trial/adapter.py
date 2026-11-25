@@ -73,14 +73,16 @@ def messages(value, library):
 
 def prediction(text):
     value = json.loads(text)
-    if not isinstance(value, dict) or set(value) != {TARGET, "explanation"}:
+    if not isinstance(value, dict) or "explanation" not in value or set(value) - {TARGET, "explanation"}:
         raise ValueError("prediction-schema-invalid")
-    raw = value[TARGET]
+    if not isinstance(value["explanation"], str) or not 0 < len(value["explanation"].strip()) <= 3000:
+        raise ValueError("prediction-explanation-invalid")
+    raw = value.get(TARGET)
+    if raw is None:
+        return {TARGET: None, "explanation": value["explanation"].strip()}
     parsed = number(raw)
     if isinstance(raw, bool) or not isinstance(raw, int | float) or parsed is None or parsed < 0:
         raise ValueError("prediction-number-invalid")
-    if not isinstance(value["explanation"], str) or not 0 < len(value["explanation"].strip()) <= 3000:
-        raise ValueError("prediction-explanation-invalid")
     try:
         normalized = rounded(parsed)
     except InvalidOperation as error:
