@@ -98,6 +98,8 @@ def remote(monkeypatch):
                     "coreRecommendations": [value["answers"][label][:100]],
                     "reason": "fixture grounded reason",
                 }
+            if not calibration and state.get("structuredCase") == int(conversation.split("fixture ", 1)[1][0]):
+                result["differences"] = [{"X": "first advice", "Y": "second advice", "significance": "different concrete action"}]
             text = json.dumps(result)
         elif body["messages"][0]["content"].startswith("You are a lifestyle"):
             assert "REFERENCE_ONLY_CANARY" not in json.dumps(body["messages"])

@@ -73,13 +73,21 @@ def parse_judge(text, ref):
             raise ValueError("judge-core-actions")
         if any(not isinstance(s, str) or not 0 < len(s.strip()) <= 350 for s in item["coreRecommendations"]):
             raise ValueError("judge-action-text")
-    if (
-        not isinstance(value["differences"], list)
-        or len(value["differences"]) > 6
-        or any(not isinstance(s, str) or len(s) > 600 for s in value["differences"])
-    ):
+    if not isinstance(value["differences"], list) or len(value["differences"]) > 6:
         raise ValueError("judge-differences")
+    value["differences"] = [difference_text(item) for item in value["differences"]]
     return value
+
+
+def difference_text(item):
+    """仅兼容已观察到的说明结构，不补规则、改变布尔分值或修复截断JSON。"""
+    if isinstance(item, str) and len(item) <= 600:
+        return item
+    if isinstance(item, dict):
+        keys = ("X", "Y", "significance") if set(item) == {"X", "Y", "significance"} else ("answerX", "answerY", "difference")
+        if set(item) == set(keys) and all(isinstance(item[k], str) and 0 < len(item[k].strip()) <= 600 for k in keys):
+            return f"X: {item[keys[0]]}; Y: {item[keys[1]]}; Comparison: {item[keys[2]]}"
+    raise ValueError("judge-differences")
 
 
 def dimension_scores(ref, flags):

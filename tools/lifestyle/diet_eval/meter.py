@@ -8,6 +8,7 @@ from ..common import digest, load, save
 from ..diet_transport import CompletedUpstreamError, DietCachedModel
 from ..full.federation.budget import ledger
 from ..model import CachedModel, InvalidReply
+from .compat import accepted_cache
 
 
 def ledgers(directory, plan):
@@ -101,10 +102,11 @@ def verify_unit(directory, plan, namespace, relative, messages, settings, parse)
     key = digest(body)
     unit = load(directory / relative)
     cache = load(directory / ("meter-" + namespace) / f"calls/{key}.json")
+    cache, recovered = accepted_cache(directory, relative, cache)
     if (
         unit["fingerprint"] != digest({"namespace": namespace, "request": body})
         or cache["request"] != body
-        or cache.get("rejected")
+        or (cache.get("rejected") and not recovered)
         or cache["resultDigest"] != digest(cache["result"])
         or cache["result"].get("finish_reason") not in (None, "stop")
         or parse(cache["result"]["text"]) != unit["value"]

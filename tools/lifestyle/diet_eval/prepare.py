@@ -7,6 +7,7 @@ from ..diet_trial.prepare import file_hash, protected_files
 from ..full.federation.prepare import ROOT
 from ..full.federation.prepare import implementation as base_implementation
 from .audit import audit_library, numeric_features, retrieve
+from .compat import check_implementation
 from .specs import CASES, LIBRARY_RUN, OLD_EVAL, SOURCE
 
 
@@ -153,11 +154,11 @@ def validate(directory):
     plan = load(target / "plan.json")
     if (
         digest({k: v for k, v in plan.items() if k != "fingerprint"}) != plan["fingerprint"]
-        or plan["implementation"] != implementation()
         or plan["protocol"] != "case-specific-diet-evaluation/1"
         or plan["globalCallCap"] != 48
     ):
         raise ValueError("frozen-code-or-plan-changed")
+    check_implementation(directory, plan, implementation())
     actual = {p.name: file_hash(p) for p in target.iterdir() if p.name != "plan.json"}
     if actual != plan["files"] or any(file_hash(ROOT / name) != sha for name, sha in plan["sourceFiles"].items()):
         raise ValueError("frozen-input-or-source-changed")
