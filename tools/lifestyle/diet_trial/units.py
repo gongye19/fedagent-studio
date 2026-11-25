@@ -52,17 +52,18 @@ def checked_ledger(directory, plan):
 def value(directory, plan, relative, messages, settings, parse, *, guard=None, reserve=0):
     body = {"ref": plan["modelRef"], "identity": plan["identity"], "messages": messages, "settings": settings}
     approved = plan.get("recovery")
-    path = directory / ("recovery/units/" + relative if approved and relative == approved["failedUnit"] else relative)
-    if guard is not None:
+    proof = approved.get("acceptedResponses", {}).get(relative) if approved else None
+    path = directory / ("recovery/units/" + relative if approved and (relative == approved["failedUnit"] or proof) else relative)
+    if guard is not None and not proof:
         checked_ledger(directory, plan)
         guard.model.reserved = reserve
         obtain(path, plan["identity"], guard, messages, settings, parse)
     unit = load(path)
-    cache = load(directory / f"meter/calls/{digest(body)}.json")
+    cache = load(directory / proof["file"] if proof else directory / f"meter/calls/{digest(body)}.json")
     if (
         unit["fingerprint"] != digest({k: body[k] for k in ("identity", "messages", "settings")})
         or cache["request"] != body
-        or cache.get("rejected")
+        or (cache.get("rejected") and not proof)
         or cache["resultDigest"] != digest(cache["result"])
         or cache["result"].get("finish_reason") not in (None, "stop")
         or parse(cache["result"]["text"]) != unit["value"]

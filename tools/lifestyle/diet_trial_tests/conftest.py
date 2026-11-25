@@ -85,7 +85,14 @@ def remote(monkeypatch):
                                 "id": c["id"],
                                 "answers": {
                                     label: {
-                                        k: {"pass": True, "evidence": "未发现该风险" if k.startswith("S") else answer[:12]}
+                                        k: {
+                                            "pass": True,
+                                            "evidence": "未发现该风险"
+                                            if k.startswith("S")
+                                            else "核实份量；记录饱腹感"
+                                            if state.get("fragmentedJudge")
+                                            else answer[:12],
+                                        }
                                         for k in CRITERIA
                                     }
                                     for label, answer in c["answers"].items()
