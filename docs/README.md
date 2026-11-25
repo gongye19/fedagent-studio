@@ -1,6 +1,6 @@
 # 文档索引
 
-LifeStyle 最新为[CGMacros观测经验小试](./LIFESTYLE-SENSOR-TRIAL.md)：T155按用户要求保留原检查点恢复六学六测，旧超时及1次诊断都计入原40上限，不跑全量、不部署；实际结果见该文最新记录。输入来自[观测样本、用户留出与调用预算](./LIFESTYLE-SAMPLES.md)及[CGMacros／LifeSnaps清理结果](./LIFESTYLE-SENSORS.md)。此前[444条提取与五包两组评测](./LIFESTYLE-FULL.md)已完成，未见总体提升；[公开资料链路](./LIFESTYLE.md)／[语料与预算](./LIFESTYLE-CORPUS.md)保留原阶段记录。
+LifeStyle 最新为[CGMacros观测经验小试](./LIFESTYLE-SENSOR-TRIAL.md)：T155保留旧检查点后完成六学六测，生成13条经验；无经验6/6数值、MAE5196.65，有经验6/6拒答，未体现预期预测／推荐收益。合计33/40，201测试及离线复验通过，不跑全量、不部署；后续先调整推荐经验目标。输入来自[观测样本、用户留出与调用预算](./LIFESTYLE-SAMPLES.md)及[CGMacros／LifeSnaps清理结果](./LIFESTYLE-SENSORS.md)。此前[444条提取与五包两组评测](./LIFESTYLE-FULL.md)已完成，未见总体提升；[公开资料链路](./LIFESTYLE.md)／[语料与预算](./LIFESTYLE-CORPUS.md)保留原阶段记录。
 
 接手开发先读 [交接说明](./HANDOFF.md)（现状、部署、服务器怎么连、待办）。其余建议按以下顺序阅读：
 
