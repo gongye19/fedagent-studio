@@ -50,3 +50,18 @@ prepare只检查身份、冻结输入／规则／代码，不付费。run才派�
 服务端只读审计找到同请求哈希的全部10条调用，与本机状态一致；五次错误延迟1.16–1.37秒，均为“模型接口返回错误”，不是SSH超时。网关未保存SSE错误详情，不能断言具体通道／额度原因。未增加付费诊断。原FoT尚未开始、无新经验包／对比结果；5份成功建议仅是学习过程，不叫已生成经验。6,604旧文件哈希复验未变，停态重入禁用模型且没有新增调用。没有部署或改生产服务。
 
 本机`data/lifestyle-prep/diet-trial/run-20261125/`保留inputs／generation／meter／STOP.json／run.log、`stopped-summary.md`及`verification/{server-audit,stopped-audit}.json`。不要删除STOP、清除失败次数或新建同一任务绕过重试限制。后续先解决模型上游错误，再明确恢复规则和预算；即使余下全成功，原正常流程仍需31次，现有30次余额不足，不能自动扩限。
+
+## T157：明确续跑后的过载修复
+
+用户要求“继续啊，修复好”，授权继续本轮小规模实验。先备份T156完整目录，诊断重用第六份原始请求，作为原账本第11次派发；具体SSE错误为`upstream_error: Our servers are currently overloaded. Please try again later.`，说明上游服务器过载，非SSH超时。该次同样失败、用量未知，照计次数。
+
+修复只作用于本轮SSH子进程及实验工具，不部署或修改线上网关：安全观察钩子保留上游错误类型，密钥／授权／URL脱敏；所有真实请求串行，确认过载后共享45秒退避。每个相同请求最多4次新的过载失败；其他错误及未知传输结果不按过载重试。仍保留原引擎格式重试、原FoT提示词、模型、样本、评分和paper-auto。
+
+独立`recovery.json`绑定原计划、11条账本前缀、五份成功回复／缓存、失败单元、STOP及新代码指纹；原文件不删除／清零。第六份建议写入新的恢复单元。用户明确续跑后本轮累计硬限60，包含旧10次、诊断1次及后续全部失败／成功；仅本次有效，不改变普通小试默认40，也不扩样本。新的未知失败或四次持续过载仍停止，恢复失败另存`recovery/STOP.json`，不会覆盖历史STOP。结果及真实调用后补。
+
+```bash
+uv run --project server python -m tools.lifestyle.diet_trial prepare-recovery \
+  --directory data/lifestyle-prep/diet-trial/run-20261125
+uv run --project server python -m tools.lifestyle.diet_trial run \
+  --directory data/lifestyle-prep/diet-trial/run-20261125
+```

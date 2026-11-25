@@ -4,6 +4,7 @@ import pytest
 
 from tools.lifestyle import model as bridge
 from tools.lifestyle.batch_tests.test_federation import FakeModel
+from tools.lifestyle.common import digest, save
 from tools.lifestyle.diet_trial import prepare as preparation
 from tools.lifestyle.diet_trial.protocol import CRITERIA
 from tools.lifestyle.sensor_trial import prepare as sensor_preparation
@@ -22,7 +23,16 @@ def job(tmp_path, monkeypatch):
 
 @pytest.fixture
 def remote(monkeypatch):
-    state = {"paid": 0, "inspect": 0, "requests": [], "outage": False, "invalidJudge": 0, "upstreamErrors": 0}
+    state = {
+        "paid": 0,
+        "inspect": 0,
+        "requests": [],
+        "outage": False,
+        "invalidJudge": 0,
+        "upstreamErrors": 0,
+        "failLast": 0,
+        "resumeOverloads": 0,
+    }
     fake = FakeModel()
 
     def call(request):
@@ -31,6 +41,20 @@ def remote(monkeypatch):
             return IDENTITY
         state["paid"] += 1
         state["requests"].append(request)
+        if state["resumeOverloads"]:
+            from tools.lifestyle.diet_transport import CompletedUpstreamError
+
+            state["resumeOverloads"] -= 1
+            save(
+                state["diagnosticsDirectory"] / f"upstream-{digest(request)}-resume{state['resumeOverloads']}.json",
+                {
+                    "completedUpstreamError": True,
+                    "upstream": [{"type": "upstream_error", "message": "Our servers are currently overloaded. Please try again later."}],
+                },
+            )
+            error = CompletedUpstreamError("test overload")
+            error.overloaded = True
+            raise error
         if state["outage"]:
             from fedagent_sdk import ModelError
 
@@ -41,6 +65,13 @@ def remote(monkeypatch):
             state["upstreamErrors"] -= 1
             raise UpstreamReplyError("test completed error event")
         system = request["messages"][0]["content"]
+        if state["failLast"] and system.startswith("DIET_ADVICE_V1"):
+            data = json.loads(request["messages"][1]["content"])
+            if "historical_observation" in data and json.loads(data["input"]["profile"])["profile"]["age_years"] == "25":
+                from tools.lifestyle.sensor_trial.transport import UpstreamReplyError
+
+                state["failLast"] -= 1
+                raise UpstreamReplyError("test last advice overloaded")
         if system.startswith("DIET_BLIND_JUDGE_V1"):
             cases = json.loads(request["messages"][1]["content"])["cases"]
             if state["invalidJudge"]:

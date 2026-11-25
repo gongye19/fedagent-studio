@@ -62,3 +62,34 @@ def test_timeout_is_not_mistaken_for_completed_upstream_error(tmp_path, monkeypa
         link.request({"messages": []})
     assert not getattr(error.value, "completed_upstream_error", False)
     assert not list(tmp_path.iterdir())
+
+
+def test_only_confirmed_overload_cools_down_next_dispatch(tmp_path, monkeypatch):
+    from tools.lifestyle import diet_transport
+
+    link = DietLink(tmp_path)
+    link.base = ["ssh", "test"]
+    monkeypatch.setattr(link, "check", lambda: None)
+    now, sleeps = [100.0], []
+    monkeypatch.setattr(diet_transport.time, "monotonic", lambda: now[0])
+
+    def sleep(seconds):
+        sleeps.append(seconds)
+        now[0] += seconds
+
+    monkeypatch.setattr(diet_transport.time, "sleep", sleep)
+    replies = [
+        {
+            "bridgeError": {
+                "completedUpstreamError": True,
+                "upstream": [{"type": "upstream_error", "message": "Our servers are currently overloaded. Please try again later."}],
+            }
+        },
+        {"text": "reply", "finish_reason": "stop"},
+    ]
+    monkeypatch.setattr(subprocess, "run", lambda *a, **kw: SimpleNamespace(stdout=json.dumps(replies.pop(0))))
+    with pytest.raises(CompletedUpstreamError) as caught:
+        link.request({"messages": []})
+    assert caught.value.overloaded
+    assert link.request({"messages": []})["text"] == "reply"
+    assert sleeps == [45]

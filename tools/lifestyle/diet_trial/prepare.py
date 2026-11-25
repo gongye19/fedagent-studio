@@ -13,6 +13,7 @@ def implementation():
     value = reused_implementation()
     paths = list(Path(__file__).parent.glob("*.py"))
     paths += [ROOT / "tools/lifestyle/sensor_trial" / name for name in ("transport.py", "retrieval.py")]
+    paths += [ROOT / "tools/lifestyle/diet_transport.py"]
     value["files"].update({str(p.relative_to(ROOT)): digest(p.read_bytes().hex()) for p in paths})
     return value
 
@@ -95,12 +96,23 @@ def prepare(directory, source, identity):
 
 
 def validate(directory):
+    plan = load(directory / "inputs/plan.json")
+    validate_frozen(directory, plan)
+    current = implementation()
+    if plan["implementation"] != current or (directory / "recovery.json").exists():
+        from .recovery import receipt
+
+        approved = receipt(directory, plan, current)
+        return {**plan, "globalCallCap": approved["callCap"], "recovery": approved}
+    return plan
+
+
+def validate_frozen(directory, plan):
     target = directory / "inputs"
-    plan = load(target / "plan.json")
     if digest({k: v for k, v in plan.items() if k != "fingerprint"}) != plan["fingerprint"]:
         raise ValueError("plan-changed")
-    if plan["protocol"] != "cg-diet-advice/1" or plan["globalCallCap"] != 40 or plan["implementation"] != implementation():
-        raise ValueError("policy-or-code-changed")
+    if plan["protocol"] != "cg-diet-advice/1" or plan["globalCallCap"] != 40:
+        raise ValueError("policy-changed")
     actual = {
         p.name: file_hash(p) for p in target.iterdir() if p.name != "plan.json" and p.name not in {f"batch-01-{s}.jsonl" for s in "ABC"}
     }
@@ -119,4 +131,3 @@ def validate(directory):
         not (root / p).is_file() or file_hash(root / p) != expected for p, expected in protected.items()
     ):
         raise ValueError("previous-experiment-file-changed")
-    return plan

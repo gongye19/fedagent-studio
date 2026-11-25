@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from ..common import hold_experiment_lock
-from ..sensor_trial.transport import SSHLink
+from ..diet_transport import DietLink
 from .prepare import prepare
 from .run import run
 from .verify import verify
@@ -13,7 +13,7 @@ from .verify import verify
 
 def main():
     parser = argparse.ArgumentParser(description="CGMacros饮食推荐六学六测，正常36次，硬限40，不部署")
-    parser.add_argument("action", choices=("prepare", "run", "verify"))
+    parser.add_argument("action", choices=("prepare", "prepare-recovery", "run", "verify"))
     parser.add_argument("--directory", type=Path, required=True)
     parser.add_argument("--source", type=Path)
     parser.add_argument("--model-ref", default="default:gpt-5.6-luna")
@@ -21,7 +21,11 @@ def main():
     directory = args.directory.resolve()
     directory.mkdir(parents=True, exist_ok=True)
     hold_experiment_lock(directory)
-    if args.action == "verify":
+    if args.action == "prepare-recovery":
+        from .recovery import prepare_recovery
+
+        result = prepare_recovery(directory)
+    elif args.action == "verify":
         result = verify(directory)
     elif args.action == "run" and (directory / "COMPLETE.json").exists():
         result = run(directory)
@@ -29,9 +33,11 @@ def main():
         if args.action == "prepare" and args.source is None:
             parser.error("prepare需要--source")
         # 已停止的作业不建立SSH；保留失败事实，等待明确处理。
-        if args.action == "run" and (directory / "STOP.json").exists():
+        if args.action == "run" and (
+            (directory / "STOP.json").exists() and not (directory / "recovery.json").exists() or (directory / "recovery/STOP.json").exists()
+        ):
             raise ValueError("stopped-job-needs-explicit-investigation")
-        with SSHLink() as link:
+        with DietLink(directory / "verification/upstream") as link:
             if args.action == "prepare":
                 identity = link.request({"ref": args.model_ref, "inspect": True})
                 if args.model_ref != identity["endpoint"] + ":" + identity["model"]:

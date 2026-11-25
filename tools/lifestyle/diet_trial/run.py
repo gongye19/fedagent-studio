@@ -170,13 +170,13 @@ def run(directory, *, link=None):
     checked_ledger(directory, plan)
     if (directory / "COMPLETE.json").exists():
         return verify(directory)
-    if (directory / "STOP.json").exists():
+    if ((directory / "STOP.json").exists() and not plan.get("recovery")) or (directory / "recovery/STOP.json").exists():
         raise ValueError("stopped-job-needs-explicit-investigation-no-auto-retry")
     factory = {}
     if link is not None:
-        from ..sensor_trial.transport import ConnectedModel
+        from ..diet_transport import DietCachedModel
 
-        factory["factory"] = partial(ConnectedModel, link=link)
+        factory["factory"] = partial(DietCachedModel, link=link)
     guard = DietModel(directory / "meter", plan, plan["globalCallCap"], **factory)
     try:
         records = generated_records(directory, plan, guard)
@@ -193,7 +193,8 @@ def run(directory, *, link=None):
         save(directory / "COMPLETE.json", {"fingerprint": plan["fingerprint"], "reportDigest": digest(result)})
         return result
     except Exception as error:
-        save(directory / "STOP.json", {"type": type(error).__name__, "message": str(error), "rootError": guard.root_error})
+        stop = "recovery/STOP.json" if plan.get("recovery") else "STOP.json"
+        save(directory / stop, {"type": type(error).__name__, "message": str(error), "rootError": guard.root_error})
         raise
     finally:
         guard.stopped.set()

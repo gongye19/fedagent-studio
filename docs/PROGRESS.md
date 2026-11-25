@@ -1,5 +1,9 @@
 # 当前进展
 
+## T157（2026-11-25）：修复已确认的模型上游过载，准备断点续跑
+
+用户要求继续修复。安全SSE诊断实际第11次请求确认`upstream_error / servers are currently overloaded`，非SSH。保留原5份成功建议、原计划／失败／账本和STOP，新增受凭据约束的恢复；请求串行，过载共享45秒退避、每请求最多4次新过载失败，仅本次累计硬限60含历史与诊断。模型、问题、FoT、评分不变，不部署、暂不Claude review。验证与实际结果后补，见[LIFESTYLE-DIET-TRIAL.md](./LIFESTYLE-DIET-TRIAL.md)。
+
 ## T156（2026-11-25）：调整为饮食推荐的独立小试
 
 六学习记录先生成带实际回复的模型模拟饮食建议，走原FoT；六名留出用户同模型／同题／同官方依据，比较无经验与加载经验，固定8项匿名评分。正常36、硬限40，代码／输入／规则付费前冻结。T155完整保留，不部署、不跑LifeSnaps或全量，按用户要求暂不Claude review。测试及真实结果见[LIFESTYLE-DIET-TRIAL.md](./LIFESTYLE-DIET-TRIAL.md)，未运行前不宣称提升。

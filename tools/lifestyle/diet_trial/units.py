@@ -6,9 +6,32 @@ from ..full.federation.budget import GuardedModel, ledger
 
 
 class DietModel(GuardedModel):
+    def _prior_errors(self, values, key):
+        approved = self.plan.get("recovery")
+        if not approved:
+            return super()._prior_errors(values, key)
+        relevant = [r for r in values if r["ordinal"] not in approved["acknowledgedOrdinals"]]
+        failures = [r for r in relevant if r["requestHash"] == key and r["status"] == "error" and "usage" not in r]
+        if failures:
+            from .recovery import diagnostic_counts
+
+            known = diagnostic_counts(self.directory.parent).get(key, 0) - approved["priorDiagnostics"].get(key, 0)
+            if known >= len(failures) and all(r.get("completedUpstreamError") for r in failures):
+                return 0 if len(failures) < 4 else 2
+        return super()._prior_errors(relevant, key)
+
     def chat(self, prompt, **settings):
-        self.model.last.dispatched = False
-        return super().chat(prompt, **settings)
+        from ..diet_transport import CompletedUpstreamError
+
+        for attempt in range(4):
+            self.model.last.dispatched = False
+            try:
+                return super().chat(prompt, **settings)
+            except CompletedUpstreamError as error:
+                if not self.plan.get("recovery") or not error.overloaded or attempt == 3:
+                    raise
+                # 传输层会在下一次真正发出请求前共享退避；所有失败仍由原CachedModel入账。
+                print("confirmed upstream overload; bounded delayed retry", flush=True)
 
     def was_dispatched(self):
         return self.model.was_dispatched()
@@ -28,7 +51,8 @@ def checked_ledger(directory, plan):
 
 def value(directory, plan, relative, messages, settings, parse, *, guard=None, reserve=0):
     body = {"ref": plan["modelRef"], "identity": plan["identity"], "messages": messages, "settings": settings}
-    path = directory / relative
+    approved = plan.get("recovery")
+    path = directory / ("recovery/units/" + relative if approved and relative == approved["failedUnit"] else relative)
     if guard is not None:
         checked_ledger(directory, plan)
         guard.model.reserved = reserve

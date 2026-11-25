@@ -140,6 +140,6 @@ def test_cli_completed_run_never_opens_ssh(job, remote, monkeypatch):
     directory, _ = job
     run(directory)
     main = importlib.import_module("tools.lifestyle.diet_trial.__main__")
-    monkeypatch.setattr(main, "SSHLink", lambda: pytest.fail("completed CLI opened SSH"))
+    monkeypatch.setattr(main, "DietLink", lambda *args: pytest.fail("completed CLI opened SSH"))
     monkeypatch.setattr("sys.argv", ["diet-trial", "run", "--directory", str(directory)])
     main.main()

@@ -162,7 +162,7 @@ def verify(directory, *, completing=False):
             "# CGMacros饮食推荐小试",
             "",
             f"原FoT：6条模型模拟饮食建议 → {result['traceCount']}条候选 → {len(library)}条经验。",
-            f"模型派发{len(attempts)}/40次，失败{result['failedAttempts']}次，未知用量{result['unknownUsageAttempts']}次。",
+            f"模型派发{len(attempts)}/{plan['globalCallCap']}次，失败{result['failedAttempts']}次，未知用量{result['unknownUsageAttempts']}次。",
             "",
             "|组别|实用性（固定4项）|安全边界（固定4项）|",
             "|---|---:|---:|",

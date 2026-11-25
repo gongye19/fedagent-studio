@@ -3,6 +3,7 @@
 import json
 import shlex
 import subprocess
+import threading
 import time
 
 from fedagent_sdk import ModelError
@@ -77,8 +78,21 @@ class CompletedUpstreamError(InvalidReply):
 class DietLink(SSHLink):
     def __init__(self, directory):
         self.directory = directory
+        self.dispatch_lock = threading.Lock()
+        self.next_dispatch = 0.0
 
     def request(self, request):
+        if request.get("inspect"):
+            return self._request_once(request)
+        # 仅实验传输串行；过载后所有工作线程共用冷却，不修改算法的任务计划。
+        with self.dispatch_lock:
+            delay = max(0, self.next_dispatch - time.monotonic())
+            if delay:
+                print(f"upstream overloaded; cooling down {delay:.0f}s", flush=True)
+                time.sleep(delay)
+            return self._request_once(request)
+
+    def _request_once(self, request):
         self.check()
         start = time.monotonic()
         try:
@@ -97,10 +111,28 @@ class DietLink(SSHLink):
             detail = value["bridgeError"]
             save(self.directory / f"upstream-{digest(request)}-{time.time_ns()}.json", detail)
             if detail.get("completedUpstreamError"):
-                raise CompletedUpstreamError("已收到上游错误；安全详情已记录，用量未知")
+                error = CompletedUpstreamError("已收到上游错误；安全详情已记录，用量未知")
+                error.overloaded = is_overload(detail)
+                if error.overloaded:
+                    self.next_dispatch = time.monotonic() + 45
+                raise error
             raise ModelError("模型未成功返回；安全详情已记录，停止自动重试")
         print(f"diet bridge {'inspect' if request.get('inspect') else 'reply'}: {time.monotonic() - start:.1f}s", flush=True)
         return value
+
+
+def is_overload(detail):
+    events = detail.get("upstream", [])
+    return (
+        bool(detail.get("completedUpstreamError"))
+        and bool(events)
+        and all(
+            isinstance(e, dict)
+            and e.get("type") == "upstream_error"
+            and "servers are currently overloaded" in str(e.get("message", "")).lower()
+            for e in events
+        )
+    )
 
 
 class DietCachedModel(CachedModel):
