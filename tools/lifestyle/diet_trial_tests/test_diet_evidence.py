@@ -3,14 +3,15 @@ import shutil
 
 import pytest
 
-from tools.lifestyle.common import load
+from tools.lifestyle.common import digest, load, save
 from tools.lifestyle.diet_trial.evidence import judge_reply, normalize
 from tools.lifestyle.diet_trial.evidence_upgrade import upgrade
-from tools.lifestyle.diet_trial.prepare import file_hash
+from tools.lifestyle.diet_trial.prepare import file_hash, validate
 from tools.lifestyle.diet_trial.protocol import CRITERIA
 from tools.lifestyle.diet_trial.protocol import judge_reply as strict_judge
 from tools.lifestyle.diet_trial.recovery import prepare_recovery
 from tools.lifestyle.diet_trial.run import run
+from tools.lifestyle.diet_trial.units import DietModel
 from tools.lifestyle.diet_trial.verify import verify
 from tools.lifestyle.diet_trial_tests.test_diet_recovery import stopped
 
@@ -40,6 +41,23 @@ def test_fragments_restore_whole_source_context_without_changing_scores():
 def test_plus_separated_citation_preserves_parenthesized_examples():
     text, cases = sample("半盘蔬菜＋四分之一蛋白质")
     assert judge_reply(text, cases)["case"]["X"]["U1"]["evidence"] == "半盘蔬菜（任选绿叶菜），四分之一蛋白质"
+
+
+def test_ellipsis_restores_omitted_parentheses_with_all_context():
+    text, cases = sample("半盘蔬菜……四分之一蛋白质")
+    assert judge_reply(text, cases)["case"]["X"]["U1"]["evidence"] == "半盘蔬菜（任选绿叶菜），四分之一蛋白质"
+
+
+def test_u2_factual_list_order_can_differ_but_other_quotes_cannot():
+    text, cases = sample("半盘蔬菜")
+    value = json.loads(text)
+    for scores in value["cases"][0]["answers"].values():
+        scores["U2"]["evidence"] = "碳水约76克；半盘蔬菜"
+    result = judge_reply(json.dumps(value), cases)
+    assert result["case"]["X"]["U2"]["evidence"] in cases[0]["answers"]["X"]
+    value["cases"][0]["answers"]["X"]["U2"]["evidence"] = "碳水约75克；半盘蔬菜"
+    with pytest.raises(ValueError):
+        judge_reply(json.dumps(value), cases)
 
 
 @pytest.mark.parametrize(
@@ -135,6 +153,57 @@ def test_second_offline_upgrade_preserves_both_stops_and_only_calls_last_judge(j
         proof = upgrades[-1]["acceptedResponses"]["judging/batch-2.json"]
         assert any(c.get("type") == "single-missing-case-close" for c in proof["corrections"])
         assert verify(directory) == result
+    finally:
+        shutil.rmtree(initial["backup"])
+        for revision in upgrades:
+            shutil.rmtree(revision["evidenceBackup"])
+
+
+def test_budget_exhausted_last_original_response_can_finalize_offline_without_dispatch(job, remote, monkeypatch):
+    directory, _ = job
+    stopped(directory, remote)
+    initial = prepare_recovery(directory)
+    upgrades = []
+    try:
+        remote["fragmentedJudge"] = True
+        monkeypatch.setattr("tools.lifestyle.diet_trial.run.judge_reply", strict_judge)
+        with pytest.raises(ValueError, match="unit-two-failed"):
+            run(directory)
+        upgrades.append(upgrade(directory))
+        remote["malformedJudgeBatch2"] = True
+
+        def no_json_repair(text, cases):
+            json.loads(text)
+            return judge_reply(text, cases)
+
+        monkeypatch.setattr("tools.lifestyle.diet_trial.run.judge_reply", no_json_repair)
+        with pytest.raises(ValueError, match="unit-two-failed"):
+            run(directory)
+        upgrades.append(upgrade(directory))
+        plan = validate(directory)
+        meter = DietModel(directory / "meter", plan, 60)
+        while len(load(directory / "meter/attempts.json")) < 58:
+            meter.chat("test-only-budget-filler-" + str(len(load(directory / "meter/attempts.json"))), max_tokens=10)
+
+        def reject_last_citation(text, cases):
+            return strict_judge(text, cases) if cases[0]["id"] == "eval-4" else judge_reply(text, cases)
+
+        remote["diagnosticsDirectory"] = directory / "verification/upstream"
+        remote["lastJudgeOverload"] = True
+        monkeypatch.setattr("tools.lifestyle.diet_trial.run.judge_reply", reject_last_citation)
+        with pytest.raises(Exception, match="GuardStop"):
+            run(directory)
+        assert remote["paid"] == 60 and (directory / "recovery/scoring-2-STOP.json").exists()
+        prefix = load(directory / "meter/attempts.json")
+        monkeypatch.setattr("tools.lifestyle.diet_trial.run.judge_reply", judge_reply)
+        before = remote["paid"], remote["inspect"]
+        upgrades.append(upgrade(directory))
+        result = verify(directory, completing=True)
+        save(directory / "COMPLETE.json", {"fingerprint": plan["fingerprint"], "reportDigest": digest(result)})
+        assert run(directory) == result
+        assert load(directory / "meter/attempts.json") == prefix
+        assert (remote["paid"], remote["inspect"]) == before
+        assert len(upgrades[-1]["acceptedResponses"]) == 3
     finally:
         shutil.rmtree(initial["backup"])
         for revision in upgrades:

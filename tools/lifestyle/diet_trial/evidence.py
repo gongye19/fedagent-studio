@@ -54,7 +54,7 @@ def normalize(text, cases):
                 quote = score["evidence"]
                 if quote in source:
                     continue
-                parts = [p.strip() for p in re.split(r"[，、；;,。\n＋+]", quote) if p.strip()]
+                parts = [p.strip() for p in re.split(r"[，、；;,。\n＋+…“”]", quote) if p.strip()]
                 if len(parts) < 2 or any(len(p) < 2 for p in parts):
                     continue
                 spans, offset = [], 0
@@ -64,9 +64,14 @@ def normalize(text, cases):
                         break
                     offset = start + len(part)
                     spans.append([start, offset])
+                if len(spans) != len(parts) and key == "U2":
+                    # U2是多项事实的列举，不要求引用顺序等于原段落顺序；每项仍必须逐字存在。
+                    spans = [[source.find(p), source.find(p) + len(p)] for p in parts]
+                    if any(start < 0 for start, _ in spans):
+                        spans = []
                 if len(spans) != len(parts):
                     continue
-                full = source[spans[0][0] : spans[-1][1]]
+                full = source[min(s[0] for s in spans) : max(s[1] for s in spans)]
                 if len(full) > 500:
                     continue
                 score["evidence"] = full  # 保留被省略的上下文，不拼造新句或删条件。

@@ -19,22 +19,23 @@ def upgrade(directory):
     receipt(directory, raw, old["implementation"])
     current = implementation()
     accepted = old.get("acceptedResponses", {})
-    next_stop_exists = len(accepted) == 1 and (directory / "recovery/evidence-STOP.json").exists()
+    next_stop = "recovery/evidence-STOP.json" if len(accepted) == 1 else "recovery/scoring-2-STOP.json"
+    next_stop_exists = len(accepted) in {1, 2} and (directory / next_stop).exists()
     if accepted and current == old["implementation"] and not next_stop_exists:
         return receipt(directory, raw, current)
     index = len(accepted) + 1
-    if index > 2:
-        raise ValueError("only-first-two-original-format-stops-can-upgrade")
+    if index > 3:
+        raise ValueError("all-three-judge-batches-already-accepted")
     changed = {
         p for p in old["implementation"]["files"] | current["files"] if old["implementation"]["files"].get(p) != current["files"].get(p)
     }
     allowed = {"tools/lifestyle/diet_trial/" + name for name in ("evidence.py", "evidence_upgrade.py", "run.py", "units.py", "__main__.py")}
     if changed - allowed or any(old["implementation"][k] != current[k] for k in current if k != "files"):
         raise ValueError("evidence-upgrade-cannot-change-prompts-scoring-or-algorithm")
-    stop = "recovery/STOP.json" if index == 1 else "recovery/evidence-STOP.json"
+    stop = "recovery/STOP.json" if index == 1 else "recovery/evidence-STOP.json" if index == 2 else "recovery/scoring-2-STOP.json"
     relative = f"judging/batch-{index}.json"
-    previous_file = "recovery-before-evidence.json" if index == 1 else "recovery-before-evidence-2.json"
-    if load(directory / stop)["type"] != "UnitExhausted":
+    previous_file = "recovery-before-evidence.json" if index == 1 else f"recovery-before-evidence-{index}.json"
+    if load(directory / stop)["type"] != ("GuardStop" if index == 3 else "UnitExhausted"):
         raise ValueError("only-first-judge-format-stop-can-upgrade")
     values = ledger(directory / "meter", raw["identity"])
     cases, replies = answers(directory, {**raw, "globalCallCap": 60, "recovery": old}, load(directory / "batch-01/library.json"))
@@ -52,9 +53,10 @@ def upgrade(directory):
     attempts = [r for r in values if r["requestHash"] == key]
     unit = load(directory / relative)
     if (
-        sum(r["status"] == "ok" for r in attempts) != 2
+        sum(r["status"] == "ok" for r in attempts) != (1 if index == 3 else 2)
         or any(r["status"] != "ok" and not r.get("completedUpstreamError") for r in attempts)
-        or unit["failures"] != ["InvalidFormat", "InvalidFormat"]
+        or unit["failures"] != (["InvalidFormat"] if index == 3 else ["InvalidFormat", "InvalidFormat"])
+        or (index == 3 and len(values) != 60)
     ):
         raise ValueError("only-two-original-completed-format-rejections-accepted")
     candidates = sorted((directory / "meter/rejected").glob(key + "-*.json"), key=lambda p: int(p.stem.rsplit("-", 1)[1]))

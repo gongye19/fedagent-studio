@@ -110,6 +110,8 @@ def remote(monkeypatch):
         if system.startswith("DIET_BLIND_JUDGE_V1") and state.get("malformedJudgeBatch2") and cases[0]["id"] == "eval-2":
             boundary = text.index('}, {"id":')
             text = text[:boundary] + text[boundary + 1 :]
+        if system.startswith("DIET_BLIND_JUDGE_V1") and state.get("lastJudgeOverload") and cases[0]["id"] == "eval-4":
+            state["resumeOverloads"] = 1
         return {"text": text, "model": "test", "usage": {"prompt_tokens": 1, "completion_tokens": 1}, "finish_reason": "stop"}
 
     monkeypatch.setattr(bridge, "remote", call)
