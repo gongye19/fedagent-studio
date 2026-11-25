@@ -73,6 +73,9 @@ def allocate(directory, plan, index):
 
 
 class GuardedModel:
+    def _prior_errors(self, values, key):
+        return connection_errors(values, key)
+
     def __init__(self, directory, plan, limit, *, factory=CachedModel):
         self.directory, self.plan = directory, plan
         # 只是冻结预期身份；构造器仍须通过远端读取验证，不能先写入新身份。
@@ -98,7 +101,7 @@ class GuardedModel:
         prior_errors = 0
         try:
             attempts = load(self.directory / "attempts.json") if (self.directory / "attempts.json").exists() else []
-            prior_errors = connection_errors(attempts, key)
+            prior_errors = self._prior_errors(attempts, key)
             if prior_errors >= 2:
                 raise NotDispatchedPermanent("same-request-two-errors-exhausted")
             output_cap = max(settings.get("max_tokens") or 0, settings.get("max_completion_tokens") or 0)

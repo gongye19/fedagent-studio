@@ -149,6 +149,8 @@ class CachedModel:
                 return ChatResult(**result)
             except (subprocess.SubprocessError, ValueError, ModelError) as error:
                 row["status"] = "error"
+                if getattr(error, "completed_upstream_error", False):
+                    row["completedUpstreamError"] = True
                 if isinstance(error, ModelError):
                     raise
                 raise ModelError(str(error)) from error

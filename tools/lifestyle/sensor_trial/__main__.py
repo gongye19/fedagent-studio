@@ -19,6 +19,7 @@ def main():
     parser.add_argument("--source", type=Path)
     parser.add_argument("--model-ref", default="default:gpt-5.6-luna")
     parser.add_argument("--related-calls", type=int, default=0)
+    parser.add_argument("--server-audit", type=Path)
     args = parser.parse_args()
     directory = args.directory.resolve()
     if args.action == "verify":
@@ -27,7 +28,7 @@ def main():
         directory.mkdir(parents=True, exist_ok=True)
         hold_experiment_lock(directory)
         if args.action == "prepare-recovery":
-            result = prepare_recovery(directory, related=args.related_calls)
+            result = prepare_recovery(directory, related=args.related_calls, server_audit=args.server_audit)
         elif args.action == "prepare":
             if args.source is None:
                 parser.error("prepare需要--source")

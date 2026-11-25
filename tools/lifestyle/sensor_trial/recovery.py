@@ -15,6 +15,7 @@ from ..full.federation.budget import ledger
 
 ALLOWED = {
     "tools/lifestyle/model.py",
+    "tools/lifestyle/full/federation/budget.py",
     *(
         "tools/lifestyle/sensor_trial/" + name
         for name in ("prepare.py", "run.py", "verify.py", "__main__.py", "recovery.py", "transport.py")
@@ -84,14 +85,17 @@ def related_calls(directory, plan):
     return value["relatedDiagnosticCalls"] if value else 0
 
 
-def prepare_recovery(directory, *, related=0):
+def prepare_recovery(directory, *, related=0, server_audit=None):
     from .prepare import ROOT, implementation, validate_frozen
 
     plan = load(directory / "inputs/plan.json")
     validate_frozen(directory, plan)
     current = implementation()
-    if (directory / "recovery.json").exists():
+    previous = receipt(directory, plan) if (directory / "recovery.json").exists() else None
+    if previous and server_audit is None:
         return receipt(directory, plan, current=current, required=True)
+    if server_audit is not None and (previous is None or previous.get("previousRecovery")):
+        raise ValueError("server-confirmed-amendment-requires-first-recovery")
     before = plan["implementation"]
     changed = {p for p in before["files"] | current["files"] if before["files"].get(p) != current["files"].get(p)}
     if changed - ALLOWED or any(before[k] != current[k] for k in before if k != "files"):
@@ -99,23 +103,46 @@ def prepare_recovery(directory, *, related=0):
     values = ledger(directory / "meter", plan["identity"])
     errors = [r for r in values if r["status"] == "error" and "usage" not in r]
     if (
-        not 1 <= len(errors) <= 2
-        or any(n > 1 for n in Counter(r["requestHash"] for r in errors).values())
+        not errors
+        or (previous is None and (len(errors) > 2 or any(n > 1 for n in Counter(r["requestHash"] for r in errors).values())))
         or type(related) is not int
         or not 0 <= related <= 3
     ):
         raise ValueError("recovery-only-for-first-isolated-transport-errors")
     state = load(directory / "batch-01/state.json")
-    if state["status"] != "failed" or not state.get("probePassed") or not state.get("rootError", {}).get("recoverable"):
+    if (
+        state["status"] != "failed"
+        or not state.get("probePassed")
+        or (previous is None and not state.get("rootError", {}).get("recoverable"))
+    ):
         raise ValueError("not-a-recoverable-transport-pause")
     units = completed_units(directory, state["taskId"])
-    if Counter(r[1] for r in units) != {"prepare": 6, "reflect": 6}:
+    counts = Counter(r[1] for r in units)
+    if counts["prepare"] != 6 or counts["reflect"] != 6 or set(counts) - {"prepare", "reflect", "extract"} or counts["extract"] > 5:
         raise ValueError("recovery-requires-all-six-successful-reflections")
     uri = (directory / "platform/fedagent.db").resolve().as_uri() + "?mode=ro"
     with closing(sqlite3.connect(uri, uri=True)) as db:
         task = db.execute("SELECT status,cursor_step,plugin_hash FROM tasks WHERE id=?", (state["taskId"],)).fetchone()
         if task != ("paused", "extract", before["plugin"]):
             raise ValueError("recovery-requires-original-extract-pause")
+        evidence = load(server_audit) if server_audit is not None else []
+        if previous:
+            prior = set(previous["acknowledgedUnknownCostOrdinals"])
+            new = [r for r in errors if r["ordinal"] not in prior]
+            if related != previous["relatedDiagnosticCalls"] or len(new) != 1:
+                raise ValueError("amendment-only-for-one-new-confirmed-error")
+            hashes = [
+                row[0]
+                for row in db.execute(
+                    "SELECT request_hash FROM calls WHERE task_id=? AND error LIKE ?",
+                    (state["taskId"], "%GuardStop:ended:" + new[0]["requestHash"] + "%"),
+                )
+            ]
+            if not any(
+                len(row) == 8 and row[2] == "error" and row[3] in hashes and row[5] == "重试 0 次后仍失败（模型接口返回错误）"
+                for row in evidence
+            ):
+                raise ValueError("server-evidence-does-not-match-failed-request")
     if len(values) + related + 20 > plan["globalCallCap"]:
         raise ValueError("insufficient-remaining-call-budget")
     backup = ROOT / ".backups" / ("cg-smoke-" + datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ"))
@@ -131,6 +158,8 @@ def prepare_recovery(directory, *, related=0):
         "relatedDiagnosticCalls": related,
         "taskId": state["taskId"],
         "originalStateDigest": digest(state),
+        "previousRecovery": previous["digest"] if previous else None,
+        "serverEvidence": evidence,
         "completedUnits": units,
         "completedValues": completed_values(directory, state["taskId"]),
         "backup": str(backup),

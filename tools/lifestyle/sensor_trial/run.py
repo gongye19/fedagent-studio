@@ -21,6 +21,14 @@ from .retrieval import retrieve
 
 
 class TrialModel(GuardedModel):
+    def __init__(self, directory, plan, limit, **kwargs):
+        super().__init__(directory, plan, limit, **kwargs)
+        recovery = receipt(directory.parent, plan)
+        self.acknowledged = set(recovery["acknowledgedUnknownCostOrdinals"] if recovery else [])
+
+    def _prior_errors(self, values, key):
+        return super()._prior_errors([r for r in values if r["ordinal"] not in self.acknowledged], key)
+
     def chat(self, prompt, **settings):
         # guard也可能在进入CachedModel前拒绝；不能继承上次派发标志。
         self.model.last.dispatched = False
@@ -39,7 +47,10 @@ def checked_ledger(directory, plan):
     if len(values) + (recovery["relatedDiagnosticCalls"] if recovery else 0) > plan["globalCallCap"]:
         raise ValueError("whole-job-budget-exceeded")
     acknowledged = recovery["acknowledgedUnknownCostOrdinals"] if recovery else []
-    if any(r["status"] == "error" and "usage" not in r and r["ordinal"] not in acknowledged for r in values):
+    if any(
+        r["status"] == "error" and "usage" not in r and r["ordinal"] not in acknowledged and not r.get("completedUpstreamError")
+        for r in values
+    ):
         raise ValueError("unknown-cost-transport-failure-blocks-job")
     return values
 

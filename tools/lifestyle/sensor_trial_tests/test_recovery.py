@@ -130,3 +130,57 @@ def test_recovery_cannot_be_created_for_completed_job(job, remote):
     with pytest.raises(ValueError):
         prepare_recovery(job[0])
     assert not (job[0] / "recovery.json").exists()
+
+
+def test_completed_upstream_error_retries_bounded_and_counts_unknown_usage(job, remote):
+    remote["upstreamErrors"] = 1
+    result = run(job[0])
+    assert result["attempts"] == 28 and result["unknownCostAttempts"] == 1
+    values = load(job[0] / "meter/attempts.json")
+    failed = [r for r in values if r["status"] == "error"]
+    assert len(failed) == 1 and failed[0]["completedUpstreamError"] and "usage" not in failed[0]
+
+
+def test_only_server_matched_error_can_amend_recovery(job, remote):
+    directory = job[0]
+    pause(job, remote)
+    first = prepare_recovery(directory, related=1)
+    remote["extractOutages"] = 1
+    with pytest.raises(ValueError):
+        run(directory)
+    remote["extractOutages"] = 0
+    values = load(directory / "meter/attempts.json")
+    new = next(r for r in values if r["status"] == "error" and r["ordinal"] > len(first["ledgerPrefix"]))
+    with sqlite3.connect(directory / "platform/fedagent.db") as db:
+        model_hash = db.execute(
+            "SELECT request_hash FROM calls WHERE error LIKE ?", ("%GuardStop:ended:" + new["requestHash"] + "%",)
+        ).fetchone()[0]
+    evidence = directory / "server-audit.json"
+    save(evidence, [[123, "fixture", "error", "wrong-hash", 10, "重试 0 次后仍失败（模型接口返回错误）", 0, 0]])
+    with pytest.raises(ValueError, match="server-evidence"):
+        prepare_recovery(directory, related=1, server_audit=evidence)
+    save(evidence, [[123, "fixture", "error", model_hash, 10, "重试 0 次后仍失败（模型接口返回错误）", 0, 0]])
+    second = prepare_recovery(directory, related=1, server_audit=evidence)
+    assert second["previousRecovery"] == first["digest"]
+    assert load(directory / "meter/attempts.json") == values
+    result = run(directory)
+    assert result["totalCountedDispatches"] <= 40 and result["status"] == "complete"
+
+
+def test_transport_recognizes_only_explicit_upstream_error(monkeypatch):
+    import subprocess
+
+    from tools.lifestyle.sensor_trial.transport import UpstreamReplyError
+
+    link = SSHLink()
+    link.base = ["ssh", "user@example.test"]
+    monkeypatch.setattr(link, "check", lambda: None)
+
+    def fail(*args, **kwargs):
+        raise subprocess.CalledProcessError(
+            1, args[0], stderr="fedagent_sdk.model.ModelUnavailable: 重试 0 次后仍失败（模型接口返回错误）\n"
+        )
+
+    monkeypatch.setattr(subprocess, "run", fail)
+    with pytest.raises(UpstreamReplyError):
+        link.request({})

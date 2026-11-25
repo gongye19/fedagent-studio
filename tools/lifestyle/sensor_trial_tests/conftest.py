@@ -14,7 +14,16 @@ IDENTITY = {"endpoint": "default", "model": "test", "kind": "openai", "baseUrl":
 
 @pytest.fixture
 def remote(monkeypatch):
-    state = {"paid": 0, "inspect": 0, "requests": [], "invalid": 0, "outage": False, "truncated": 0, "extractOutages": 0}
+    state = {
+        "paid": 0,
+        "inspect": 0,
+        "requests": [],
+        "invalid": 0,
+        "outage": False,
+        "truncated": 0,
+        "extractOutages": 0,
+        "upstreamErrors": 0,
+    }
     fake = FakeModel()
 
     def call(request):
@@ -27,6 +36,11 @@ def remote(monkeypatch):
 
         text = "\n".join(r["content"] for r in request["messages"])
         extract = text.lstrip().startswith(prompts.TRACE_TEMPLATE.strip()[:70])
+        if extract and state["upstreamErrors"]:
+            state["upstreamErrors"] -= 1
+            from tools.lifestyle.sensor_trial.transport import UpstreamReplyError
+
+            raise UpstreamReplyError("test completed upstream error")
         if extract and state["extractOutages"]:
             state["extractOutages"] -= 1
             from fedagent_sdk import ModelError

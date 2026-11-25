@@ -215,7 +215,7 @@ def write_report(directory, result):
     lines += [
         "",
         f"变化：{result['changes']}；经验{result['experienceEntries']}条；实际派发{result['attempts']}/40。",
-        f"另计连接诊断{result['relatedDiagnosticCalls']}次，合计{result['totalCountedDispatches']}/40；其中{result['unknownCostAttempts']}次历史超时用量未知，未按零费用处理。",
+        f"另计连接诊断{result['relatedDiagnosticCalls']}次，合计{result['totalCountedDispatches']}/40；其中{result['unknownCostAttempts']}次失败调用用量未知，未按零费用处理。",
         "",
         "|来源|处理记录|零经验记录|上传trace|最终经验库|",
         "|---|---:|---:|---:|---|",

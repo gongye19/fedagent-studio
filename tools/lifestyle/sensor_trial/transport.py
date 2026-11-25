@@ -9,7 +9,13 @@ from pathlib import Path
 
 from fedagent_sdk import ModelError
 
-from ..model import COMMAND, CachedModel
+from ..model import COMMAND, CachedModel, InvalidReply
+
+
+class UpstreamReplyError(InvalidReply):
+    """上游明确以error事件结束；重试有界、用量仍未知，不能当作未计费。"""
+
+    completed_upstream_error = True
 
 
 class SSHLink:
@@ -68,6 +74,11 @@ class SSHLink:
                 check=True,
             )
             value = json.loads(result.stdout)
+        except subprocess.CalledProcessError as error:
+            last = (error.stderr or "").strip().splitlines()
+            if last and last[-1].endswith("重试 0 次后仍失败（模型接口返回错误）"):
+                raise UpstreamReplyError("上游明确返回错误事件；本次用量未知且计入限额") from error
+            raise ModelError("SSH模型桥未完整返回；未自动重发：CalledProcessError") from error
         except (subprocess.SubprocessError, ValueError) as error:
             raise ModelError("SSH模型桥未完整返回；未自动重发：" + type(error).__name__) from error
         print(f"SSH bridge {'inspect' if request.get('inspect') else 'reply'}: {time.monotonic() - start:.1f}s", flush=True)
