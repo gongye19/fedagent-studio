@@ -54,7 +54,7 @@ def normalize(text, cases):
                 quote = score["evidence"]
                 if quote in source:
                     continue
-                parts = [p.strip() for p in re.split(r"[，、；;,。\n]", quote) if p.strip()]
+                parts = [p.strip() for p in re.split(r"[，、；;,。\n＋+]", quote) if p.strip()]
                 if len(parts) < 2 or any(len(p) < 2 for p in parts):
                     continue
                 spans, offset = [], 0

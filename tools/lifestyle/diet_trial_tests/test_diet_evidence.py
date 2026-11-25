@@ -37,6 +37,11 @@ def test_fragments_restore_whole_source_context_without_changing_scores():
         ]
 
 
+def test_plus_separated_citation_preserves_parenthesized_examples():
+    text, cases = sample("半盘蔬菜＋四分之一蛋白质")
+    assert judge_reply(text, cases)["case"]["X"]["U1"]["evidence"] == "半盘蔬菜（任选绿叶菜），四分之一蛋白质"
+
+
 @pytest.mark.parametrize(
     "evidence", ["碳水约75克；不能完全禁碳水", "可以完全禁碳水；四分之一蛋白质", "四分之一蛋白质；半盘蔬菜", "蔬菜有益；保证血糖正常"]
 )
