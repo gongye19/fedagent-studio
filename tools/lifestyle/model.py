@@ -88,12 +88,15 @@ class CachedModel:
         self.last = threading.local()
         self.requests = {}
         self.slots = threading.BoundedSemaphore(2)
-        self.identity = remote({"ref": ref, "inspect": True})
+        self.identity = self._request({"ref": ref, "inspect": True})
         path = directory / "model.json"
         if path.exists() and load(path) != self.identity:
             raise ValueError("模型配置发生变化；请使用新的实验目录")
         save(path, self.identity)
         self.name = self.identity["model"]
+
+    def _request(self, request):
+        return remote(request)
 
     def chat(self, prompt, **settings):
         self.last.dispatched = False
@@ -132,7 +135,7 @@ class CachedModel:
                 self.last.dispatched = True
                 print(f"model call {len(ledger)}/{self.limit}", flush=True)
             try:
-                result = remote(body)
+                result = self._request(body)
                 row["usage"] = result.get("usage", {})
                 row["reportedModel"] = result.get("model")
                 row["finishReason"] = result.get("finish_reason")

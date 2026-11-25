@@ -14,7 +14,7 @@ IDENTITY = {"endpoint": "default", "model": "test", "kind": "openai", "baseUrl":
 
 @pytest.fixture
 def remote(monkeypatch):
-    state = {"paid": 0, "inspect": 0, "requests": [], "invalid": 0, "outage": False, "truncated": 0}
+    state = {"paid": 0, "inspect": 0, "requests": [], "invalid": 0, "outage": False, "truncated": 0, "extractOutages": 0}
     fake = FakeModel()
 
     def call(request):
@@ -23,6 +23,15 @@ def remote(monkeypatch):
             return IDENTITY
         state["paid"] += 1
         state["requests"].append(request)
+        from fedagent_fot import prompts
+
+        text = "\n".join(r["content"] for r in request["messages"])
+        extract = text.lstrip().startswith(prompts.TRACE_TEMPLATE.strip()[:70])
+        if extract and state["extractOutages"]:
+            state["extractOutages"] -= 1
+            from fedagent_sdk import ModelError
+
+            raise ModelError("test extract transport failure")
         if state["outage"]:
             from fedagent_sdk import ModelError
 

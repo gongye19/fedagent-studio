@@ -1,5 +1,7 @@
 """单账本、有限派发；真实引擎完全结束后才串行生成两组预测。"""
 
+from functools import partial
+
 from fastapi.testclient import TestClient
 from fedagent import models as m
 from fedagent.api import create_app
@@ -14,6 +16,7 @@ from ..full.federation.stats import batch_usage
 from ..runner import local_platform
 from .adapter import SETTINGS, messages, prediction
 from .prepare import validate
+from .recovery import activate, receipt, related_calls
 from .retrieval import retrieve
 
 
@@ -32,9 +35,11 @@ class TrialModel(GuardedModel):
 
 def checked_ledger(directory, plan):
     values = ledger(directory / "meter", plan["identity"])
-    if len(values) > plan["globalCallCap"]:
+    recovery = receipt(directory, plan, values=values)
+    if len(values) + (recovery["relatedDiagnosticCalls"] if recovery else 0) > plan["globalCallCap"]:
         raise ValueError("whole-job-budget-exceeded")
-    if any(r["status"] == "error" and "usage" not in r for r in values):
+    acknowledged = recovery["acknowledgedUnknownCostOrdinals"] if recovery else []
+    if any(r["status"] == "error" and "usage" not in r and r["ordinal"] not in acknowledged for r in values):
         raise ValueError("unknown-cost-transport-failure-blocks-job")
     return values
 
@@ -43,10 +48,12 @@ def federate(directory, plan, guard):
     folder, batch = directory / "batch-01", plan["batches"][0]
     path = folder / "state.json"
     state = load(path) if path.exists() else {"fingerprint": plan["fingerprint"], "status": "prepared", "sites": {}}
-    if state["fingerprint"] != plan["fingerprint"] or state.get("terminal"):
+    if state["fingerprint"] != plan["fingerprint"]:
         raise ValueError("terminal-or-changed-algorithm-job")
     records = {site: rows(directory / f"inputs/batch-01-{site}.jsonl") for site in "ABC"}
     platform = local_platform(directory, guard)
+    if state.get("terminal"):
+        activate(directory, plan, platform, state)
     with TestClient(create_app(platform)) as client:
         if not state.get("probePassed"):
             if not check_endpoint(platform, "default", verify_platform=True).ok:
@@ -56,7 +63,7 @@ def federate(directory, plan, guard):
         task_id = ensure_resources(directory, plan, batch, records, platform, client, state)
         with platform.db.session() as session:
             task = session.get(m.Task, task_id)
-            if task.status in ("paused", "canceled"):
+            if task.status == "canceled" or (task.status == "paused" and state["status"] != "resume-ready"):
                 raise ValueError("algorithm-paused-or-canceled: " + str(task.error))
             if task.status != "completed":
                 task.status, task.command, task.error = "running", None, None
@@ -70,6 +77,8 @@ def federate(directory, plan, guard):
         usage = batch_usage(platform, batch, records, state, require_complete=True)
         publish(directory, plan, batch, platform, client, state)
         state.update(status="complete", sourceUsage=usage, federationAttempts=len(checked_ledger(directory, plan)))
+        state.pop("error", None)
+        state.pop("rootError", None)
         save(path, state)
     return state
 
@@ -87,7 +96,7 @@ def evaluate(directory, plan, guard, library):
         unit = directory / f"answers/{case['id']}-{arm}.json"
         complete = unit.exists() and "value" in load(unit)
         if not complete:
-            if len(checked_ledger(directory, plan)) + remaining > plan["globalCallCap"]:
+            if len(checked_ledger(directory, plan)) + remaining + related_calls(directory, plan) > plan["globalCallCap"]:
                 raise ValueError("insufficient-budget-for-remaining-answers")
             guard.model.reserved = remaining - 1
         request = messages(case["input"], selected if arm == "shared" else {})
@@ -106,14 +115,19 @@ def evaluate(directory, plan, guard, library):
         print(f"answer {case['id']} {arm}: complete", flush=True)
 
 
-def run(directory):
+def run(directory, *, link=None):
     plan = validate(directory)
     checked_ledger(directory, plan)
     from .verify import verify, verify_federation
 
     if (directory / "COMPLETE.json").exists():
         return verify(directory)
-    guard = TrialModel(directory / "meter", plan, plan["globalCallCap"])
+    factory = {}
+    if link is not None:
+        from .transport import ConnectedModel
+
+        factory["factory"] = partial(ConnectedModel, link=link)
+    guard = TrialModel(directory / "meter", plan, plan["globalCallCap"] - related_calls(directory, plan), **factory)
     try:
         guard.model.reserved = 12
         state_path = directory / "batch-01/state.json"

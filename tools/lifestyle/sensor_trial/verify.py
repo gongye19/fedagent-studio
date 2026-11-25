@@ -11,6 +11,7 @@ from ..sensor_samples.common import number, rounded
 from ..sensor_samples.metrics import macro_score
 from .adapter import SETTINGS, TARGET, messages, prediction
 from .prepare import file_hash, validate
+from .recovery import receipt, related_calls
 from .retrieval import retrieve
 from .run import checked_ledger
 
@@ -22,7 +23,7 @@ def verify_federation(directory, plan):
         state["status"] != "complete"
         or state["fingerprint"] != plan["fingerprint"]
         or set(state["sites"]) != set("ABC")
-        or not 1 <= state["federationAttempts"] <= 28
+        or not 1 <= state["federationAttempts"] <= 28 - related_calls(directory, plan)
         or len(attempts) < state["federationAttempts"]
     ):
         raise ValueError("algorithm-completion-receipt-invalid")
@@ -172,7 +173,11 @@ def verify(directory, *, completing=False):
         "attempts": len(attempts),
         "federationAttempts": state["federationAttempts"],
         "cap": 40,
-        "paidErrorsWithReportedUsage": sum(r["status"] == "error" for r in attempts),
+        "paidErrorsWithReportedUsage": sum(r["status"] == "error" and "usage" in r for r in attempts),
+        "unknownCostAttempts": sum(r["status"] == "error" and "usage" not in r for r in attempts),
+        "relatedDiagnosticCalls": related_calls(directory, plan),
+        "totalCountedDispatches": len(attempts) + related_calls(directory, plan),
+        "recovered": receipt(directory, plan) is not None,
         "usage": {k: sum(r.get("usage", {}).get(k, 0) for r in attempts) for k in ("prompt_tokens", "completion_tokens")},
         "deployed": False,
         "recommendationEffectProven": False,
@@ -210,6 +215,7 @@ def write_report(directory, result):
     lines += [
         "",
         f"变化：{result['changes']}；经验{result['experienceEntries']}条；实际派发{result['attempts']}/40。",
+        f"另计连接诊断{result['relatedDiagnosticCalls']}次，合计{result['totalCountedDispatches']}/40；其中{result['unknownCostAttempts']}次历史超时用量未知，未按零费用处理。",
         "",
         "|来源|处理记录|零经验记录|上传trace|最终经验库|",
         "|---|---:|---:|---:|---|",

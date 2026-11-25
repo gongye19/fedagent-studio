@@ -130,6 +130,17 @@ def prepare(directory, source, identity):
 def validate(directory):
     target = directory / "inputs"
     plan = load(target / "plan.json")
+    validate_frozen(directory, plan)
+    current = implementation()
+    if plan["implementation"] != current:
+        from .recovery import receipt
+
+        receipt(directory, plan, current=current, required=True)
+    return plan
+
+
+def validate_frozen(directory, plan):
+    target = directory / "inputs"
     if digest({k: v for k, v in plan.items() if k != "fingerprint"}) != plan["fingerprint"]:
         raise ValueError("trial-plan-changed")
     if (
@@ -137,7 +148,6 @@ def validate(directory):
         or plan["globalCallCap"] != 40
         or plan["normalCalls"] != 27
         or plan["sourcePolicy"] != SOURCE_POLICY
-        or plan["implementation"] != implementation()
     ):
         raise ValueError("trial-implementation-or-policy-changed")
     verify_input(Path(plan["source"]), SOURCE_POLICY)
@@ -146,4 +156,3 @@ def validate(directory):
     for name, expected in plan["files"].items():
         if Path(name).name != name or file_hash(target / name) != expected:
             raise ValueError("frozen-trial-input-changed")
-    return plan
