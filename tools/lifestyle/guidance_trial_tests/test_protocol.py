@@ -1,7 +1,6 @@
 """来源保留、聚合覆盖、参考隔离、额度与缓存的离线回归。"""
 
 import json
-from types import SimpleNamespace
 
 import pytest
 
@@ -33,6 +32,16 @@ def test_exact_source_evidence_and_card_limit():
         {"fullArticleText": "Walking\nis an example\u00a0activity."},
     )
     assert normalized["walking"]["quotes"] == ["Walking\nis an example\u00a0activity."]
+    punctuated = parse_cards(
+        json.dumps({"walking": card()}),
+        {"fullArticleText": "Walking is an example activity ."},
+    )
+    assert punctuated["walking"]["quotes"] == ["Walking is an example activity ."]
+    with pytest.raises(ValueError, match="evidence"):
+        parse_cards(
+            json.dumps({"walking": card()}),
+            {"fullArticleText": "Walking is an example activityXYZ."},
+        )
     altered = card()
     altered["quotes"] = ["Walking cures every disease."]
     with pytest.raises(ValueError, match="evidence"):
@@ -155,13 +164,12 @@ def test_identity_wait_does_not_change_paid_request_path(tmp_path, monkeypatch):
     monkeypatch.setattr(link, "check", lambda: None)
     inspections = []
 
-    def inspect(*args, **kwargs):
-        inspections.append(kwargs["timeout"])
-        return SimpleNamespace(stdout=json.dumps(IDENTITY))
+    class Inspector:
+        def exchange(self, request, timeout):
+            inspections.append(timeout)
+            return IDENTITY
 
-    monkeypatch.setattr(
-        "tools.lifestyle.guidance_trial.transport.subprocess.run", inspect
-    )
+    link.worker = Inspector()
     monkeypatch.setattr(
         "tools.lifestyle.diet_transport.DietLink.request",
         lambda self, request: {"paid": request},

@@ -4,7 +4,15 @@ from ..common import digest, load
 
 ALLOWED = {
     "tools/lifestyle/guidance_trial/" + n + ".py"
-    for n in ("protocol", "prepare", "calls", "__main__", "compat")
+    for n in (
+        "protocol",
+        "prepare",
+        "calls",
+        "__main__",
+        "compat",
+        "transport",
+        "worker",
+    )
 }
 
 

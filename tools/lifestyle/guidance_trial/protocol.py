@@ -94,9 +94,29 @@ def parse_cards(text, row):
         for quote in quotes:
             if not isinstance(quote, str) or not 12 <= len(quote) <= 700:
                 raise ValueError("evidence-not-in-source")
+            if quote in row["fullArticleText"]:
+                exact.append(quote)
+                continue
             # HTML contains newlines/non-breaking spaces. Match only whitespace variations,
             # never words, punctuation, numbers or units; retain the actual source substring.
-            pattern = r"\s+".join(re.escape(p) for p in quote.strip().split())
+            # Link extraction also introduces spaces before punctuation ("bloating .").
+            # Keep word/number/punctuation tokens identical, only tolerate their whitespace.
+            tokens = re.findall(r"\w+|[^\w\s]", quote)
+            parts = []
+            for index, token in enumerate(tokens):
+                if index:
+                    parts.append(
+                        r"\s+"
+                        if re.fullmatch(r"\w+", tokens[index - 1])
+                        and re.fullmatch(r"\w+", token)
+                        else r"\s*"
+                    )
+                parts.append(
+                    r"(?<!\w)" + re.escape(token) + r"(?!\w)"
+                    if re.fullmatch(r"\w+", token)
+                    else re.escape(token)
+                )
+            pattern = "".join(parts)
             match = re.search(pattern, row["fullArticleText"])
             if match is None:
                 raise ValueError("evidence-not-in-source")
