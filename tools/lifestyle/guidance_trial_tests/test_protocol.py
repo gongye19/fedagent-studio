@@ -43,6 +43,12 @@ def test_exact_source_evidence_and_card_limit():
             {"fullArticleText": "Walking is an example activityXYZ."},
         )
     altered = card()
+    mixed = card()
+    mixed["quotes"].append("An unverified paraphrase is not a quotation.")
+    assert (
+        parse_cards(json.dumps({"walking": mixed}), row)["walking"]["quotes"]
+        == card()["quotes"]
+    )
     altered["quotes"] = ["Walking cures every disease."]
     with pytest.raises(ValueError, match="evidence"):
         parse_cards(json.dumps({"trace_walk": altered}), row)

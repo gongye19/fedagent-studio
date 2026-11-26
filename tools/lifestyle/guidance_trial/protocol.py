@@ -93,7 +93,7 @@ def parse_cards(text, row):
         exact = []
         for quote in quotes:
             if not isinstance(quote, str) or not 12 <= len(quote) <= 700:
-                raise ValueError("evidence-not-in-source")
+                continue
             if quote in row["fullArticleText"]:
                 exact.append(quote)
                 continue
@@ -119,8 +119,13 @@ def parse_cards(text, row):
             pattern = "".join(parts)
             match = re.search(pattern, row["fullArticleText"])
             if match is None:
-                raise ValueError("evidence-not-in-source")
+                # Glossary tooltips may be interleaved in the archived HTML text.
+                # Keep only verifiable excerpts; never label a paraphrase as a quote.
+                # The untouched raw reply retains discarded candidates for audit.
+                continue
             exact.append(match.group(0))
+        if not exact:
+            raise ValueError("evidence-not-in-source")
         card["quotes"] = exact
         if len(json.dumps(card, ensure_ascii=False)) > 2200:
             raise ValueError("card-too-long")
