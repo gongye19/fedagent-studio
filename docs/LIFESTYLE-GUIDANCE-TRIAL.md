@@ -2,7 +2,43 @@
 
 2026-11-26，用户授权重新提取并直接衔接实验。本轮仅本地实验，不上线、不增加产品功能；沿用此前暂不Claude Code review的要求。
 
-## 续跑核查
+## 完整结果（2026-11-27，已完成）
+
+345条资料全部完成反思、提取和29批聚合；随后同一进程完成24题双组对照。原调用、停止和恢复记录均保留，没有因中途分数修改来源、经验或评分规则。
+
+|来源|文章数|使用小节数|具体经验卡数|
+|---|---:|---:|---:|
+|NIDDK|20|85|177|
+|NHLBI|3|8|15|
+|CDC|16|61|119|
+|NHS|36|191|340|
+|合计|75|345|651|
+
+经验包收集29批共216个引用聚合组。651张原卡均恰好归组一次，1,721段保存引用都能在对应全文中找到。这里的345是资料小节数，651是原卡数，216是聚合组数；不能互相替代，也不代表651条独立临床证据。
+
+|固定24题的原始规则宏平均|结果|
+|---|---:|
+|不加载经验|51.27%|
+|加载所选经验|51.40%|
+|差值|+0.13个百分点|
+
+6题变好、7题变差、11题持平；24/24完整配对，无缺题。48份回答、516份逐规则评分全部保存。每题按原先冻结的词项规则选8张原卡，不是把651张全部塞入提示。**本轮整体几乎持平，不能认为已经获得稳定提升。** 此分数是同模型HealthBench规则自评，不是诊断正确率或临床获益。
+
+实际1,392次模型尝试：1,328次完整响应、64次明确结束的上游错误，未确认派发0；其中提取及聚合828次、对照564次。额外完整响应含格式重试和7次归类局部修正；总数未超过1,800上限。记录到的成功响应用量为2,915,859输入token、639,175输出token；错误未返回的用量不能视为零，也不据此推算最终费用。
+
+最终验收：`verify`完成回执通过；在临时副本中禁止模型生成、仅提供冻结身份，重新执行全部提取／聚合／检索／评分解析，经验包及24题结果逐项一致，原账本字节未变，新付费调用0。13项专项及此前相关检查已通过；标准图表已实际查看。离线复验只验证产物一致性，不替代医学语义审核。
+
+本机产物根：`data/lifestyle-prep/guidance-trial/run-20261126/`。
+
+- `experience-package.json`：完整651卡／216组及来源映射。
+- `report.html`、`report.json`：全部问题、两组回答、原规则及逐条评分。
+- `result-summary.md`、`comparison.png`／`.svg`：摘要及柱状对照。
+- `verification/offline-replay.json`：禁止新生成的完整重放记录。
+- `COMPLETE.json`：完成回执；旧STOP为保留历史，不表示当前未完成。
+
+实验进程已结束。本轮不再续跑或追加评测，没有部署、平台注册或连接LifeStyle App；旧包和旧实验保持原状。下面保留方法、预算及历史恢复依据。
+
+## 历史续跑核查（以下为当时状态）
 
 第二批归类成功后建库遇到明确结束的上游内部错误（消息明确允许重试），累计71次调用、0未知派发。将这一固定内部临时错误纳入已有45秒退避及每请求最多6次临时失败；鉴权、额度、上下文和未知结果仍停止，不泛化重试所有异常。原已结束错误按第1次计入该单元重试计数，未清账；24条提取、第二批归类和所有成功缓存均复用。13专项通过，旧提示、数据、评分、1800总上限保持不变，备份在`.backups/guidance-transient-20261126/`。
 
@@ -60,13 +96,15 @@
 
 ```sh
 FEDAGENT_LIFESTYLE_SSH_TARGET=poly-zhu@100.111.198.54 FEDAGENT_LIFESTYLE_SSH_PORT=10022 \
-uv run --project server python -m tools.lifestyle.guidance_trial prepare
+server/.venv/bin/python -m tools.lifestyle.guidance_trial prepare
 FEDAGENT_LIFESTYLE_SSH_TARGET=poly-zhu@100.111.198.54 FEDAGENT_LIFESTYLE_SSH_PORT=10022 \
-uv run --project server python -m tools.lifestyle.guidance_trial run
-uv run --project server python -m tools.lifestyle.guidance_trial verify
+server/.venv/bin/python -m tools.lifestyle.guidance_trial run
+server/.venv/bin/python -m tools.lifestyle.guidance_trial verify
 ```
 
-## 实际执行记录
+绘图使用`tools/lifestyle/batch/requirements.txt`中的已有实验依赖，安装在`server/.venv`，不增加生产依赖。完成目录再执行`run`只报告已完成；验证用`verify`，不要另建目录重算。
+
+## 历史执行记录
 
 方案及独立实验工具已完成；付费运行结果以完成回执和随后补充记录为准，不能把预算或实现写成已提取成功。
 
@@ -76,4 +114,4 @@ uv run --project server python -m tools.lifestyle.guidance_trial verify
 
 NHS引用空白兼容：第3小节两次完整提取因HTML换行／不换行空格与模型普通空格差异被拒绝，累计8次均完整返回，无未知派发。引用匹配只允许空白差异，标点、单词、数值、单位不作近似；输出恢复为源文实际片段。最早NHS响应离线通过并纳入受保护的接受凭据，原计划／提示／评分／预算不变，不重算成功反思或提取。原8行账本、两次停止及所有响应保留，备份`.backups/guidance-whitespace-20261126/`；9专项通过，继续同一作业。
 
-当前正式作业已恢复并运行：首3小节（CDC／NHLBI／NHS各1）已完成，共6张原卡；继续处理NIDDK及剩余小节。提取未完成，尚无最终经验包或对照结果。提取完成后同进程自动衔接24题双组评分，无需再次手动启动评测。
+初次恢复时首3小节（CDC／NHLBI／NHS各1）完成，共6张原卡；此后继续相同作业，现已全部完成，最终状态及数量以上方完整结果为准。
