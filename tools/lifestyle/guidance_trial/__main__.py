@@ -3,13 +3,13 @@
 import argparse
 
 from ..common import digest, hold_experiment_lock, load, save
-from ..diet_transport import DietLink
 from ..full.generation.prepare import MODEL_REF
 from .calls import Calls
 from .evaluate import evaluate
 from .extract import extract
 from .prepare import DEFAULT, prepare, validate
 from .report import report
+from .transport import GuidanceLink
 
 
 def main():
@@ -19,7 +19,7 @@ def main():
     args = parser.parse_args()
     directory = args.directory.resolve()
     if args.action == "prepare":
-        with DietLink(directory) as link:
+        with GuidanceLink(directory) as link:
             identity = link.request({"ref": MODEL_REF, "inspect": True})
         plan = prepare(directory, identity)
         print(
@@ -57,7 +57,7 @@ def main():
     if (directory / "STOP.json").exists():
         raise ValueError("stopped-run-requires-investigation-before-resume")
     try:
-        with DietLink(directory) as link:
+        with GuidanceLink(directory) as link:
             calls = Calls(directory, plan, link)
             library = extract(directory, plan, calls)
             results = evaluate(directory, plan, library, calls)
