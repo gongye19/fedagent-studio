@@ -1,6 +1,6 @@
 # 文档索引
 
-T162（2026-11-26，方案及工具已完成，真实运行待回执）：用户授权仅NIDDK85／NHLBI8／CDC61／NHS191共345小节重新提取并直接双组实验；其余来源不参与。独立fot-lifestyle-guidance/1保留具体行动、条件、参数及原文引用，沿用FoT归类／局部修正，自动数量的引用聚合保留原卡，明确非原FoT重写原样复现；原插件和生产不改。29批、24道此前未作答HealthBench题／258规则，常规1312次，总上限1800，未估价格。提取后同进程接续比较，旧数据／账本不改，不上线、不Claude review。8新专项及110相关测试通过，ruff／差异通过。详见[LIFESTYLE-GUIDANCE-TRIAL.md](./LIFESTYLE-GUIDANCE-TRIAL.md)。
+T162（2026-11-26，已开始真实提取，完成后同进程自动衔接对照）：用户授权仅NIDDK85／NHLBI8／CDC61／NHS191共345小节重新提取并直接双组实验；其余来源不参与。独立fot-lifestyle-guidance/1保留具体行动、条件、参数及原文引用，沿用FoT归类／局部修正，自动数量的引用聚合保留原卡，明确非原FoT重写原样复现；原插件和生产不改。29批、24道此前未作答HealthBench题／258规则，常规1312次，总上限1800，未估价格。提取后同进程接续比较，旧数据／账本不改，不上线、不Claude review。8新专项及110相关测试通过，ruff／差异通过。详见[LIFESTYLE-GUIDANCE-TRIAL.md](./LIFESTYLE-GUIDANCE-TRIAL.md)。
 
 最新T161：[CGMacros／LifeSnaps剩余数据与调用量](./LIFESTYLE-REMAINING-BUDGET.md)。剩余学习830／1930，未测评测233／514；按推荐过程＋原FoT＋双组评分估算常规10802次，预算建议18100次，尚未启动。用户要求回到主线，不再增加辅助功能。
 
