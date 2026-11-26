@@ -8,6 +8,7 @@ from ..common import digest, load, save
 from ..diet_transport import CompletedUpstreamError, DietCachedModel
 from ..full.federation.budget import ledger
 from ..model import InvalidReply
+from .compat import accepted
 
 
 class Calls:
@@ -34,6 +35,15 @@ class Calls:
             messages = [{"role": "user", "content": messages}]
         if namespace not in self.plan["namespaces"]:
             raise ValueError("unknown-model-namespace")
+        body = {
+            "ref": self.plan["modelRef"],
+            "identity": self.identity,
+            "messages": messages,
+            "settings": settings,
+        }
+        recovered = accepted(self.directory, relative, body, parse)
+        if recovered is not None:
+            return recovered
         if namespace not in self.models:
             cap = (
                 self.plan["evaluationCap"]

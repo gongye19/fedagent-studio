@@ -54,7 +54,10 @@ def main():
     if (directory / "COMPLETE.json").exists():
         print("Already complete; use verify. No new model calls.")
         return
-    if (directory / "STOP.json").exists():
+    if (directory / "STOP-resume.json").exists() or (
+        (directory / "STOP.json").exists()
+        and not (directory / "compatibility.json").exists()
+    ):
         raise ValueError("stopped-run-requires-investigation-before-resume")
     try:
         with GuidanceLink(directory) as link:
@@ -72,9 +75,12 @@ def main():
         )
         print(result["summary"])
     except Exception as error:
-        save(
-            directory / "STOP.json", {"type": type(error).__name__, "error": str(error)}
+        stop = (
+            "STOP-resume.json"
+            if (directory / "compatibility.json").exists()
+            else "STOP.json"
         )
+        save(directory / stop, {"type": type(error).__name__, "error": str(error)})
         raise
 
 

@@ -70,7 +70,7 @@ def parse_cards(text, row):
     if not isinstance(value, dict) or not 1 <= len(value) <= 3:
         raise ValueError("expected-one-to-three-cards")
     for key, card in value.items():
-        if not key.startswith("trace_") or not isinstance(card, dict):
+        if not isinstance(key, str) or not key.strip() or not isinstance(card, dict):
             raise ValueError("invalid-card")
         if set(card) != {
             "title",

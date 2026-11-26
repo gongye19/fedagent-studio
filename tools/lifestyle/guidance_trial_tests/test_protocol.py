@@ -27,6 +27,7 @@ def card():
 def test_exact_source_evidence_and_card_limit():
     row = {"fullArticleText": "Walking is an example activity."}
     assert parse_cards(json.dumps({"trace_walk": card()}), row)["trace_walk"] == card()
+    assert parse_cards(json.dumps({"walking": card()}), row)["walking"] == card()
     altered = card()
     altered["quotes"] = ["Walking cures every disease."]
     with pytest.raises(ValueError, match="evidence"):

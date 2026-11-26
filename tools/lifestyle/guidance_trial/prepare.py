@@ -9,6 +9,7 @@ from ..batch.prepare import frozen
 from ..common import digest, jsonl, load, rows, save
 from ..full.comparison.prepare import FILES, OLD, upstream
 from ..full.generation.prepare import MODEL_REF, ROOT, SOURCE, source_rows
+from .compat import validate_compat
 from .protocol import VERSION
 
 COUNTS = {"CDC": 61, "NHLBI": 8, "NHS": 191, "NIDDK": 85}
@@ -135,9 +136,9 @@ def validate(directory):
     if (
         digest({k: v for k, v in plan.items() if k != "fingerprint"})
         != plan["fingerprint"]
-        or implementation() != plan["implementation"]
     ):
         raise ValueError("plan-or-implementation-changed")
+    validate_compat(directory, plan, implementation())
     if digest(rows(directory / "inputs/sources.jsonl")) != plan["sourceDigest"]:
         raise ValueError("sources-changed")
     if (
