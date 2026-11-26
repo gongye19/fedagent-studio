@@ -127,8 +127,6 @@ def parse_cards(text, row):
         if not exact:
             raise ValueError("evidence-not-in-source")
         card["quotes"] = exact
-        if len(json.dumps(card, ensure_ascii=False)) > 2200:
-            raise ValueError("card-too-long")
     return value
 
 
