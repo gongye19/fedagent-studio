@@ -90,13 +90,18 @@ def parse_cards(text, row):
         quotes = card["quotes"]
         if not isinstance(quotes, list) or not 1 <= len(quotes) <= 4:
             raise ValueError("missing-evidence-quotes")
-        if any(
-            not isinstance(q, str)
-            or not 12 <= len(q) <= 700
-            or q not in row["fullArticleText"]
-            for q in quotes
-        ):
-            raise ValueError("evidence-not-in-source")
+        exact = []
+        for quote in quotes:
+            if not isinstance(quote, str) or not 12 <= len(quote) <= 700:
+                raise ValueError("evidence-not-in-source")
+            # HTML contains newlines/non-breaking spaces. Match only whitespace variations,
+            # never words, punctuation, numbers or units; retain the actual source substring.
+            pattern = r"\s+".join(re.escape(p) for p in quote.strip().split())
+            match = re.search(pattern, row["fullArticleText"])
+            if match is None:
+                raise ValueError("evidence-not-in-source")
+            exact.append(match.group(0))
+        card["quotes"] = exact
         if len(json.dumps(card, ensure_ascii=False)) > 2200:
             raise ValueError("card-too-long")
     return value

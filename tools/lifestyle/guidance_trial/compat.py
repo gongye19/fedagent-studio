@@ -18,7 +18,8 @@ def validate_compat(directory, plan, current):
         p for p in original.keys() | current.keys() if original.get(p) != current.get(p)
     }
     if (
-        receipt.get("kind") != "card-name-format-only/1"
+        receipt.get("kind")
+        not in ("card-name-format-only/1", "card-name-quote-whitespace-only/1")
         or receipt.get("planFingerprint") != plan["fingerprint"]
         or receipt.get("implementation") != current
         or not changes <= ALLOWED

@@ -54,10 +54,13 @@ def main():
     if (directory / "COMPLETE.json").exists():
         print("Already complete; use verify. No new model calls.")
         return
-    if (directory / "STOP-resume.json").exists() or (
-        (directory / "STOP.json").exists()
-        and not (directory / "compatibility.json").exists()
-    ):
+    compat = (
+        load(directory / "compatibility.json")
+        if (directory / "compatibility.json").exists()
+        else {}
+    )
+    approved_stops = compat.get("approvedStops", ["STOP.json"] if compat else [])
+    if any(p.name not in approved_stops for p in directory.glob("STOP*.json")):
         raise ValueError("stopped-run-requires-investigation-before-resume")
     try:
         with GuidanceLink(directory) as link:
@@ -75,11 +78,7 @@ def main():
         )
         print(result["summary"])
     except Exception as error:
-        stop = (
-            "STOP-resume.json"
-            if (directory / "compatibility.json").exists()
-            else "STOP.json"
-        )
+        stop = f"STOP-resume-{len(approved_stops)}.json" if compat else "STOP.json"
         save(directory / stop, {"type": type(error).__name__, "error": str(error)})
         raise
 
