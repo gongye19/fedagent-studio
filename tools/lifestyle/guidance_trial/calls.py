@@ -125,7 +125,7 @@ class Calls:
             try:
                 reply = model.chat(messages, **settings)
             except CompletedUpstreamError as error:
-                if not error.overloaded:
+                if not error.overloaded and not getattr(error, "retryable", False):
                     raise
                 unit["overloads"] += 1
                 save(target, unit)

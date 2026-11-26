@@ -3,6 +3,7 @@ import sys
 import pytest
 from fedagent_sdk import ModelError
 
+from tools.lifestyle.guidance_trial.transport import retryable_internal
 from tools.lifestyle.guidance_trial.worker import Worker, worker_script
 
 
@@ -52,3 +53,19 @@ def test_worker_timeout_ends_local_channel_without_automatic_resend():
         assert worker.process.poll() is not None
     finally:
         worker.close()
+
+
+def test_only_recognized_ended_internal_errors_are_retryable():
+    message = "An error occurred while processing your request. You can retry your request, or contact support."
+    detail = {
+        "completedUpstreamError": True,
+        "upstream": [{"type": "upstream_error", "message": message}],
+    }
+    assert retryable_internal(detail)
+    assert not retryable_internal({**detail, "completedUpstreamError": False})
+    assert not retryable_internal(
+        {
+            "completedUpstreamError": True,
+            "upstream": [{"type": "upstream_error", "message": "Invalid API key"}],
+        }
+    )

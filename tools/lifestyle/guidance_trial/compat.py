@@ -32,6 +32,7 @@ def validate_compat(directory, plan, current):
             "card-name-quote-whitespace-only/1",
             "verified-quote-subset/1",
             "card-length-format-only/1",
+            "transient-upstream-resume/1",
         )
         or receipt.get("planFingerprint") != plan["fingerprint"]
         or receipt.get("implementation") != current

@@ -9,6 +9,23 @@ from ..diet_transport import CompletedUpstreamError, DietLink, is_overload
 from .worker import WORKER_COMMAND, Worker
 
 
+def retryable_internal(detail):
+    events = detail.get("upstream", [])
+    return (
+        bool(detail.get("completedUpstreamError"))
+        and bool(events)
+        and all(
+            isinstance(event, dict)
+            and event.get("type") == "upstream_error"
+            and str(event.get("message", ""))
+            .lower()
+            .startswith("an error occurred while processing your request.")
+            and "retry your request" in str(event.get("message", "")).lower()
+            for event in events
+        )
+    )
+
+
 class GuidanceLink(DietLink):
     def __init__(self, directory):
         super().__init__(directory)
@@ -48,7 +65,8 @@ class GuidanceLink(DietLink):
                     "已收到上游错误；用量未知，安全详情已保存"
                 )
                 error.overloaded = is_overload(detail)
-                if error.overloaded:
+                error.retryable = error.overloaded or retryable_internal(detail)
+                if error.retryable:
                     self.next_dispatch = time.monotonic() + 45
                 raise error
             raise ModelError("模型未成功返回，未重发请求")
